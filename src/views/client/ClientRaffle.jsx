@@ -40,8 +40,20 @@ export default function ClientRaffle(ctx) {
 
       {/* Buy tickets */}
       <div style={{ padding: '0 20px', marginBottom: 16 }}>
-        <div style={{ fontSize: 13, color: '#9E9E9E', marginBottom: 12, textAlign: 'center' }}>
-          Precio: <strong style={{ color: '#2E7D32', ...sMono }}>{cfg.ticketPts} pts</strong> por boleto
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          marginBottom: 12, padding: '10px 16px', borderRadius: 12,
+          background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.06)' : '#F5F5F5',
+        }}>
+          <span style={{ fontSize: 12, color: cTier.name === 'BLACK' ? 'rgba(255,255,255,.5)' : '#9E9E9E', fontWeight: 600 }}>
+            Tus puntos:
+          </span>
+          <span style={{ ...sMono, fontSize: 18, fontWeight: 800, color: cTier.name === 'BLACK' ? '#FFD54F' : TH.pri }}>
+            {me.points}
+          </span>
+          <span style={{ fontSize: 11, color: cTier.name === 'BLACK' ? 'rgba(255,255,255,.35)' : '#BDBDBD', fontWeight: 600 }}>
+            · Precio: {cfg.ticketPts} pts/boleto
+          </span>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           {[1, 3, 5, 10].map(n => (
