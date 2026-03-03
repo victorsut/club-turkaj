@@ -149,6 +149,20 @@ export default function App() {
     });
   }, [sbConnected]);
 
+  // Helper: cargar conteo de encuestas del día para un miembro
+  const loadTodaySurveys = useCallback(async (memberId) => {
+    if (!sb || !memberId) return;
+    const today = new Date().toISOString().split('T')[0] + 'T00:00:00';
+    const { count, error } = await sb.from('surveys')
+      .select('*', { count: 'exact', head: true })
+      .eq('member_id', memberId)
+      .gte('created_at', today);
+    if (!error && typeof count === 'number') {
+      setMySurveyCount(count);
+      console.log('[Surveys] Encuestas hoy:', count);
+    }
+  }, []);
+
   // ===== SUPABASE DATA LOADING =====
   useEffect(() => {
     if (!sb) { setSbLoading(false); return; }
@@ -271,6 +285,8 @@ export default function App() {
 
         setSbConnected(true);
         console.log('[Club Turkaj] ✅ Datos cargados desde Supabase');
+
+
       } catch (e) {
         console.error('[Club Turkaj] ⚠️ Error cargando:', e);
       } finally {
@@ -348,6 +364,11 @@ export default function App() {
       });
     }
   }
+
+  // ===== CARGAR ENCUESTAS DEL DIA AL CAMBIAR DE USUARIO =====
+  useEffect(() => {
+    if (me?.id && sb) loadTodaySurveys(me.id);
+  }, [me?.id, loadTodaySurveys]);
 
   // ===== PROMO CAROUSEL AUTO-ADVANCE =====
   const activePromos = promos.filter(p => p.active);
@@ -452,7 +473,7 @@ export default function App() {
 
   const logout = useCallback(() => {
     if (sb) sb.auth.signOut({ scope: 'local' });
-    setMe(null); setGoogleStep('welcome');
+    setMe(null); setGoogleStep('welcome'); setMySurveyCount(0);
     if (isC) { setAuthScreen('login'); setCScr('home'); setLoginPhone(''); setLoginPass(''); }
     else if (isO) { setAuthOp('login'); setOScr('ohome'); }
     else if (isA) { setAuthAdmin('login'); setScr('dash'); }
