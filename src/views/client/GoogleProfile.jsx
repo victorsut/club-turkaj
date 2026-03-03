@@ -68,7 +68,7 @@ export default function GoogleProfile(ctx) {
   const maxBday = new Date(new Date().getFullYear() - 18, new Date().getMonth(), new Date().getDate()).toISOString().split('T')[0];
   const fields = [
     { k: 'name', l: 'Nombre completo', icon: '👤', req: true, type: 'text' },
-    { k: 'phone', l: 'Teléfono 8 dígitos (opcional)', icon: '📱', type: 'tel', maxLen: 8 },
+    { k: 'phone', l: 'Teléfono 8 dígitos (opcional)', icon: '📱', type: 'tel', maxLen: 8, numeric: true },
     { k: 'dpi', l: 'DPI (13 dígitos) *', icon: '🪪', req: true, type: 'text', maxLen: 13 },
     { k: 'plate', l: 'Placa vehículo (opcional)', icon: '🚗', type: 'text' },
     { k: 'email', l: 'Correo electrónico', icon: '📧', type: 'email' },
@@ -156,8 +156,12 @@ export default function GoogleProfile(ctx) {
         {fields.map(f => (
           <input key={f.k} placeholder={`${f.icon} ${f.l}`}
             type={f.type || 'text'}
+            inputMode={f.numeric ? 'numeric' : undefined}
             value={regProfile[f.k] || ''}
-            onChange={e => { setRegProfile(p => ({ ...p, [f.k]: e.target.value })); clearAuthErr(); }}
+            onChange={e => {
+              const val = f.numeric ? e.target.value.replace(/[^0-9]/g, '') : e.target.value;
+              setRegProfile(p => ({ ...p, [f.k]: val })); clearAuthErr();
+            }}
             maxLength={f.maxLen}
             max={f.type === 'date' ? maxBday : undefined}
             style={inputStyle} />
