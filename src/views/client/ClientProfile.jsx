@@ -69,8 +69,12 @@ export default function ClientProfile(ctx) {
             <input
               placeholder={f.l}
               type={f.type || 'text'}
+              inputMode={f.numeric ? 'numeric' : undefined}
               value={regProfile[f.k] || ''}
-              onChange={e => { setRegProfile(p => ({ ...p, [f.k]: e.target.value })); clearAuthErr(); }}
+              onChange={e => {
+                const val = f.numeric ? e.target.value.replace(/[^0-9]/g, '') : e.target.value;
+                setRegProfile(p => ({ ...p, [f.k]: val })); clearAuthErr();
+              }}
               maxLength={f.maxLen}
               max={f.type === 'date' ? maxBday : undefined}
               style={{ ...inputStyle, paddingLeft: 42 }}
