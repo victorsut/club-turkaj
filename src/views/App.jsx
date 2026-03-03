@@ -157,6 +157,7 @@ export default function App() {
     // Auth state change listener
     const authSub = sb.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
+      console.log('[Auth]', event, session?.user?.email || 'no session');
       if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session?.user) {
         setUserFromSession(session.user);
         if (event === 'SIGNED_IN') fire('👋 Bienvenido ' + (session.user.user_metadata?.full_name || session.user.email));
@@ -168,6 +169,7 @@ export default function App() {
 
     // Catch existing session (race condition: hash may be processed before listener)
     sb.auth.getSession().then(({ data: { session } }) => {
+      console.log('[Auth] getSession:', session?.user?.email || 'no session');
       if (mounted && session?.user) {
         setUserFromSession(session.user);
       }
