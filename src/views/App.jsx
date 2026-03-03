@@ -274,6 +274,18 @@ export default function App() {
           })));
         }
 
+        // Load operators
+        const opRes = await sb.from('operators').select('*').order('name');
+        if (opRes.data?.length > 0) {
+          setOperators(opRes.data.map(o => ({
+            id: o.id, name: o.name, user: o.username, password: o.password_hash,
+            dpi: o.dpi, gafete: o.gafete, phone: o.phone || '', email: o.email || '',
+            station: o.station_id || '', bomba: o.bomba || '', turno: o.turno || '',
+            active: o.active !== false,
+          })));
+          console.log('[Club Turkaj] Operadores cargados:', opRes.data.length);
+        }
+
         // Load activity log
         const actRes = await sb.from('activity_log').select('*').order('created_at', { ascending: false }).limit(200);
         if (actRes.data?.length > 0) {
