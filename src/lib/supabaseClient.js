@@ -11,7 +11,7 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
   || 'https://rfharnrsatgliynzcuwp.supabase.co';
 
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
-  || 'sb_publishable_W7UvMRT26o2NNeQvKeWCFQ__iM_dOnO';
+  || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmaGFybnJzYXRnbGl5bnpjdXdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMzAzNjYsImV4cCI6MjA4NzcwNjM2Nn0.zkiZweaU3H5hfbdvdhv1iwO1sttkzj5fz29Z8J6Pi0s';
 
 // Crear cliente con opciones optimizadas para PWA
 export const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
