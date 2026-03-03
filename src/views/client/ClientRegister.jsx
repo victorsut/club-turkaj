@@ -86,7 +86,8 @@ export default function ClientRegister(ctx) {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
         <input placeholder="Número de teléfono" value={regPhone}
-          onChange={e => { setRegPhone(e.target.value); clearAuthErr(); }} style={inputStyle} />
+          inputMode="numeric" maxLength={8}
+          onChange={e => { setRegPhone(e.target.value.replace(/[^0-9]/g, '')); clearAuthErr(); }} style={inputStyle} />
         <input placeholder="Crear contraseña" type="password" value={regPass}
           onChange={e => { setRegPass(e.target.value); clearAuthErr(); }} style={inputStyle} />
         <input placeholder="Confirmar contraseña" type="password" value={regPass2}
