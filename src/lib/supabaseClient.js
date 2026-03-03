@@ -18,7 +18,8 @@ export const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true,     // Para OAuth callbacks (Google/Apple)
+    detectSessionInUrl: true,
+    flowType: 'implicit',              // Required for static sites (no server-side code exchange)
     storage: globalThis.localStorage,
   },
   global: {
