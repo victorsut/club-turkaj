@@ -289,6 +289,23 @@ export default function App() {
           setActivityLog(actMap);
         }
 
+        // Load redemptions
+        const rdRes = await sb.from('redemptions')
+          .select('*, rewards(name, icon, category)')
+          .order('created_at', { ascending: false })
+          .limit(100);
+        if (rdRes.data?.length > 0) {
+          setRedeemedList(rdRes.data.map(rd => ({
+            id: rd.id,
+            memberId: rd.member_id,
+            reward: { name: rd.rewards?.name || 'Premio', icon: rd.rewards?.icon || '🎁', cat: rd.rewards?.category || '' },
+            cost: rd.points_spent,
+            date: rd.created_at?.split('T')[0] || '',
+            code: rd.redemption_code,
+            collected: rd.collected || false,
+          })));
+        }
+
         setSbConnected(true);
         console.log('[Club Turkaj] ✅ Datos cargados desde Supabase');
 
@@ -434,7 +451,7 @@ export default function App() {
     setMe(p => ({ ...p, points: p.points - cost, redeemed: (p.redeemed || 0) + 1 }));
     setCusts(p => p.map(c => c.id === me.id ? { ...c, points: c.points - cost, redeemed: (c.redeemed || 0) + 1 } : c));
     const code = `TK-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-    setRedeemedList(p => [{ id: `RD-${Date.now()}`, reward: { name: r.name, icon: r.icon, cat: r.cat }, cost, date: new Date().toISOString().split('T')[0], code, collected: false }, ...p]);
+    setRedeemedList(p => [{ id: `RD-${Date.now()}`, memberId: me.id, reward: { name: r.name, icon: r.icon, cat: r.cat }, cost, date: new Date().toISOString().split('T')[0], code, collected: false }, ...p]);
     fire(`🎉 ¡Canjeaste ${r.name} por ${cost} pts!`);
     syncMember(me.id, { points: me.points - cost, redeemed_count: (me.redeemed || 0) + 1, updated_at: new Date().toISOString() });
     logActivity(me.id, 'canje', `Canjeó: ${r.name} ${r.icon}`, -cost);
