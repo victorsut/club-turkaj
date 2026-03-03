@@ -56,6 +56,7 @@ export default function ClientHome(ctx) {
 
   // Activity history
   const myActs = activityLog?.[me.id] || [];
+  const myRedeemed = (redeemedList || []).filter(rd => rd.memberId === me.id);
   const cols = {
     compra: cTier.name === 'BLACK' ? '#81C784' : '#2E7D32',
     canje: cTier.name === 'BLACK' ? '#64B5F6' : '#1565C0',
@@ -312,18 +313,64 @@ export default function ClientHome(ctx) {
         </div>
       )}
 
-      {/* My Redemptions button */}
+      {/* My Redemptions toggle */}
       <div style={{ padding: '0 20px 16px' }}>
-        <button onClick={() => setShowRedeemed(true)} style={{
+        <button onClick={() => setShowRedeemed(!showRedeemed)} style={{
           width: '100%', background: cTier.name !== 'ORO' ? TH.cardBg : '#FAFAFA',
           border: cTier.name !== 'ORO' ? TH.cardBorder : '1px solid #eee',
           borderRadius: 14, padding: 14, fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700,
           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
           color: cTier.name === 'BLACK' ? '#ccc' : '#424242',
         }}>
-          🎁 Mis Canjes ({redeemedList.length})
+          🎁 Mis Canjes ({myRedeemed.length}) {showRedeemed ? '▲' : '▼'}
         </button>
       </div>
+
+      {/* Redeemed list */}
+      {showRedeemed && (
+        <div style={{ animation: 'fadeUp .3s ease', padding: '0 20px 16px' }}>
+          {myRedeemed.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 24, color: '#9E9E9E', fontSize: 13 }}>
+              Aún no has canjeado premios
+            </div>
+          ) : (
+            myRedeemed.map((rd, i) => (
+              <div key={rd.id} style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0',
+                borderBottom: i < myRedeemed.length - 1 ? `1px solid ${cTier.name === 'BLACK' ? 'rgba(255,255,255,.04)' : '#F0F0F0'}` : 'none',
+                animation: `slideIn .3s ${i * 0.03}s both`,
+              }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 12,
+                  background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.05)' : '#E3F2FD',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
+                }}>
+                  {rd.reward?.icon || '🎁'}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: cTier.name === 'BLACK' ? '#E0E0E0' : '#424242' }}>
+                    {rd.reward?.name || 'Premio'}
+                  </div>
+                  <div style={{ fontSize: 10, color: '#9E9E9E', ...sMono, marginTop: 2 }}>
+                    {rd.date} · Código: {rd.code}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ ...sMono, fontSize: 13, fontWeight: 800, color: '#C62828' }}>
+                    -{rd.cost} pts
+                  </div>
+                  <div style={{
+                    fontSize: 9, fontWeight: 700, marginTop: 2,
+                    color: rd.collected ? '#2E7D32' : '#FF8F00',
+                  }}>
+                    {rd.collected ? '✅ Recogido' : '⏳ Pendiente'}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }
