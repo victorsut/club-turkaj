@@ -16,12 +16,12 @@ export default function ClientLogin(ctx) {
   };
 
   const doGoogle = () => {
-    if (sb) sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
+    if (sb) sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
     else setAuthError('Supabase no disponible');
   };
 
   const doApple = () => {
-    if (sb) sb.auth.signInWithOAuth({ provider: 'apple', options: { redirectTo: window.location.href } });
+    if (sb) sb.auth.signInWithOAuth({ provider: 'apple', options: { redirectTo: window.location.origin } });
     else setAuthError('Supabase no disponible');
   };
 
