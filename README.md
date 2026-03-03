@@ -1,2 +1,0 @@
-# club-turkaj
-Puntos Turkaj
