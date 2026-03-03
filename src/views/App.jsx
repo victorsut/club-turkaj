@@ -166,6 +166,13 @@ export default function App() {
       }
     });
 
+    // Catch existing session (race condition: hash may be processed before listener)
+    sb.auth.getSession().then(({ data: { session } }) => {
+      if (mounted && session?.user) {
+        setUserFromSession(session.user);
+      }
+    });
+
     // Clean OAuth hash from URL
     if (window.location.hash?.includes('access_token')) {
       setTimeout(() => {
@@ -303,6 +310,20 @@ export default function App() {
 
     if (sb) {
       sb.from('members').select('*,physical_cards(card_code)').eq('auth_provider_id', u.id).then(r => {
+        if (r.error) {
+          console.error('Auth member lookup error:', r.error);
+          // Still proceed as new user if query fails
+          setMe({
+            id: u.id, name, email, avatar,
+            phone: '', dpi: '', plate: '', nit: '', bday: '',
+            points: 0, gallons: 0, spent: 0, visits: 0, tickets: 0,
+            redeemed: 0, referrals: 0, registered: new Date().toISOString().split('T')[0],
+            lastBuy: '', station: '', cardId: '', supabaseUser: true, authProvider: provider,
+          });
+          setRegProfile(p => ({ ...p, name, email }));
+          setAuthScreen('googleProfile'); setView('client');
+          return;
+        }
         if (r.data?.length > 0) {
           const existing = buildExisting(r.data[0]);
           setMe(existing);
