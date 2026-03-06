@@ -3,7 +3,7 @@
 import { sMono, adminTheme as AT } from '../../constants/styles';
 
 export default function OpHome(ctx) {
-  const { loggedOp, custs, setOScr, opRatings } = ctx;
+  const { loggedOp, custs, setOScr, setOpScanMode, opRatings } = ctx;
   const todayStr = new Date().toISOString().slice(0, 10);
   const todayPurchases = custs.filter(c => (c.lastBuy || '').startsWith(todayStr)).length;
 
@@ -42,11 +42,11 @@ export default function OpHome(ctx) {
       <div style={{ padding: '8px 20px' }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: '#BDBDBD', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>Acciones Rápidas</div>
         {[
-          { label: 'Registrar Compra', desc: 'Escanea QR del cliente', ico: '⛽', scr: 'oclients' },
-          { label: 'Canjear Premio', desc: 'Escanear y entregar premio', ico: '🎁', scr: 'oredeem' },
-          { label: 'Vender Boletos', desc: 'Rifa mensual', ico: '🎟️', scr: 'oraffle' },
+          { label: 'Registrar Compra', desc: 'Escanea QR del cliente', ico: '⛽', action: () => { setOpScanMode(true); setOScr('oclients'); } },
+          { label: 'Canjear Premio', desc: 'Escanear y entregar premio', ico: '🎁', action: () => setOScr('oredeem') },
+          { label: 'Vender Boletos', desc: 'Rifa mensual', ico: '🎟️', action: () => setOScr('oraffle') },
         ].map(a => (
-          <button key={a.scr} onClick={() => setOScr(a.scr)} style={{
+          <button key={a.label} onClick={a.action} style={{
             width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px',
             border: '1px solid #eee', borderRadius: 14, background: '#fff', marginBottom: 8,
             cursor: 'pointer', fontFamily: "'DM Sans'", textAlign: 'left',

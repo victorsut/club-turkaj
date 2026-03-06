@@ -1,19 +1,27 @@
 // src/views/operator/OpClients.jsx
 // Operator client search/scan, register purchase
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { sMono, inputStyle, btnYellow } from '../../constants/styles';
 import { FUEL_LABELS, ALL_CARD_PREFIXES } from '../../constants/config';
 import Badge from '../../components/ui/Badge';
 import QRScanner from '../../components/ui/QRScanner';
 
 export default function OpClients(ctx) {
-  const { custs, gT, cfg, addPurchase, fire } = ctx;
+  const { custs, gT, cfg, addPurchase, fire, opScanMode, setOpScanMode } = ctx;
   const [q, setQ] = useState('');
   const [sel, setSel] = useState(null);
   const [amt, setAmt] = useState('');
   const [fuel, setFuel] = useState('regular');
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState('');
+
+  // Auto-open scanner if coming from OpHome "Registrar Compra"
+  useEffect(() => {
+    if (opScanMode) {
+      setScanning(true);
+      setOpScanMode(false);
+    }
+  }, [opScanMode, setOpScanMode]);
 
   // Show all clients when no search, filter when typing
   const filtered = q.length >= 2
