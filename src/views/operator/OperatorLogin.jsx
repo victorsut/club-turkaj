@@ -4,7 +4,7 @@ import { inputStyle, btnStyle } from '../../constants/styles';
 export default function OperatorLogin(ctx) {
   const { opLoginGafete, setOpLoginGafete, opLoginDpi, setOpLoginDpi,
     opLoginUser, setOpLoginUser, opLoginPass, setOpLoginPass,
-    authError, setAuthError, clearAuthErr, setAuthOp, operators, fire } = ctx;
+    authError, setAuthError, clearAuthErr, setAuthOp, setLoggedOp, operators, fire } = ctx;
 
   const doLogin = () => {
     clearAuthErr();
@@ -17,7 +17,7 @@ export default function OperatorLogin(ctx) {
     );
     if (!found) { setAuthError('Credenciales incorrectas'); return; }
     if (!found.active) { setAuthError('Operador inactivo, contacta a gerencia'); return; }
-    setAuthOp('logged'); fire('👋 Bienvenido ' + found.name);
+    setLoggedOp(found); setAuthOp('logged'); fire('👋 Bienvenido ' + found.name);
   };
 
   return (

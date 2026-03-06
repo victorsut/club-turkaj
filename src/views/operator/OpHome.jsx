@@ -3,7 +3,7 @@
 import { sMono, adminTheme as AT } from '../../constants/styles';
 
 export default function OpHome(ctx) {
-  const { authOp, custs, setOScr, opRatings } = ctx;
+  const { loggedOp, custs, setOScr, opRatings } = ctx;
   const todayStr = new Date().toISOString().slice(0, 10);
   const todayPurchases = custs.filter(c => (c.lastBuy || '').startsWith(todayStr)).length;
 
@@ -16,8 +16,8 @@ export default function OpHome(ctx) {
       {/* Header */}
       <div style={{ padding: '24px 20px 16px', background: '#1A1A2E', color: '#fff' }}>
         <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, color: '#8C8CFF', fontWeight: 700, marginBottom: 6 }}>Panel Operador</div>
-        <div style={{ fontSize: 22, fontWeight: 800 }}>Hola, {authOp?.name || 'Operador'} 👋</div>
-        <div style={{ fontSize: 12, color: '#9E9E9E', marginTop: 4 }}>Estación: Turkaj {authOp?.station || 'I'}</div>
+        <div style={{ fontSize: 22, fontWeight: 800 }}>Hola, {loggedOp?.name || 'Operador'} 👋</div>
+        <div style={{ fontSize: 12, color: '#9E9E9E', marginTop: 4 }}>Estación: {loggedOp?.station || 'Turkaj I'} · {loggedOp?.turno || ''}</div>
       </div>
 
       {/* Stats */}
@@ -42,9 +42,9 @@ export default function OpHome(ctx) {
       <div style={{ padding: '8px 20px' }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: '#BDBDBD', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>Acciones Rápidas</div>
         {[
-          { label: 'Registrar Compra', desc: 'Escanea QR del cliente', ico: '⛽', scr: 'opClients' },
-          { label: 'Canjear Premio', desc: 'Escanear y entregar premio', ico: '🎁', scr: 'opRedeem' },
-          { label: 'Vender Boletos', desc: 'Rifa mensual', ico: '🎟️', scr: 'opRaffle' },
+          { label: 'Registrar Compra', desc: 'Escanea QR del cliente', ico: '⛽', scr: 'oclients' },
+          { label: 'Canjear Premio', desc: 'Escanear y entregar premio', ico: '🎁', scr: 'oredeem' },
+          { label: 'Vender Boletos', desc: 'Rifa mensual', ico: '🎟️', scr: 'oraffle' },
         ].map(a => (
           <button key={a.scr} onClick={() => setOScr(a.scr)} style={{
             width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px',
