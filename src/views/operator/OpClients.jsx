@@ -1,17 +1,19 @@
 // src/views/operator/OpClients.jsx
 // Operator client search/scan, register purchase
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { sMono, inputStyle, btnYellow } from '../../constants/styles';
-import { FUEL_LABELS } from '../../constants/config';
+import { FUEL_LABELS, ALL_CARD_PREFIXES } from '../../constants/config';
 import Badge from '../../components/ui/Badge';
+import QRScanner from '../../components/ui/QRScanner';
 
 export default function OpClients(ctx) {
   const { custs, gT, cfg, addPurchase, fire } = ctx;
-  console.log('[OpClients] custs:', custs?.length, 'items');
   const [q, setQ] = useState('');
   const [sel, setSel] = useState(null);
   const [amt, setAmt] = useState('');
   const [fuel, setFuel] = useState('regular');
+  const [scanning, setScanning] = useState(false);
+  const [scanResult, setScanResult] = useState('');
 
   // Show all clients when no search, filter when typing
   const filtered = q.length >= 2
@@ -25,28 +27,82 @@ export default function OpClients(ctx) {
   const selClient = sel ? custs.find(c => c.id === sel) : null;
   const selTier = selClient ? gT(selClient.gallons) : null;
 
+  // Handle QR scan result
+  const handleScan = useCallback((code) => {
+    setScanning(false);
+    setScanResult(code);
+
+    // Extract correlative number from scanned code (e.g., CTOD-04077 -> 04077)
+    const match = code.match(/^CT[OPB]D-(\d+)$/);
+    if (!match) {
+      fire('❌ Código no reconocido: ' + code);
+      return;
+    }
+    const correlative = match[1];
+
+    // Find member by correlative (any prefix)
+    const found = custs.find(c => {
+      if (!c.cardId) return false;
+      const cm = c.cardId.match(/^CT[OPB]D-(\d+)$/);
+      return cm && cm[1] === correlative;
+    });
+
+    if (found) {
+      setSel(found.id);
+      fire('✅ ' + found.name + ' · ' + code);
+    } else {
+      // Try exact match
+      const exact = custs.find(c => c.cardId === code);
+      if (exact) {
+        setSel(exact.id);
+        fire('✅ ' + exact.name);
+      } else {
+        fire('❌ Miembro no encontrado para código: ' + code);
+      }
+    }
+  }, [custs, fire]);
+
   const handlePurchase = () => {
     const monto = parseFloat(amt);
     if (!monto || monto < 10) { fire('Monto mínimo Q10'); return; }
     addPurchase(selClient.id, monto, fuel);
     setAmt('');
     setSel(null);
+    setScanResult('');
   };
+
+  // Full-screen QR scanner
+  if (scanning) {
+    return <QRScanner onScan={handleScan} onClose={() => setScanning(false)} />;
+  }
 
   return (
     <div style={{ paddingBottom: 90 }}>
       <div style={{ padding: '16px 20px 8px', fontSize: 20, fontWeight: 800, color: '#0D0D0D' }}>👥 Clientes</div>
 
-      {/* Search bar */}
+      {/* Search + Scan bar */}
       {!sel && (
         <div style={{ padding: '0 20px' }}>
-          <div style={{ position: 'relative', marginBottom: 12 }}>
-            <input
-              value={q} onChange={e => setQ(e.target.value)}
-              placeholder="Buscar por nombre, teléfono o código..."
-              style={{ ...inputStyle, paddingLeft: 40, width: '100%', boxSizing: 'border-box' }}
-            />
-            <span style={{ position: 'absolute', left: 14, top: 13, opacity: .3 }}>🔍</span>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            {/* Search input */}
+            <div style={{ position: 'relative', flex: 1 }}>
+              <input
+                value={q} onChange={e => setQ(e.target.value)}
+                placeholder="Buscar nombre, teléfono, código..."
+                style={{ ...inputStyle, paddingLeft: 40, width: '100%', boxSizing: 'border-box' }}
+              />
+              <span style={{ position: 'absolute', left: 14, top: 13, opacity: .3 }}>🔍</span>
+            </div>
+            {/* Scan QR button */}
+            <button onClick={() => setScanning(true)} style={{
+              background: '#FBBC04', border: 'none', borderRadius: 14,
+              padding: '0 18px', cursor: 'pointer', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', gap: 6,
+              fontSize: 20, flexShrink: 0,
+              boxShadow: '0 2px 8px rgba(251,188,4,.3)',
+            }} title="Escanear QR">
+              📷
+            </button>
           </div>
           <div style={{ fontSize: 11, color: '#9E9E9E', marginBottom: 8 }}>
             {filtered.length} cliente{filtered.length !== 1 ? 's' : ''} registrado{filtered.length !== 1 ? 's' : ''}
@@ -87,12 +143,23 @@ export default function OpClients(ctx) {
       {/* Selected client — purchase form */}
       {selClient && selTier && (
         <div style={{ padding: '0 20px' }}>
-          <button onClick={() => { setSel(null); setAmt(''); }} style={{
+          <button onClick={() => { setSel(null); setAmt(''); setScanResult(''); }} style={{
             background: 'none', border: 'none', color: '#FBBC04', cursor: 'pointer',
             fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700, marginBottom: 12,
           }}>
             ← Volver a búsqueda
           </button>
+
+          {/* Scan badge */}
+          {scanResult && (
+            <div style={{
+              background: '#E8F5E9', border: '1px solid #A5D6A7', borderRadius: 12,
+              padding: '10px 16px', marginBottom: 12, display: 'flex',
+              alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 700, color: '#2E7D32',
+            }}>
+              📷 Escaneado: <span style={{ ...sMono }}>{scanResult}</span>
+            </div>
+          )}
 
           <div style={{ background: '#fff', borderRadius: 16, padding: 20, border: '1px solid #eee', marginBottom: 16 }}>
             {/* Client info */}
