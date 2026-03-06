@@ -50,6 +50,7 @@ export default function App() {
   // ===== AUTH STATE =====
   const [authScreen, setAuthScreen] = useState('login');   // login|register|verify|profile|googleProfile|logged
   const [authOp, setAuthOp] = useState('login');           // login|logged
+  const [loggedOp, setLoggedOp] = useState(null);           // operator data after login
   const [authAdmin, setAuthAdmin] = useState('login');     // login|logged
   const [authError, setAuthError] = useState('');
   const clearAuthErr = () => { if (authError) setAuthError(''); };
@@ -286,12 +287,12 @@ export default function App() {
         }
 
         // Load operators
-        const opRes = await sb.from('operators').select('*').order('name');
+        const opRes = await sb.from('operators').select('*, stations(name)').order('name');
         if (opRes.data?.length > 0) {
           setOperators(opRes.data.map(o => ({
             id: o.id, name: o.name, user: o.username, password: o.password_hash,
             dpi: o.dpi, gafete: o.gafete, phone: o.phone || '', email: o.email || '',
-            station: o.station_id || '', bomba: o.bomba || '', turno: o.turno || '',
+            station: o.stations?.name || o.station_id || '', bomba: o.bomba || '', turno: o.turno || '',
             active: o.active !== false,
           })));
           console.log('[Club Turkaj] Operadores cargados:', opRes.data.length);
@@ -584,7 +585,7 @@ export default function App() {
 
   const logout = useCallback(() => {
     if (sb) sb.auth.signOut({ scope: 'local' });
-    setMe(null); setGoogleStep('welcome'); setMySurveyCount(0);
+    setMe(null); setGoogleStep('welcome'); setMySurveyCount(0); setLoggedOp(null);
     if (isC) { setAuthScreen('login'); setCScr('home'); setLoginPhone(''); setLoginPass(''); }
     else if (isO) { setAuthOp('login'); setOScr('ohome'); }
     else if (isA) { setAuthAdmin('login'); setScr('dash'); }
@@ -611,7 +612,7 @@ export default function App() {
     sortDir, setSortDir, memSort, setMemSort,
     stationFilter, setStationFilter, stationMode, setStationMode,
     // Auth
-    authScreen, setAuthScreen, authOp, setAuthOp, authAdmin, setAuthAdmin,
+    authScreen, setAuthScreen, authOp, setAuthOp, loggedOp, setLoggedOp, authAdmin, setAuthAdmin,
     authError, setAuthError, clearAuthErr,
     loginPhone, setLoginPhone, loginPass, setLoginPass,
     regPhone, setRegPhone, regPass, setRegPass, regPass2, setRegPass2,
