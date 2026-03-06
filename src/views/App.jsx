@@ -51,6 +51,7 @@ export default function App() {
   const [authScreen, setAuthScreen] = useState('login');   // login|register|verify|profile|googleProfile|logged
   const [authOp, setAuthOp] = useState('login');           // login|logged
   const [loggedOp, setLoggedOp] = useState(null);           // operator data after login
+  const [opScanMode, setOpScanMode] = useState(false);      // open QR scanner on OpClients
   const [authAdmin, setAuthAdmin] = useState('login');     // login|logged
   const [authError, setAuthError] = useState('');
   const clearAuthErr = () => { if (authError) setAuthError(''); };
@@ -612,7 +613,7 @@ export default function App() {
     sortDir, setSortDir, memSort, setMemSort,
     stationFilter, setStationFilter, stationMode, setStationMode,
     // Auth
-    authScreen, setAuthScreen, authOp, setAuthOp, loggedOp, setLoggedOp, authAdmin, setAuthAdmin,
+    authScreen, setAuthScreen, authOp, setAuthOp, loggedOp, setLoggedOp, opScanMode, setOpScanMode, authAdmin, setAuthAdmin,
     authError, setAuthError, clearAuthErr,
     loginPhone, setLoginPhone, loginPass, setLoginPass,
     regPhone, setRegPhone, regPass, setRegPass, regPass2, setRegPass2,
