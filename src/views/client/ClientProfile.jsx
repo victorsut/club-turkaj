@@ -63,33 +63,58 @@ export default function ClientProfile(ctx) {
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-        {fields.map(f => (
-          <div key={f.k} style={{ position: 'relative' }}>
-            <span style={{ position: 'absolute', left: 14, top: 14, fontSize: 16 }}>{f.icon}</span>
-            <input
-              placeholder={f.l}
-              type={f.type || 'text'}
-              inputMode={f.numeric ? 'numeric' : undefined}
-              value={regProfile[f.k] || ''}
-              onChange={e => {
-                const val = f.numeric ? e.target.value.replace(/[^0-9]/g, '') : e.target.value;
-                setRegProfile(p => ({ ...p, [f.k]: val })); clearAuthErr();
-              }}
-              maxLength={f.maxLen}
-              max={f.type === 'date' ? maxBday : undefined}
-              style={{ ...inputStyle, paddingLeft: 42 }}
-            />
-          </div>
-        ))}
+        {fields.map(f => {
+          const isOpt = !f.req;
+          const isFilled = f.k === 'email' ? regProfile.email?.trim() : regProfile[f.k]?.trim();
+          return (
+            <div key={f.k}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, padding: '0 4px' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#424242' }}>
+                  {f.icon} {f.l}
+                </span>
+                {isOpt && (
+                  <span style={{
+                    fontSize: 10, fontWeight: 800, borderRadius: 6, padding: '2px 8px',
+                    background: isFilled ? '#E8F5E9' : '#F5F5F5',
+                    color: isFilled ? '#2E7D32' : '#BDBDBD',
+                  }}>
+                    {isFilled ? `✓ +${cfg.regOptional} pts` : `+${cfg.regOptional} pts`}
+                  </span>
+                )}
+              </div>
+              <input
+                placeholder={f.type === 'date' ? '' : f.l}
+                type={f.type || 'text'}
+                inputMode={f.numeric ? 'numeric' : undefined}
+                value={regProfile[f.k] || ''}
+                onChange={e => {
+                  const val = f.numeric ? e.target.value.replace(/[^0-9]/g, '') : e.target.value;
+                  setRegProfile(p => ({ ...p, [f.k]: val })); clearAuthErr();
+                }}
+                maxLength={f.maxLen}
+                max={f.type === 'date' ? maxBday : undefined}
+                style={{
+                  ...inputStyle,
+                  color: f.type === 'date' && !regProfile[f.k] ? '#9E9E9E' : '#0D0D0D',
+                }}
+              />
+            </div>
+          );
+        })}
       </div>
 
-      {bonusPts > 0 && (
-        <div style={{ background: '#E8F5E9', borderRadius: 14, padding: 12, marginBottom: 16, textAlign: 'center' }}>
-          <span style={{ fontSize: 13, fontWeight: 800, color: '#2E7D32' }}>
-            🎁 Bonus: +{bonusPts} pts por datos opcionales
-          </span>
-        </div>
-      )}
+      <div style={{
+        background: bonusPts > 0 ? '#E8F5E9' : '#F5F5F5',
+        borderRadius: 14, padding: 12, marginBottom: 16, textAlign: 'center',
+        border: bonusPts > 0 ? '1px solid #A5D6A7' : '1px solid #E0E0E0',
+      }}>
+        <span style={{ fontSize: 13, fontWeight: 800, color: bonusPts > 0 ? '#2E7D32' : '#9E9E9E' }}>
+          {bonusPts > 0
+            ? `🎁 Bonus: +${bonusPts} pts por ${optFilled} dato${optFilled > 1 ? 's' : ''} opcional${optFilled > 1 ? 'es' : ''}`
+            : `Completá datos opcionales para ganar +${cfg.regOptional} pts por cada uno`
+          }
+        </span>
+      </div>
 
       <button onClick={doFinish} style={{ ...btnStyle, background: '#FBBC04', color: '#0D0D0D' }}>
         Completar Registro ({cfg.regBase + bonusPts} pts)
