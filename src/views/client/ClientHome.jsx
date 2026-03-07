@@ -490,18 +490,24 @@ export default function ClientHome(ctx) {
               <div style={{ fontSize: 12, color: '#9E9E9E', marginTop: 4 }}>
                 Seleccioná la estación donde cargaste combustible
               </div>
-              <div style={{ ...sMono, fontSize: 12, fontWeight: 800, color: cTier.name === 'BLACK' ? '#64B5F6' : '#1565C0', marginTop: 6 }}>
+              <div style={{ ...sMono, fontSize: 12, fontWeight: 800, color: cTier.name === 'BLACK' ? '#64B5F6' : '#1565C0', marginTop: 8 }}>
                 {mySurveyCount}/{cfg.surveyDaily} hoy · +{cfg.surveyPts} pts por encuesta
               </div>
             </div>
 
-            {[
-              { name: 'Turkaj I', url: 'https://tellshell.shell.com/GTM?source=smartQR&s=10700531' },
-              { name: 'Turkaj II', url: 'https://tellshell.shell.com/GTM?source=smartQR&s=10700717' },
-              { name: 'Turkaj III', url: 'https://tellshell.shell.com/GTM?source=smartQR&s=10700211' },
-            ].map((s, i) => {
-              const isLast = me.station === s.name || (stations || []).find(st => st.id === me.station)?.name === s.name;
-              return (
+            {(() => {
+              // Resolve last station name (could be UUID, name, or empty)
+              const raw = me.station || '';
+              const fromId = (stations || []).find(st => st.id === raw)?.name || '';
+              const lastName = fromId || raw;
+
+              return [
+                { name: 'Turkaj I', url: 'https://tellshell.shell.com/GTM?source=smartQR&s=10700531' },
+                { name: 'Turkaj II', url: 'https://tellshell.shell.com/GTM?source=smartQR&s=10700717' },
+                { name: 'Turkaj III', url: 'https://tellshell.shell.com/GTM?source=smartQR&s=10700211' },
+              ].map((s) => {
+                const isLast = lastName && (lastName === s.name || lastName.includes(s.name) || s.name.includes(lastName));
+                return (
                 <div key={s.name}
                   onClick={() => {
                     window.open(s.url, '_blank');
@@ -553,7 +559,8 @@ export default function ClientHome(ctx) {
                   </div>
                 </div>
               );
-            })}
+              });
+            })()}
 
             <button onClick={() => setShowSurveys(false)} style={{
               width: '100%', marginTop: 8, padding: 14, borderRadius: 14,
