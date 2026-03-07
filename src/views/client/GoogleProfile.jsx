@@ -132,6 +132,9 @@ export default function GoogleProfile(ctx) {
     }
   };
 
+  // noBonus flag for required fields (name)
+  const fieldsStyled = fields.map(f => ({ ...f, noBonus: f.k === 'name' }));
+
   return (
     <div style={{ padding: '40px 24px 120px', position: 'relative', zIndex: 1 }}>
       <button onClick={() => setGoogleStep('welcome')}
@@ -140,9 +143,10 @@ export default function GoogleProfile(ctx) {
       </button>
 
       <div style={{ textAlign: 'center', marginBottom: 24 }}>
-        <div style={{ fontSize: 22, fontWeight: 900 }}>Completar Perfil</div>
+        <div style={{ fontSize: 40, marginBottom: 8 }}>📝</div>
+        <div style={{ fontSize: 22, fontWeight: 900 }}>Completa tu Perfil</div>
         <div style={{ fontSize: 13, color: '#9E9E9E', marginTop: 4 }}>
-          +{cfg.regBase} pts base + {cfg.regOptional} por dato opcional
+          Gana +{cfg.regBase} pts base · +{cfg.regOptional} pts por cada dato opcional
         </div>
       </div>
 
@@ -153,62 +157,90 @@ export default function GoogleProfile(ctx) {
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-        {fields.map(f => {
-          const isOpt = !f.req;
-          const isFilled = f.k === 'email' ? regProfile.email?.trim() : regProfile[f.k]?.trim();
+        {fieldsStyled.map(f => {
+          const isFilled = regProfile[f.k]?.trim();
+          const showBonus = !f.noBonus && isFilled;
+
           return (
-            <div key={f.k}>
-              {/* Label with bonus indicator */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, padding: '0 4px' }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#424242' }}>
-                  {f.icon} {f.l}
-                </span>
-                {isOpt && (
-                  <span style={{
-                    fontSize: 10, fontWeight: 800, borderRadius: 6, padding: '2px 8px',
-                    background: isFilled ? '#E8F5E9' : '#F5F5F5',
-                    color: isFilled ? '#2E7D32' : '#BDBDBD',
-                  }}>
-                    {isFilled ? `✓ +${cfg.regOptional} pts` : `+${cfg.regOptional} pts`}
-                  </span>
-                )}
+            <div key={f.k} style={{ position: 'relative' }}>
+              {/* Icon inside input */}
+              <div style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 16, zIndex: 1 }}>
+                {f.icon}
               </div>
-              <input
-                type={f.type || 'text'}
-                inputMode={f.numeric ? 'numeric' : undefined}
-                placeholder={f.type === 'date' ? '' : f.l}
-                value={regProfile[f.k] || ''}
-                onChange={e => {
-                  const val = f.numeric ? e.target.value.replace(/[^0-9]/g, '') : e.target.value;
-                  setRegProfile(p => ({ ...p, [f.k]: val })); clearAuthErr();
-                }}
-                maxLength={f.maxLen}
-                max={f.type === 'date' ? maxBday : undefined}
-                style={{
-                  ...inputStyle,
-                  color: f.type === 'date' && !regProfile[f.k] ? '#9E9E9E' : '#0D0D0D',
-                }}
-              />
+
+              {f.type === 'date' ? (
+                <>
+                  <input type="date"
+                    value={regProfile[f.k] || ''}
+                    max={maxBday} min="1930-01-01"
+                    onFocus={() => {
+                      if (!regProfile[f.k]) setRegProfile(p => ({ ...p, [f.k]: '2000-01-01' }));
+                    }}
+                    onChange={e => { setRegProfile(p => ({ ...p, [f.k]: e.target.value })); clearAuthErr(); }}
+                    style={{ ...inputStyle, paddingLeft: 42, color: regProfile[f.k] ? '#0D0D0D' : 'transparent' }}
+                  />
+                  {/* Placeholder overlay for date */}
+                  {!regProfile[f.k] && (
+                    <div style={{
+                      position: 'absolute', left: 42, top: '50%', transform: 'translateY(-50%)',
+                      fontSize: 14, color: '#9E9E9E', pointerEvents: 'none',
+                      fontFamily: "'DM Sans'", fontWeight: 600,
+                    }}>
+                      {f.l}
+                    </div>
+                  )}
+                  {/* Bonus badge for date */}
+                  {regProfile[f.k] && (
+                    <div style={{
+                      position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                      fontSize: 10, fontWeight: 800, color: '#4CAF50',
+                      background: '#E8F5E9', padding: '2px 8px', borderRadius: 8,
+                    }}>
+                      +{cfg.regOptional} pts
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <input
+                    placeholder={f.l}
+                    type={f.type || 'text'}
+                    inputMode={f.numeric ? 'numeric' : undefined}
+                    maxLength={f.maxLen}
+                    value={regProfile[f.k] || ''}
+                    onChange={e => {
+                      let val = f.numeric ? e.target.value.replace(/[^0-9]/g, '') : e.target.value;
+                      if (f.maxLen && val.length > f.maxLen) val = val.slice(0, f.maxLen);
+                      setRegProfile(p => ({ ...p, [f.k]: val })); clearAuthErr();
+                    }}
+                    style={{ ...inputStyle, paddingLeft: 42 }}
+                  />
+                  {/* Bonus badge inside input */}
+                  {showBonus && (
+                    <div style={{
+                      position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                      fontSize: 10, fontWeight: 800, color: '#4CAF50',
+                      background: '#E8F5E9', padding: '2px 8px', borderRadius: 8,
+                    }}>
+                      +{cfg.regOptional} pts
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           );
         })}
       </div>
 
-      <div style={{
-        background: bonusPts > 0 ? '#E8F5E9' : '#F5F5F5',
-        borderRadius: 14, padding: 12, marginBottom: 16, textAlign: 'center',
-        border: bonusPts > 0 ? '1px solid #A5D6A7' : '1px solid #E0E0E0',
-      }}>
-        <span style={{ fontSize: 13, fontWeight: 800, color: bonusPts > 0 ? '#2E7D32' : '#9E9E9E' }}>
-          {bonusPts > 0
-            ? `🎁 Bonus: +${bonusPts} pts por ${optFilled} dato${optFilled > 1 ? 's' : ''} opcional${optFilled > 1 ? 'es' : ''}`
-            : `Completá datos opcionales para ganar +${cfg.regOptional} pts por cada uno`
-          }
-        </span>
+      {/* Points summary card */}
+      <div style={{ background: '#FFF8E1', borderRadius: 14, padding: 16, marginBottom: 20, textAlign: 'center' }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#9E9E9E' }}>Puntos al registrarte</div>
+        <div style={{ fontSize: 28, fontWeight: 900, color: '#F0A500' }}>{cfg.regBase + bonusPts}</div>
+        <div style={{ fontSize: 11, color: '#9E9E9E' }}>Base: {cfg.regBase} + Datos opcionales: {bonusPts}</div>
       </div>
 
       <button onClick={doFinish} style={{ ...btnStyle, background: '#FBBC04', color: '#0D0D0D' }}>
-        Completar Registro ({cfg.regBase + bonusPts} pts)
+        Completar Registro
       </button>
     </div>
   );
