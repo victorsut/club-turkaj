@@ -14,6 +14,7 @@ export default function ClientHome(ctx) {
     mySurveyCount, doSurvey, showHist, setShowHist,
     showInvite, setShowInvite, showRedeemed, setShowRedeemed,
     showWifi, setShowWifi, showMap, setShowMap, stations,
+    showSurveys, setShowSurveys,
     activityLog, custs, redeemedList, logout } = ctx;
 
   if (!me) return null;
@@ -188,7 +189,10 @@ export default function ClientHome(ctx) {
       </div>
 
       {/* Survey button */}
-      <div onClick={doSurvey} style={{
+      <div onClick={() => {
+        if (mySurveyCount >= cfg.surveyDaily) return;
+        setShowSurveys(true);
+      }} style={{
         margin: '8px 12px 12px', padding: 16,
         background: cTier.name === 'BLACK' ? GAL3 : cTier.name === 'PLATINO' ? 'linear-gradient(135deg,#BBDEFB,#E3F2FD)' : '#E3F2FD',
         borderRadius: 16,
@@ -453,6 +457,106 @@ export default function ClientHome(ctx) {
 
             <button onClick={() => setShowMap(false)} style={{
               width: '100%', marginTop: 16, padding: 14, borderRadius: 14,
+              background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.08)' : '#F5F5F5',
+              border: cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.1)' : '1px solid #eee',
+              fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700,
+              color: cTier.name === 'BLACK' ? '#ccc' : '#424242',
+              cursor: 'pointer',
+            }}>
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Survey station selection modal */}
+      {showSurveys && (
+        <div onClick={() => setShowSurveys(false)} style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)',
+          zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 20, animation: 'fadeUp .25s ease',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: cTier.name === 'BLACK' ? '#1A1A2E' : '#fff',
+            borderRadius: 24, maxWidth: 380, width: '100%', padding: '24px 20px',
+            border: cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.1)' : '1px solid #eee',
+            boxShadow: '0 20px 60px rgba(0,0,0,.3)',
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: 16 }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>📋</div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D' }}>
+                Encuesta Shell
+              </div>
+              <div style={{ fontSize: 12, color: '#9E9E9E', marginTop: 4 }}>
+                Seleccioná la estación donde cargaste combustible
+              </div>
+              <div style={{ ...sMono, fontSize: 12, fontWeight: 800, color: cTier.name === 'BLACK' ? '#64B5F6' : '#1565C0', marginTop: 6 }}>
+                {mySurveyCount}/{cfg.surveyDaily} hoy · +{cfg.surveyPts} pts por encuesta
+              </div>
+            </div>
+
+            {[
+              { name: 'Turkaj I', url: 'https://tellshell.shell.com/GTM?source=smartQR&s=10700531' },
+              { name: 'Turkaj II', url: 'https://tellshell.shell.com/GTM?source=smartQR&s=10700717' },
+              { name: 'Turkaj III', url: 'https://tellshell.shell.com/GTM?source=smartQR&s=10700211' },
+            ].map((s, i) => {
+              const isLast = me.station === s.name || (stations || []).find(st => st.id === me.station)?.name === s.name;
+              return (
+                <div key={s.name}
+                  onClick={() => {
+                    window.open(s.url, '_blank');
+                    doSurvey();
+                    setShowSurveys(false);
+                  }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 14,
+                    padding: '14px 12px', marginBottom: 8, borderRadius: 16, cursor: 'pointer',
+                    background: isLast
+                      ? (cTier.name === 'BLACK' ? 'rgba(251,188,4,.1)' : '#FFF8E1')
+                      : (cTier.name === 'BLACK' ? 'rgba(255,255,255,.04)' : '#F9F9F9'),
+                    border: isLast
+                      ? (cTier.name === 'BLACK' ? '2px solid rgba(251,188,4,.3)' : '2px solid #FFE082')
+                      : (cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.06)' : '1px solid #eee'),
+                    transition: 'transform .15s',
+                  }}>
+                  <div style={{
+                    width: 44, height: 44, borderRadius: 14, flexShrink: 0,
+                    background: cTier.name === 'BLACK' ? 'rgba(100,181,246,.1)' : '#E3F2FD',
+                    border: cTier.name === 'BLACK' ? '1px solid rgba(100,181,246,.2)' : '1px solid #BBDEFB',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
+                  }}>
+                    ⛽
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{
+                      fontSize: 15, fontWeight: 800,
+                      color: cTier.name === 'BLACK' ? (isLast ? '#FFD54F' : '#E0E0E0') : '#0D0D0D',
+                    }}>
+                      {s.name}
+                    </div>
+                    {isLast && (
+                      <div style={{
+                        fontSize: 10, fontWeight: 800, marginTop: 3,
+                        color: cTier.name === 'BLACK' ? '#FFD54F' : '#F0A500',
+                        display: 'flex', alignItems: 'center', gap: 4,
+                      }}>
+                        📍 Última visita
+                      </div>
+                    )}
+                  </div>
+                  <div style={{
+                    fontSize: 11, fontWeight: 800, padding: '6px 12px', borderRadius: 10,
+                    background: cTier.name === 'BLACK' ? 'rgba(100,181,246,.15)' : '#E3F2FD',
+                    color: cTier.name === 'BLACK' ? '#64B5F6' : '#1565C0',
+                  }}>
+                    Llenar →
+                  </div>
+                </div>
+              );
+            })}
+
+            <button onClick={() => setShowSurveys(false)} style={{
+              width: '100%', marginTop: 8, padding: 14, borderRadius: 14,
               background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.08)' : '#F5F5F5',
               border: cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.1)' : '1px solid #eee',
               fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700,
