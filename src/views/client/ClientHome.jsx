@@ -506,7 +506,7 @@ export default function ClientHome(ctx) {
                 { name: 'Turkaj II', url: 'https://tellshell.shell.com/GTM?source=smartQR&s=10700717' },
                 { name: 'Turkaj III', url: 'https://tellshell.shell.com/GTM?source=smartQR&s=10700211' },
               ].map((s) => {
-                const isLast = lastName && (lastName === s.name || lastName.includes(s.name) || s.name.includes(lastName));
+                const isLast = lastName && lastName === s.name;
                 return (
                 <div key={s.name}
                   onClick={() => {
