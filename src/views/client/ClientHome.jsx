@@ -1,5 +1,6 @@
 // src/views/client/ClientHome.jsx
 // Main client dashboard: tier card, stats, survey, QR, promo carousel, history
+import { useState, useEffect, useCallback } from 'react';
 import { sMono, GAL3, clientTheme } from '../../constants/styles';
 import { CARD_PREFIX } from '../../constants/config';
 import Badge from '../../components/ui/Badge';
@@ -18,6 +19,30 @@ export default function ClientHome(ctx) {
     activityLog, custs, redeemedList, logout } = ctx;
 
   if (!me) return null;
+
+  // Survey timer: wait 90 seconds before granting points
+  const [surveyPending, setSurveyPending] = useState(null); // { openedAt, stationName }
+  const [surveyCountdown, setSurveyCountdown] = useState(0);
+  const SURVEY_WAIT = 90; // 1.5 minutes in seconds
+
+  useEffect(() => {
+    if (!surveyPending) { setSurveyCountdown(0); return; }
+    const tick = () => {
+      const elapsed = Math.floor((Date.now() - surveyPending.openedAt) / 1000);
+      const remaining = Math.max(0, SURVEY_WAIT - elapsed);
+      setSurveyCountdown(remaining);
+      if (remaining <= 0) clearInterval(iv);
+    };
+    tick();
+    const iv = setInterval(tick, 1000);
+    return () => clearInterval(iv);
+  }, [surveyPending]);
+
+  const claimSurveyPoints = useCallback(() => {
+    if (surveyCountdown > 0) return;
+    doSurvey();
+    setSurveyPending(null);
+  }, [surveyCountdown, doSurvey]);
 
   // Codigo de tarjeta con prefijo dinamico segun tier actual
   const tierPrefix = CARD_PREFIX[cTier.name] || 'CTOD';
@@ -510,13 +535,15 @@ export default function ClientHome(ctx) {
                 return (
                 <div key={s.name}
                   onClick={() => {
+                    if (surveyPending) return; // already waiting
                     window.open(s.url, '_blank');
-                    doSurvey();
-                    setShowSurveys(false);
+                    setSurveyPending({ openedAt: Date.now(), stationName: s.name });
                   }}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 14,
-                    padding: '14px 12px', marginBottom: 8, borderRadius: 16, cursor: 'pointer',
+                    padding: '14px 12px', marginBottom: 8, borderRadius: 16,
+                    cursor: surveyPending ? 'default' : 'pointer',
+                    opacity: surveyPending ? (surveyPending.stationName === s.name ? 1 : 0.4) : 1,
                     background: isLast
                       ? (cTier.name === 'BLACK' ? 'rgba(251,188,4,.1)' : '#FFF8E1')
                       : (cTier.name === 'BLACK' ? 'rgba(255,255,255,.04)' : '#F9F9F9'),
@@ -552,17 +579,71 @@ export default function ClientHome(ctx) {
                   </div>
                   <div style={{
                     fontSize: 11, fontWeight: 800, padding: '6px 12px', borderRadius: 10,
-                    background: cTier.name === 'BLACK' ? 'rgba(100,181,246,.15)' : '#E3F2FD',
-                    color: cTier.name === 'BLACK' ? '#64B5F6' : '#1565C0',
+                    background: surveyPending?.stationName === s.name
+                      ? (cTier.name === 'BLACK' ? 'rgba(251,188,4,.15)' : '#FFF8E1')
+                      : (cTier.name === 'BLACK' ? 'rgba(100,181,246,.15)' : '#E3F2FD'),
+                    color: surveyPending?.stationName === s.name
+                      ? (cTier.name === 'BLACK' ? '#FFD54F' : '#F0A500')
+                      : (cTier.name === 'BLACK' ? '#64B5F6' : '#1565C0'),
                   }}>
-                    Llenar →
+                    {surveyPending?.stationName === s.name ? '⏳ Esperando' : 'Llenar →'}
                   </div>
                 </div>
               );
               });
             })()}
 
-            <button onClick={() => setShowSurveys(false)} style={{
+            {/* Pending survey: countdown + claim */}
+            {surveyPending && (
+              <div style={{
+                background: surveyCountdown > 0
+                  ? (cTier.name === 'BLACK' ? 'rgba(255,255,255,.06)' : '#FFF8E1')
+                  : (cTier.name === 'BLACK' ? 'rgba(76,175,80,.15)' : '#E8F5E9'),
+                borderRadius: 16, padding: 16, marginBottom: 8, textAlign: 'center',
+                border: surveyCountdown > 0
+                  ? (cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.1)' : '1px solid #FFE082')
+                  : (cTier.name === 'BLACK' ? '1px solid rgba(76,175,80,.3)' : '1px solid #A5D6A7'),
+              }}>
+                {surveyCountdown > 0 ? (
+                  <>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: cTier.name === 'BLACK' ? '#FFD54F' : '#F0A500', marginBottom: 6 }}>
+                      ⏳ Completá la encuesta de {surveyPending.stationName}
+                    </div>
+                    <div style={{ ...sMono, fontSize: 28, fontWeight: 900, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D' }}>
+                      {Math.floor(surveyCountdown / 60)}:{String(surveyCountdown % 60).padStart(2, '0')}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#9E9E9E', marginTop: 4 }}>
+                      Los puntos se habilitarán cuando complete el tiempo
+                    </div>
+                    {/* Progress bar */}
+                    <div style={{ height: 4, borderRadius: 2, overflow: 'hidden', background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.06)', marginTop: 10 }}>
+                      <div style={{
+                        height: '100%', borderRadius: 2, transition: 'width 1s linear',
+                        width: `${((SURVEY_WAIT - surveyCountdown) / SURVEY_WAIT) * 100}%`,
+                        background: cTier.name === 'BLACK' ? '#FFD54F' : '#FBBC04',
+                      }} />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#2E7D32', marginBottom: 8 }}>
+                      ✅ ¡Tiempo completado!
+                    </div>
+                    <button onClick={claimSurveyPoints} style={{
+                      width: '100%', padding: 14, borderRadius: 14,
+                      background: '#4CAF50', border: 'none',
+                      fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 800,
+                      color: '#fff', cursor: 'pointer',
+                      boxShadow: '0 4px 12px rgba(76,175,80,.3)',
+                    }}>
+                      🎉 Reclamar +{cfg.surveyPts} pts
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+
+            <button onClick={() => { if (!surveyPending) setShowSurveys(false); else { setSurveyPending(null); setShowSurveys(false); } }} style={{
               width: '100%', marginTop: 8, padding: 14, borderRadius: 14,
               background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.08)' : '#F5F5F5',
               border: cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.1)' : '1px solid #eee',
@@ -570,7 +651,7 @@ export default function ClientHome(ctx) {
               color: cTier.name === 'BLACK' ? '#ccc' : '#424242',
               cursor: 'pointer',
             }}>
-              Cerrar
+              {surveyPending ? 'Cancelar' : 'Cerrar'}
             </button>
           </div>
         </div>
