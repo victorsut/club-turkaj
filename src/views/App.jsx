@@ -302,7 +302,7 @@ export default function App() {
           setOperators(opRes.data.map(o => ({
             id: o.id, name: o.name, user: o.username, password: o.password_hash,
             dpi: o.dpi, gafete: o.gafete, phone: o.phone || '', email: o.email || '',
-            station: o.stations?.name || o.station_id || '', bomba: o.bomba || '', turno: o.turno || '',
+            station: o.stations?.name || o.station_id || '', stationId: o.station_id || null, bomba: o.bomba || '', turno: o.turno || '',
             active: o.active !== false,
           })));
           console.log('[Club Turkaj] Operadores cargados:', opRes.data.length);
@@ -502,18 +502,24 @@ export default function App() {
     if (pts <= 0) { fire('Mínimo Q10'); return; }
     const today = new Date().toISOString().split('T')[0];
     const buyer = custs.find(c => c.id === cid);
-    setCusts(p => p.map(c => c.id === cid ? { ...c, points: c.points + pts, gallons: +(c.gallons + gal).toFixed(2), spent: c.spent + a, visits: c.visits + 1, lastBuy: today } : c));
-    if (me?.id === cid) setMe(p => ({ ...p, points: p.points + pts, gallons: +(p.gallons + gal).toFixed(2), spent: p.spent + a, visits: p.visits + 1, lastBuy: today }));
+    const stationName = loggedOp?.station || '';
+    console.log('[Purchase] Station:', stationName, 'StationId:', loggedOp?.stationId, 'LoggedOp:', loggedOp?.name);
+    setCusts(p => p.map(c => c.id === cid ? { ...c, points: c.points + pts, gallons: +(c.gallons + gal).toFixed(2), spent: c.spent + a, visits: c.visits + 1, lastBuy: today, station: stationName || c.station } : c));
+    if (me?.id === cid) setMe(p => ({ ...p, points: p.points + pts, gallons: +(p.gallons + gal).toFixed(2), spent: p.spent + a, visits: p.visits + 1, lastBuy: today, station: stationName || p.station }));
     fire(`+${pts} pts · ${gal} gal · Q${a}`);
     setModal(null); setAmt('');
     if (buyer) {
       const oldTier = gT(parseFloat(buyer.gallons || 0)).name;
       const newGal = +(parseFloat(buyer.gallons || 0) + gal).toFixed(2);
       const newTier = gT(newGal).name;
-      syncMember(cid, { points: (buyer.points || 0) + pts, gallons: newGal, spent: +(parseFloat(buyer.spent || 0) + a).toFixed(2), visits: (buyer.visits || 0) + 1, last_buy: new Date().toISOString(), updated_at: new Date().toISOString() });
+      const syncData = { points: (buyer.points || 0) + pts, gallons: newGal, spent: +(parseFloat(buyer.spent || 0) + a).toFixed(2), visits: (buyer.visits || 0) + 1, last_buy: new Date().toISOString(), updated_at: new Date().toISOString() };
+      if (stationName) syncData.last_station = stationName;
+      syncMember(cid, syncData);
       logActivity(cid, 'compra', `Compra ${gal} gal ${f} \u00b7 Q${a}`, pts, a);
       if (sb && sbConnected) {
-        sb.from('purchases').insert({ member_id: cid, amount: a, fuel_type: f, gallons: gal, points_earned: pts });
+        const purchaseData = { member_id: cid, amount: a, fuel_type: f, gallons: gal, points_earned: pts };
+        if (loggedOp?.stationId) purchaseData.station_id = loggedOp.stationId;
+        sb.from('purchases').insert(purchaseData);
         if (oldTier !== newTier) {
           sb.from('members').select('card_id').eq('id', cid).single().then(memR => {
             if (memR.data?.card_id) {
@@ -535,7 +541,7 @@ export default function App() {
         }
       }
     }
-  }, [me, custs, fire, cfg, gT, syncMember, logActivity, sbConnected]);
+  }, [me, custs, fire, cfg, gT, syncMember, logActivity, sbConnected, loggedOp]);
 
   const redeem = useCallback((r) => {
     const t = gT(me.gallons);
