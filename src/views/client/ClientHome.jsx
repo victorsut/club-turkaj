@@ -1,6 +1,7 @@
 // src/views/client/ClientHome.jsx
 // Main client dashboard: tier card, stats, survey, QR, promo carousel, history
 import { useState, useEffect, useCallback } from 'react';
+import { sb } from '../../lib/supabaseClient';
 import { sMono, GAL3, clientTheme } from '../../constants/styles';
 import { CARD_PREFIX } from '../../constants/config';
 import { tierProgress } from '../../lib/tierSystem';
@@ -17,9 +18,33 @@ export default function ClientHome(ctx) {
     showInvite, setShowInvite, showRedeemed, setShowRedeemed,
     showWifi, setShowWifi, showMap, setShowMap, stations,
     showSurveys, setShowSurveys, fire,
+    pendingOpRating, setPendingOpRating, sbConnected,
     activityLog, custs, redeemedList, logout } = ctx;
 
   if (!me) return null;
+
+  // Operator rating from member device — auto-submit on tap
+  const [savingRating, setSavingRating] = useState(false);
+
+  const submitOpRating = useCallback(async (starCount) => {
+    if (!pendingOpRating || starCount < 1 || savingRating) return;
+    setSavingRating(true);
+    if (sb && sbConnected) {
+      const { error } = await sb.from('operator_ratings').insert({
+        operator_id: pendingOpRating.operatorId,
+        member_id: me.id,
+        stars: starCount,
+      });
+      if (error) console.error('[Rating]', error);
+      else fire(`⭐ ¡Gracias! Calificación enviada: ${starCount}/5`);
+    }
+    setSavingRating(false);
+    setPendingOpRating(null);
+  }, [pendingOpRating, me?.id, sbConnected, savingRating, fire, setPendingOpRating]);
+
+  const dismissRating = useCallback(() => {
+    setPendingOpRating(null);
+  }, [setPendingOpRating]);
 
   // Survey timer: wait 90 seconds before granting points
   const [surveyPending, setSurveyPending] = useState(null); // { openedAt, stationName }
@@ -748,6 +773,87 @@ export default function ClientHome(ctx) {
             }}>
               {surveyPending ? 'Cancelar' : 'Cerrar'}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Operator Rating Modal — triggered by Realtime after purchase */}
+      {pendingOpRating && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)',
+          zIndex: 250, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 20, animation: 'fadeUp .3s ease',
+        }}>
+          <div style={{
+            background: cTier.name === 'BLACK' ? '#1A1A2E' : '#fff',
+            borderRadius: 24, maxWidth: 360, width: '100%', padding: '28px 24px',
+            border: cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.1)' : '1px solid #eee',
+            boxShadow: '0 20px 60px rgba(0,0,0,.3)', textAlign: 'center',
+          }}>
+            {savingRating ? (
+              /* Saving state */
+              <div style={{ padding: '20px 0' }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>⏳</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: cTier.name === 'BLACK' ? '#fff' : '#424242' }}>
+                  Enviando calificación...
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Header */}
+                <div style={{
+                  width: 64, height: 64, borderRadius: '50%', margin: '0 auto 16px',
+                  background: cTier.name === 'BLACK' ? 'rgba(76,175,80,.15)' : '#E8F5E9',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32,
+                }}>
+                  ⛽
+                </div>
+                <div style={{ fontSize: 18, fontWeight: 900, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D', marginBottom: 6 }}>
+                  ¡Compra registrada!
+                </div>
+                <div style={{ fontSize: 13, color: '#9E9E9E', marginBottom: 4 }}>
+                  Fuiste atendido por
+                </div>
+                <div style={{
+                  fontSize: 20, fontWeight: 900, marginBottom: 2,
+                  color: cTier.name === 'BLACK' ? '#FFD54F' : '#0D0D0D',
+                }}>
+                  {pendingOpRating.operatorName}
+                </div>
+                {pendingOpRating.stationName && (
+                  <div style={{ fontSize: 12, color: '#9E9E9E', marginBottom: 20 }}>
+                    📍 {pendingOpRating.stationName}
+                  </div>
+                )}
+
+                {/* Stars — tap to rate and auto-submit */}
+                <div style={{ fontSize: 14, fontWeight: 700, color: cTier.name === 'BLACK' ? '#E0E0E0' : '#424242', marginBottom: 14 }}>
+                  Calificá la atención
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 20 }}>
+                  {[1, 2, 3, 4, 5].map(s => (
+                    <button key={s} onClick={() => submitOpRating(s)} style={{
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      fontSize: 40, padding: 4,
+                      filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.1))',
+                      transition: 'transform .1s',
+                    }}>
+                      ⭐
+                    </button>
+                  ))}
+                </div>
+
+                {/* Skip */}
+                <button onClick={dismissRating} style={{
+                  width: '100%', padding: 12, borderRadius: 14,
+                  background: 'none', border: 'none',
+                  fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 600,
+                  color: '#9E9E9E', cursor: 'pointer',
+                }}>
+                  Omitir
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
