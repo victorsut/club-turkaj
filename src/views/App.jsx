@@ -52,6 +52,7 @@ export default function App() {
   const [view, setView] = useState(getInitialView);       // admin | operator | client
   const viewRef = useRef(view);
   useEffect(() => { viewRef.current = view; }, [view]);
+  const lastVisitsRef = useRef(0);
   const [scr, setScr] = useState('dash');            // admin screen
   const [cScr, setCScr] = useState('home');           // client screen
   const [oScr, setOScr] = useState('ohome');          // operator screen
@@ -123,6 +124,7 @@ export default function App() {
   const [showTerms, setShowTerms] = useState(false);
   const [showRating, setShowRating] = useState(null);
   const [ratingStars, setRatingStars] = useState(0);
+  const [pendingOpRating, setPendingOpRating] = useState(null); // { operatorId, operatorName }
   const [showSurveys, setShowSurveys] = useState(false);
   const [sortDir, setSortDir] = useState('desc');
   const [memSort, setMemSort] = useState('all');
@@ -498,6 +500,9 @@ export default function App() {
 
   // ===== CARGAR ENCUESTAS DEL DIA AL CAMBIAR DE USUARIO =====
   useEffect(() => {
+    if (me?.visits != null) lastVisitsRef.current = me.visits;
+  }, [me?.id]);
+  useEffect(() => {
     if (me?.id && sb && sbConnected) loadTodaySurveys(me.id);
   }, [me?.id, sbConnected, loadTodaySurveys]);
 
@@ -512,19 +517,19 @@ export default function App() {
         filter: `id=eq.${me.id}`,
       }, (payload) => {
         const m = payload.new;
-        console.log('[Realtime] Member updated:', m.name, 'pts:', m.points, 'gal:', m.gallons);
-        setMe(prev => ({
-          ...prev,
-          points: m.points ?? prev.points,
-          gallons: parseFloat(m.gallons) || prev.gallons,
-          spent: parseFloat(m.spent) || prev.spent,
-          visits: m.visits ?? prev.visits,
-          tickets: m.tickets ?? prev.tickets,
-          redeemed: m.redeemed_count ?? prev.redeemed,
-          lastBuy: m.last_buy?.split('T')[0] || prev.lastBuy,
-          station: m.last_station || prev.station,
+        const prev = payload.old;
+        console.log('[Realtime] Member updated:', m.name, 'pts:', m.points, 'visits:', m.visits, 'prevVisits(ref):', lastVisitsRef.current, 'op_id:', m.last_operator_id);
+        setMe(p => ({
+          ...p,
+          points: m.points ?? p.points,
+          gallons: parseFloat(m.gallons) || p.gallons,
+          spent: parseFloat(m.spent) || p.spent,
+          visits: m.visits ?? p.visits,
+          tickets: m.tickets ?? p.tickets,
+          redeemed: m.redeemed_count ?? p.redeemed,
+          lastBuy: m.last_buy?.split('T')[0] || p.lastBuy,
+          station: m.last_station || p.station,
         }));
-        // Also update in custs array
         setCusts(p => p.map(c => c.id === m.id ? {
           ...c,
           points: m.points ?? c.points,
@@ -536,6 +541,31 @@ export default function App() {
           lastBuy: m.last_buy?.split('T')[0] || c.lastBuy,
           station: m.last_station || c.station,
         } : c));
+
+        // Trigger operator rating if a new purchase was detected (visits increased)
+        const newVisits = m.visits ?? 0;
+        const prevVisits = lastVisitsRef.current;
+        lastVisitsRef.current = newVisits;
+        if (m.last_operator_id && newVisits > prevVisits && prevVisits > 0 && viewRef.current === 'client') {
+          const op = operators.find(o => o.id === m.last_operator_id);
+          console.log('[Realtime] New purchase detected, operator:', op?.name || m.last_operator_id);
+          if (op) {
+            setPendingOpRating({
+              operatorId: m.last_operator_id,
+              operatorName: op.name,
+              stationName: m.last_station || '',
+            });
+          } else {
+            // Fetch operator name if not in local array
+            sb.from('operators').select('name').eq('id', m.last_operator_id).single().then(r => {
+              setPendingOpRating({
+                operatorId: m.last_operator_id,
+                operatorName: r.data?.name || 'Operador',
+                stationName: m.last_station || '',
+              });
+            });
+          }
+        }
       })
       .subscribe((status) => {
         console.log('[Realtime] Subscription:', status);
@@ -544,7 +574,7 @@ export default function App() {
     return () => {
       sb.removeChannel(channel);
     };
-  }, [me?.id, sbConnected]);
+  }, [me?.id, sbConnected, operators]);
 
   // ===== PROMO CAROUSEL AUTO-ADVANCE =====
   const activePromos = promos.filter(p => p.active);
@@ -574,6 +604,7 @@ export default function App() {
       const newTier = gT(newGal).name;
       const syncData = { points: (buyer.points || 0) + pts, gallons: newGal, spent: +(parseFloat(buyer.spent || 0) + a).toFixed(2), visits: (buyer.visits || 0) + 1, last_buy: new Date().toISOString(), updated_at: new Date().toISOString() };
       if (stationName) syncData.last_station = stationName;
+      if (loggedOp?.id) syncData.last_operator_id = loggedOp.id;
       syncMember(cid, syncData);
       logActivity(cid, 'compra', `Compra ${gal} gal ${f} \u00b7 Q${a}`, pts, a);
       if (sb && sbConnected) {
@@ -685,6 +716,7 @@ export default function App() {
     showRedeemed, setShowRedeemed, showWifi, setShowWifi,
     showMap, setShowMap, showTerms, setShowTerms,
     showRating, setShowRating, ratingStars, setRatingStars,
+    pendingOpRating, setPendingOpRating,
     showSurveys, setShowSurveys,
     sortDir, setSortDir, memSort, setMemSort,
     stationFilter, setStationFilter, stationMode, setStationMode,
