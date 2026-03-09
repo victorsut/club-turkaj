@@ -81,6 +81,9 @@ export default function App() {
   const [me, setMe] = useState(null);
   const [custs, setCusts] = useState([]);
   const [operators, setOperators] = useState([]);
+  const [showOpReg, setShowOpReg] = useState(false);
+  const [editOp, setEditOp] = useState(null);
+  const [newOp, setNewOp] = useState({ name: '', user: '', password: '', dpi: '', gafete: '', phone: '', station: 'Turkaj I', bomba: '', turno: 'Matutino', email: '' });
   const [rewards, setRewards] = useState([]);
   const [promos, setPromos] = useState([]);
   const [promoIdx, setPromoIdx] = useState(0);
@@ -658,6 +661,7 @@ export default function App() {
   const ctx = {
     // State
     me, setMe, custs, setCusts, operators, setOperators,
+    showOpReg, setShowOpReg, editOp, setEditOp, newOp, setNewOp,
     rewards, setRewards, promos, setPromos, promoIdx, setPromoIdx, activePromos,
     surveys, setSurveys, mySurveyCount, setMySurveyCount,
     activityLog, setActivityLog, cfg, setCfg, cards, setCards,
