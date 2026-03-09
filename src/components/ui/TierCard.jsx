@@ -87,6 +87,11 @@ export default function TierCard({ t, gal, small = false, cfg }) {
                 </div>
               )}
             </div>
+            {gal > 0 && gal < t.target && (
+              <div style={{ fontSize: 10, opacity: .5, marginTop: 6, fontWeight: 600, textAlign: 'center' }}>
+                Faltan {(t.target - gal).toFixed(0)} galones para {t.next}
+              </div>
+            )}
           </div>
         )}
       </div>
