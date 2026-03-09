@@ -357,6 +357,18 @@ export default function App() {
           })));
         }
 
+        // Load operator ratings
+        const ratRes = await sb.from('operator_ratings').select('operator_id, stars').order('created_at', { ascending: false });
+        if (ratRes.data?.length > 0) {
+          const ratMap = {};
+          ratRes.data.forEach(r => {
+            if (!ratMap[r.operator_id]) ratMap[r.operator_id] = [];
+            ratMap[r.operator_id].push({ stars: r.stars });
+          });
+          setOpRatings(ratMap);
+          console.log('[Club Turkaj] Calificaciones cargadas:', ratRes.data.length);
+        }
+
         setSbConnected(true);
         console.log('[Club Turkaj] ✅ Datos cargados desde Supabase');
 
@@ -575,6 +587,29 @@ export default function App() {
       sb.removeChannel(channel);
     };
   }, [me?.id, sbConnected, operators]);
+
+  // ===== REALTIME: Actualizar rating del operador en tiempo real =====
+  useEffect(() => {
+    if (!sb || !loggedOp?.id || !sbConnected) return;
+    const channel = sb.channel('op-ratings')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'operator_ratings',
+        filter: `operator_id=eq.${loggedOp.id}`,
+      }, (payload) => {
+        const r = payload.new;
+        console.log('[Realtime] New rating:', r.stars, 'stars');
+        setOpRatings(prev => {
+          const n = { ...prev };
+          if (!n[r.operator_id]) n[r.operator_id] = [];
+          n[r.operator_id] = [{ stars: r.stars }, ...n[r.operator_id]];
+          return n;
+        });
+      })
+      .subscribe();
+    return () => sb.removeChannel(channel);
+  }, [loggedOp?.id, sbConnected]);
 
   // ===== PROMO CAROUSEL AUTO-ADVANCE =====
   const activePromos = promos.filter(p => p.active);
