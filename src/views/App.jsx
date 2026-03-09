@@ -486,6 +486,51 @@ export default function App() {
     if (me?.id && sb && sbConnected) loadTodaySurveys(me.id);
   }, [me?.id, sbConnected, loadTodaySurveys]);
 
+  // ===== REALTIME: Actualizar datos del miembro en tiempo real =====
+  useEffect(() => {
+    if (!sb || !me?.id || !sbConnected) return;
+    const channel = sb.channel('member-updates')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'members',
+        filter: `id=eq.${me.id}`,
+      }, (payload) => {
+        const m = payload.new;
+        console.log('[Realtime] Member updated:', m.name, 'pts:', m.points, 'gal:', m.gallons);
+        setMe(prev => ({
+          ...prev,
+          points: m.points ?? prev.points,
+          gallons: parseFloat(m.gallons) || prev.gallons,
+          spent: parseFloat(m.spent) || prev.spent,
+          visits: m.visits ?? prev.visits,
+          tickets: m.tickets ?? prev.tickets,
+          redeemed: m.redeemed_count ?? prev.redeemed,
+          lastBuy: m.last_buy?.split('T')[0] || prev.lastBuy,
+          station: m.last_station || prev.station,
+        }));
+        // Also update in custs array
+        setCusts(p => p.map(c => c.id === m.id ? {
+          ...c,
+          points: m.points ?? c.points,
+          gallons: parseFloat(m.gallons) || c.gallons,
+          spent: parseFloat(m.spent) || c.spent,
+          visits: m.visits ?? c.visits,
+          tickets: m.tickets ?? c.tickets,
+          redeemed: m.redeemed_count ?? c.redeemed,
+          lastBuy: m.last_buy?.split('T')[0] || c.lastBuy,
+          station: m.last_station || c.station,
+        } : c));
+      })
+      .subscribe((status) => {
+        console.log('[Realtime] Subscription:', status);
+      });
+
+    return () => {
+      sb.removeChannel(channel);
+    };
+  }, [me?.id, sbConnected]);
+
   // ===== PROMO CAROUSEL AUTO-ADVANCE =====
   const activePromos = promos.filter(p => p.active);
   useEffect(() => {
