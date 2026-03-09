@@ -15,7 +15,7 @@ export default function ClientHome(ctx) {
     mySurveyCount, doSurvey, showHist, setShowHist,
     showInvite, setShowInvite, showRedeemed, setShowRedeemed,
     showWifi, setShowWifi, showMap, setShowMap, stations,
-    showSurveys, setShowSurveys,
+    showSurveys, setShowSurveys, fire,
     activityLog, custs, redeemedList, logout } = ctx;
 
   if (!me) return null;
@@ -38,11 +38,27 @@ export default function ClientHome(ctx) {
     return () => clearInterval(iv);
   }, [surveyPending]);
 
-  const claimSurveyPoints = useCallback(() => {
-    if (surveyCountdown > 0) return;
-    doSurvey();
-    setSurveyPending(null);
-  }, [surveyCountdown, doSurvey]);
+  // Auto-cancel or auto-claim when user returns to the app
+  useEffect(() => {
+    if (!surveyPending) return;
+    const handleVisibility = () => {
+      if (document.visibilityState !== 'visible') return;
+      const elapsed = Math.floor((Date.now() - surveyPending.openedAt) / 1000);
+      if (elapsed >= SURVEY_WAIT) {
+        // Timer completed — auto-claim points
+        doSurvey();
+        setSurveyPending(null);
+        setShowSurveys(false);
+        fire(`✅ Encuesta completada · +${cfg.surveyPts} pts`);
+      } else {
+        // Returned too early — cancel
+        setSurveyPending(null);
+        fire('❌ Encuesta cancelada · Permanecé al menos 1:30 min en la página');
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [surveyPending, doSurvey, cfg.surveyPts, fire, setShowSurveys]);
 
   // Codigo de tarjeta con prefijo dinamico segun tier actual
   const tierPrefix = CARD_PREFIX[cTier.name] || 'CTOD';
@@ -593,53 +609,30 @@ export default function ClientHome(ctx) {
               });
             })()}
 
-            {/* Pending survey: countdown + claim */}
+            {/* Pending survey: countdown */}
             {surveyPending && (
               <div style={{
-                background: surveyCountdown > 0
-                  ? (cTier.name === 'BLACK' ? 'rgba(255,255,255,.06)' : '#FFF8E1')
-                  : (cTier.name === 'BLACK' ? 'rgba(76,175,80,.15)' : '#E8F5E9'),
+                background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.06)' : '#FFF8E1',
                 borderRadius: 16, padding: 16, marginBottom: 8, textAlign: 'center',
-                border: surveyCountdown > 0
-                  ? (cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.1)' : '1px solid #FFE082')
-                  : (cTier.name === 'BLACK' ? '1px solid rgba(76,175,80,.3)' : '1px solid #A5D6A7'),
+                border: cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.1)' : '1px solid #FFE082',
               }}>
-                {surveyCountdown > 0 ? (
-                  <>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: cTier.name === 'BLACK' ? '#FFD54F' : '#F0A500', marginBottom: 6 }}>
-                      ⏳ Completá la encuesta de {surveyPending.stationName}
-                    </div>
-                    <div style={{ ...sMono, fontSize: 28, fontWeight: 900, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D' }}>
-                      {Math.floor(surveyCountdown / 60)}:{String(surveyCountdown % 60).padStart(2, '0')}
-                    </div>
-                    <div style={{ fontSize: 11, color: '#9E9E9E', marginTop: 4 }}>
-                      Los puntos se habilitarán cuando complete el tiempo
-                    </div>
-                    {/* Progress bar */}
-                    <div style={{ height: 4, borderRadius: 2, overflow: 'hidden', background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.06)', marginTop: 10 }}>
-                      <div style={{
-                        height: '100%', borderRadius: 2, transition: 'width 1s linear',
-                        width: `${((SURVEY_WAIT - surveyCountdown) / SURVEY_WAIT) * 100}%`,
-                        background: cTier.name === 'BLACK' ? '#FFD54F' : '#FBBC04',
-                      }} />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#2E7D32', marginBottom: 8 }}>
-                      ✅ ¡Tiempo completado!
-                    </div>
-                    <button onClick={claimSurveyPoints} style={{
-                      width: '100%', padding: 14, borderRadius: 14,
-                      background: '#4CAF50', border: 'none',
-                      fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 800,
-                      color: '#fff', cursor: 'pointer',
-                      boxShadow: '0 4px 12px rgba(76,175,80,.3)',
-                    }}>
-                      🎉 Reclamar +{cfg.surveyPts} pts
-                    </button>
-                  </>
-                )}
+                <div style={{ fontSize: 13, fontWeight: 700, color: cTier.name === 'BLACK' ? '#FFD54F' : '#F0A500', marginBottom: 6 }}>
+                  ⏳ Completá la encuesta de {surveyPending.stationName}
+                </div>
+                <div style={{ ...sMono, fontSize: 28, fontWeight: 900, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D' }}>
+                  {Math.floor(surveyCountdown / 60)}:{String(surveyCountdown % 60).padStart(2, '0')}
+                </div>
+                <div style={{ fontSize: 11, color: '#9E9E9E', marginTop: 4 }}>
+                  Permanecé en la página de Shell · Los puntos se asignan al volver
+                </div>
+                {/* Progress bar */}
+                <div style={{ height: 4, borderRadius: 2, overflow: 'hidden', background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.06)', marginTop: 10 }}>
+                  <div style={{
+                    height: '100%', borderRadius: 2, transition: 'width 1s linear',
+                    width: `${((SURVEY_WAIT - surveyCountdown) / SURVEY_WAIT) * 100}%`,
+                    background: cTier.name === 'BLACK' ? '#FFD54F' : '#FBBC04',
+                  }} />
+                </div>
               </div>
             )}
 
