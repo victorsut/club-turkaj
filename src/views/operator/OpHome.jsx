@@ -7,9 +7,12 @@ export default function OpHome(ctx) {
   const todayStr = new Date().toISOString().slice(0, 10);
   const todayPurchases = custs.filter(c => (c.lastBuy || '').startsWith(todayStr)).length;
 
-  const avgRating = opRatings.length > 0
-    ? (opRatings.reduce((s, r) => s + r.score, 0) / opRatings.length).toFixed(1)
+  // Get ratings for this operator
+  const myRatings = loggedOp?.id ? (opRatings[loggedOp.id] || []) : [];
+  const avgRating = myRatings.length > 0
+    ? (myRatings.reduce((s, r) => s + r.stars, 0) / myRatings.length).toFixed(1)
     : '—';
+  const ratingColor = avgRating >= 4 ? '#2E7D32' : avgRating >= 3 ? '#FF8F00' : avgRating >= 2 ? '#C62828' : '#0D0D0D';
 
   return (
     <div style={{ paddingBottom: 90 }}>
@@ -25,15 +28,16 @@ export default function OpHome(ctx) {
         {[
           { label: 'Clientes', val: custs.length, ico: '👥' },
           { label: 'Hoy', val: todayPurchases, ico: '⛽' },
-          { label: 'Rating', val: avgRating, ico: '⭐' },
+          { label: 'Rating', val: avgRating, ico: '⭐', color: ratingColor, sub: myRatings.length > 0 ? `${myRatings.length} calif.` : null },
         ].map(s => (
           <div key={s.label} style={{
             background: '#fff', borderRadius: 16, padding: 16, textAlign: 'center',
             boxShadow: '0 2px 8px rgba(0,0,0,.06)',
           }}>
             <div style={{ fontSize: 24, marginBottom: 4 }}>{s.ico}</div>
-            <div style={{ ...sMono, fontSize: 22, fontWeight: 800, color: '#0D0D0D' }}>{s.val}</div>
+            <div style={{ ...sMono, fontSize: 22, fontWeight: 800, color: s.color || '#0D0D0D' }}>{s.val}</div>
             <div style={{ fontSize: 10, color: '#9E9E9E', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>{s.label}</div>
+            {s.sub && <div style={{ fontSize: 9, color: '#BDBDBD', marginTop: 2 }}>{s.sub}</div>}
           </div>
         ))}
       </div>
