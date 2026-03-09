@@ -254,15 +254,6 @@ export default function ClientHome(ctx) {
                         transition: 'width 1s ease',
                       }} />
                     </div>
-                    {pg > 0 && (
-                      <div style={{
-                        position: 'absolute', top: -18,
-                        left: `${Math.min(pg, 95)}%`, transform: 'translateX(-50%)',
-                        fontSize: 10, fontWeight: 800, ...sMono, whiteSpace: 'nowrap',
-                      }}>
-                        {me.gallons.toFixed(0)}
-                      </div>
-                    )}
                   </div>
                   <div style={{ fontSize: 10, opacity: .5, marginTop: 6, fontWeight: 600, textAlign: 'center' }}>
                     Faltan {cTier.rem} galones para {cTier.next}
