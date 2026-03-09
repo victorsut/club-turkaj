@@ -1,6 +1,6 @@
 // src/views/App.jsx
 // Main orchestrator — manages global state, auth, Supabase sync, and view routing
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { sb } from '../lib/supabaseClient';
 import { makeTier, daysInactive } from '../lib/tierSystem';
 import { CFG_INIT, FUEL } from '../constants/config';
@@ -8,7 +8,6 @@ import { clientTheme, adminTheme, sMono, GAL } from '../constants/styles';
 import useToast from '../hooks/useToast';
 
 // UI Components
-import RoleSwitcher from '../components/ui/RoleSwitcher';
 import BottomNav from '../components/ui/BottomNav';
 import { Check, Fuel, Users, Gift, Ticket, Clock, Gear } from '../components/ui/Icons';
 
@@ -42,7 +41,17 @@ import OpManagement from './admin/OpManagement';
 
 export default function App() {
   // ===== ROLE & NAVIGATION =====
-  const [view, setView] = useState('client');       // admin | operator | client
+  // Determine role from URL: ?rol=admin | ?rol=operador | default=client
+  const getInitialView = () => {
+    const params = new URLSearchParams(window.location.search);
+    const rol = (params.get('rol') || '').toLowerCase();
+    if (rol === 'admin') return 'admin';
+    if (rol === 'operador' || rol === 'operator') return 'operator';
+    return 'client';
+  };
+  const [view, setView] = useState(getInitialView);       // admin | operator | client
+  const viewRef = useRef(view);
+  useEffect(() => { viewRef.current = view; }, [view]);
   const [scr, setScr] = useState('dash');            // admin screen
   const [cScr, setCScr] = useState('home');           // client screen
   const [oScr, setOScr] = useState('ohome');          // operator screen
@@ -180,26 +189,29 @@ export default function App() {
     if (!sb) { setSbLoading(false); return; }
     let mounted = true;
 
-    // Auth state change listener
+    // Auth state change listener (only for client/member view)
     const authSub = sb.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
+      if (viewRef.current !== 'client') return; // Ignore Google auth for admin/operator
       console.log('[Auth]', event, session?.user?.email || 'no session');
       if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session?.user) {
         setUserFromSession(session.user);
         if (event === 'SIGNED_IN') fire('👋 Bienvenido ' + (session.user.user_metadata?.full_name || session.user.email));
       }
       if (event === 'SIGNED_OUT') {
-        setMe(null); setAuthScreen('login'); setView('client'); setGoogleStep('welcome');
+        setMe(null); setAuthScreen('login'); setGoogleStep('welcome');
       }
     });
 
-    // Catch existing session (race condition: hash may be processed before listener)
-    sb.auth.getSession().then(({ data: { session } }) => {
-      console.log('[Auth] getSession:', session?.user?.email || 'no session');
-      if (mounted && session?.user) {
-        setUserFromSession(session.user);
-      }
-    });
+    // Catch existing session (only for client view)
+    if (viewRef.current === 'client') {
+      sb.auth.getSession().then(({ data: { session } }) => {
+        console.log('[Auth] getSession:', session?.user?.email || 'no session');
+        if (mounted && session?.user) {
+          setUserFromSession(session.user);
+        }
+      });
+    }
 
     // Clean OAuth hash from URL
     if (window.location.hash?.includes('access_token')) {
@@ -769,13 +781,6 @@ export default function App() {
     else setCScr(id);
   }
 
-  function handleRoleSwitch(role) {
-    setView(role); setAuthError('');
-    if (role === 'admin') setScr('dash');
-    else if (role === 'operator') setOScr('ohome');
-    else setCScr('home');
-  }
-
   // ===== RENDER =====
   return (
     <>
@@ -814,9 +819,6 @@ export default function App() {
             ))}
           </div>
         )}
-
-        {/* Role switcher */}
-        <RoleSwitcher view={view} onSwitch={handleRoleSwitch} tierName={cTier.name} authScreen={authScreen} />
 
         {/* Active screen */}
         {renderScreen()}
