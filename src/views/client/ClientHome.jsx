@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { sMono, GAL3, clientTheme } from '../../constants/styles';
 import { CARD_PREFIX } from '../../constants/config';
+import { tierProgress } from '../../lib/tierSystem';
 import Badge from '../../components/ui/Badge';
 import QRCode from '../../components/ui/QRCode';
 import TierDeco from '../../components/ui/TierDeco';
@@ -151,6 +152,107 @@ export default function ClientHome(ctx) {
           </button>
         </div>
       </div>
+
+      {/* Tier Card */}
+      {(() => {
+        const pg = tierProgress(me.gallons, cTier);
+        const tierBg = cTier.name === 'BLACK'
+          ? 'radial-gradient(ellipse at 20% 30%, #0d0d1a 0%, #050508 40%, #000 100%)'
+          : cTier.name === 'PLATINO'
+          ? 'linear-gradient(135deg,#9E9E9E 0%,#BDBDBD 30%,#CFD8DC 60%,#BDBDBD 100%)'
+          : 'linear-gradient(135deg,#FBBC04 0%,#FFD540 50%,#FBBC04 100%)';
+        const tierShadow = cTier.name === 'BLACK'
+          ? '0 12px 40px rgba(0,0,0,.6)'
+          : cTier.name === 'PLATINO'
+          ? '0 6px 24px rgba(21,101,192,.2)'
+          : '0 8px 32px rgba(251,188,4,.25)';
+        const tierBorder = cTier.name === 'BLACK'
+          ? 'none'
+          : cTier.name === 'PLATINO'
+          ? '2px solid #1565C0'
+          : '2px solid #E6A800';
+        const txtCol = cTier.color;
+        const barBg = cTier.name === 'BLACK' ? 'rgba(255,255,255,.15)' : cTier.name === 'PLATINO' ? 'rgba(0,0,0,.15)' : 'rgba(0,0,0,.08)';
+        const barFill = cTier.name === 'BLACK' ? '#fff' : cTier.name === 'PLATINO' ? '#1565C0' : '#000';
+        const sepCol = cTier.name === 'BLACK' ? 'rgba(255,255,255,.08)' : cTier.name === 'PLATINO' ? 'rgba(255,255,255,.15)' : 'rgba(0,0,0,.06)';
+
+        const bens = [
+          { i: '⛽', t: `1 pt por cada Q${cfg.qPerPt}` },
+          ...(cTier.discount > 0 ? [{ i: '💰', t: `Descuento Q${cTier.discount.toFixed(2)}/galón` }] : []),
+          ...(cTier.redeemDisc > 0 ? [{ i: '🏷️', t: `-${Math.round(cTier.redeemDisc * 100)}% en canje de premios` }] : []),
+          { i: '📶', t: 'WiFi ilimitado' },
+          ...(cTier.bath ? [{ i: '🚻', t: 'Acceso a baños' }] : []),
+          { i: '🎂', t: `${cTier.evtPts} pts en eventos especiales` },
+          { i: '🎟️', t: `Rifa mensual (${cfg.ticketPts} pts = 1 boleto)` },
+        ];
+
+        return (
+          <div style={{
+            borderRadius: 20, padding: 20, margin: '10px 20px',
+            background: tierBg, color: txtCol,
+            position: 'relative', overflow: 'hidden',
+            boxShadow: tierShadow, border: tierBorder,
+          }}>
+            <TierDeco name={cTier.name} />
+            <div style={{ position: 'relative', zIndex: 2 }}>
+              {/* Tier name + base gallons */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: 2 }}>{cTier.icon} {cTier.name}</div>
+                {cTier.base > 0 && <div style={{ fontSize: 11, opacity: .6, fontWeight: 700 }}>{cTier.base}+ gls</div>}
+              </div>
+
+              {/* Benefits */}
+              {bens.map((b, i) => (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '9px 0', borderBottom: `1px solid ${sepCol}`,
+                  fontSize: 13, fontWeight: 600,
+                }}>
+                  <span style={{ width: 28, textAlign: 'center' }}>{b.i}</span>
+                  <span>{b.t}</span>
+                </div>
+              ))}
+
+              {/* Progress bar */}
+              {cTier.next && (
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, opacity: .6, marginBottom: 6, fontWeight: 700 }}>
+                    <span>Siguiente: {cTier.next}</span>
+                    <span style={sMono}>{me.gallons.toFixed(0)}/{cTier.target} gal</span>
+                  </div>
+                  <div style={{ position: 'relative' }}>
+                    <div style={{ height: 6, borderRadius: 3, overflow: 'hidden', background: barBg }}>
+                      <div style={{
+                        height: '100%', borderRadius: 3,
+                        width: `${pg}%`,
+                        background: barFill,
+                        transition: 'width 1s ease',
+                      }} />
+                    </div>
+                    {pg > 0 && (
+                      <div style={{
+                        position: 'absolute', top: -18,
+                        left: `${Math.min(pg, 95)}%`, transform: 'translateX(-50%)',
+                        fontSize: 10, fontWeight: 800, ...sMono, whiteSpace: 'nowrap',
+                      }}>
+                        {me.gallons.toFixed(0)}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 10, opacity: .5, marginTop: 6, fontWeight: 600, textAlign: 'center' }}>
+                    Faltan {cTier.rem} galones para {cTier.next}
+                  </div>
+                </div>
+              )}
+              {!cTier.next && (
+                <div style={{ marginTop: 12, textAlign: 'center', fontSize: 11, fontWeight: 700, opacity: .6 }}>
+                  ⭐ ¡Nivel máximo alcanzado! · {me.gallons.toFixed(0)} galones
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Stats row: Visits, Invite, Raffle Tickets */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, padding: '0 12px', margin: '12px 0' }}>
