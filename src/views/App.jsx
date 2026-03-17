@@ -54,6 +54,7 @@ export default function App() {
   const viewRef = useRef(view);
   useEffect(() => { viewRef.current = view; }, [view]);
   const lastVisitsRef = useRef(0);
+  const realtimeReadyRef = useRef(false); // prevents false rating trigger on initial Realtime handshake
   const [scr, setScr] = useState('dash');            // admin screen
   const [cScr, setCScr] = useState('home');           // client screen
   const [oScr, setOScr] = useState('ohome');          // operator screen
@@ -513,7 +514,13 @@ export default function App() {
 
   // ===== CARGAR ENCUESTAS DEL DIA AL CAMBIAR DE USUARIO =====
   useEffect(() => {
-    if (me?.visits != null) lastVisitsRef.current = me.visits;
+    if (me?.visits != null) {
+      lastVisitsRef.current = me.visits;
+      // Mark Realtime as ready only after visits ref is set
+      // Small delay ensures Realtime subscription is already up before we accept updates
+      setTimeout(() => { realtimeReadyRef.current = true; }, 800);
+    }
+    return () => { realtimeReadyRef.current = false; };
   }, [me?.id]);
   useEffect(() => {
     if (me?.id && sb && sbConnected) loadTodaySurveys(me.id);
@@ -521,9 +528,17 @@ export default function App() {
 
   // ===== PUSH NOTIFICATIONS: Subscribe when member logs in =====
   useEffect(() => {
-    if (me?.id && viewRef.current === 'client' && authScreen === 'logged' && isPushSupported()) {
-      subscribePush(me.id);
+    if (!me?.id || viewRef.current !== 'client' || authScreen !== 'logged') return;
+    if (!isPushSupported()) {
+      console.log('[Push] Not supported in this browser/context');
+      return;
     }
+    // Always attempt subscription — subscribePush is idempotent (upsert)
+    // This retries if previous attempt failed (e.g. missing manifest before fix)
+    console.log('[Push] Attempting subscription for member:', me.id);
+    subscribePush(me.id).then(ok => {
+      console.log('[Push] Subscription result:', ok ? '✅ OK' : '⚠️ Failed/Denied');
+    });
   }, [me?.id, authScreen]);
 
   // ===== SERVICE WORKER: Listen for notification clicks =====
@@ -599,7 +614,7 @@ export default function App() {
         const newVisits = m.visits ?? 0;
         const prevVisits = lastVisitsRef.current;
         lastVisitsRef.current = newVisits;
-        if (m.last_operator_id && newVisits > prevVisits && prevVisits > 0 && viewRef.current === 'client') {
+        if (m.last_operator_id && newVisits > prevVisits && realtimeReadyRef.current && viewRef.current === 'client') {
           const op = operators.find(o => o.id === m.last_operator_id);
           console.log('[Realtime] New purchase detected, operator:', op?.name || m.last_operator_id);
           if (op) {
