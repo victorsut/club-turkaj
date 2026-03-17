@@ -1,0 +1,17 @@
+{
+  "name": "Club Turkaj",
+  "short_name": "Club Turkaj",
+  "description": "Programa de lealtad Gasolineras Turkaj",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#FBBC04",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
