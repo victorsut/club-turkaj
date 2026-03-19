@@ -1,7 +1,7 @@
 // src/views/client/ClientLogin.jsx
 import { sb } from '../../lib/supabaseClient';
 import { inputStyle, btnStyle } from '../../constants/styles';
-import { Back, GoogleLogo, AppleLogo } from '../../components/ui/Icons';
+import { Back, GoogleLogo, FacebookLogo } from '../../components/ui/Icons';
 
 export default function ClientLogin(ctx) {
   const { loginPhone, setLoginPhone, loginPass, setLoginPass, authError, setAuthError,
@@ -20,8 +20,8 @@ export default function ClientLogin(ctx) {
     else setAuthError('Supabase no disponible');
   };
 
-  const doApple = () => {
-    if (sb) sb.auth.signInWithOAuth({ provider: 'apple', options: { redirectTo: window.location.origin } });
+  const doFacebook = () => {
+    if (sb) sb.auth.signInWithOAuth({ provider: 'facebook', options: { redirectTo: window.location.origin } });
     else setAuthError('Supabase no disponible');
   };
 
@@ -74,11 +74,11 @@ export default function ClientLogin(ctx) {
         }}>
           <GoogleLogo /> Google
         </button>
-        <button onClick={doApple} style={{
-          ...btnStyle, flex: 1, background: '#000', color: '#fff',
+        <button onClick={doFacebook} style={{
+          ...btnStyle, flex: 1, background: '#1877F2', color: '#fff',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         }}>
-          <AppleLogo /> Apple
+          <FacebookLogo /> Facebook
         </button>
       </div>
 
