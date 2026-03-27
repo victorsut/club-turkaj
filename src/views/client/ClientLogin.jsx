@@ -1,7 +1,7 @@
 // src/views/client/ClientLogin.jsx
 import { sb } from '../../lib/supabaseClient';
 import { inputStyle, btnStyle } from '../../constants/styles';
-import { Back, GoogleLogo, FacebookLogo } from '../../components/ui/Icons';
+import { Back, GoogleLogo } from '../../components/ui/Icons';
 
 export default function ClientLogin(ctx) {
   const { loginPhone, setLoginPhone, loginPass, setLoginPass, authError, setAuthError,
@@ -17,11 +17,6 @@ export default function ClientLogin(ctx) {
 
   const doGoogle = () => {
     if (sb) sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
-    else setAuthError('Supabase no disponible');
-  };
-
-  const doFacebook = () => {
-    if (sb) sb.auth.signInWithOAuth({ provider: 'facebook', options: { redirectTo: window.location.origin } });
     else setAuthError('Supabase no disponible');
   };
 
@@ -67,18 +62,12 @@ export default function ClientLogin(ctx) {
       </div>
 
       {/* OAuth */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
+      <div style={{ marginBottom: 24 }}>
         <button onClick={doGoogle} style={{
-          ...btnStyle, flex: 1, background: '#fff', border: '2px solid #eee', color: '#333',
+          ...btnStyle, width: '100%', background: '#fff', border: '2px solid #eee', color: '#333',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         }}>
-          <GoogleLogo /> Google
-        </button>
-        <button onClick={doFacebook} style={{
-          ...btnStyle, flex: 1, background: '#1877F2', color: '#fff',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-        }}>
-          <FacebookLogo /> Facebook
+          <GoogleLogo /> Continuar con Google
         </button>
       </div>
 
