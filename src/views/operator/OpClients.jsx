@@ -14,6 +14,7 @@ export default function OpClients(ctx) {
   const [fuel, setFuel] = useState('regular');
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState('');
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     if (opScanMode) { setScanning(true); setOpScanMode(false); }
@@ -49,9 +50,17 @@ export default function OpClients(ctx) {
     }
   }, [custs, fire]);
 
-  const handlePurchase = () => {
+  // Abre el modal de confirmación (solo valida)
+  const handlePurchaseClick = () => {
     const monto = parseFloat(amt);
     if (!monto || monto < 10) { fire('Monto mínimo Q10'); return; }
+    setShowConfirm(true);
+  };
+
+  // Confirma y ejecuta la compra real
+  const handlePurchaseConfirm = () => {
+    const monto = parseFloat(amt);
+    setShowConfirm(false);
     addPurchase(selClient.id, monto, fuel);
     fire('✅ Compra registrada · El cliente recibirá notificación para calificar');
     setAmt(''); setSel(null); setScanResult('');
@@ -179,10 +188,86 @@ export default function OpClients(ctx) {
               </strong>
             </div>
 
-            <button onClick={handlePurchase} disabled={!amt || parseFloat(amt) < 10}
+            <button onClick={handlePurchaseClick} disabled={!amt || parseFloat(amt) < 10}
               style={{ ...btnYellow, width: '100%', opacity: (!amt || parseFloat(amt) < 10) ? .5 : 1 }}>
               Registrar Compra
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal de confirmación de compra ── */}
+      {showConfirm && selClient && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)',
+          zIndex: 300, display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          padding: '0 0 24px',
+          animation: 'fadeUp .2s ease',
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: '24px 24px 20px 20px',
+            width: '100%', maxWidth: 480, padding: '28px 24px 20px',
+            boxShadow: '0 -8px 40px rgba(0,0,0,.15)',
+          }}>
+            {/* Handle */}
+            <div style={{ width: 40, height: 4, background: '#E0E0E0', borderRadius: 4, margin: '0 auto 20px' }} />
+
+            {/* Título */}
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>⛽</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: '#0D0D0D' }}>Confirmar Compra</div>
+              <div style={{ fontSize: 13, color: '#9E9E9E', marginTop: 4 }}>Revisá los datos antes de registrar</div>
+            </div>
+
+            {/* Resumen */}
+            <div style={{ background: '#F9F9F9', borderRadius: 16, padding: '16px 20px', marginBottom: 20 }}>
+              {/* Cliente */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 12, borderBottom: '1px solid #eee', marginBottom: 12 }}>
+                <span style={{ fontSize: 13, color: '#9E9E9E', fontWeight: 600 }}>Cliente</span>
+                <span style={{ fontSize: 14, fontWeight: 800, color: '#0D0D0D' }}>{selClient.name}</span>
+              </div>
+              {/* Código */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 12, borderBottom: '1px solid #eee', marginBottom: 12 }}>
+                <span style={{ fontSize: 13, color: '#9E9E9E', fontWeight: 600 }}>Tarjeta</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#0D0D0D', fontFamily: 'monospace' }}>{selClient.cardId || '—'}</span>
+              </div>
+              {/* Combustible */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 12, borderBottom: '1px solid #eee', marginBottom: 12 }}>
+                <span style={{ fontSize: 13, color: '#9E9E9E', fontWeight: 600 }}>Combustible</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#0D0D0D' }}>{FUEL_LABELS[fuel]}</span>
+              </div>
+              {/* Monto */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 12, borderBottom: '1px solid #eee', marginBottom: 12 }}>
+                <span style={{ fontSize: 13, color: '#9E9E9E', fontWeight: 600 }}>Monto</span>
+                <span style={{ fontSize: 20, fontWeight: 900, color: '#0D0D0D' }}>Q{parseFloat(amt).toFixed(2)}</span>
+              </div>
+              {/* Puntos */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 13, color: '#9E9E9E', fontWeight: 600 }}>Puntos a otorgar</span>
+                <span style={{ fontSize: 20, fontWeight: 900, color: '#2E7D32' }}>
+                  +{Math.floor(parseFloat(amt) / cfg.qPerPt)}
+                </span>
+              </div>
+            </div>
+
+            {/* Botones */}
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button onClick={() => setShowConfirm(false)} style={{
+                flex: 1, padding: '16px', borderRadius: 14, border: '2px solid #eee',
+                background: '#fff', color: '#424242', fontFamily: "'DM Sans'",
+                fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              }}>
+                Cancelar
+              </button>
+              <button onClick={handlePurchaseConfirm} style={{
+                flex: 2, padding: '16px', borderRadius: 14, border: 'none',
+                background: '#FBBC04', color: '#0D0D0D', fontFamily: "'DM Sans'",
+                fontSize: 15, fontWeight: 900, cursor: 'pointer',
+                boxShadow: '0 4px 16px rgba(251,188,4,.4)',
+              }}>
+                ✓ Confirmar Compra
+              </button>
+            </div>
           </div>
         </div>
       )}
