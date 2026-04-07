@@ -1,121 +1,80 @@
 // src/views/client/ClientRegister.jsx
-import { inputStyle, btnStyle } from '../../constants/styles';
+// Punto de entrada para registro manual (sin OTP — modo pruebas)
+// Crea un usuario temporal y redirige al wizard de GoogleProfile
 import { Back } from '../../components/ui/Icons';
 
 export default function ClientRegister(ctx) {
-  const { regPhone, setRegPhone, regPass, setRegPass, regPass2, setRegPass2,
-    regVerifyMethod, setRegVerifyMethod, regCode, setRegCode, regSentCode, setRegSentCode,
-    authError, setAuthError, clearAuthErr, setAuthScreen, custs, fire } = ctx;
+  const { setAuthScreen, setAuthError, setMe, setRegProfile,
+    setGoogleStep, fire, cTier } = ctx;
 
-  const doSend = () => {
-    clearAuthErr();
-    if (!regPhone) { setAuthError('Ingresa tu número'); return; }
-    if (!regPass || regPass.length < 6) { setAuthError('Contraseña mínimo 6 caracteres'); return; }
-    if (regPass !== regPass2) { setAuthError('Las contraseñas no coinciden'); return; }
-    if (custs.find(c => c.phone === regPhone)) { setAuthError('Este número ya está registrado'); return; }
-    setRegSentCode(true);
-    fire(regVerifyMethod === 'whatsapp' ? '📱 Código enviado por WhatsApp' : '📱 Código enviado por SMS');
+  const isDark = cTier?.name === 'BLACK';
+  const textColor = isDark ? '#fff' : '#0D0D0D';
+
+  const comenzar = () => {
+    // Crear usuario temporal — se sobreescribe al guardar en Supabase
+    setMe({
+      id: 'temp-' + Date.now(),
+      name: '', email: '', phone: '', avatar: '',
+      dpi: '', plate: '', nit: '', bday: '',
+      points: 0, gallons: 0, spent: 0, visits: 0,
+      tickets: 0, redeemed: 0, referrals: 0,
+      registered: new Date().toISOString().split('T')[0],
+      lastBuy: '', station: '', cardId: '',
+      supabaseUser: false, authProvider: 'manual',
+    });
+    setRegProfile({ name: '', dpi: '', plate: '', email: '', bday: '', nit: '', phone: '' });
+    setGoogleStep('step1');
+    setAuthError('');
+    setAuthScreen('googleProfile');
+    fire('📝 Vamos a crear tu cuenta');
   };
 
-  const doVerify = () => {
-    if (regCode.length >= 4) { setAuthScreen('profile'); fire('✅ Número verificado'); }
-    else setAuthError('Código inválido');
-  };
-
-  // Verify step
-  if (regSentCode) {
-    return (
-      <div style={{ padding: '40px 24px 120px', position: 'relative', zIndex: 1 }}>
-        <button onClick={() => { setRegSentCode(false); setAuthScreen('register'); setAuthError(''); }}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: '#9E9E9E', fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 600, marginBottom: 20 }}>
-          <Back /> Atrás
-        </button>
-
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <div style={{ fontSize: 48, marginBottom: 8 }}>{regVerifyMethod === 'whatsapp' ? '💬' : '📱'}</div>
-          <div style={{ fontSize: 20, fontWeight: 900 }}>Verificar Número</div>
-          <div style={{ fontSize: 13, color: '#9E9E9E', marginTop: 8 }}>
-            Enviamos un código a {regPhone} por {regVerifyMethod === 'whatsapp' ? 'WhatsApp' : 'SMS'}
-          </div>
-        </div>
-
-        {authError && (
-          <div style={{ background: '#FFEBEE', color: '#C62828', padding: '10px 14px', borderRadius: 12, fontSize: 12, fontWeight: 700, marginBottom: 16, textAlign: 'center' }}>
-            {authError}
-          </div>
-        )}
-
-        <input placeholder="Código de verificación" value={regCode}
-          onChange={e => { setRegCode(e.target.value); clearAuthErr(); }}
-          style={{ ...inputStyle, textAlign: 'center', fontSize: 24, fontWeight: 800, letterSpacing: 8, marginBottom: 16 }}
-          maxLength={6} />
-
-        <button onClick={doVerify} style={{ ...btnStyle, background: '#FBBC04', color: '#0D0D0D' }}>
-          Verificar
-        </button>
-
-        <div style={{ textAlign: 'center', marginTop: 16 }}>
-          <button onClick={doSend}
-            style={{ background: 'none', border: 'none', color: '#FBBC04', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: "'DM Sans'" }}>
-            Reenviar código
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Register step
   return (
     <div style={{ padding: '40px 24px 120px', position: 'relative', zIndex: 1 }}>
       <button onClick={() => { setAuthScreen('login'); setAuthError(''); }}
-        style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: '#9E9E9E', fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 600, marginBottom: 20 }}>
-        <Back /> Atrás
+        style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: '#9E9E9E', fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 600, marginBottom: 28 }}>
+        <Back /> Iniciar sesión
       </button>
 
-      <div style={{ textAlign: 'center', marginBottom: 24 }}>
-        <div style={{ fontSize: 40, marginBottom: 8 }}>🆕</div>
-        <div style={{ fontSize: 22, fontWeight: 900 }}>Crear Cuenta</div>
-        <div style={{ fontSize: 13, color: '#9E9E9E', marginTop: 4 }}>Únete a Club Turkaj</div>
+      {/* Header */}
+      <div style={{ textAlign: 'center', marginBottom: 32 }}>
+        <div style={{ fontSize: 52, marginBottom: 12 }}>⛽</div>
+        <div style={{ fontSize: 26, fontWeight: 900, color: textColor }}>Únete a Club Turkaj</div>
+        <div style={{ fontSize: 14, color: '#9E9E9E', marginTop: 6 }}>Acumulá puntos en cada compra de combustible</div>
       </div>
 
-      {authError && (
-        <div style={{ background: '#FFEBEE', color: '#C62828', padding: '10px 14px', borderRadius: 12, fontSize: 12, fontWeight: 700, marginBottom: 16, textAlign: 'center' }}>
-          {authError}
-        </div>
-      )}
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-        <input placeholder="Número de teléfono" value={regPhone}
-          inputMode="numeric" maxLength={8}
-          onChange={e => { setRegPhone(e.target.value.replace(/[^0-9]/g, '')); clearAuthErr(); }} style={inputStyle} />
-        <input placeholder="Crear contraseña" type="password" value={regPass}
-          onChange={e => { setRegPass(e.target.value); clearAuthErr(); }} style={inputStyle} />
-        <input placeholder="Confirmar contraseña" type="password" value={regPass2}
-          onChange={e => { setRegPass2(e.target.value); clearAuthErr(); }} style={inputStyle} />
+      {/* Beneficios */}
+      <div style={{ background: isDark ? 'rgba(255,255,255,.05)' : '#FFF8E1', borderRadius: 20, padding: 20, marginBottom: 28 }}>
+        {[
+          { icon: '⛽', title: 'Puntos por combustible',  desc: 'Cada Q10 = 1 punto acumulado' },
+          { icon: '🎁', title: 'Canjeá premios',          desc: 'Café, artículos, electrónica y más' },
+          { icon: '🎟️', title: 'Rifas mensuales',         desc: 'Premios exclusivos cada mes' },
+          { icon: '⭐', title: 'Subí de nivel',           desc: 'ORO → PLATINO → BLACK' },
+        ].map((b, i, arr) => (
+          <div key={i} style={{ display: 'flex', gap: 14, padding: '10px 0', borderBottom: i < arr.length - 1 ? '1px solid rgba(0,0,0,.06)' : 'none' }}>
+            <div style={{ fontSize: 24, flexShrink: 0 }}>{b.icon}</div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: textColor }}>{b.title}</div>
+              <div style={{ fontSize: 12, color: '#9E9E9E', marginTop: 2 }}>{b.desc}</div>
+            </div>
+          </div>
+        ))}
       </div>
 
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: '#424242' }}>
-          Verificar número por:
-        </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          {['whatsapp', 'sms'].map(m => (
-            <button key={m} onClick={() => setRegVerifyMethod(m)} style={{
-              flex: 1, padding: '14px 16px', borderRadius: 14,
-              border: regVerifyMethod === m ? '2px solid #FBBC04' : '2px solid #eee',
-              background: regVerifyMethod === m ? '#FFF8E1' : '#fff',
-              cursor: 'pointer', fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 13,
-              color: regVerifyMethod === m ? '#F0A500' : '#9E9E9E',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            }}>
-              {m === 'whatsapp' ? '💬 WhatsApp' : '📱 SMS'}
-            </button>
-          ))}
-        </div>
+      {/* Bonus registro */}
+      <div style={{ background: isDark ? 'rgba(76,175,80,.1)' : '#E8F5E9', borderRadius: 16, padding: 16, marginBottom: 28, textAlign: 'center' }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#4CAF50', textTransform: 'uppercase', letterSpacing: 1 }}>Bonus al registrarte</div>
+        <div style={{ fontSize: 36, fontWeight: 900, color: '#4CAF50', margin: '4px 0' }}>15+</div>
+        <div style={{ fontSize: 12, color: '#9E9E9E' }}>puntos base + bonus por cada dato que completes</div>
       </div>
 
-      <button onClick={doSend} style={{ ...btnStyle, background: '#FBBC04', color: '#0D0D0D' }}>
-        Enviar Código
+      <button onClick={comenzar} style={{
+        width: '100%', padding: '18px', borderRadius: 16, border: 'none',
+        background: '#FBBC04', color: '#0D0D0D', fontFamily: "'DM Sans'",
+        fontSize: 16, fontWeight: 900, cursor: 'pointer',
+        boxShadow: '0 4px 20px rgba(251,188,4,.4)',
+      }}>
+        Crear mi cuenta →
       </button>
     </div>
   );
