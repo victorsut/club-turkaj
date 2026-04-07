@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { sb } from '../lib/supabaseClient';
 import { makeTier, daysInactive } from '../lib/tierSystem';
-import { CFG_INIT, FUEL } from '../constants/config';
+import { CFG_INIT, FUEL, FUEL_LABELS } from '../constants/config';
 import { clientTheme, adminTheme, sMono, GAL } from '../constants/styles';
 import useToast from '../hooks/useToast';
 
@@ -127,6 +127,7 @@ export default function App() {
   const [showRating, setShowRating] = useState(null);
   const [ratingStars, setRatingStars] = useState(0);
   const [pendingOpRating, setPendingOpRating] = useState(null); // { operatorId, operatorName }
+  const [purchaseConfirm, setPurchaseConfirm] = useState(null); // { client, amt, fuel, onConfirm }
   const [showSurveys, setShowSurveys] = useState(false);
   const [sortDir, setSortDir] = useState('desc');
   const [memSort, setMemSort] = useState('all');
@@ -819,6 +820,7 @@ export default function App() {
     showMap, setShowMap, showTerms, setShowTerms,
     showRating, setShowRating, ratingStars, setRatingStars,
     pendingOpRating, setPendingOpRating,
+    purchaseConfirm, setPurchaseConfirm,
     showSurveys, setShowSurveys,
     sortDir, setSortDir, memSort, setMemSort,
     stationFilter, setStationFilter, stationMode, setStationMode,
@@ -962,6 +964,74 @@ export default function App() {
           <BottomNav items={nav} current={cur} onSelect={handleNav} view={view} tierName={cTier.name} />
         )}
       </div>
+
+      {/* ── Modal confirmación de compra (nivel raíz, escapa overflow:hidden) ── */}
+      {purchaseConfirm && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)',
+          zIndex: 400, display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: '24px 24px 0 0',
+            width: '100%', maxWidth: 480, padding: '12px 24px 36px',
+            boxShadow: '0 -8px 40px rgba(0,0,0,.15)',
+            animation: 'fadeUp .25s ease',
+          }}>
+            <div style={{ width: 40, height: 4, background: '#E0E0E0', borderRadius: 4, margin: '0 auto 20px' }} />
+
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>⛽</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: '#0D0D0D' }}>Confirmar Compra</div>
+              <div style={{ fontSize: 13, color: '#9E9E9E', marginTop: 4 }}>Revisá los datos antes de registrar</div>
+            </div>
+
+            <div style={{ background: '#F9F9F9', borderRadius: 16, padding: '16px 20px', marginBottom: 20 }}>
+              {[
+                { l: 'Cliente',          v: purchaseConfirm.client.name,                          bold: true },
+                { l: 'Tarjeta',          v: purchaseConfirm.client.cardId || '—',                  mono: true },
+                { l: 'Combustible',      v: FUEL_LABELS[purchaseConfirm.fuel] },
+                { l: 'Monto',            v: `Q${purchaseConfirm.amt.toFixed(2)}`,                  large: true },
+                { l: 'Puntos a otorgar', v: `+${Math.floor(purchaseConfirm.amt / cfg.qPerPt)}`,    green: true, large: true },
+              ].map((row, i, arr) => (
+                <div key={row.l} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  paddingBottom: i < arr.length - 1 ? 12 : 0,
+                  borderBottom: i < arr.length - 1 ? '1px solid #eee' : 'none',
+                  marginBottom: i < arr.length - 1 ? 12 : 0,
+                }}>
+                  <span style={{ fontSize: 13, color: '#9E9E9E', fontWeight: 600 }}>{row.l}</span>
+                  <span style={{
+                    fontSize: row.large ? 20 : 13,
+                    fontWeight: row.bold || row.large ? 900 : 700,
+                    color: row.green ? '#2E7D32' : '#0D0D0D',
+                    fontFamily: row.mono ? 'monospace' : "'DM Sans'",
+                  }}>{row.v}</span>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button onClick={() => setPurchaseConfirm(null)} style={{
+                flex: 1, padding: 16, borderRadius: 14, border: '2px solid #eee',
+                background: '#fff', color: '#424242', fontFamily: "'DM Sans'",
+                fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              }}>Cancelar</button>
+              <button onClick={() => {
+                const { client, amt, fuel, onConfirm } = purchaseConfirm;
+                setPurchaseConfirm(null);
+                addPurchase(client.id, amt, fuel);
+                fire('✅ Compra registrada · El cliente recibirá notificación');
+                onConfirm?.();
+              }} style={{
+                flex: 2, padding: 16, borderRadius: 14, border: 'none',
+                background: '#FBBC04', color: '#0D0D0D', fontFamily: "'DM Sans'",
+                fontSize: 15, fontWeight: 900, cursor: 'pointer',
+                boxShadow: '0 4px 16px rgba(251,188,4,.35)',
+              }}>✓ Confirmar Compra</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toast */}
       {toast && (
