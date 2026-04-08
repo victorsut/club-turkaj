@@ -19,23 +19,23 @@ const VEHICLE_TYPES = [
 const VEHICLE_PTS = 2;
 
 // ═══════════════════════════════════════════════════════════
-// Drum Picker — columna individual
+// Drum Picker
 // ═══════════════════════════════════════════════════════════
-const ITEM_H  = 48;
-const VISIBLE = 5;
+const ITEM_H   = 48;
+const VISIBLE  = 5;
 const CENTER_Y = ITEM_H * Math.floor(VISIBLE / 2);
 
 function DrumPicker({ items, selectedIndex, onChange }) {
   const indexToY = idx => CENTER_Y - idx * ITEM_H;
   const yToIndex = y   => Math.round((CENTER_Y - y) / ITEM_H);
 
-  const translateRef   = useRef(indexToY(selectedIndex));
+  const translateRef  = useRef(indexToY(selectedIndex));
   const [displayY, setDisplayY]     = useState(translateRef.current);
   const [isSnapping, setIsSnapping] = useState(false);
-  const isDragging     = useRef(false);
-  const startYRef      = useRef(0);
-  const startTransRef  = useRef(0);
-  const containerRef   = useRef(null);
+  const isDragging    = useRef(false);
+  const startYRef     = useRef(0);
+  const startTransRef = useRef(0);
+  const containerRef  = useRef(null);
 
   useEffect(() => {
     if (!isDragging.current) {
@@ -48,8 +48,8 @@ function DrumPicker({ items, selectedIndex, onChange }) {
 
   const onDown = e => {
     e.preventDefault();
-    isDragging.current   = true;
-    startYRef.current    = e.clientY;
+    isDragging.current    = true;
+    startYRef.current     = e.clientY;
     startTransRef.current = translateRef.current;
     setIsSnapping(false);
     containerRef.current?.setPointerCapture(e.pointerId);
@@ -76,9 +76,7 @@ function DrumPicker({ items, selectedIndex, onChange }) {
       style={{ flex: 1, height: ITEM_H * VISIBLE, overflow: 'hidden', position: 'relative', cursor: 'grab', touchAction: 'none', userSelect: 'none' }}
       onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
     >
-      {/* Highlight central */}
       <div style={{ position: 'absolute', top: CENTER_Y, left: 6, right: 6, height: ITEM_H, background: 'rgba(251,188,4,.12)', borderRadius: 10, borderTop: '1.5px solid rgba(251,188,4,.5)', borderBottom: '1.5px solid rgba(251,188,4,.5)', pointerEvents: 'none', zIndex: 2 }} />
-
       <div style={{ transform: `translateY(${displayY}px)`, transition: isSnapping ? 'transform .22s ease' : 'none', willChange: 'transform' }}>
         {items.map((item, i) => (
           <div key={i} style={{ height: ITEM_H, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: i === selectedIndex ? 17 : 14, fontWeight: i === selectedIndex ? 800 : 400, color: i === selectedIndex ? '#0D0D0D' : '#BDBDBD', fontFamily: "'DM Sans'", userSelect: 'none' }}>
@@ -86,19 +84,15 @@ function DrumPicker({ items, selectedIndex, onChange }) {
           </div>
         ))}
       </div>
-
-      {/* Fades */}
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: CENTER_Y, background: 'linear-gradient(to bottom, rgba(255,255,255,.97), rgba(255,255,255,0))', pointerEvents: 'none', zIndex: 3 }} />
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: CENTER_Y, background: 'linear-gradient(to top, rgba(255,255,255,.97), rgba(255,255,255,0))', pointerEvents: 'none', zIndex: 3 }} />
     </div>
   );
 }
 
-// ═══════════════════════════════════════════════════════════
-// Date Drum Picker — 3 columnas: día / mes / año
-// ═══════════════════════════════════════════════════════════
-const MONTHS     = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-const DAYS_ITEMS = Array.from({ length: 31 }, (_, i) => ({ label: String(i + 1).padStart(2, '0') }));
+// ── Date Drum Picker ──────────────────────────────────────
+const MONTHS      = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const DAYS_ITEMS  = Array.from({ length: 31 }, (_, i) => ({ label: String(i + 1).padStart(2, '0') }));
 const MONTH_ITEMS = MONTHS.map(m => ({ label: m }));
 
 function DateDrumPicker({ value, onChange }) {
@@ -122,9 +116,7 @@ function DateDrumPicker({ value, onChange }) {
 
   const emit = (d, m, y) => {
     const year  = parseInt(years[y].label);
-    const month = m + 1;
-    const day   = d + 1;
-    onChange(`${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`);
+    onChange(`${year}-${String(m + 1).padStart(2,'0')}-${String(d + 1).padStart(2,'0')}`);
   };
 
   return (
@@ -138,9 +130,7 @@ function DateDrumPicker({ value, onChange }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════
-// Componentes de UI auxiliares
-// ═══════════════════════════════════════════════════════════
+// ── UI helpers ────────────────────────────────────────────
 function StepBar({ step }) {
   const steps = ['Datos\npersonales', 'Datos\nadicionales', 'Vehículos'];
   const idx = { step1: 0, step2: 1, step3: 2 }[step] ?? 0;
@@ -173,7 +163,7 @@ function PtsCard({ total, base, optional, vehicles }) {
   );
 }
 
-function Field({ icon, placeholder, fieldKey, type, inputMode, maxLen, optional,
+function Field({ icon, placeholder, fieldKey, type, inputMode, maxLen, bonus,
                  regProfile, setRegProfile, clearAuthErr, regOptional }) {
   const val    = regProfile[fieldKey] || '';
   const filled = val.trim().length > 0;
@@ -191,15 +181,15 @@ function Field({ icon, placeholder, fieldKey, type, inputMode, maxLen, optional,
         }}
         style={{ ...inputStyle, paddingLeft: 42 }}
       />
-      {optional && filled && (
+      {bonus && filled && (
         <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 10, fontWeight: 800, color: '#4CAF50', background: '#E8F5E9', padding: '2px 8px', borderRadius: 8 }}>+{regOptional} pts</div>
       )}
     </div>
   );
 }
 
-// ── Campo fecha: muestra el valor como texto, drum picker en bottom sheet ──
-function DateField({ value, regOptional, onOpen }) {
+// Campo fecha: muestra texto normal, drum picker en bottom sheet al tocar
+function DateField({ value, onOpen }) {
   const formatDisplay = v => {
     if (!v || !v.includes('-')) return null;
     const [y, m, d] = v.split('-').map(Number);
@@ -211,10 +201,8 @@ function DateField({ value, regOptional, onOpen }) {
   return (
     <div onClick={onOpen} style={{ ...inputStyle, paddingLeft: 42, display: 'flex', alignItems: 'center', cursor: 'pointer', position: 'relative', color: display ? '#0D0D0D' : '#9E9E9E', userSelect: 'none' }}>
       <div style={{ position: 'absolute', left: 14, fontSize: 16 }}>🎂</div>
-      <span style={{ flex: 1 }}>{display || 'Fecha de nacimiento (opcional)'}</span>
-      {display && (
-        <div style={{ fontSize: 10, fontWeight: 800, color: '#4CAF50', background: '#E8F5E9', padding: '2px 8px', borderRadius: 8 }}>+{regOptional} pts</div>
-      )}
+      <span style={{ flex: 1 }}>{display || 'Fecha de nacimiento *'}</span>
+      <span style={{ fontSize: 13, color: '#BDBDBD' }}>›</span>
     </div>
   );
 }
@@ -227,38 +215,31 @@ export default function GoogleProfile(ctx) {
     regProfile, setRegProfile, authError, setAuthError, clearAuthErr,
     setAuthScreen, fire, sbConnected, logActivity } = ctx;
 
-  // Estado vehículos — solo tipo, sin placa
-  const [selectedVehicles, setSelectedVehicles] = useState({}); // { k: count }
-  const [showDatePicker, setShowDatePicker]      = useState(false);
-  const [tempDate, setTempDate]                  = useState(regProfile.bday || '2000-01-01');
+  const [vehicles, setVehicles]           = useState([]);
+  const [addingVehicle, setAddingVehicle] = useState(false);
+  const [newType, setNewType]             = useState('liviano');
+  const [newPlate, setNewPlate]           = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [tempDate, setTempDate]             = useState('2000-01-01');
 
   const regOptional = cfg.regOptional || 2;
-  const optFields   = ['phone', 'nit', 'email', 'bday'].filter(k => regProfile[k]?.trim()).length;
-  const vehicleCount = Object.values(selectedVehicles).reduce((a, b) => a + b, 0);
-  const vehiclePts   = vehicleCount * VEHICLE_PTS;
-  const totalPts     = (cfg.regBase || 15) + optFields * regOptional + vehiclePts;
+
+  // Solo email y nit dan puntos opcionales
+  const optFields  = ['email', 'nit'].filter(k => regProfile[k]?.trim()).length;
+  const vehiclePts = vehicles.length * VEHICLE_PTS;
+  const totalPts   = (cfg.regBase || 15) + optFields * regOptional + vehiclePts;
 
   const fieldProps = { regProfile, setRegProfile, clearAuthErr, regOptional };
 
-  const addVehicle    = k => setSelectedVehicles(p => ({ ...p, [k]: (p[k] || 0) + 1 }));
-  const removeVehicle = k => setSelectedVehicles(p => {
-    const n = { ...p };
-    if ((n[k] || 0) <= 1) delete n[k]; else n[k]--;
-    return n;
-  });
-
   // ── Guardar ───────────────────────────────────────────────
   const doFinish = async () => {
+    const firstPlate   = vehicles[0]?.plate || '';
     const fallbackCard = CARD_PREFIX.ORO + '-' + String(Date.now()).slice(-5);
     const bdayRaw      = regProfile.bday || '';
     let bdayStored = '';
     if (bdayRaw) { const p = bdayRaw.split('-'); if (p.length === 3) bdayStored = p[1] + '-' + p[2]; }
 
-    const vehiclesList = Object.entries(selectedVehicles).flatMap(([k, cnt]) =>
-      Array.from({ length: cnt }, () => ({ type: k }))
-    );
-
-    const updated = { ...me, name: regProfile.name, phone: regProfile.phone || '', dpi: regProfile.dpi || '', email: regProfile.email || me?.email || '', bday: bdayStored, nit: regProfile.nit || '', points: totalPts, cardId: fallbackCard };
+    const updated = { ...me, name: regProfile.name, phone: regProfile.phone || '', dpi: regProfile.dpi || '', plate: firstPlate, email: regProfile.email || me?.email || '', bday: bdayStored, nit: regProfile.nit || '', points: totalPts, cardId: fallbackCard };
     setMe(updated);
     setCusts(p => [...p, updated]);
     setAuthScreen('logged');
@@ -271,7 +252,7 @@ export default function GoogleProfile(ctx) {
       const memberData = {
         phone:            regProfile.phone?.trim() || (provider === 'google' ? 'goog_' + (me?.id || '').substring(0, 12) : null),
         password_hash:    provider, auth_provider: provider, auth_provider_id: providerId,
-        name: regProfile.name, dpi: regProfile.dpi || null, plate: null,
+        name: regProfile.name, dpi: regProfile.dpi || null, plate: firstPlate || null,
         nit: regProfile.nit || null, email: regProfile.email || me?.email || null,
         birthday: bdayStored || null, points: totalPts,
         gallons: 0, spent: 0, visits: 0, tickets: 0, redeemed_count: 0, referral_count: 0,
@@ -283,8 +264,8 @@ export default function GoogleProfile(ctx) {
       setMe(p => ({ ...p, id: dbId }));
       const { data: cardRows } = await sb.from('physical_cards').insert({ assigned_to: dbId, card_code: fallbackCard, tier: 'ORO', status: 'active' }).select();
       if (cardRows?.[0]) await sb.from('members').update({ card_id: cardRows[0].id }).eq('id', dbId);
-      if (vehiclesList.length > 0) {
-        await sb.from('activity_log').insert({ member_id: dbId, activity_type: 'registro_vehiculos', description: `${vehiclesList.length} vehículo(s) · +${vehiclePts} pts`, points_change: vehiclePts, metadata: { vehicles: vehiclesList } });
+      if (vehicles.length > 0) {
+        await sb.from('activity_log').insert({ member_id: dbId, activity_type: 'registro_vehiculos', description: `${vehicles.length} vehículo(s) · +${vehiclePts} pts`, points_change: vehiclePts, metadata: { vehicles } });
       }
       logActivity(dbId, 'registro', `Bienvenido a Club Turkaj · +${totalPts} pts`, totalPts);
     }
@@ -298,14 +279,11 @@ export default function GoogleProfile(ctx) {
   const DatePickerSheet = () => (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 500, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       <div style={{ background: '#fff', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 480, padding: '0 0 32px' }}>
-        {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #f0f0f0' }}>
           <button onClick={() => setShowDatePicker(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 700, color: '#9E9E9E', fontFamily: "'DM Sans'" }}>Cancelar</button>
           <div style={{ fontSize: 15, fontWeight: 800, color: '#0D0D0D' }}>Fecha de nacimiento</div>
-          <button onClick={() => {
-            setRegProfile(p => ({ ...p, bday: tempDate }));
-            setShowDatePicker(false);
-          }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 800, color: '#FBBC04', fontFamily: "'DM Sans'" }}>Seleccionar</button>
+          <button onClick={() => { setRegProfile(p => ({ ...p, bday: tempDate })); setShowDatePicker(false); }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 800, color: '#FBBC04', fontFamily: "'DM Sans'" }}>Seleccionar</button>
         </div>
         <div style={{ padding: '12px 20px 0' }}>
           <DateDrumPicker value={tempDate} onChange={setTempDate} />
@@ -314,11 +292,16 @@ export default function GoogleProfile(ctx) {
     </div>
   );
 
-  // ══ PASO 1 ═══════════════════════════════════════════════
+  // ══ PASO 1 — Datos personales (todos obligatorios, sin bonus) ═
   if (googleStep === 'step1' || googleStep === 'welcome') {
     const next = () => {
       clearAuthErr();
-      if (!regProfile.name?.trim()) { setAuthError('El nombre es obligatorio'); return; }
+      if (!regProfile.name?.trim())  { setAuthError('El nombre es obligatorio'); return; }
+      if (!regProfile.bday?.trim())  { setAuthError('La fecha de nacimiento es obligatoria'); return; }
+      if (!regProfile.dpi?.trim())   { setAuthError('El DPI es obligatorio'); return; }
+      if (!/^\d{13}$/.test(regProfile.dpi.trim())) { setAuthError('El DPI debe tener exactamente 13 dígitos'); return; }
+      if (!regProfile.phone?.trim()) { setAuthError('El teléfono es obligatorio'); return; }
+      if (!/^\d{8}$/.test(regProfile.phone.trim())) { setAuthError('El teléfono debe tener exactamente 8 dígitos'); return; }
       setGoogleStep('step2');
     };
     return (
@@ -330,25 +313,22 @@ export default function GoogleProfile(ctx) {
         <StepBar step="step1" />
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 20, fontWeight: 900, color: '#0D0D0D', marginBottom: 4 }}>Datos personales</div>
-          <div style={{ fontSize: 13, color: '#9E9E9E' }}>Empecemos con tu información básica</div>
+          <div style={{ fontSize: 13, color: '#9E9E9E' }}>Todos los campos son obligatorios</div>
         </div>
         {errBox}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
           <Field {...fieldProps} icon="👤" placeholder="Nombre completo *" fieldKey="name" />
           <DateField
             value={regProfile.bday}
-            regOptional={regOptional}
             onOpen={() => { setTempDate(regProfile.bday || '2000-01-01'); setShowDatePicker(true); }}
           />
-          {/* Teléfono */}
+          <Field {...fieldProps} icon="🪪" placeholder="DPI — 13 dígitos *" fieldKey="dpi" inputMode="numeric" maxLen={13} />
+          {/* Teléfono con prefijo */}
           <div style={{ position: 'relative' }}>
             <div style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: '#9E9E9E', fontWeight: 700, zIndex: 1 }}>🇬🇹 +502</div>
-            <input placeholder="Teléfono 8 dígitos (opcional)" value={regProfile.phone || ''} inputMode="numeric" maxLength={8}
+            <input placeholder="Teléfono 8 dígitos *" value={regProfile.phone || ''} inputMode="numeric" maxLength={8}
               onChange={e => { setRegProfile(p => ({ ...p, phone: e.target.value.replace(/[^0-9]/g, '') })); clearAuthErr(); }}
               style={{ ...inputStyle, paddingLeft: 80 }} />
-            {(regProfile.phone || '').length > 0 && (
-              <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 10, fontWeight: 800, color: '#4CAF50', background: '#E8F5E9', padding: '2px 8px', borderRadius: 8 }}>+{regOptional} pts</div>
-            )}
           </div>
         </div>
         <PtsCard total={totalPts} base={cfg.regBase || 15} optional={optFields * regOptional} vehicles={vehiclePts} />
@@ -357,14 +337,8 @@ export default function GoogleProfile(ctx) {
     );
   }
 
-  // ══ PASO 2 ═══════════════════════════════════════════════
+  // ══ PASO 2 — Datos adicionales (opcionales, +pts) ═════════
   if (googleStep === 'step2') {
-    const next = () => {
-      clearAuthErr();
-      if (!regProfile.dpi?.trim()) { setAuthError('El DPI es obligatorio'); return; }
-      if (!/^\d{13}$/.test(regProfile.dpi.trim())) { setAuthError('El DPI debe tener exactamente 13 dígitos'); return; }
-      setGoogleStep('step3');
-    };
     return (
       <div style={{ padding: '40px 24px 120px' }}>
         <button onClick={() => { setGoogleStep('step1'); clearAuthErr(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: '#9E9E9E', fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 600, marginBottom: 24 }}>
@@ -373,22 +347,30 @@ export default function GoogleProfile(ctx) {
         <StepBar step="step2" />
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 20, fontWeight: 900, color: '#0D0D0D', marginBottom: 4 }}>Datos adicionales</div>
-          <div style={{ fontSize: 13, color: '#9E9E9E' }}>Necesitamos tu DPI para identificarte</div>
+          <div style={{ fontSize: 13, color: '#9E9E9E' }}>Opcionales — ganá <strong style={{ color: '#4CAF50' }}>+{regOptional} pts</strong> por cada uno que completes</div>
         </div>
         {errBox}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-          <Field {...fieldProps} icon="🪪" placeholder="DPI — 13 dígitos *" fieldKey="dpi" inputMode="numeric" maxLen={13} />
-          <Field {...fieldProps} icon="🧾" placeholder="NIT (opcional)" fieldKey="nit" optional />
-          <Field {...fieldProps} icon="📧" placeholder="Correo electrónico (opcional)" fieldKey="email" type="email" optional />
+          <Field {...fieldProps} icon="📧" placeholder="Correo electrónico (opcional)" fieldKey="email" type="email" bonus />
+          <Field {...fieldProps} icon="🧾" placeholder="NIT (opcional)" fieldKey="nit" bonus />
         </div>
         <PtsCard total={totalPts} base={cfg.regBase || 15} optional={optFields * regOptional} vehicles={vehiclePts} />
-        <button onClick={next} style={{ ...btnStyle, background: '#FBBC04', color: '#0D0D0D' }}>Siguiente →</button>
+        <button onClick={() => { clearAuthErr(); setGoogleStep('step3'); }} style={{ ...btnStyle, background: '#FBBC04', color: '#0D0D0D' }}>
+          Siguiente →
+        </button>
       </div>
     );
   }
 
-  // ══ PASO 3 — Vehículos (solo tipo, sin placa) ════════════
+  // ══ PASO 3 — Vehículos (con placa) ═══════════════════════
   if (googleStep === 'step3') {
+    const addVehicle = () => {
+      if (!newPlate.trim()) { setAuthError('Ingresa la placa del vehículo'); return; }
+      clearAuthErr();
+      setVehicles(v => [...v, { type: newType, plate: newPlate.trim().toUpperCase() }]);
+      setNewPlate(''); setNewType('liviano'); setAddingVehicle(false);
+    };
+    const typeInfo = k => VEHICLE_TYPES.find(t => t.k === k) || VEHICLE_TYPES[0];
     return (
       <div style={{ padding: '40px 24px 120px' }}>
         <button onClick={() => { setGoogleStep('step2'); clearAuthErr(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: '#9E9E9E', fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 600, marginBottom: 24 }}>
@@ -397,50 +379,65 @@ export default function GoogleProfile(ctx) {
         <StepBar step="step3" />
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 20, fontWeight: 900, color: '#0D0D0D', marginBottom: 4 }}>Tus vehículos</div>
-          <div style={{ fontSize: 13, color: '#9E9E9E' }}>
-            Tocá para agregar · Ganás <strong style={{ color: '#4CAF50' }}>+{VEHICLE_PTS} pts</strong> por cada vehículo.
-          </div>
+          <div style={{ fontSize: 13, color: '#9E9E9E' }}>Ganás <strong style={{ color: '#4CAF50' }}>+{VEHICLE_PTS} pts</strong> por cada vehículo registrado.</div>
         </div>
         {errBox}
 
-        {/* Grid de tipos de vehículo */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
-          {VEHICLE_TYPES.map(t => {
-            const count = selectedVehicles[t.k] || 0;
-            const active = count > 0;
-            return (
-              <div key={t.k} style={{ borderRadius: 16, border: active ? '2px solid #FBBC04' : '2px solid #eee', background: active ? '#FFF8E1' : '#FAFAFA', padding: '14px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                <div style={{ fontSize: 32 }}>{t.icon}</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: active ? '#0D0D0D' : '#9E9E9E', textAlign: 'center', lineHeight: 1.3 }}>{t.label}</div>
-                {/* Contador */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
-                  <button onClick={() => removeVehicle(t.k)} disabled={!active}
-                    style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid ' + (active ? '#FBBC04' : '#eee'), background: active ? '#FBBC04' : '#f5f5f5', color: active ? '#0D0D0D' : '#ccc', fontWeight: 900, fontSize: 16, cursor: active ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
-                    −
-                  </button>
-                  <span style={{ fontSize: 16, fontWeight: 900, color: active ? '#0D0D0D' : '#ccc', minWidth: 16, textAlign: 'center' }}>{count}</span>
-                  <button onClick={() => addVehicle(t.k)}
-                    style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid #FBBC04', background: '#FBBC04', color: '#0D0D0D', fontWeight: 900, fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
-                    +
-                  </button>
+        {/* Vehículos registrados */}
+        {vehicles.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+            {vehicles.map((v, i) => {
+              const t = typeInfo(v.type);
+              return (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#F9F9F9', borderRadius: 14, padding: '12px 16px', border: '1px solid #eee' }}>
+                  <div style={{ fontSize: 28 }}>{t.icon}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: '#0D0D0D' }}>{t.label}</div>
+                    <div style={{ fontSize: 12, color: '#9E9E9E', fontFamily: 'monospace', marginTop: 2 }}>{v.plate}</div>
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: '#4CAF50', background: '#E8F5E9', padding: '3px 8px', borderRadius: 8, marginRight: 4 }}>+{VEHICLE_PTS} pts</div>
+                  <button onClick={() => setVehicles(vs => vs.filter((_, idx) => idx !== i))}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#9E9E9E', padding: 4 }}>✕</button>
                 </div>
-                {active && (
-                  <div style={{ fontSize: 10, fontWeight: 800, color: '#4CAF50' }}>+{count * VEHICLE_PTS} pts</div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {vehicleCount === 0 && (
-          <div style={{ textAlign: 'center', fontSize: 12, color: '#9E9E9E', marginBottom: 16 }}>
-            Podés omitir este paso y agregar vehículos más adelante.
+              );
+            })}
           </div>
+        )}
+
+        {/* Formulario agregar */}
+        {addingVehicle ? (
+          <div style={{ background: '#FFF8E1', borderRadius: 16, padding: 16, marginBottom: 16, border: '2px solid #FBBC04' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#424242', marginBottom: 12 }}>Tipo de vehículo</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
+              {VEHICLE_TYPES.map(t => (
+                <button key={t.k} onClick={() => setNewType(t.k)} style={{ padding: '10px 8px', borderRadius: 12, border: newType === t.k ? '2px solid #FBBC04' : '2px solid #eee', background: newType === t.k ? '#FFF8E1' : '#fff', color: newType === t.k ? '#F0A500' : '#9E9E9E', cursor: 'pointer', fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 18 }}>{t.icon}</span>{t.label}
+                </button>
+              ))}
+            </div>
+            <input placeholder="Placa (ej: ABC-123)" value={newPlate}
+              onChange={e => { setNewPlate(e.target.value.toUpperCase()); clearAuthErr(); }}
+              style={{ ...inputStyle, marginBottom: 12, fontFamily: 'monospace', fontWeight: 700, letterSpacing: 2 }} />
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => { setAddingVehicle(false); setNewPlate(''); clearAuthErr(); }}
+                style={{ flex: 1, padding: 12, borderRadius: 12, border: '2px solid #eee', background: '#fff', color: '#9E9E9E', fontFamily: "'DM Sans'", fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>Cancelar</button>
+              <button onClick={addVehicle}
+                style={{ flex: 2, padding: 12, borderRadius: 12, border: 'none', background: '#FBBC04', color: '#0D0D0D', fontFamily: "'DM Sans'", fontWeight: 900, cursor: 'pointer', fontSize: 13 }}>+ Agregar</button>
+            </div>
+          </div>
+        ) : (
+          <button onClick={() => setAddingVehicle(true)} style={{ width: '100%', padding: 14, borderRadius: 14, border: '2px dashed #FBBC04', background: '#FFF8E1', color: '#F0A500', fontFamily: "'DM Sans'", fontWeight: 800, fontSize: 14, cursor: 'pointer', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            🚗 Agregar vehículo {vehicles.length > 0 && `(${vehicles.length} registrado${vehicles.length > 1 ? 's' : ''})`}
+          </button>
+        )}
+
+        {vehicles.length === 0 && !addingVehicle && (
+          <div style={{ textAlign: 'center', fontSize: 12, color: '#9E9E9E', marginBottom: 16 }}>Podés omitir este paso si no querés registrar vehículos ahora.</div>
         )}
 
         <PtsCard total={totalPts} base={cfg.regBase || 15} optional={optFields * regOptional} vehicles={vehiclePts} />
         <button onClick={doFinish} style={{ ...btnStyle, background: '#FBBC04', color: '#0D0D0D' }}>
-          {vehicleCount > 0 ? `Finalizar registro (+${totalPts} pts) ✓` : 'Finalizar registro ✓'}
+          {vehicles.length > 0 ? `Finalizar registro (+${totalPts} pts) ✓` : 'Finalizar registro ✓'}
         </button>
       </div>
     );
