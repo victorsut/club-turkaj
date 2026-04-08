@@ -4,6 +4,19 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { sb } from '../lib/supabaseClient';
 import { makeTier, daysInactive } from '../lib/tierSystem';
 import { CFG_INIT, FUEL, FUEL_LABELS } from '../constants/config';
+
+// Guatemala es UTC-6 — usar siempre fecha/hora local, nunca UTC
+function localDate() {
+  const d = new Date();
+  const offset = d.getTimezoneOffset(); // minutos de diferencia con UTC
+  const local = new Date(d.getTime() - offset * 60000);
+  return local.toISOString().split('T')[0]; // YYYY-MM-DD en hora local
+}
+function localISO() {
+  const d = new Date();
+  const offset = d.getTimezoneOffset();
+  return new Date(d.getTime() - offset * 60000).toISOString();
+}
 import { clientTheme, adminTheme, sMono, GAL } from '../constants/styles';
 import useToast from '../hooks/useToast';
 
@@ -160,7 +173,7 @@ export default function App() {
     setActivityLog(prev => {
       const n = { ...prev };
       if (!n[memberId]) n[memberId] = [];
-      n[memberId] = [{ type, desc, pts: ptsChange, amount, date: new Date().toISOString().split('T')[0], station: '' }, ...n[memberId]];
+      n[memberId] = [{ type, desc, pts: ptsChange, amount, date: localDate(), station: '' }, ...n[memberId]];
       return n;
     });
     // Guardar en Supabase solo si está conectado
@@ -440,7 +453,7 @@ export default function App() {
           id: u.id, name, email, avatar,
           phone: '', dpi: '', plate: '', nit: '', bday: '',
           points: 0, gallons: 0, spent: 0, visits: 0, tickets: 0,
-          redeemed: 0, referrals: 0, registered: new Date().toISOString().split('T')[0],
+          redeemed: 0, referrals: 0, registered: localDate(),
           lastBuy: '', station: '', cardId: '', supabaseUser: true, authProvider: provider,
         });
         setRegProfile(p => ({ ...p, name, email }));
@@ -709,7 +722,7 @@ export default function App() {
     const pts = Math.floor(a / cfg.qPerPt);
     const gal = +(a / FUEL[f]).toFixed(2);
     if (pts <= 0) { fire('Mínimo Q10'); return; }
-    const today = new Date().toISOString().split('T')[0];
+    const today = localDate();
     const buyer = custs.find(c => c.id === cid);
     const stationName = loggedOp?.station || '';
     console.log('[Purchase] Station:', stationName, 'StationId:', loggedOp?.stationId, 'LoggedOp:', loggedOp?.name);
@@ -721,7 +734,7 @@ export default function App() {
       const oldTier = gT(parseFloat(buyer.gallons || 0)).name;
       const newGal = +(parseFloat(buyer.gallons || 0) + gal).toFixed(2);
       const newTier = gT(newGal).name;
-      const syncData = { points: (buyer.points || 0) + pts, gallons: newGal, spent: +(parseFloat(buyer.spent || 0) + a).toFixed(2), visits: (buyer.visits || 0) + 1, last_buy: new Date().toISOString(), updated_at: new Date().toISOString() };
+      const syncData = { points: (buyer.points || 0) + pts, gallons: newGal, spent: +(parseFloat(buyer.spent || 0) + a).toFixed(2), visits: (buyer.visits || 0) + 1, last_buy: localISO(), updated_at: localISO() };
       if (stationName) syncData.last_station = stationName;
       if (loggedOp?.id) syncData.last_operator_id = loggedOp.id;
       syncMember(cid, syncData);
@@ -769,7 +782,7 @@ export default function App() {
     const cost = Math.round(r.pts * (1 - t.redeemDisc));
     if (me.points < cost) return;
     const code = `TK-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-    const today = new Date().toISOString().split('T')[0];
+    const today = localDate();
     const newEntry = { id: `RD-${Date.now()}`, memberId: me.id, reward: { name: r.name, icon: r.icon, cat: r.cat }, cost, date: today, code, collected: false };
 
     // Actualizar estado local inmediatamente
@@ -779,7 +792,7 @@ export default function App() {
     fire(`🎉 ¡Canjeaste ${r.name} por ${cost} pts!`);
 
     // Sincronizar con Supabase
-    syncMember(me.id, { points: me.points - cost, redeemed_count: (me.redeemed || 0) + 1, updated_at: new Date().toISOString() });
+    syncMember(me.id, { points: me.points - cost, redeemed_count: (me.redeemed || 0) + 1, updated_at: localISO() });
     logActivity(me.id, 'canje', `Canjeó: ${r.name} ${r.icon}`, -cost);
     if (sb && sbConnected) {
       sb.from('redemptions')
@@ -805,7 +818,7 @@ export default function App() {
       return { ...rd, participants: ps };
     }));
     fire(`🎟️ ${n} boleto${n > 1 ? 's' : ''} · -${cost} pts`);
-    syncMember(me.id, { points: me.points - cost, tickets: me.tickets + n, updated_at: new Date().toISOString() });
+    syncMember(me.id, { points: me.points - cost, tickets: me.tickets + n, updated_at: localISO() });
     logActivity(me.id, 'rifa', `Compró ${n} boletos de rifa`, -cost);
   }, [me, fire, cfg, curMonth, syncMember, logActivity]);
 
@@ -822,7 +835,7 @@ export default function App() {
     } else {
       fire(`📋 Encuesta completada · +${cfg.surveyPts} pts (${newCount}/${cfg.surveyDaily})`);
     }
-    syncMember(me.id, { points: me.points + cfg.surveyPts, tickets: bonusTicket ? me.tickets + 1 : me.tickets, updated_at: new Date().toISOString() });
+    syncMember(me.id, { points: me.points + cfg.surveyPts, tickets: bonusTicket ? me.tickets + 1 : me.tickets, updated_at: localISO() });
     logActivity(me.id, 'encuesta', 'Encuesta completada' + (bonusTicket ? ' + Boleto bonus' : ''), cfg.surveyPts);
     if (sb && sbConnected) {
       sb.from('surveys').insert({ member_id: me.id, points_earned: cfg.surveyPts, bonus_ticket: bonusTicket })
