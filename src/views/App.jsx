@@ -617,6 +617,32 @@ export default function App() {
         const newVisits = m.visits ?? 0;
         const prevVisits = lastVisitsRef.current;
         lastVisitsRef.current = newVisits;
+        if (newVisits > prevVisits && realtimeReadyRef.current && viewRef.current === 'client') {
+          // ── Recargar historial desde Supabase en el dispositivo del miembro ──
+          // El operador registró la compra en su dispositivo — el activityLog local
+          // del miembro nunca se actualizó. Lo recargamos acá.
+          sb.from('activity_log')
+            .select('*')
+            .eq('member_id', m.id)
+            .order('created_at', { ascending: false })
+            .limit(50)
+            .then(res => {
+              if (res.data?.length > 0) {
+                setActivityLog(prev => ({
+                  ...prev,
+                  [m.id]: res.data.map(a => ({
+                    type: a.activity_type,
+                    desc: a.description,
+                    pts: a.points_change,
+                    amount: a.amount ? parseFloat(a.amount) : null,
+                    date: a.created_at?.split('T')[0] || '',
+                    station: a.station_id || '',
+                  })),
+                }));
+                console.log('[Realtime] ✅ Historial recargado:', res.data.length, 'entradas');
+              }
+            });
+        }
         if (m.last_operator_id && newVisits > prevVisits && realtimeReadyRef.current && viewRef.current === 'client') {
           const op = operators.find(o => o.id === m.last_operator_id);
           console.log('[Realtime] New purchase detected, operator:', op?.name || m.last_operator_id);
@@ -627,7 +653,6 @@ export default function App() {
               stationName: m.last_station || '',
             });
           } else {
-            // Fetch operator name if not in local array
             sb.from('operators').select('name').eq('id', m.last_operator_id).single().then(r => {
               setPendingOpRating({
                 operatorId: m.last_operator_id,
