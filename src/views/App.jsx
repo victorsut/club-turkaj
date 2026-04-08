@@ -8,14 +8,25 @@ import { CFG_INIT, FUEL, FUEL_LABELS } from '../constants/config';
 // Guatemala es UTC-6 — usar siempre fecha/hora local, nunca UTC
 function localDate() {
   const d = new Date();
-  const offset = d.getTimezoneOffset(); // minutos de diferencia con UTC
-  const local = new Date(d.getTime() - offset * 60000);
-  return local.toISOString().split('T')[0]; // YYYY-MM-DD en hora local
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 function localISO() {
+  // Genera timestamp en hora local (para guardar en Supabase con hora correcta)
   const d = new Date();
   const offset = d.getTimezoneOffset();
   return new Date(d.getTime() - offset * 60000).toISOString();
+}
+// Convierte un timestamp UTC de Supabase a fecha local YYYY-MM-DD
+function utcToLocal(isoString) {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 import { clientTheme, adminTheme, sMono, GAL } from '../constants/styles';
 import useToast from '../hooks/useToast';
@@ -318,8 +329,8 @@ export default function App() {
             spent: parseFloat(m.spent) || 0, visits: m.visits || 0,
             tickets: m.tickets || 0, redeemed: m.redeemed_count || 0,
             referrals: m.referral_count || 0,
-            registered: m.created_at?.split('T')[0] || '',
-            lastBuy: m.last_buy?.split('T')[0] || '',
+            registered: utcToLocal(m.created_at) || '',
+            lastBuy: utcToLocal(m.last_buy) || '',
             station: m.last_station || '',
             cardId: m.physical_cards?.[0]?.card_code || m.card_id || '',
             supabaseUser: true, authProvider: m.auth_provider || 'google',
@@ -352,7 +363,7 @@ export default function App() {
             actMap[a.member_id].push({
               type: a.activity_type, desc: a.description,
               pts: a.points_change, amount: a.amount ? parseFloat(a.amount) : null,
-              date: a.created_at?.split('T')[0] || '', station: a.station_id || '',
+              date: utcToLocal(a.created_at) || '', station: a.station_id || '',
             });
           });
           setActivityLog(actMap);
@@ -369,7 +380,7 @@ export default function App() {
             memberId: rd.member_id,
             reward: { name: rd.rewards?.name || 'Premio', icon: rd.rewards?.icon || '🎁', cat: rd.rewards?.category || '' },
             cost: rd.points_spent,
-            date: rd.created_at?.split('T')[0] || '',
+            date: utcToLocal(rd.created_at) || '',
             code: rd.redemption_code,
             collected: rd.collected || false,
           })));
@@ -422,8 +433,8 @@ export default function App() {
         spent: parseFloat(m.spent) || 0, visits: m.visits || 0,
         tickets: m.tickets || 0, redeemed: m.redeemed_count || 0,
         referrals: m.referral_count || 0,
-        registered: m.created_at?.split('T')[0] || '',
-        lastBuy: m.last_buy?.split('T')[0] || '',
+        registered: utcToLocal(m.created_at) || '',
+        lastBuy: utcToLocal(m.last_buy) || '',
         station: m.last_station || '',
         cardId: m.physical_cards?.[0]?.card_code || m.card_id || '',
         supabaseUser: true, authProvider: provider,
@@ -513,8 +524,8 @@ export default function App() {
               spent: parseFloat(m.spent) || 0, visits: m.visits || 0,
               tickets: m.tickets || 0, redeemed: m.redeemed_count || 0,
               referrals: m.referral_count || 0,
-              registered: m.created_at?.split('T')[0] || '',
-              lastBuy: m.last_buy?.split('T')[0] || '',
+              registered: utcToLocal(m.created_at) || '',
+              lastBuy: utcToLocal(m.last_buy) || '',
               station: m.last_station || '',
               cardId: m.physical_cards?.[0]?.card_code || m.card_id || '',
               supabaseUser: true, authProvider: m.auth_provider || 'google',
@@ -611,7 +622,7 @@ export default function App() {
           visits: m.visits ?? p.visits,
           tickets: m.tickets ?? p.tickets,
           redeemed: m.redeemed_count ?? p.redeemed,
-          lastBuy: m.last_buy?.split('T')[0] || p.lastBuy,
+          lastBuy: utcToLocal(m.last_buy) || p.lastBuy,
           station: m.last_station || p.station,
         }));
         setCusts(p => p.map(c => c.id === m.id ? {
@@ -622,7 +633,7 @@ export default function App() {
           visits: m.visits ?? c.visits,
           tickets: m.tickets ?? c.tickets,
           redeemed: m.redeemed_count ?? c.redeemed,
-          lastBuy: m.last_buy?.split('T')[0] || c.lastBuy,
+          lastBuy: utcToLocal(m.last_buy) || c.lastBuy,
           station: m.last_station || c.station,
         } : c));
 
@@ -648,7 +659,7 @@ export default function App() {
                     desc: a.description,
                     pts: a.points_change,
                     amount: a.amount ? parseFloat(a.amount) : null,
-                    date: a.created_at?.split('T')[0] || '',
+                    date: utcToLocal(a.created_at) || '',
                     station: a.station_id || '',
                   })),
                 }));
