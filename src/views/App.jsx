@@ -156,17 +156,19 @@ export default function App() {
   }, [sbConnected]);
 
   const logActivity = useCallback((memberId, type, desc, ptsChange, amount) => {
-    if (!sb || !sbConnected) return;
-    sb.from('activity_log').insert({
-      member_id: memberId, activity_type: type,
-      description: desc, points_change: ptsChange || null, amount: amount || null,
-    }).then(r => { if (r.error) console.error('[Activity]', r.error); });
+    // Actualizar estado local SIEMPRE (independiente de Supabase)
     setActivityLog(prev => {
       const n = { ...prev };
       if (!n[memberId]) n[memberId] = [];
       n[memberId] = [{ type, desc, pts: ptsChange, amount, date: new Date().toISOString().split('T')[0], station: '' }, ...n[memberId]];
       return n;
     });
+    // Guardar en Supabase solo si está conectado
+    if (!sb || !sbConnected) return;
+    sb.from('activity_log').insert({
+      member_id: memberId, activity_type: type,
+      description: desc, points_change: ptsChange || null, amount: amount || null,
+    }).then(r => { if (r.error) console.error('[Activity]', r.error); });
   }, [sbConnected]);
 
   // Helper: cargar conteo de encuestas del día para un miembro
@@ -741,14 +743,27 @@ export default function App() {
     const t = gT(me.gallons);
     const cost = Math.round(r.pts * (1 - t.redeemDisc));
     if (me.points < cost) return;
+    const code = `TK-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const today = new Date().toISOString().split('T')[0];
+    const newEntry = { id: `RD-${Date.now()}`, memberId: me.id, reward: { name: r.name, icon: r.icon, cat: r.cat }, cost, date: today, code, collected: false };
+
+    // Actualizar estado local inmediatamente
     setMe(p => ({ ...p, points: p.points - cost, redeemed: (p.redeemed || 0) + 1 }));
     setCusts(p => p.map(c => c.id === me.id ? { ...c, points: c.points - cost, redeemed: (c.redeemed || 0) + 1 } : c));
-    const code = `TK-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-    setRedeemedList(p => [{ id: `RD-${Date.now()}`, memberId: me.id, reward: { name: r.name, icon: r.icon, cat: r.cat }, cost, date: new Date().toISOString().split('T')[0], code, collected: false }, ...p]);
+    setRedeemedList(p => [newEntry, ...p]);
     fire(`🎉 ¡Canjeaste ${r.name} por ${cost} pts!`);
+
+    // Sincronizar con Supabase
     syncMember(me.id, { points: me.points - cost, redeemed_count: (me.redeemed || 0) + 1, updated_at: new Date().toISOString() });
     logActivity(me.id, 'canje', `Canjeó: ${r.name} ${r.icon}`, -cost);
-    if (sb && sbConnected) sb.from('redemptions').insert({ member_id: me.id, reward_id: r.id, points_spent: cost, redemption_code: code });
+    if (sb && sbConnected) {
+      sb.from('redemptions')
+        .insert({ member_id: me.id, reward_id: r.id, points_spent: cost, redemption_code: code })
+        .then(res => {
+          if (res.error) console.error('[Redeem] Supabase error:', res.error);
+          else console.log('[Redeem] ✅ Guardado en Supabase:', code);
+        });
+    }
   }, [me, fire, gT, syncMember, logActivity, sbConnected]);
 
   const buyTickets = useCallback((n) => {
