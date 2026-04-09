@@ -391,32 +391,7 @@ export default function ClientHome(ctx) {
         </div>
       </div>
 
-      {/* My QR */}
-      <div style={cSec}>Mi QR</div>
-      <div style={{ textAlign: 'center', padding: '8px 20px 16px' }}>
-        <div style={{
-          background: qrS.bg, border: qrS.border, boxShadow: qrS.shadow,
-          borderRadius: 24, padding: '28px 20px', position: 'relative', overflow: 'hidden',
-          display: 'inline-block', minWidth: 220,
-        }}>
-          <TierDeco name={cTier.name} />
-          <div style={{ position: 'relative', zIndex: 2 }}>
-            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 2.5, textTransform: 'uppercase', color: qrS.txtCol, marginBottom: 12 }}>
-              {cTier.icon} {cTier.name}
-            </div>
-            <QRCode code={displayCode} sz={150} scanColor={TH.pri} />
-            <div style={{ fontSize: 11, color: qrS.txtCol, marginTop: 12, fontWeight: 600 }}>
-              Mostrá tu código en cada compra
-            </div>
-            {(
-              <div style={{ marginTop: 8, padding: '6px 14px', borderRadius: 10, background: 'rgba(0,0,0,.08)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 12 }}>💳</span>
-                <span style={{ ...sMono, fontSize: 11, fontWeight: 800, color: qrS.txtCol }}>{displayCode}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+
 
       {/* History toggle */}
       <div style={{ padding: '0 20px 16px' }}>
