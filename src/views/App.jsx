@@ -33,6 +33,8 @@ import useToast from '../hooks/useToast';
 
 // UI Components
 import BottomNav from '../components/ui/BottomNav';
+import QRCode from '../components/ui/QRCode';
+import TierDeco from '../components/ui/TierDeco';
 import { Check, Fuel, Users, Gift, Ticket, Clock, Gear } from '../components/ui/Icons';
 
 // Auth Views
@@ -149,6 +151,7 @@ export default function App() {
   const [showMap, setShowMap] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [showRating, setShowRating] = useState(null);
+  const [showQR, setShowQR] = useState(false);
   const [ratingStars, setRatingStars] = useState(0);
   const [pendingOpRating, setPendingOpRating] = useState(null); // { operatorId, operatorName }
   const [purchaseConfirm, setPurchaseConfirm] = useState(null); // { client, amt, fuel, onConfirm }
@@ -883,6 +886,7 @@ export default function App() {
     showRedeemed, setShowRedeemed, showWifi, setShowWifi,
     showMap, setShowMap, showTerms, setShowTerms,
     showRating, setShowRating, ratingStars, setRatingStars,
+    showQR, setShowQR,
     pendingOpRating, setPendingOpRating,
     purchaseConfirm, setPurchaseConfirm,
     showSurveys, setShowSurveys,
@@ -928,6 +932,7 @@ export default function App() {
   const clientNav = [
     { id: 'home', label: 'Inicio', icon: <Fuel /> },
     { id: 'cat', label: 'Canjear', icon: <Gift /> },
+    { id: 'qr', label: '', icon: null, isQR: true },
     { id: 'raf', label: 'Rifa', icon: <Ticket /> },
     { id: 'rules', label: 'Reglas', icon: <Clock /> },
   ];
@@ -978,6 +983,7 @@ export default function App() {
   function handleNav(id) {
     if (isA) { setScr(id); setSel(null); }
     else if (isO) { setOScr(id); }
+    else if (id === 'qr') { setShowQR(true); }
     else setCScr(id);
   }
 
@@ -1092,6 +1098,76 @@ export default function App() {
                 fontSize: 15, fontWeight: 900, cursor: 'pointer',
                 boxShadow: '0 4px 16px rgba(251,188,4,.35)',
               }}>✓ Confirmar Compra</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal QR emergente ── */}
+      {showQR && isC && me && (
+        <div
+          onClick={() => setShowQR(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 500,
+            background: 'rgba(0,0,0,.6)',
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+            animation: 'fadeIn .2s ease',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: cTier.name === 'BLACK' ? '#0D0D1A'
+                : cTier.name === 'PLATINO' ? '#E8E8E8' : '#fff',
+              borderRadius: '28px 28px 0 0',
+              width: '100%', maxWidth: 480,
+              padding: '12px 24px 48px',
+              animation: 'slideUp .32s cubic-bezier(.32,1.2,.64,1)',
+              boxShadow: '0 -8px 40px rgba(0,0,0,.25)',
+            }}
+          >
+            {/* Handle */}
+            <div style={{ width: 40, height: 4, borderRadius: 4, background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.2)' : '#E0E0E0', margin: '0 auto 20px' }} />
+
+            {/* Título */}
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase', color: cTier.name === 'BLACK' ? '#FFD54F' : '#F0A500', marginBottom: 2 }}>
+                {cTier.icon} {cTier.name}
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D' }}>
+                Mi código QR
+              </div>
+            </div>
+
+            {/* Tarjeta QR */}
+            <div style={{ textAlign: 'center' }}>
+              <div style={{
+                display: 'inline-block', position: 'relative', overflow: 'hidden',
+                borderRadius: 20, padding: '24px 28px',
+                background: cTier.name === 'BLACK' ? 'linear-gradient(135deg,#1A1A2E,#0D0D1A)'
+                  : cTier.name === 'PLATINO' ? 'linear-gradient(135deg,#C8C8C8,#E8E8E8)'
+                  : 'linear-gradient(135deg,#FFFDE7,#FFF8E1)',
+                border: cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.08)'
+                  : cTier.name === 'PLATINO' ? '1px solid #BDBDBD'
+                  : '1px solid #FFE082',
+                boxShadow: cTier.name === 'BLACK' ? '0 8px 32px rgba(0,0,0,.5)'
+                  : '0 8px 32px rgba(251,188,4,.2)',
+              }}>
+                <TierDeco name={cTier.name} />
+                <div style={{ position: 'relative', zIndex: 2 }}>
+                  <QRCode code={me.cardId || me.id} sz={180} scanColor={cTier.name === 'BLACK' ? '#FFD54F' : cTier.name === 'PLATINO' ? '#1565C0' : '#F0A500'} />
+                  <div style={{ marginTop: 14, padding: '6px 16px', borderRadius: 10, background: 'rgba(0,0,0,.08)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 13 }}>💳</span>
+                    <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 800, color: cTier.name === 'BLACK' ? '#FFD54F' : '#0D0D0D', letterSpacing: 1 }}>
+                      {me.cardId || '—'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ textAlign: 'center', marginTop: 16, fontSize: 13, color: cTier.name === 'BLACK' ? 'rgba(255,255,255,.5)' : '#9E9E9E', fontWeight: 600 }}>
+              Mostrá este código en cada carga de combustible
             </div>
           </div>
         </div>
