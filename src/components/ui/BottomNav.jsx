@@ -33,14 +33,14 @@ export default function BottomNav({ items, current, onSelect, view, tierName }) 
             }}>
               {/* Botón elevado sin texto debajo */}
               <div style={{
-                width: 52, height: 52, borderRadius: '50%',
+                width: 62, height: 62, borderRadius: '50%',
                 background: `linear-gradient(135deg, ${qrColor}, ${qrColor}CC)`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: `0 4px 16px ${qrColor}66`,
-                transform: 'translateY(-14px)',
+                boxShadow: `0 6px 20px ${qrColor}88`,
+                transform: 'translateY(-18px)',
                 border: `3px solid ${tierName === 'BLACK' ? '#0D0D1A' : tierName === 'PLATINO' ? '#DADADA' : '#fff'}`,
               }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
                   <rect x="3" y="3" width="7" height="7" rx="1" stroke={tierName === 'PLATINO' ? '#fff' : '#0D0D0D'} strokeWidth="1.8" fill="none"/>
                   <rect x="5" y="5" width="3" height="3" rx=".3" fill={tierName === 'PLATINO' ? '#fff' : '#0D0D0D'}/>
                   <rect x="14" y="3" width="7" height="7" rx="1" stroke={tierName === 'PLATINO' ? '#fff' : '#0D0D0D'} strokeWidth="1.8" fill="none"/>
