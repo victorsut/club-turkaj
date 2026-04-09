@@ -31,23 +31,21 @@ export default function BottomNav({ items, current, onSelect, view, tierName }) 
               background: 'none', border: 'none', cursor: 'pointer',
               padding: '0 8px', position: 'relative',
             }}>
-              {/* Botón elevado sin texto debajo */}
               <div style={{
-                width: 62, height: 62, borderRadius: '50%',
-                background: `linear-gradient(135deg, ${qrColor}, ${qrColor}CC)`,
+                width: 52, height: 52, borderRadius: '50%',
+                background: `linear-gradient(135deg, ${qrColor}, ${qrColor}BB)`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: `0 6px 20px ${qrColor}88`,
-                transform: 'translateY(-18px)',
-                border: `3px solid ${tierName === 'BLACK' ? '#0D0D1A' : tierName === 'PLATINO' ? '#DADADA' : '#fff'}`,
+                boxShadow: `0 2px 12px ${qrColor}55`,
+                border: `3px solid ${tierName === 'BLACK' ? 'rgba(255,255,255,.15)' : 'rgba(255,255,255,.8)'}`,
               }}>
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
-                  <rect x="3" y="3" width="7" height="7" rx="1" stroke={tierName === 'PLATINO' ? '#fff' : '#0D0D0D'} strokeWidth="1.8" fill="none"/>
-                  <rect x="5" y="5" width="3" height="3" rx=".3" fill={tierName === 'PLATINO' ? '#fff' : '#0D0D0D'}/>
-                  <rect x="14" y="3" width="7" height="7" rx="1" stroke={tierName === 'PLATINO' ? '#fff' : '#0D0D0D'} strokeWidth="1.8" fill="none"/>
-                  <rect x="16" y="5" width="3" height="3" rx=".3" fill={tierName === 'PLATINO' ? '#fff' : '#0D0D0D'}/>
-                  <rect x="3" y="14" width="7" height="7" rx="1" stroke={tierName === 'PLATINO' ? '#fff' : '#0D0D0D'} strokeWidth="1.8" fill="none"/>
-                  <rect x="5" y="16" width="3" height="3" rx=".3" fill={tierName === 'PLATINO' ? '#fff' : '#0D0D0D'}/>
-                  <path d="M14 14h2v2h-2zM16 16h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z" fill={tierName === 'PLATINO' ? '#fff' : '#0D0D0D'}/>
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                  <rect x="3" y="3" width="7" height="7" rx="1" stroke={tierName === 'PLATINO' ? '#fff' : '#fff'} strokeWidth="1.8" fill="none"/>
+                  <rect x="5" y="5" width="3" height="3" rx=".3" fill={tierName === 'PLATINO' ? '#fff' : '#fff'}/>
+                  <rect x="14" y="3" width="7" height="7" rx="1" stroke="#fff" strokeWidth="1.8" fill="none"/>
+                  <rect x="16" y="5" width="3" height="3" rx=".3" fill="#fff"/>
+                  <rect x="3" y="14" width="7" height="7" rx="1" stroke="#fff" strokeWidth="1.8" fill="none"/>
+                  <rect x="5" y="16" width="3" height="3" rx=".3" fill="#fff"/>
+                  <path d="M14 14h2v2h-2zM16 16h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z" fill="#fff"/>
                 </svg>
               </div>
             </button>
