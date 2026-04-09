@@ -1110,26 +1110,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Supabase connection indicator */}
-      {sbConnected && !sbLoading && (
-        <div style={{
-          position: 'fixed', bottom: 8, right: 8,
-          background: 'rgba(22,163,74,.9)', color: '#fff',
-          padding: '4px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700, zIndex: 200,
-          display: 'flex', alignItems: 'center', gap: 4,
-        }}>
-          ● Supabase
-        </div>
-      )}
-      {sbLoading && (
-        <div style={{
-          position: 'fixed', bottom: 8, right: 8,
-          background: 'rgba(251,188,4,.9)', color: '#000',
-          padding: '4px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700, zIndex: 200,
-        }}>
-          ⏳ Cargando...
-        </div>
-      )}
+
     </>
   );
 }
