@@ -27,22 +27,20 @@ export default function BottomNav({ items, current, onSelect, view, tierName }) 
         if (n.isQR && isC) {
           return (
             <button key="qr" onClick={() => onSelect('qr')} style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
               background: 'none', border: 'none', cursor: 'pointer',
-              padding: '0 8px', marginBottom: 6, position: 'relative',
+              padding: '0 8px', position: 'relative',
             }}>
-              {/* Botón elevado */}
+              {/* Botón elevado sin texto debajo */}
               <div style={{
-                width: 56, height: 56, borderRadius: '50%',
+                width: 52, height: 52, borderRadius: '50%',
                 background: `linear-gradient(135deg, ${qrColor}, ${qrColor}CC)`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: `0 4px 16px ${qrColor}66`,
-                marginBottom: 2,
-                transform: 'translateY(-10px)',
+                transform: 'translateY(-14px)',
                 border: `3px solid ${tierName === 'BLACK' ? '#0D0D1A' : tierName === 'PLATINO' ? '#DADADA' : '#fff'}`,
               }}>
-                {/* Ícono QR */}
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                   <rect x="3" y="3" width="7" height="7" rx="1" stroke={tierName === 'PLATINO' ? '#fff' : '#0D0D0D'} strokeWidth="1.8" fill="none"/>
                   <rect x="5" y="5" width="3" height="3" rx=".3" fill={tierName === 'PLATINO' ? '#fff' : '#0D0D0D'}/>
                   <rect x="14" y="3" width="7" height="7" rx="1" stroke={tierName === 'PLATINO' ? '#fff' : '#0D0D0D'} strokeWidth="1.8" fill="none"/>
@@ -52,12 +50,6 @@ export default function BottomNav({ items, current, onSelect, view, tierName }) 
                   <path d="M14 14h2v2h-2zM16 16h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z" fill={tierName === 'PLATINO' ? '#fff' : '#0D0D0D'}/>
                 </svg>
               </div>
-              <span style={{
-                fontFamily: "'DM Sans'", fontSize: 9, fontWeight: 700,
-                letterSpacing: 0.3, textTransform: 'uppercase',
-                color: qrColor,
-                transform: 'translateY(-8px)',
-              }}>Mi QR</span>
             </button>
           );
         }
