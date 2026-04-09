@@ -4,8 +4,6 @@ import { sMono, adminTheme as AT } from '../../constants/styles';
 
 export default function OpHome(ctx) {
   const { loggedOp, custs, setOScr, setOpScanMode, opRatings } = ctx;
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const todayPurchases = custs.filter(c => (c.lastBuy || '').startsWith(todayStr)).length;
 
   // Get ratings for this operator
   const myRatings = loggedOp?.id ? (opRatings[loggedOp.id] || []) : [];
@@ -23,11 +21,10 @@ export default function OpHome(ctx) {
         <div style={{ fontSize: 12, color: '#9E9E9E', marginTop: 4 }}>Estación: {loggedOp?.station || 'Turkaj I'} · {loggedOp?.turno || ''}</div>
       </div>
 
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, padding: '16px 20px' }}>
+      {/* Stats — solo Total Clientes y Rating */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '16px 20px' }}>
         {[
           { label: 'Clientes', val: custs.length, ico: '👥' },
-          { label: 'Hoy', val: todayPurchases, ico: '⛽' },
           { label: 'Rating', val: avgRating, ico: '⭐', color: ratingColor, sub: myRatings.length > 0 ? `${myRatings.length} calif.` : null },
         ].map(s => (
           <div key={s.label} style={{
