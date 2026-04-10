@@ -389,6 +389,24 @@ export default function App() {
           })));
         }
 
+        // Load raffle entries (boletos comprados) — poblar rafData con participantes reales
+        const reRes = await sb.from('raffle_entries')
+          .select('*, members(name), raffle_calendar(month)')
+          .order('created_at', { ascending: false });
+        if (reRes.data?.length > 0) {
+          const rafMap = Array(12).fill(null).map(() => ({ participants: [] }));
+          reRes.data.forEach(e => {
+            const month = (e.raffle_calendar?.month ?? 1) - 1; // 0-indexed
+            if (month < 0 || month > 11) return;
+            const ps = rafMap[month].participants;
+            const ex = ps.findIndex(p => p.cid === e.member_id);
+            if (ex >= 0) ps[ex].tickets += e.tickets || 1;
+            else ps.push({ cid: e.member_id, name: e.members?.name || 'Miembro', tickets: e.tickets || 1 });
+          });
+          setRafData(rafMap);
+          console.log('[Club Turkaj] Boletos de rifa cargados:', reRes.data.length);
+        }
+
         // Load operator ratings
         const ratRes = await sb.from('operator_ratings').select('operator_id, stars').order('created_at', { ascending: false });
         if (ratRes.data?.length > 0) {
@@ -821,6 +839,8 @@ export default function App() {
   const buyTickets = useCallback((n) => {
     const cost = n * cfg.ticketPts;
     if (me.points < cost) { fire('❌ Puntos insuficientes'); return; }
+
+    // Actualizar estado local inmediatamente
     setMe(p => ({ ...p, points: p.points - cost, tickets: p.tickets + n }));
     setCusts(p => p.map(c => c.id === me.id ? { ...c, points: c.points - cost, tickets: c.tickets + n } : c));
     setRafData(p => p.map((rd, i) => {
@@ -833,8 +853,26 @@ export default function App() {
     }));
     fire(`🎟️ ${n} boleto${n > 1 ? 's' : ''} · -${cost} pts`);
     syncMember(me.id, { points: me.points - cost, tickets: me.tickets + n, updated_at: localISO() });
-    logActivity(me.id, 'rifa', `Compró ${n} boletos de rifa`, -cost);
-  }, [me, fire, cfg, curMonth, syncMember, logActivity]);
+    logActivity(me.id, 'rifa', `Compró ${n} boleto${n > 1 ? 's' : ''} de rifa`, -cost);
+
+    // Guardar en Supabase
+    if (sb && sbConnected) {
+      // Buscar el ID de raffle_calendar para el mes actual (mes 1-indexed)
+      sb.from('raffle_calendar')
+        .select('id')
+        .eq('month', curMonth + 1)
+        .single()
+        .then(res => {
+          if (res.error) { console.error('[Raffle] calendar lookup:', res.error); return; }
+          sb.from('raffle_entries')
+            .insert({ member_id: me.id, raffle_id: res.data.id, tickets: n })
+            .then(r => {
+              if (r.error) console.error('[Raffle] insert error:', r.error);
+              else console.log('[Raffle] ✅ Boletos guardados:', n);
+            });
+        });
+    }
+  }, [me, fire, cfg, curMonth, syncMember, logActivity, sbConnected]);
 
   const doSurvey = useCallback(() => {
     if (mySurveyCount >= cfg.surveyDaily) { fire('❌ Límite diario alcanzado'); return; }
