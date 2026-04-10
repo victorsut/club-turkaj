@@ -8,7 +8,7 @@ export default function BottomNav({ items, current, onSelect, view, tierName }) 
 
   const qrColor = tierName === 'BLACK' ? '#FFD54F'
     : tierName === 'PLATINO' ? '#1565C0'
-    : '#2E7D52'; // verde oscuro similar al ejemplo
+    : '#F0A500'; // ORO dorado
 
   const barBg = isA ? adminTheme.bg
     : isO ? '#fff'
