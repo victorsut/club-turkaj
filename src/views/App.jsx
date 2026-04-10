@@ -389,22 +389,35 @@ export default function App() {
           })));
         }
 
-        // Load raffle entries (boletos comprados) — poblar rafData con participantes reales
+        // Load raffle entries — join con raffle_calendar para obtener el mes
+        // Usamos los IDs de raffle_calendar ya cargados para mapear correctamente
         const reRes = await sb.from('raffle_entries')
-          .select('*, members(name), raffle_calendar(month)')
+          .select('member_id, raffle_id, tickets, members!inner(name)')
           .order('created_at', { ascending: false });
-        if (reRes.data?.length > 0) {
+
+        console.log('[Raffle] raffle_entries result:', reRes.error || `${reRes.data?.length} filas`);
+
+        if (reRes.data?.length > 0 && rcRes.data?.length > 0) {
+          // Construir mapa raffle_id → month (0-indexed)
+          const idToMonth = {};
+          rcRes.data.forEach(r => { idToMonth[r.id] = r.month - 1; });
+
           const rafMap = Array(12).fill(null).map(() => ({ participants: [] }));
           reRes.data.forEach(e => {
-            const month = (e.raffle_calendar?.month ?? 1) - 1; // 0-indexed
-            if (month < 0 || month > 11) return;
+            const month = idToMonth[e.raffle_id];
+            if (month === undefined || month < 0 || month > 11) return;
             const ps = rafMap[month].participants;
             const ex = ps.findIndex(p => p.cid === e.member_id);
+            const name = e.members?.name || 'Miembro';
             if (ex >= 0) ps[ex].tickets += e.tickets || 1;
-            else ps.push({ cid: e.member_id, name: e.members?.name || 'Miembro', tickets: e.tickets || 1 });
+            else ps.push({ cid: e.member_id, name, tickets: e.tickets || 1 });
           });
           setRafData(rafMap);
-          console.log('[Club Turkaj] Boletos de rifa cargados:', reRes.data.length);
+          console.log('[Raffle] ✅ rafData cargado:', reRes.data.length, 'entradas');
+        } else if (reRes.error) {
+          console.error('[Raffle] Error cargando raffle_entries:', reRes.error);
+        } else {
+          console.log('[Raffle] Sin boletos comprados aún');
         }
 
         // Load operator ratings
