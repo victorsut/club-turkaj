@@ -391,33 +391,38 @@ export default function App() {
 
         // Load raffle entries — join con raffle_calendar para obtener el mes
         // Usamos los IDs de raffle_calendar ya cargados para mapear correctamente
+        // Cargar raffle_entries sin join — el nombre se resuelve desde custs o members
         const reRes = await sb.from('raffle_entries')
-          .select('member_id, raffle_id, tickets, members!inner(name)')
+          .select('member_id, raffle_id, tickets')
           .order('created_at', { ascending: false });
 
-        console.log('[Raffle] raffle_entries result:', reRes.error || `${reRes.data?.length} filas`);
+        console.log('[Raffle] raffle_entries:', reRes.error?.message || `${reRes.data?.length ?? 0} filas`);
 
-        if (reRes.data?.length > 0 && rcRes.data?.length > 0) {
-          // Construir mapa raffle_id → month (0-indexed)
+        if (!reRes.error && reRes.data?.length > 0 && rcRes.data?.length > 0) {
+          // mapa raffle_id → month 0-indexed
           const idToMonth = {};
           rcRes.data.forEach(r => { idToMonth[r.id] = r.month - 1; });
+
+          // mapa member_id → name desde la carga de members ya hecha arriba
+          const idToName = {};
+          if (memRes.data?.length > 0) {
+            memRes.data.forEach(m => { idToName[m.id] = m.name || 'Miembro'; });
+          }
 
           const rafMap = Array(12).fill(null).map(() => ({ participants: [] }));
           reRes.data.forEach(e => {
             const month = idToMonth[e.raffle_id];
             if (month === undefined || month < 0 || month > 11) return;
-            const ps = rafMap[month].participants;
-            const ex = ps.findIndex(p => p.cid === e.member_id);
-            const name = e.members?.name || 'Miembro';
+            const ps  = rafMap[month].participants;
+            const ex  = ps.findIndex(p => p.cid === e.member_id);
+            const name = idToName[e.member_id] || 'Miembro';
             if (ex >= 0) ps[ex].tickets += e.tickets || 1;
             else ps.push({ cid: e.member_id, name, tickets: e.tickets || 1 });
           });
           setRafData(rafMap);
-          console.log('[Raffle] ✅ rafData cargado:', reRes.data.length, 'entradas');
+          console.log('[Raffle] ✅ rafData listo:', reRes.data.length, 'entradas');
         } else if (reRes.error) {
-          console.error('[Raffle] Error cargando raffle_entries:', reRes.error);
-        } else {
-          console.log('[Raffle] Sin boletos comprados aún');
+          console.error('[Raffle] Error:', reRes.error.message);
         }
 
         // Load operator ratings
