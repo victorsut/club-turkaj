@@ -35,7 +35,7 @@ import useToast from '../hooks/useToast';
 import BottomNav from '../components/ui/BottomNav';
 import QRCode from '../components/ui/QRCode';
 import TierDeco from '../components/ui/TierDeco';
-import { Check, Fuel, Users, Gift, Ticket, Clock, Gear } from '../components/ui/Icons';
+import { Check, Fuel, Users, Gift, Ticket, Clock, Gear, Megaphone } from '../components/ui/Icons';
 
 // Auth Views
 import ClientLogin from './client/ClientLogin';
@@ -63,6 +63,7 @@ import Members from './admin/Members';
 import MemberDetail from './admin/MemberDetail';
 import AdminRaffle from './admin/AdminRaffle';
 import Settings from './admin/Settings';
+import AdminPromos from './admin/AdminPromos';
 import OpManagement from './admin/OpManagement';
 import { isPushSupported, subscribePush, sendPushToMember } from '../lib/pushNotifications';
 
@@ -978,6 +979,7 @@ export default function App() {
     { id: 'ops', label: 'Operadores', icon: <Gear /> },
     { id: 'cat', label: 'Premios', icon: <Gift /> },
     { id: 'raf', label: 'Rifa', icon: <Ticket /> },
+    { id: 'promos', label: 'Promos', icon: <Megaphone /> },
   ];
   const operatorNav = [
     { id: 'ohome', label: 'Inicio', icon: <Fuel /> },
@@ -1017,6 +1019,7 @@ export default function App() {
       if (scr === 'cfg') return <Settings {...ctx} />;
       if (scr === 'ops') return <OpManagement {...ctx} />;
       if (scr === 'rules') return <Rules {...ctx} />;
+      if (scr === 'promos') return <AdminPromos {...ctx} />;
       return <AdminDash {...ctx} />;
     }
 
