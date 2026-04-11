@@ -156,6 +156,7 @@ export default function App() {
   const [ratingStars, setRatingStars] = useState(0);
   const [pendingOpRating, setPendingOpRating] = useState(null); // { operatorId, operatorName }
   const [purchaseConfirm, setPurchaseConfirm] = useState(null); // { client, amt, fuel, onConfirm }
+  const [redeemConfirm, setRedeemConfirm]   = useState(null); // { reward, cost }
   const [showSurveys, setShowSurveys] = useState(false);
   const [sortDir, setSortDir] = useState('desc');
   const [memSort, setMemSort] = useState('all');
@@ -946,6 +947,7 @@ export default function App() {
     showQR, setShowQR,
     pendingOpRating, setPendingOpRating,
     purchaseConfirm, setPurchaseConfirm,
+    redeemConfirm, setRedeemConfirm,
     showSurveys, setShowSurveys,
     sortDir, setSortDir, memSort, setMemSort,
     stationFilter, setStationFilter, stationMode, setStationMode,
@@ -1093,6 +1095,75 @@ export default function App() {
           <BottomNav items={nav} current={cur} onSelect={handleNav} view={view} tierName={cTier.name} />
         )}
       </div>
+
+      {/* ── Modal confirmación de canje (nivel raíz) ── */}
+      {redeemConfirm && isC && me && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)',
+          zIndex: 400, display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+        }}>
+          <div style={{
+            background: cTier.name === 'BLACK' ? '#0D0D1A' : cTier.name === 'PLATINO' ? '#E8E8E8' : '#fff',
+            borderRadius: '24px 24px 0 0',
+            width: '100%', maxWidth: 480, padding: '12px 24px 40px',
+            boxShadow: '0 -8px 40px rgba(0,0,0,.2)',
+            animation: 'slideUp .3s cubic-bezier(.32,1.2,.64,1)',
+          }}>
+            <div style={{ width: 40, height: 4, borderRadius: 4, background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.2)' : '#E0E0E0', margin: '0 auto 20px' }} />
+
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{ fontSize: 52, marginBottom: 8 }}>{redeemConfirm.reward.icon || '🎁'}</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D', marginBottom: 4 }}>
+                Confirmar Canje
+              </div>
+              <div style={{ fontSize: 13, color: '#9E9E9E' }}>Revisá los detalles antes de confirmar</div>
+            </div>
+
+            <div style={{ background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.05)' : cTier.name === 'PLATINO' ? 'rgba(255,255,255,.5)' : '#F9F9F9', borderRadius: 16, padding: '16px 20px', marginBottom: 20 }}>
+              {[
+                { l: 'Premio',          v: redeemConfirm.reward.name, bold: true },
+                { l: 'Categoría',       v: redeemConfirm.reward.cat || '—' },
+                { l: 'Costo',           v: `${redeemConfirm.cost} pts`, large: true, red: true },
+                { l: 'Saldo actual',    v: `${me.points} pts` },
+                { l: 'Saldo tras canje',v: `${me.points - redeemConfirm.cost} pts`, green: true },
+              ].map((row, i, arr) => (
+                <div key={row.l} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  paddingBottom: i < arr.length - 1 ? 12 : 0,
+                  borderBottom: i < arr.length - 1 ? `1px solid ${cTier.name === 'BLACK' ? 'rgba(255,255,255,.06)' : '#eee'}` : 'none',
+                  marginBottom: i < arr.length - 1 ? 12 : 0,
+                }}>
+                  <span style={{ fontSize: 13, color: '#9E9E9E', fontWeight: 600 }}>{row.l}</span>
+                  <span style={{
+                    fontSize: row.large ? 18 : 13,
+                    fontWeight: row.bold || row.large ? 900 : 700,
+                    color: row.red ? '#C62828' : row.green ? '#2E7D32' : (cTier.name === 'BLACK' ? '#fff' : '#0D0D0D'),
+                  }}>{row.v}</span>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button onClick={() => setRedeemConfirm(null)} style={{
+                flex: 1, padding: 16, borderRadius: 14, border: `2px solid ${cTier.name === 'BLACK' ? 'rgba(255,255,255,.1)' : '#eee'}`,
+                background: 'none', color: cTier.name === 'BLACK' ? '#9E9E9E' : '#424242',
+                fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              }}>Cancelar</button>
+              <button onClick={() => {
+                const { reward } = redeemConfirm;
+                setRedeemConfirm(null);
+                redeem(reward);
+              }} style={{
+                flex: 2, padding: 16, borderRadius: 14, border: 'none',
+                background: cTier.name === 'BLACK' ? '#FFD54F' : cTier.name === 'PLATINO' ? '#1565C0' : '#FBBC04',
+                color: cTier.name === 'PLATINO' ? '#fff' : '#0D0D0D',
+                fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 900, cursor: 'pointer',
+                boxShadow: `0 4px 16px ${cTier.name === 'BLACK' ? 'rgba(255,213,79,.3)' : cTier.name === 'PLATINO' ? 'rgba(21,101,192,.35)' : 'rgba(251,188,4,.35)'}`,
+              }}>✓ Confirmar Canje</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Modal confirmación de compra (nivel raíz, escapa overflow:hidden) ── */}
       {purchaseConfirm && (
