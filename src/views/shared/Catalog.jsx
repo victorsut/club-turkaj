@@ -2,7 +2,7 @@
 import { sMono, CAT_STYLES, CAT_LABELS } from '../../constants/styles';
 
 export default function Catalog(ctx) {
-  const { rewards, me, gT, cfg, cTier, catF, setCatF, redeem, client = true } = ctx;
+  const { rewards, me, gT, cfg, cTier, catF, setCatF, redeem, setRedeemConfirm, client = true } = ctx;
   const t    = me ? gT(me.gallons) : gT(0);
   const cats = ['todos', ...Object.keys(CAT_LABELS)];
   const filtered = catF === 'todos' ? rewards : rewards.filter(r => r.cat === catF);
@@ -56,7 +56,11 @@ export default function Catalog(ctx) {
           const cost     = client && me ? Math.round(r.pts * (1 - t.redeemDisc)) : r.pts;
           const canAfford = client && me ? me.points >= cost : false;
           return (
-            <div key={r.id} onClick={() => client && canAfford && redeem(r)} style={{
+            <div key={r.id} onClick={() => {
+              if (!client || !canAfford) return;
+              if (setRedeemConfirm) setRedeemConfirm({ reward: r, cost });
+              else redeem(r);
+            }} style={{
               background: TH.cardBg, borderRadius: 16, padding: 16, textAlign: 'center',
               border: TH.cardBorder,
               cursor: client && canAfford ? 'pointer' : 'default',
