@@ -139,5 +139,11 @@ export const FacebookLogo = () => (
 );
 
 // Convenience object for backward compat
-const IC = { Fuel, Users, Gift, Ticket, Star, Plus, Search, Back, Check, Chev, Pin, Clock, Warn, QR, Gear, Logout, GoogleLogo, FacebookLogo };
+export const Megaphone = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 11l19-9-9 19-2-8-8-2z"/>
+  </svg>
+);
+
+const IC = { Fuel, Users, Gift, Ticket, Star, Plus, Search, Back, Check, Chev, Pin, Clock, Warn, QR, Gear, Logout, GoogleLogo, FacebookLogo, Megaphone };
 export default IC;
