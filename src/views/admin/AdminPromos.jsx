@@ -69,9 +69,14 @@ export default function AdminPromos(ctx) {
   };
 
   const toggleActive = async (promo) => {
-    if (!sb || !sbConnected) return;
+    if (!sb || !sbConnected) { fire('❌ Sin conexión'); return; }
     const newVal = !promo.active;
-    await sb.from('promotions').update({ active: newVal }).eq('id', promo.id);
+    const { error } = await sb.from('promotions').update({ active: newVal }).eq('id', promo.id);
+    if (error) {
+      console.error('[Promos] toggleActive error:', error);
+      fire('❌ Error al actualizar: ' + error.message);
+      return;
+    }
     setPromos(p => p.map(x => x.id === promo.id ? { ...x, active: newVal } : x));
     fire(newVal ? '✅ Promoción activada' : '⏸️ Promoción desactivada');
   };
