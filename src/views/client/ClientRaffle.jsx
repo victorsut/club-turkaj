@@ -12,7 +12,6 @@ export default function ClientRaffle(ctx) {
   const myEntry      = rd.participants.find(p => p.cid === me.id);
   const myTickets    = myEntry?.tickets || 0;
   const totalTickets = rd.participants.reduce((s, p) => s + p.tickets, 0);
-  const myOdds       = totalTickets > 0 ? ((myTickets / totalTickets) * 100).toFixed(1) : '0.0';
 
   // ── Tema por tier ─────────────────────────────────────
   const tier      = cTier?.name || 'ORO';
@@ -28,7 +27,6 @@ export default function ClientRaffle(ctx) {
     headerSub:   isDark ? 'rgba(255,255,255,.6)'    : isPlatino ? 'rgba(255,255,255,.7)' : 'rgba(0,0,0,.5)',
     headerShad:  isDark ? '0 8px 32px rgba(0,0,0,.6)' : isPlatino ? '0 8px 32px rgba(21,101,192,.4)' : '0 8px 32px rgba(251,188,4,.35)',
     myTicketCol: isDark ? '#FFD54F'                 : isPlatino ? '#fff'                 : '#0D0D0D',
-    oddsCol:     isDark ? '#69F0AE'                 : isPlatino ? '#B3E5FC'              : '#2E7D32',
     divider:     isDark ? 'rgba(255,255,255,.15)'   : isPlatino ? 'rgba(255,255,255,.25)': 'rgba(0,0,0,.15)',
     accent:      isDark ? '#FFD54F'                 : isPlatino ? '#1565C0'              : '#F0A500',
     accentLight: isDark ? 'rgba(255,213,79,.1)'     : isPlatino ? 'rgba(21,101,192,.1)'  : '#FFF8E1',
@@ -84,15 +82,7 @@ export default function ClientRaffle(ctx) {
               <div style={{ ...sMono, fontSize: 32, fontWeight: 900 }}>{totalTickets}</div>
               <div style={{ fontSize: 10, opacity: .6, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700 }}>Total</div>
             </div>
-            {myTickets > 0 && (
-              <>
-                <div style={{ width: 1, background: T.divider }} />
-                <div>
-                  <div style={{ ...sMono, fontSize: 32, fontWeight: 900, color: T.oddsCol }}>{myOdds}%</div>
-                  <div style={{ fontSize: 10, opacity: .6, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700 }}>Probabilidad</div>
-                </div>
-              </>
-            )}
+
           </div>
         </div>
       </div>
@@ -142,7 +132,6 @@ export default function ClientRaffle(ctx) {
           <div style={{ background: T.cardBg, borderRadius: 16, border: `1px solid ${T.cardBorder}`, overflow: 'hidden' }}>
             {rd.participants.slice().sort((a, b) => b.tickets - a.tickets).map((p, i, arr) => {
               const isMe  = p.cid === me.id;
-              const odds  = totalTickets > 0 ? ((p.tickets / totalTickets) * 100).toFixed(1) : '0';
               return (
                 <div key={p.cid} style={{
                   display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
@@ -159,7 +148,7 @@ export default function ClientRaffle(ctx) {
                     <div style={{ fontSize: 13, fontWeight: isMe ? 900 : 700, color: isMe ? T.meTxt : T.textCol, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {p.name} {isMe && '← Tú'}
                     </div>
-                    <div style={{ fontSize: 10, color: T.subTxt, marginTop: 1 }}>{odds}% probabilidad</div>
+
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     <div style={{ ...sMono, fontSize: 15, fontWeight: 800, color: T.textCol }}>{p.tickets}</div>
@@ -172,33 +161,7 @@ export default function ClientRaffle(ctx) {
         )}
       </div>
 
-      {/* ── Premios del año ── */}
-      <div style={{ padding: '20px 20px 0' }}>
-        <div style={{ fontSize: 11, fontWeight: 800, color: '#BDBDBD', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 10 }}>
-          Premios del año
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {raffleCal.map((r, i) => (
-            <div key={i} style={{
-              display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 12,
-              background: i === curMonth ? T.activeRow : (isDark ? 'rgba(255,255,255,.04)' : isPlatino ? 'rgba(255,255,255,.4)' : '#F9F9F9'),
-              border: i === curMonth ? `1px solid ${T.activeBorder}` : '1px solid transparent',
-            }}>
-              <div style={{ fontSize: 22, flexShrink: 0 }}>{r.p?.split(' ')[0]}</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: T.textCol }}>{r.p?.replace(/^[^\s]+\s/, '')}</div>
-                <div style={{ fontSize: 10, color: T.subTxt }}>{r.m}</div>
-              </div>
-              <div style={{ fontSize: 11, fontWeight: 800, color: T.prizeValCol }}>{r.v}</div>
-              {i === curMonth && (
-                <div style={{ fontSize: 9, fontWeight: 800, color: T.activeTag, background: T.activeTagBg, padding: '2px 8px', borderRadius: 6 }}>
-                  ACTIVO
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+
     </div>
   );
 }
