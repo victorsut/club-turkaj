@@ -19,9 +19,14 @@ export default function ClientHome(ctx) {
     showWifi, setShowWifi, showMap, setShowMap, stations,
     showSurveys, setShowSurveys, fire,
     pendingOpRating, setPendingOpRating, sbConnected,
-    activityLog, custs, redeemedList, logout } = ctx;
+    activityLog, custs, redeemedList, logout,
+    rafData, curMonth } = ctx;
 
   if (!me) return null;
+
+  // Boletos válidos solo para el mes en curso
+  const currentMonthTickets = (rafData?.[curMonth]?.participants || [])
+    .find(p => p.cid === me.id)?.tickets || 0;
 
   // Operator rating from member device — auto-submit on tap
   const [savingRating, setSavingRating] = useState(false);
@@ -300,7 +305,7 @@ export default function ClientHome(ctx) {
         }}>
           {cTier.name === 'BLACK' && <GalaxyDust n={8} />}
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ ...sMono, fontSize: 22, color: cTier.name === 'BLACK' ? '#CE93D8' : '#7B1FA2' }}>{me.tickets}</div>
+            <div style={{ ...sMono, fontSize: 22, color: cTier.name === 'BLACK' ? '#CE93D8' : '#7B1FA2' }}>{currentMonthTickets}</div>
             <div style={{ fontSize: 10, color: cTier.name === 'BLACK' ? '#BA68C8' : '#7B1FA2', textTransform: 'uppercase', letterSpacing: 1, marginTop: 4, fontWeight: 700 }}>Boletos Rifa</div>
           </div>
         </div>
