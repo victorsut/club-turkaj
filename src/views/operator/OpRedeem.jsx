@@ -1,215 +1,269 @@
 // src/views/operator/OpRedeem.jsx
-// Operator view — scan client card and redeem rewards
-import { sMono, inputStyle } from '../../constants/styles';
+import { useState, useCallback } from 'react';
+import { sb } from '../../lib/supabaseClient';
+import { sMono, inputStyle, btnYellow } from '../../constants/styles';
 import Badge from '../../components/ui/Badge';
-import TierDeco from '../../components/ui/TierDeco';
+import QRScanner from '../../components/ui/QRScanner';
 import { Back } from '../../components/ui/Icons';
 
 export default function OpRedeem(ctx) {
-  const {
-    custs, setCusts, rewards, gT, fire, me, setMe,
-    opRedeemClient, setOpRedeemClient,
-    opCardScan, setOpCardScan,
-    opSearch, setOpSearch,
-    cards, syncMember, logActivity,
-    setRedeemedList, tierBg, tierShadow, tierBorder,
-  } = ctx;
+  const { custs, rewards, gT, fire, sbConnected,
+    redeemedList, setRedeemedList, setCusts, syncMember, logActivity } = ctx;
 
-  // Scan card simulation (TODO: replace with real QR/NFC)
-  const scanCard = () => {
-    setOpCardScan('scanning');
-    setTimeout(() => {
-      const activeCards = (cards || []).filter(c => c.status === 'active');
-      if (activeCards.length === 0) { setOpCardScan('nocard'); return; }
-      const pick = activeCards[Math.floor(Math.random() * activeCards.length)];
-      const cust = custs.find(c => c.cardId === pick.id);
-      if (cust) {
-        setOpCardScan({ id: pick.id, tier: pick.tier });
-        setOpRedeemClient(cust);
-      } else {
-        setOpCardScan('nocard');
-      }
-    }, 1500);
-  };
+  const [client, setClient]       = useState(null);
+  const [scanning, setScanning]   = useState(false);
+  const [q, setQ]                 = useState('');
+  const [pendingList, setPending] = useState([]); // canjes pendientes del cliente
+  const [loadingPending, setLoadingPending] = useState(false);
+  const [confirmItem, setConfirmItem] = useState(null); // canje a marcar como entregado
 
-  const cl = opRedeemClient;
-  const t = cl ? gT(cl.gallons) : null;
-
-  // Execute redemption
-  const doRedeem = (r) => {
-    if (!cl) return;
-    const tier = gT(cl.gallons);
-    const cost = Math.round(r.pts * (1 - tier.redeemDisc));
-    if (cl.points >= cost) {
-      setCusts(p => p.map(c => c.id === cl.id
-        ? { ...c, points: c.points - cost, redeemed: (c.redeemed || 0) + 1 }
-        : c
-      ));
-      if (me?.id === cl.id) setMe(p => ({ ...p, points: p.points - cost, redeemed: (p.redeemed || 0) + 1 }));
-      const code = `TK-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-      setRedeemedList(p => [{
-        id: `RD-${Date.now()}`,
-        reward: { name: r.name, icon: r.icon, cat: r.cat },
-        cost, date: new Date().toISOString().split('T')[0],
-        code, collected: false,
-      }, ...p]);
-      setOpRedeemClient({ ...cl, points: cl.points - cost, redeemed: (cl.redeemed || 0) + 1 });
-      fire(`🎉 ${cl.name} canjeó ${r.name} · -${cost} pts`);
-      syncMember(cl.id, { points: cl.points - cost, redeemed_count: (cl.redeemed || 0) + 1, updated_at: new Date().toISOString() });
-      logActivity(cl.id, 'canje', `Canjeó: ${r.name} ${r.icon} (operador)`, -cost);
-    } else {
-      fire('❌ Puntos insuficientes');
+  // ── Cargar canjes pendientes de un cliente ─────────────
+  const loadPending = useCallback(async (cust) => {
+    setClient(cust);
+    setQ('');
+    if (!sb || !sbConnected) {
+      // Fallback: usar redeemedList local
+      const local = (redeemedList || []).filter(r => r.memberId === cust.id && !r.collected);
+      setPending(local);
+      return;
     }
+    setLoadingPending(true);
+    const { data, error } = await sb.from('redemptions')
+      .select('*, rewards(name, icon, category)')
+      .eq('member_id', cust.id)
+      .eq('collected', false)
+      .order('created_at', { ascending: false });
+    setLoadingPending(false);
+    if (error) { fire('❌ Error cargando canjes: ' + error.message); return; }
+    setPending((data || []).map(rd => ({
+      id: rd.id,
+      memberId: rd.member_id,
+      reward: { name: rd.rewards?.name || 'Premio', icon: rd.rewards?.icon || '🎁', cat: rd.rewards?.category || '' },
+      cost: rd.points_spent,
+      date: rd.created_at?.split('T')[0] || '',
+      code: rd.redemption_code,
+      collected: false,
+    })));
+  }, [sbConnected, redeemedList, fire]);
+
+  // ── Escaneo QR ─────────────────────────────────────────
+  const handleScan = useCallback((code) => {
+    setScanning(false);
+    const match = code.match(/^CT[OPB]D-(\d+)$/);
+    if (!match) { fire('❌ Código no reconocido: ' + code); return; }
+    const correlative = match[1];
+    const found = custs.find(c => {
+      if (!c.cardId) return false;
+      const cm = c.cardId.match(/^CT[OPB]D-(\d+)$/);
+      return cm && cm[1] === correlative;
+    });
+    if (found) { fire('✅ ' + found.name); loadPending(found); }
+    else fire('❌ Miembro no encontrado para: ' + code);
+  }, [custs, fire, loadPending]);
+
+  // ── Marcar canje como entregado ────────────────────────
+  const markCollected = async (item) => {
+    if (sb && sbConnected) {
+      const { error } = await sb.from('redemptions')
+        .update({ collected: true })
+        .eq('id', item.id);
+      if (error) { fire('❌ Error: ' + error.message); return; }
+    }
+    // Actualizar lista local
+    setPending(p => p.filter(x => x.id !== item.id));
+    setRedeemedList(p => p.map(x => x.id === item.id ? { ...x, collected: true } : x));
+    setConfirmItem(null);
+    fire(`✅ Canje entregado: ${item.reward.name} · ${item.code}`);
+    logActivity(item.memberId, 'entrega', `Premio entregado: ${item.reward.name} ${item.reward.icon}`, 0);
   };
 
-  const hdr = { padding: '14px 20px', borderBottom: '1px solid #E0E0E0', background: 'linear-gradient(135deg,#FBBC04 0%,#FFF8E1 60%,#FAFAFA 100%)' };
-  const secLbl = { fontSize: 11, fontWeight: 800, color: '#BDBDBD', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 };
+  const filteredCusts = q.length >= 2
+    ? custs.filter(c =>
+        (c.name || '').toLowerCase().includes(q.toLowerCase()) ||
+        (c.phone || '').includes(q) ||
+        (c.cardId || '').toUpperCase().includes(q.toUpperCase())
+      ).slice(0, 8)
+    : [];
 
-  // ── No client selected: scan or search ──
-  if (!cl) {
+  const tier = client ? gT(client.gallons) : null;
+
+  // ── Scanner ────────────────────────────────────────────
+  if (scanning) return <QRScanner onScan={handleScan} onClose={() => setScanning(false)} />;
+
+  // ── Sin cliente seleccionado ───────────────────────────
+  if (!client) {
     return (
       <div style={{ paddingBottom: 90 }}>
-        <div style={hdr}>
-          <div style={{ fontSize: 17, fontWeight: 700, color: '#0D0D0D' }}>Canjear Premios</div>
-        </div>
+        <div style={{ padding: '16px 20px 8px', fontSize: 20, fontWeight: 800, color: '#0D0D0D' }}>🎁 Canjear Premios</div>
 
-        {/* Scan card */}
-        <div style={{ padding: 20 }}>
-          <div style={{ background: '#fff', borderRadius: 20, padding: 24, border: '1px solid #E0E0E0', textAlign: 'center' }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>💳</div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#424242', marginBottom: 4 }}>Escanear tarjeta del cliente</div>
-            <div style={{ fontSize: 13, color: '#9E9E9E', marginBottom: 20 }}>El cliente presenta su tarjeta física para canjear premios</div>
+        <div style={{ padding: '0 20px' }}>
+          {/* Escanear QR */}
+          <button onClick={() => setScanning(true)} style={{
+            ...btnYellow, marginBottom: 16,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontSize: 15,
+          }}>
+            📷 Escanear código QR del cliente
+          </button>
 
-            {!opCardScan && (
-              <button onClick={scanCard} style={{
-                width: '100%', padding: 16, borderRadius: 16, border: '2px dashed #FBBC04',
-                background: '#FFF8E1', fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 800,
-                cursor: 'pointer', color: '#F0A500', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              }}>📷 Escanear Tarjeta</button>
-            )}
-
-            {opCardScan === 'scanning' && (
-              <div style={{ padding: 20, textAlign: 'center' }}>
-                <div style={{ fontSize: 32, marginBottom: 8, animation: 'pulse 1s infinite' }}>📷</div>
-                <div style={{ height: 4, borderRadius: 2, overflow: 'hidden', background: '#eee', margin: '12px 0' }}>
-                  <div style={{ height: '100%', borderRadius: 2, background: '#FBBC04', animation: 'scanBar 1.5s ease forwards' }} />
-                </div>
-                <div style={{ fontSize: 13, color: '#9E9E9E' }}>Leyendo tarjeta...</div>
-              </div>
-            )}
-
-            {opCardScan === 'nocard' && (
-              <div style={{ padding: 16, background: '#FFF3E0', borderRadius: 14, border: '1px solid #FFCC80' }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#E65100' }}>⚠️ Tarjeta no encontrada</div>
-                <button onClick={() => setOpCardScan(null)} style={{
-                  marginTop: 10, padding: '8px 20px', borderRadius: 10, border: 'none',
-                  background: '#FBBC04', fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                }}>Reintentar</button>
-              </div>
-            )}
+          {/* Buscar por nombre/teléfono/código */}
+          <div style={{ position: 'relative', marginBottom: 8 }}>
+            <input
+              placeholder="Buscar por nombre, teléfono o código..."
+              value={q}
+              onChange={e => setQ(e.target.value)}
+              style={{ ...inputStyle, paddingLeft: 40 }}
+              autoComplete="off"
+            />
+            <span style={{ position: 'absolute', left: 14, top: 14, opacity: .4, fontSize: 16 }}>🔍</span>
           </div>
 
-          {/* Search by name */}
-          <div style={{ margin: '20px 0', background: '#fff', borderRadius: 18, padding: 20, border: '1px solid #E0E0E0' }}>
-            <div style={secLbl}>O buscar por nombre</div>
-            <input
-              placeholder="Buscar cliente..."
-              value={opSearch || ''}
-              onChange={e => setOpSearch(e.target.value)}
-              style={{ ...inputStyle, background: '#fff', border: '1px solid #E0E0E0', color: '#0D0D0D' }}
-            />
-            {opSearch && opSearch.length > 1 && custs
-              .filter(c => c.name.toLowerCase().includes(opSearch.toLowerCase()))
-              .slice(0, 5)
-              .map(c2 => {
-                const ct = gT(c2.gallons);
+          {/* Resultados de búsqueda */}
+          {filteredCusts.length > 0 && (
+            <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #eee', overflow: 'hidden', marginTop: 4 }}>
+              {filteredCusts.map((c, i) => {
+                const ct = gT(c.gallons);
+                const pendingCount = (redeemedList || []).filter(r => r.memberId === c.id && !r.collected).length;
                 return (
-                  <div key={c2.id} onClick={() => { setOpRedeemClient(c2); setOpCardScan({ id: c2.cardId, tier: ct.name }); setOpSearch(''); }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid #F0F0F0', cursor: 'pointer' }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: ct.bg, color: ct.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800 }}>
-                      {c2.name.charAt(0)}
+                  <div key={c.id} onClick={() => loadPending(c)} style={{
+                    display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
+                    borderBottom: i < filteredCusts.length - 1 ? '1px solid #F5F5F5' : 'none',
+                    cursor: 'pointer',
+                  }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: '#FFF8E1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, flexShrink: 0 }}>
+                      {(c.name || '?')[0]}
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#424242' }}>{c2.name}</div>
-                      <div style={{ fontSize: 11, color: '#9E9E9E' }}>{c2.points} pts · <Badge t={ct} /></div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#0D0D0D', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
+                      <div style={{ fontSize: 11, color: '#9E9E9E', marginTop: 2 }}>{c.cardId || '—'} · {c.points} pts</div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                      <Badge t={ct} />
+                      {pendingCount > 0 && (
+                        <div style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: '#C62828', padding: '2px 7px', borderRadius: 8 }}>
+                          {pendingCount} pendiente{pendingCount > 1 ? 's' : ''}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
               })}
-          </div>
+            </div>
+          )}
+
+          {q.length >= 2 && filteredCusts.length === 0 && (
+            <div style={{ textAlign: 'center', padding: 24, color: '#9E9E9E', fontSize: 13 }}>
+              No se encontraron clientes
+            </div>
+          )}
         </div>
       </div>
     );
   }
 
-  // ── Client selected: show profile + rewards ──
+  // ── Cliente seleccionado: canjes pendientes ────────────
   return (
     <div style={{ paddingBottom: 90 }}>
-      <div style={hdr}>
-        <div style={{ fontSize: 17, fontWeight: 700, color: '#0D0D0D' }}>Canjear Premios</div>
-      </div>
+      <div style={{ padding: '16px 20px 8px', fontSize: 20, fontWeight: 800, color: '#0D0D0D' }}>🎁 Canjear Premios</div>
 
-      <div style={{ padding: 20 }}>
-        {/* Back + card ID */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <button onClick={() => { setOpRedeemClient(null); setOpCardScan(null); }}
-            style={{ background: 'none', border: 'none', color: '#757575', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 600 }}>
-            <Back /> Escanear otra
-          </button>
-          <div style={{ fontSize: 12, color: '#9E9E9E' }}>💳 {opCardScan?.id || ''}</div>
-        </div>
+      <div style={{ padding: '0 20px' }}>
+        {/* Volver */}
+        <button onClick={() => { setClient(null); setPending([]); }}
+          style={{ background: 'none', border: 'none', color: '#FBBC04', cursor: 'pointer', fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
+          <Back /> Buscar otro cliente
+        </button>
 
-        {/* Client tier card */}
-        <div style={{
-          background: tierBg?.(t.name) || t.grad, borderRadius: 18, padding: 20,
-          color: t.color, position: 'relative', overflow: 'hidden', textAlign: 'center',
-          marginBottom: 16, boxShadow: tierShadow?.(t.name), border: tierBorder?.(t.name),
-        }}>
-          <TierDeco name={t.name} />
-          <div style={{ position: 'relative', zIndex: 2 }}>
-            <div style={{ fontSize: 18, fontWeight: 800 }}>{cl.name}</div>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 6 }}>
-              <Badge t={t} />
+        {/* Info cliente */}
+        <div style={{ background: '#fff', borderRadius: 16, padding: 16, border: '1px solid #eee', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 14, background: tier.name === 'BLACK' ? '#0D0D0D' : tier.name === 'PLATINO' ? '#E0E0E0' : '#FFF8E1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 800, flexShrink: 0, color: tier.name === 'BLACK' ? '#FFD54F' : '#0D0D0D' }}>
+            {(client.name || '?')[0]}
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#0D0D0D' }}>{client.name}</div>
+            <div style={{ fontSize: 12, color: '#9E9E9E', display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+              <span style={{ fontFamily: 'monospace' }}>{client.cardId || '—'}</span>
+              <span>·</span>
+              <Badge t={tier} />
+              <span>·</span>
+              <span style={{ fontWeight: 700, color: '#2E7D32' }}>{client.points} pts</span>
             </div>
-            <div style={{ fontSize: 36, fontWeight: 800, marginTop: 10, ...sMono }}>{cl.points}</div>
-            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 3, fontWeight: 700, opacity: .5 }}>
-              Puntos disponibles
-            </div>
-            {t.redeemDisc > 0 && (
-              <div style={{ marginTop: 8, fontSize: 12, fontWeight: 700, background: 'rgba(0,0,0,.1)', display: 'inline-block', padding: '4px 12px', borderRadius: 8 }}>
-                -{Math.round(t.redeemDisc * 100)}% descuento en canjes
-              </div>
-            )}
           </div>
         </div>
 
-        {/* Rewards list */}
-        <div style={secLbl}>Premios disponibles</div>
-        {rewards.map(r => {
-          const dp = Math.round(r.pts * (1 - t.redeemDisc));
-          const can = cl.points >= dp;
-          return (
-            <div key={r.id} onClick={() => { if (can) doRedeem(r); }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', marginBottom: 8,
-                background: '#fff', borderRadius: 16, border: '1px solid #E0E0E0',
-                opacity: can ? 1 : .4, cursor: can ? 'pointer' : 'default',
-              }}>
-              <div style={{ fontSize: 28, flexShrink: 0 }}>{r.icon}</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#424242' }}>{r.name}</div>
-                <div style={{ fontSize: 11, color: '#9E9E9E', marginTop: 2 }}>{r.cat}</div>
+        {/* Lista de canjes pendientes */}
+        <div style={{ fontSize: 11, fontWeight: 800, color: '#BDBDBD', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>
+          Canjes pendientes de entrega
+        </div>
+
+        {loadingPending && (
+          <div style={{ textAlign: 'center', padding: 32, color: '#9E9E9E' }}>⏳ Cargando...</div>
+        )}
+
+        {!loadingPending && pendingList.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '32px 20px', background: '#F9F9F9', borderRadius: 16, border: '1px solid #eee' }}>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#424242' }}>Sin canjes pendientes</div>
+            <div style={{ fontSize: 12, color: '#9E9E9E', marginTop: 4 }}>Este cliente no tiene premios por entregar</div>
+          </div>
+        )}
+
+        {!loadingPending && pendingList.map(item => (
+          <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: '#fff', borderRadius: 16, border: '1px solid #eee', marginBottom: 10 }}>
+            <div style={{ fontSize: 32, flexShrink: 0 }}>{item.reward.icon}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#0D0D0D' }}>{item.reward.name}</div>
+              <div style={{ fontSize: 11, color: '#9E9E9E', marginTop: 2 }}>
+                {item.date} · <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>{item.code}</span>
               </div>
-              <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                {t.redeemDisc > 0 && (
-                  <div style={{ fontSize: 10, color: '#BDBDBD', textDecoration: 'line-through' }}>{r.pts} pts</div>
-                )}
-                <div style={{ fontSize: 14, fontWeight: 800, color: can ? '#2E7D32' : '#C62828', ...sMono }}>{dp} pts</div>
-              </div>
+              <div style={{ ...sMono, fontSize: 12, color: '#C62828', marginTop: 2 }}>-{item.cost} pts</div>
             </div>
-          );
-        })}
+            <button onClick={() => setConfirmItem(item)} style={{
+              padding: '10px 16px', borderRadius: 12, border: 'none',
+              background: '#E8F5E9', color: '#2E7D32', fontFamily: "'DM Sans'",
+              fontWeight: 800, fontSize: 12, cursor: 'pointer', flexShrink: 0,
+            }}>
+              Entregar
+            </button>
+          </div>
+        ))}
       </div>
+
+      {/* Modal confirmación entrega */}
+      {confirmItem && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 400, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: '24px 24px 0 0', width: '100%', maxWidth: 480, padding: '12px 24px 40px', boxShadow: '0 -8px 40px rgba(0,0,0,.15)', animation: 'slideUp .3s ease' }}>
+            <div style={{ width: 40, height: 4, background: '#E0E0E0', borderRadius: 4, margin: '0 auto 20px' }} />
+
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{ fontSize: 48, marginBottom: 8 }}>{confirmItem.reward.icon}</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: '#0D0D0D' }}>Confirmar entrega</div>
+              <div style={{ fontSize: 13, color: '#9E9E9E', marginTop: 4 }}>¿Estás entregando este premio al cliente?</div>
+            </div>
+
+            <div style={{ background: '#F9F9F9', borderRadius: 14, padding: '14px 18px', marginBottom: 20 }}>
+              {[
+                { l: 'Premio',   v: confirmItem.reward.name, bold: true },
+                { l: 'Cliente',  v: client.name },
+                { l: 'Código',   v: confirmItem.code, mono: true },
+                { l: 'Fecha',    v: confirmItem.date },
+              ].map((row, i, arr) => (
+                <div key={row.l} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: i < arr.length - 1 ? 10 : 0, borderBottom: i < arr.length - 1 ? '1px solid #eee' : 'none', marginBottom: i < arr.length - 1 ? 10 : 0 }}>
+                  <span style={{ fontSize: 12, color: '#9E9E9E', fontWeight: 600 }}>{row.l}</span>
+                  <span style={{ fontSize: 13, fontWeight: row.bold ? 900 : 700, color: '#0D0D0D', fontFamily: row.mono ? 'monospace' : "'DM Sans'" }}>{row.v}</span>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button onClick={() => setConfirmItem(null)} style={{ flex: 1, padding: 16, borderRadius: 14, border: '2px solid #eee', background: '#fff', color: '#424242', fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                Cancelar
+              </button>
+              <button onClick={() => markCollected(confirmItem)} style={{ flex: 2, padding: 16, borderRadius: 14, border: 'none', background: '#FBBC04', color: '#0D0D0D', fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 16px rgba(251,188,4,.35)' }}>
+                ✓ Confirmar entrega
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
