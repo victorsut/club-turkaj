@@ -275,6 +275,43 @@ export default function ClientHome(ctx) {
         );
       })()}
 
+      {/* ── Carrusel de promociones ── */}
+      {activePromos.length > 0 && (
+        <div style={{ padding: '4px 12px 8px', position: 'relative' }}>
+          <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', height: 110 }}>
+            {activePromos.map((p, i) => (
+              <div key={p.id} style={{
+                position: 'absolute', inset: 0,
+                background: p.bg || (cTier.name === 'BLACK' ? 'linear-gradient(135deg,#1a1a3e,#0d0d1a)' : 'linear-gradient(135deg,#FBBC04,#FFD540)'),
+                display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px',
+                opacity: i === promoIdx ? 1 : 0,
+                transition: 'opacity .5s ease',
+                pointerEvents: i === promoIdx ? 'auto' : 'none',
+              }}>
+                {p.icon && <div style={{ fontSize: 40, flexShrink: 0 }}>{p.icon}</div>}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 900, color: p.color || '#fff', marginBottom: 4, lineHeight: 1.2 }}>{p.title}</div>
+                  {p.desc && <div style={{ fontSize: 11, color: p.color || '#fff', opacity: .8, lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{p.desc}</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+          {activePromos.length > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 8 }}>
+              {activePromos.map((_, i) => (
+                <div key={i} onClick={() => setPromoIdx(i)} style={{
+                  width: i === promoIdx ? 18 : 6, height: 6, borderRadius: 3,
+                  background: i === promoIdx
+                    ? (cTier.name === 'BLACK' ? '#FFD54F' : cTier.name === 'PLATINO' ? '#1565C0' : '#FBBC04')
+                    : (cTier.name === 'BLACK' ? 'rgba(255,255,255,.2)' : '#E0E0E0'),
+                  transition: 'all .3s', cursor: 'pointer',
+                }} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Stats row: Visits, Invite, Raffle Tickets */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, padding: '0 12px', margin: '12px 0' }}>
         <div style={cStatY}>
@@ -310,54 +347,6 @@ export default function ClientHome(ctx) {
           </div>
         </div>
       </div>
-
-      {/* ── Carrusel de promociones ── */}
-      {activePromos.length > 0 && (
-        <div style={{ padding: '4px 12px 8px', position: 'relative' }}>
-          {/* Slides */}
-          <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', height: 110 }}>
-            {activePromos.map((p, i) => (
-              <div key={p.id} style={{
-                position: 'absolute', inset: 0,
-                background: p.bg || (cTier.name === 'BLACK' ? 'linear-gradient(135deg,#1a1a3e,#0d0d1a)' : 'linear-gradient(135deg,#FBBC04,#FFD540)'),
-                display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px',
-                opacity: i === promoIdx ? 1 : 0,
-                transition: 'opacity .5s ease',
-                pointerEvents: i === promoIdx ? 'auto' : 'none',
-              }}>
-                {p.icon && (
-                  <div style={{ fontSize: 40, flexShrink: 0 }}>{p.icon}</div>
-                )}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 900, color: p.color || '#fff', marginBottom: 4, lineHeight: 1.2 }}>
-                    {p.title}
-                  </div>
-                  {p.desc && (
-                    <div style={{ fontSize: 11, color: p.color || '#fff', opacity: .8, lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                      {p.desc}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Indicadores de punto */}
-          {activePromos.length > 1 && (
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 8 }}>
-              {activePromos.map((_, i) => (
-                <div key={i} onClick={() => setPromoIdx(i)} style={{
-                  width: i === promoIdx ? 18 : 6, height: 6, borderRadius: 3,
-                  background: i === promoIdx
-                    ? (cTier.name === 'BLACK' ? '#FFD54F' : cTier.name === 'PLATINO' ? '#1565C0' : '#FBBC04')
-                    : (cTier.name === 'BLACK' ? 'rgba(255,255,255,.2)' : '#E0E0E0'),
-                  transition: 'all .3s', cursor: 'pointer',
-                }} />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Quick action row: WiFi, Baños, Estaciones */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, padding: '0 12px', margin: '6px 0 12px' }}>
