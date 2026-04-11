@@ -62,6 +62,7 @@ import AdminDash from './admin/AdminDash';
 import Members from './admin/Members';
 import MemberDetail from './admin/MemberDetail';
 import AdminRaffle from './admin/AdminRaffle';
+import AdminPremios from './admin/AdminPremios';
 import Settings from './admin/Settings';
 import AdminPromos from './admin/AdminPromos';
 import OpManagement from './admin/OpManagement';
@@ -219,6 +220,70 @@ export default function App() {
       console.log('[Surveys] Encuestas hoy:', count);
     }
   }, []);
+
+  // ===== DÍAS FESTIVOS: otorgar puntos al abrir la app =====
+  const checkSpecialDayBonus = async (memberId, memberBday) => {
+    if (!sb || !memberId) return;
+    const now   = new Date();
+    const today = localDate(); // YYYY-MM-DD en hora local
+    const month = now.getMonth() + 1;
+    const day   = now.getDate();
+
+    // Verificar si ya recibió bonus hoy
+    const { data: memberRow } = await sb.from('members').select('last_special_bonus').eq('id', memberId).single();
+    if (memberRow?.last_special_bonus === today) return; // ya recibió hoy
+
+    // Cargar días festivos activos
+    const { data: specialDays } = await sb.from('special_days').select('*').eq('active', true);
+    if (!specialDays?.length) return;
+
+    let totalBonus = 0;
+    const bonusNames = [];
+
+    for (const sd of specialDays) {
+      // Cumpleaños del miembro (month=0, day=0 = especial)
+      if (sd.month === 0) {
+        if (!memberBday) continue;
+        // bday guardado como MM-DD
+        const [bMonth, bDay] = (memberBday || '').split('-').map(Number);
+        if (bMonth === month && bDay === day) {
+          totalBonus += sd.points;
+          bonusNames.push(`${sd.icon} ${sd.name}`);
+        }
+      } else {
+        // Fecha fija
+        if (sd.month === month && sd.day === day) {
+          totalBonus += sd.points;
+          bonusNames.push(`${sd.icon} ${sd.name}`);
+        }
+      }
+    }
+
+    if (totalBonus === 0) return;
+
+    // Otorgar puntos
+    await sb.from('members').update({
+      points: (memberRow?.points || 0) + totalBonus,
+      last_special_bonus: today,
+    }).eq('id', memberId);
+
+    // Actualizar estado local
+    setMe(p => p ? { ...p, points: (p.points || 0) + totalBonus } : p);
+
+    // Registrar en activity_log
+    for (const name of bonusNames) {
+      await sb.from('activity_log').insert({
+        member_id: memberId,
+        activity_type: 'evento_especial',
+        description: `¡${name}! Bonus especial`,
+        points_change: totalBonus / bonusNames.length,
+      });
+    }
+
+    const msg = bonusNames.join(' · ');
+    fire(`🎉 +${totalBonus} pts · ${msg}`);
+    console.log('[Special] Bonus otorgado:', totalBonus, 'pts -', msg);
+  };
 
   // ===== SUPABASE DATA LOADING =====
   useEffect(() => {
@@ -593,6 +658,12 @@ export default function App() {
   useEffect(() => {
     if (me?.id && sb && sbConnected) loadTodaySurveys(me.id);
   }, [me?.id, sbConnected, loadTodaySurveys]);
+
+  // ===== DÍAS FESTIVOS: Verificar al loguearse =====
+  useEffect(() => {
+    if (!me?.id || viewRef.current !== 'client' || authScreen !== 'logged') return;
+    checkSpecialDayBonus(me.id, me.bday);
+  }, [me?.id, authScreen]);
 
   // ===== PUSH NOTIFICATIONS: Subscribe when member logs in =====
   useEffect(() => {
@@ -976,12 +1047,11 @@ export default function App() {
 
   // ===== NAV ITEMS =====
   const adminNav = [
-    { id: 'dash', label: 'Inicio', icon: <Fuel /> },
-    { id: 'mem', label: 'Miembros', icon: <Users /> },
-    { id: 'ops', label: 'Operadores', icon: <Gear /> },
-    { id: 'cat', label: 'Premios', icon: <Gift /> },
-    { id: 'raf', label: 'Rifa', icon: <Ticket /> },
-    { id: 'promos', label: 'Promos', icon: <Megaphone /> },
+    { id: 'dash',    label: 'Inicio',    icon: <Fuel />      },
+    { id: 'mem',     label: 'Miembros',  icon: <Users />     },
+    { id: 'ops',     label: 'Operadores',icon: <Gear />      },
+    { id: 'premios', label: 'Premios',   icon: <Gift />      },
+    { id: 'promos',  label: 'Promos',    icon: <Megaphone /> },
   ];
   const operatorNav = [
     { id: 'ohome', label: 'Inicio', icon: <Fuel /> },
@@ -1018,6 +1088,7 @@ export default function App() {
       if (scr === 'det') return <MemberDetail {...ctx} />;
       if (scr === 'cat') return <Catalog {...ctx} client={false} />;
       if (scr === 'raf') return <AdminRaffle {...ctx} />;
+      if (scr === 'premios') return <AdminPremios {...ctx} />;
       if (scr === 'cfg') return <Settings {...ctx} />;
       if (scr === 'ops') return <OpManagement {...ctx} />;
       if (scr === 'rules') return <Rules {...ctx} />;
