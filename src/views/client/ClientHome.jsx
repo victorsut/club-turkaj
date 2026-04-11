@@ -275,8 +275,8 @@ export default function ClientHome(ctx) {
         <div style={cStatY}>
           {cTier.name === 'BLACK' && <GalaxyDust n={10} />}
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ ...sMono, fontSize: 22 }}>{me.visits}</div>
-            <div style={{ fontSize: 10, opacity: .6, textTransform: 'uppercase', letterSpacing: 1, marginTop: 4, fontWeight: 700 }}>Visitas</div>
+            <div style={{ ...sMono, fontSize: 22, color: cTier.name === 'BLACK' ? '#fff' : cTier.name === 'PLATINO' ? '#0D0D0D' : '#0D0D0D' }}>{me.visits}</div>
+            <div style={{ fontSize: 10, opacity: .6, textTransform: 'uppercase', letterSpacing: 1, marginTop: 4, fontWeight: 700, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D' }}>Visitas</div>
           </div>
         </div>
 
