@@ -6,6 +6,16 @@ import Badge from '../../components/ui/Badge';
 import QRScanner from '../../components/ui/QRScanner';
 import { Back } from '../../components/ui/Icons';
 
+// Guatemala UTC-6: convierte timestamp UTC de Supabase a fecha local
+function utcToLocal(isoString) {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 export default function OpRedeem(ctx) {
   const { custs, rewards, gT, fire, sbConnected,
     redeemedList, setRedeemedList, setCusts, syncMember, logActivity } = ctx;
@@ -40,7 +50,7 @@ export default function OpRedeem(ctx) {
       memberId: rd.member_id,
       reward: { name: rd.rewards?.name || 'Premio', icon: rd.rewards?.icon || '🎁', cat: rd.rewards?.category || '' },
       cost: rd.points_spent,
-      date: rd.created_at?.split('T')[0] || '',
+      date: utcToLocal(rd.created_at) || '',
       code: rd.redemption_code,
       collected: false,
     })));
