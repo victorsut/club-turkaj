@@ -155,7 +155,8 @@ export default function App() {
   const [showRating, setShowRating] = useState(null);
   const [showQR, setShowQR] = useState(false);
   const [ratingStars, setRatingStars] = useState(0);
-  const [pendingOpRating, setPendingOpRating] = useState(null); // { operatorId, operatorName }
+  const [pendingOpRating, setPendingOpRating] = useState(null);
+  const [pendingRedeemConfirm, setPendingRedeemConfirm] = useState(null); // { redemptionId, rewardName, rewardIcon, cost } // { operatorId, operatorName }
   const [purchaseConfirm, setPurchaseConfirm] = useState(null); // { client, amt, fuel, onConfirm }
   const [redeemConfirm, setRedeemConfirm]   = useState(null); // { reward, cost }
   const [showSurveys, setShowSurveys] = useState(false);
@@ -808,6 +809,36 @@ export default function App() {
     };
   }, [me?.id, sbConnected, operators]);
 
+  // ===== REALTIME: Confirmación de canje (miembro confirma/cancela) =====
+  useEffect(() => {
+    if (!sb || !sbConnected || !me?.id || viewRef.current !== 'client') return;
+    const ch = sb.channel('redemption-confirm')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'redemptions',
+        filter: `member_id=eq.${me.id}`,
+      }, (payload) => {
+        const rd = payload.new;
+        if (rd.confirm_status === 'pending') {
+          console.log('[Realtime] Solicitud de confirmación de canje:', rd.id);
+          // Buscar nombre del premio
+          const reward = rewards.find(r => r.id === rd.reward_id);
+          setPendingRedeemConfirm({
+            redemptionId: rd.id,
+            rewardName:   reward?.name  || 'Premio',
+            rewardIcon:   reward?.icon  || '🎁',
+            cost:         rd.points_spent || 0,
+          });
+        } else if (rd.confirm_status === 'confirmed' || rd.confirm_status === 'cancelled') {
+          // Limpiar modal si quedó abierto
+          setPendingRedeemConfirm(p => p?.redemptionId === rd.id ? null : p);
+        }
+      })
+      .subscribe();
+    return () => sb.removeChannel(ch);
+  }, [me?.id, sbConnected, rewards]);
+
   // ===== REALTIME: Actualizar rating del operador en tiempo real =====
   useEffect(() => {
     if (!sb || !loggedOp?.id || !sbConnected) return;
@@ -1017,6 +1048,7 @@ export default function App() {
     showRating, setShowRating, ratingStars, setRatingStars,
     showQR, setShowQR,
     pendingOpRating, setPendingOpRating,
+    pendingRedeemConfirm, setPendingRedeemConfirm,
     purchaseConfirm, setPurchaseConfirm,
     redeemConfirm, setRedeemConfirm,
     showSurveys, setShowSurveys,
@@ -1166,6 +1198,73 @@ export default function App() {
           <BottomNav items={nav} current={cur} onSelect={handleNav} view={view} tierName={cTier.name} />
         )}
       </div>
+
+      {/* ── Modal confirmación de canje desde operador (dispositivo del MIEMBRO) ── */}
+      {pendingRedeemConfirm && isC && me && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)',
+          zIndex: 600, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '0 24px',
+        }}>
+          <div style={{
+            background: cTier.name === 'BLACK' ? '#0D0D1A' : '#fff',
+            borderRadius: 24, width: '100%', maxWidth: 400, padding: '32px 24px',
+            boxShadow: '0 24px 80px rgba(0,0,0,.4)',
+            animation: 'pop .3s cubic-bezier(.32,1.2,.64,1)',
+          }}>
+            {/* Icono y título */}
+            <div style={{ textAlign: 'center', marginBottom: 24 }}>
+              <div style={{ fontSize: 56, marginBottom: 12 }}>{pendingRedeemConfirm.rewardIcon}</div>
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', color: cTier.name === 'BLACK' ? '#FFD54F' : '#F0A500', marginBottom: 6 }}>
+                Solicitud de Canje
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D', lineHeight: 1.2 }}>
+                ¿Confirmás este canje?
+              </div>
+              <div style={{ fontSize: 13, color: '#9E9E9E', marginTop: 8 }}>
+                El operador está listo para entregarte este premio
+              </div>
+            </div>
+
+            {/* Detalle */}
+            <div style={{ background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.06)' : '#F9F9F9', borderRadius: 16, padding: '16px 20px', marginBottom: 24 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                <span style={{ fontSize: 13, color: '#9E9E9E', fontWeight: 600 }}>Premio</span>
+                <span style={{ fontSize: 13, fontWeight: 900, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D' }}>{pendingRedeemConfirm.rewardName}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 13, color: '#9E9E9E', fontWeight: 600 }}>Puntos a descontar</span>
+                <span style={{ fontSize: 16, fontWeight: 900, color: '#C62828' }}>-{pendingRedeemConfirm.cost} pts</span>
+              </div>
+            </div>
+
+            {/* Botones */}
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button onClick={async () => {
+                await sb.from('redemptions').update({ confirm_status: 'cancelled' }).eq('id', pendingRedeemConfirm.redemptionId);
+                setPendingRedeemConfirm(null);
+                fire('❌ Canje cancelado');
+              }} style={{
+                flex: 1, padding: '14px 0', borderRadius: 14,
+                border: `2px solid ${cTier.name === 'BLACK' ? 'rgba(255,255,255,.1)' : '#eee'}`,
+                background: 'none', color: cTier.name === 'BLACK' ? '#9E9E9E' : '#424242',
+                fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              }}>✕ Cancelar</button>
+              <button onClick={async () => {
+                await sb.from('redemptions').update({ confirm_status: 'confirmed' }).eq('id', pendingRedeemConfirm.redemptionId);
+                setPendingRedeemConfirm(null);
+                fire('✅ ¡Canje confirmado!');
+              }} style={{
+                flex: 2, padding: '14px 0', borderRadius: 14, border: 'none',
+                background: cTier.name === 'BLACK' ? '#FFD54F' : cTier.name === 'PLATINO' ? '#1565C0' : '#FBBC04',
+                color: cTier.name === 'PLATINO' ? '#fff' : '#0D0D0D',
+                fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 900, cursor: 'pointer',
+                boxShadow: '0 4px 16px rgba(251,188,4,.3)',
+              }}>✓ Confirmar</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Modal confirmación de canje (nivel raíz) ── */}
       {redeemConfirm && isC && me && (
