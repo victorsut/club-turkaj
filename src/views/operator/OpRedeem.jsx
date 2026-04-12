@@ -20,12 +20,14 @@ export default function OpRedeem(ctx) {
   const { custs, rewards, gT, fire, sbConnected,
     redeemedList, setRedeemedList, setCusts, syncMember, logActivity } = ctx;
 
-  const [client, setClient]       = useState(null);
-  const [scanning, setScanning]   = useState(false);
-  const [q, setQ]                 = useState('');
-  const [pendingList, setPending] = useState([]); // canjes pendientes del cliente
+  const [client, setClient]         = useState(null);
+  const [scanning, setScanning]     = useState(false);
+  const [q, setQ]                   = useState('');
+  const [pendingList, setPending]   = useState([]);
   const [loadingPending, setLoadingPending] = useState(false);
-  const [confirmItem, setConfirmItem] = useState(null); // canje a marcar como entregado
+  const [confirmItem, setConfirmItem]       = useState(null);
+  const [waitingConfirm, setWaitingConfirm] = useState(null); // id del canje esperando confirmación del miembro
+  const [confirmResult, setConfirmResult]   = useState(null); // 'confirmed' | 'cancelled'
 
   // ── Cargar canjes pendientes de un cliente ─────────────
   const loadPending = useCallback(async (cust) => {
@@ -71,21 +73,56 @@ export default function OpRedeem(ctx) {
     else fire('❌ Miembro no encontrado para: ' + code);
   }, [custs, fire, loadPending]);
 
-  // ── Marcar canje como entregado ────────────────────────
-  const markCollected = async (item) => {
-    if (sb && sbConnected) {
-      const { error } = await sb.from('redemptions')
-        .update({ collected: true })
-        .eq('id', item.id);
-      if (error) { fire('❌ Error: ' + error.message); return; }
-    }
-    // Actualizar lista local
-    setPending(p => p.filter(x => x.id !== item.id));
-    setRedeemedList(p => p.map(x => x.id === item.id ? { ...x, collected: true } : x));
+  // ── Iniciar confirmación: escribe pending y espera respuesta del miembro ──
+  const requestConfirm = useCallback(async (item) => {
     setConfirmItem(null);
-    fire(`✅ Canje entregado: ${item.reward.name} · ${item.code}`);
-    logActivity(item.memberId, 'entrega', `Premio entregado: ${item.reward.name} ${item.reward.icon}`, 0);
-  };
+    if (!sb || !sbConnected) { fire('❌ Sin conexión'); return; }
+
+    // Escribir confirm_status = pending
+    const { error } = await sb.from('redemptions')
+      .update({ confirm_status: 'pending' })
+      .eq('id', item.id);
+    if (error) { fire('❌ Error: ' + error.message); return; }
+
+    setWaitingConfirm(item);
+    setConfirmResult(null);
+    fire('⏳ Esperando confirmación del cliente...');
+
+    // Escuchar respuesta via polling (cada 2 seg, max 60 seg)
+    let attempts = 0;
+    const interval = setInterval(async () => {
+      attempts++;
+      const { data } = await sb.from('redemptions')
+        .select('confirm_status')
+        .eq('id', item.id)
+        .single();
+
+      if (data?.confirm_status === 'confirmed') {
+        clearInterval(interval);
+        // Marcar como entregado
+        await sb.from('redemptions').update({ collected: true, confirm_status: 'none' }).eq('id', item.id);
+        setPending(p => p.filter(x => x.id !== item.id));
+        setRedeemedList(p => p.map(x => x.id === item.id ? { ...x, collected: true } : x));
+        setWaitingConfirm(null);
+        setConfirmResult('confirmed');
+        fire(`✅ Confirmado por el cliente · ${item.reward.name} entregado`);
+        logActivity(item.memberId, 'entrega', `Premio entregado: ${item.reward.name} ${item.reward.icon}`, 0);
+        setTimeout(() => setConfirmResult(null), 3000);
+      } else if (data?.confirm_status === 'cancelled') {
+        clearInterval(interval);
+        await sb.from('redemptions').update({ confirm_status: 'none' }).eq('id', item.id);
+        setWaitingConfirm(null);
+        setConfirmResult('cancelled');
+        fire('❌ El cliente canceló el canje');
+        setTimeout(() => setConfirmResult(null), 3000);
+      } else if (attempts >= 30) {
+        clearInterval(interval);
+        await sb.from('redemptions').update({ confirm_status: 'none' }).eq('id', item.id);
+        setWaitingConfirm(null);
+        fire('⏱ Tiempo de espera agotado');
+      }
+    }, 2000);
+  }, [sbConnected, fire, logActivity, setRedeemedList]);
 
   const filteredCusts = q.length >= 2
     ? custs.filter(c =>
@@ -226,7 +263,7 @@ export default function OpRedeem(ctx) {
               </div>
               <div style={{ ...sMono, fontSize: 12, color: '#C62828', marginTop: 2 }}>-{item.cost} pts</div>
             </div>
-            <button onClick={() => setConfirmItem(item)} style={{
+            <button onClick={() => { if (waitingConfirm) return; setConfirmItem(item); }} style={{
               padding: '10px 16px', borderRadius: 12, border: 'none',
               background: '#E8F5E9', color: '#2E7D32', fontFamily: "'DM Sans'",
               fontWeight: 800, fontSize: 12, cursor: 'pointer', flexShrink: 0,
@@ -237,18 +274,16 @@ export default function OpRedeem(ctx) {
         ))}
       </div>
 
-      {/* Modal confirmación entrega */}
-      {confirmItem && (
+      {/* Modal: pedir confirmación al operador antes de enviar al miembro */}
+      {confirmItem && !waitingConfirm && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 400, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div style={{ background: '#fff', borderRadius: '24px 24px 0 0', width: '100%', maxWidth: 480, padding: '12px 24px 40px', boxShadow: '0 -8px 40px rgba(0,0,0,.15)', animation: 'slideUp .3s ease' }}>
             <div style={{ width: 40, height: 4, background: '#E0E0E0', borderRadius: 4, margin: '0 auto 20px' }} />
-
             <div style={{ textAlign: 'center', marginBottom: 20 }}>
               <div style={{ fontSize: 48, marginBottom: 8 }}>{confirmItem.reward.icon}</div>
-              <div style={{ fontSize: 18, fontWeight: 900, color: '#0D0D0D' }}>Confirmar entrega</div>
-              <div style={{ fontSize: 13, color: '#9E9E9E', marginTop: 4 }}>¿Estás entregando este premio al cliente?</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: '#0D0D0D' }}>Solicitar confirmación</div>
+              <div style={{ fontSize: 13, color: '#9E9E9E', marginTop: 4 }}>Se enviará una solicitud al dispositivo del cliente para que confirme el canje</div>
             </div>
-
             <div style={{ background: '#F9F9F9', borderRadius: 14, padding: '14px 18px', marginBottom: 20 }}>
               {[
                 { l: 'Premio',   v: confirmItem.reward.name, bold: true },
@@ -262,15 +297,41 @@ export default function OpRedeem(ctx) {
                 </div>
               ))}
             </div>
-
             <div style={{ display: 'flex', gap: 12 }}>
               <button onClick={() => setConfirmItem(null)} style={{ flex: 1, padding: 16, borderRadius: 14, border: '2px solid #eee', background: '#fff', color: '#424242', fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
                 Cancelar
               </button>
-              <button onClick={() => markCollected(confirmItem)} style={{ flex: 2, padding: 16, borderRadius: 14, border: 'none', background: '#FBBC04', color: '#0D0D0D', fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 16px rgba(251,188,4,.35)' }}>
-                ✓ Confirmar entrega
+              <button onClick={() => requestConfirm(confirmItem)} style={{ flex: 2, padding: 16, borderRadius: 14, border: 'none', background: '#FBBC04', color: '#0D0D0D', fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 16px rgba(251,188,4,.35)' }}>
+                📲 Enviar al cliente
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pantalla de espera: aguardando respuesta del miembro */}
+      {waitingConfirm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px' }}>
+          <div style={{ background: '#fff', borderRadius: 24, width: '100%', maxWidth: 400, padding: '40px 28px', textAlign: 'center', boxShadow: '0 24px 80px rgba(0,0,0,.3)' }}>
+            <div style={{ fontSize: 56, marginBottom: 16 }}>{waitingConfirm.reward.icon}</div>
+            <div style={{ fontSize: 18, fontWeight: 900, color: '#0D0D0D', marginBottom: 8 }}>Esperando al cliente</div>
+            <div style={{ fontSize: 13, color: '#9E9E9E', marginBottom: 28 }}>
+              Se envió la solicitud a <strong style={{ color: '#0D0D0D' }}>{client?.name}</strong>.<br/>Pedile que confirme en su dispositivo.
+            </div>
+            {/* Animación de espera */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 28 }}>
+              {[0,1,2].map(i => (
+                <div key={i} style={{ width: 12, height: 12, borderRadius: '50%', background: '#FBBC04', animation: `bounce .9s ${i * 0.2}s infinite` }} />
+              ))}
+            </div>
+            <div style={{ fontSize: 12, color: '#BDBDBD', marginBottom: 20 }}>Premio: {waitingConfirm.reward.name} · Código: {waitingConfirm.code}</div>
+            <button onClick={async () => {
+              await sb.from('redemptions').update({ confirm_status: 'none' }).eq('id', waitingConfirm.id);
+              setWaitingConfirm(null);
+              fire('⚠️ Solicitud cancelada');
+            }} style={{ padding: '10px 24px', borderRadius: 12, border: '1px solid #eee', background: 'none', color: '#9E9E9E', fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+              Cancelar solicitud
+            </button>
           </div>
         </div>
       )}
