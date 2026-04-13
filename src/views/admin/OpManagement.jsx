@@ -162,7 +162,7 @@ export default function OpManagement(ctx) {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div onClick={() => setSelOp(op)} style={{ fontWeight: 700, fontSize: 14, color: '#64B5F6', cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>{op.name}</div>
               <div style={{ fontSize: 11, color: '#777', marginTop: 2 }}>
-                🏪 {op.station || '—'} · 🔖 {op.gafete} · {op.turno}
+                📍 {op.station || '—'} · # {op.gafete} · {op.turno}
               </div>
               <div style={{ fontSize: 10, color: '#555', marginTop: 2 }}>
                 👤 @{op.user} · 📱 {op.phone || '—'} {avg ? ` · ⭐ ${avg}` : ''}
@@ -254,7 +254,7 @@ export default function OpManagement(ctx) {
               <div>
                 <div style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>{selOp.name}</div>
                 <div style={{ fontSize: 11, color: '#777', marginTop: 2 }}>
-                  🏪 {selOp.station || '—'} · 🔖 {selOp.gafete} · {selOp.turno}
+                  📍 {selOp.station || '—'} · # {selOp.gafete} · {selOp.turno}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
