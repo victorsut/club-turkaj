@@ -816,8 +816,8 @@ export default function App() {
 
   // ===== REALTIME: Confirmación de canje (miembro confirma/cancela) =====
   useEffect(() => {
-    if (!sb || !sbConnected || !me?.id || viewRef.current !== 'client') return;
-    const ch = sb.channel('redemption-confirm')
+    if (!sb || !sbConnected || !me?.id) return;
+    const ch = sb.channel(`redemption-confirm-${me.id}`)
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
@@ -825,10 +825,11 @@ export default function App() {
         filter: `member_id=eq.${me.id}`,
       }, (payload) => {
         const rd = payload.new;
+        console.log('[Realtime] redemption update:', rd.id, 'confirm_status:', rd.confirm_status);
         if (rd.confirm_status === 'pending') {
-          console.log('[Realtime] Solicitud de confirmación de canje:', rd.id);
           // Buscar nombre del premio
           const reward = rewards.find(r => r.id === rd.reward_id);
+          console.log('[Realtime] Solicitud de confirmación de canje - reward:', reward?.name || rd.reward_id);
           setPendingRedeemConfirm({
             redemptionId: rd.id,
             rewardName:   reward?.name  || 'Premio',
@@ -836,11 +837,12 @@ export default function App() {
             cost:         rd.points_spent || 0,
           });
         } else if (rd.confirm_status === 'confirmed' || rd.confirm_status === 'cancelled') {
-          // Limpiar modal si quedó abierto
           setPendingRedeemConfirm(p => p?.redemptionId === rd.id ? null : p);
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[Realtime] redemption-confirm subscription:', status);
+      });
     return () => sb.removeChannel(ch);
   }, [me?.id, sbConnected, rewards]);
 
