@@ -1,5 +1,5 @@
 // src/views/admin/OpManagement.jsx
-// Admin operator management — list, register, edit, toggle active
+// Admin operator management - list, register, edit, toggle active
 import { useState, useEffect } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { sMono, adminTheme as AT, btnYellow, btnDark, inputStyle } from '../../constants/styles';
@@ -33,7 +33,7 @@ export default function OpManagement(ctx) {
         if (data?.length) setOpHistory(data.map(p => ({
           id: p.id,
           type: 'compra',
-          memberName: p.members?.name || '—',
+          memberName: p.members?.name || '-',
           desc: `${p.gallons?.toFixed ? p.gallons.toFixed(1) : p.gallons} gal - Q${p.amount}`,
           pts: p.points_earned,
           date: p.created_at,
@@ -44,7 +44,7 @@ export default function OpManagement(ctx) {
 
   const saveOp = async () => {
     if (!newOp.name || !newOp.user || !newOp.password || !newOp.dpi || !newOp.gafete) {
-      fire('❌ Nombre, usuario, contraseña, DPI y gafete son obligatorios'); return;
+      fire('X Nombre, usuario, contraseña, DPI y gafete son obligatorios'); return;
     }
     setSaving(true);
 
@@ -70,20 +70,20 @@ export default function OpManagement(ctx) {
         // Update existing
         const { error } = await sb.from('operators').update(dbData).eq('id', editOp.id);
         if (error) {
-          fire('❌ Error: ' + error.message);
+          fire('X Error: ' + error.message);
           setSaving(false);
           return;
         }
         setOperators(prev => prev.map(o => o.id === editOp.id ? {
           ...o, ...newOp, station: newOp.station, stationId,
         } : o));
-        fire('✅ Operador actualizado');
+        fire('OK Operador actualizado');
       } else {
         // Insert new
         const { data, error } = await sb.from('operators').insert(dbData).select();
         if (error) {
-          if (error.message.includes('unique')) fire('❌ El usuario o gafete ya existe');
-          else fire('❌ Error: ' + error.message);
+          if (error.message.includes('unique')) fire('X El usuario o gafete ya existe');
+          else fire('X Error: ' + error.message);
           setSaving(false);
           return;
         }
@@ -95,10 +95,10 @@ export default function OpManagement(ctx) {
             bomba: newOp.bomba || '', turno: newOp.turno || 'Matutino', active: true,
           }]);
         }
-        fire('✅ Operador registrado: ' + newOp.name);
+        fire('OK Operador registrado: ' + newOp.name);
       }
     } else {
-      fire('❌ Sin conexión a Supabase');
+      fire('X Sin conexión a Supabase');
       setSaving(false);
       return;
     }
@@ -112,10 +112,10 @@ export default function OpManagement(ctx) {
   const toggleOp = async (id, currentActive) => {
     if (sb && sbConnected) {
       const { error } = await sb.from('operators').update({ active: !currentActive }).eq('id', id);
-      if (error) { fire('❌ Error: ' + error.message); return; }
+      if (error) { fire('X Error: ' + error.message); return; }
     }
     setOperators(prev => prev.map(o => o.id === id ? { ...o, active: !o.active } : o));
-    fire(currentActive ? '⏸️ Operador desactivado' : '▶️ Operador activado');
+    fire(currentActive ? '|| Operador desactivado' : '> Operador activado');
   };
 
   const aSec = { padding: '20px 20px 8px', fontSize: 12, fontWeight: 800, color: '#9E9E9E', textTransform: 'uppercase', letterSpacing: 2 };
@@ -162,17 +162,17 @@ export default function OpManagement(ctx) {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div onClick={() => setSelOp(op)} style={{ fontWeight: 700, fontSize: 14, color: '#64B5F6', cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>{op.name}</div>
               <div style={{ fontSize: 11, color: '#777', marginTop: 2 }}>
-                📍 {op.station || '—'} · # {op.gafete} · {op.turno}
+                > {op.station || '-'}  |  # {op.gafete}  |  {op.turno}
               </div>
               <div style={{ fontSize: 10, color: '#555', marginTop: 2 }}>
-                @{op.user} {op.phone ? `· ${op.phone}` : ''} {avg ? `· ${avg} pts` : ''}
+                @{op.user} {op.phone ? ` |  ${op.phone}` : ''} {avg ? ` |  ${avg} pts` : ''}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
               <button onClick={() => { setEditOp(op); setNewOp({ name: op.name, user: op.user, password: op.password, dpi: op.dpi, gafete: op.gafete, phone: op.phone, station: op.station || stationNames[0], bomba: op.bomba, turno: op.turno, email: op.email }); setShowOpReg(true); }}
-                style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, fontFamily: "'DM Sans'", fontSize: 11, fontWeight: 700, cursor: 'pointer', color: '#64B5F6' }}>✏️</button>
+                style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, fontFamily: "'DM Sans'", fontSize: 11, fontWeight: 700, cursor: 'pointer', color: '#64B5F6' }}>[E]</button>
               <button onClick={() => toggleOp(op.id, op.active)}
-                style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, fontFamily: "'DM Sans'", fontSize: 11, fontWeight: 700, cursor: 'pointer', color: op.active ? '#EF5350' : '#2E7D32' }}>{op.active ? '⏸️' : '▶️'}</button>
+                style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, fontFamily: "'DM Sans'", fontSize: 11, fontWeight: 700, cursor: 'pointer', color: op.active ? '#EF5350' : '#2E7D32' }}>{op.active ? '||' : '>'}</button>
             </div>
           </div>
         );
@@ -183,11 +183,11 @@ export default function OpManagement(ctx) {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', backdropFilter: 'blur(6px)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => { if (!saving) { setShowOpReg(false); setEditOp(null); } }}>
           <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '28px 28px 0 0', padding: '28px 24px 32px', maxWidth: 480, width: '100%', maxHeight: '85vh', overflowY: 'auto' }}>
             <div style={{ width: 40, height: 4, background: '#E0E0E0', borderRadius: 2, margin: '0 auto 20px' }} />
-            <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 16 }}>{editOp ? '✏️ Editar' : '👷 Nuevo'} Operador</div>
+            <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 16 }}>{editOp ? '[E] Editar' : ' Nuevo'} Operador</div>
             {[
               { k: 'name', l: 'Nombre completo *', p: 'Juan Pérez' },
               { k: 'user', l: 'Usuario *', p: 'jperez' },
-              { k: 'password', l: 'Contraseña *', p: '••••••', t: editOp ? 'text' : 'password' },
+              { k: 'password', l: 'Contraseña *', p: '******', t: editOp ? 'text' : 'password' },
               { k: 'dpi', l: 'DPI *', p: '1234567890101', num: true, max: 13 },
               { k: 'gafete', l: 'No. Gafete *', p: 'GAF-001' },
               { k: 'phone', l: 'Teléfono', p: '55512345', num: true, max: 8 },
@@ -229,7 +229,7 @@ export default function OpManagement(ctx) {
                 style={{ ...btnDark, flex: 1, opacity: saving ? .5 : 1 }}>Cancelar</button>
               <button onClick={saveOp} disabled={saving}
                 style={{ ...btnYellow, flex: 2, opacity: saving ? .7 : 1 }}>
-                {saving ? '⏳ Guardando...' : editOp ? 'Guardar Cambios' : 'Registrar Operador'}
+                {saving ? '... Guardando...' : editOp ? 'Guardar Cambios' : 'Registrar Operador'}
               </button>
             </div>
           </div>
@@ -254,16 +254,16 @@ export default function OpManagement(ctx) {
               <div>
                 <div style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>{selOp.name}</div>
                 <div style={{ fontSize: 11, color: '#777', marginTop: 2 }}>
-                  📍 {selOp.station || '—'} · # {selOp.gafete} · {selOp.turno}
+                  > {selOp.station || '-'}  |  # {selOp.gafete}  |  {selOp.turno}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 {(() => {
                   const rats = opRatings[selOp.id] || [];
                   const avg = rats.length > 0 ? (rats.reduce((s,r) => s + (r.stars||0), 0) / rats.length).toFixed(1) : null;
-                  return avg ? <div style={{ fontSize: 13, fontWeight: 800, color: '#FBBC04' }}>⭐ {avg} <span style={{ fontSize: 10, color: '#777' }}>({rats.length})</span></div> : null;
+                  return avg ? <div style={{ fontSize: 13, fontWeight: 800, color: '#FBBC04' }}>* {avg} <span style={{ fontSize: 10, color: '#777' }}>({rats.length})</span></div> : null;
                 })()}
-                <button onClick={() => setSelOp(null)} style={{ background: 'none', border: 'none', color: '#9E9E9E', fontSize: 20, cursor: 'pointer' }}>✕</button>
+                <button onClick={() => setSelOp(null)} style={{ background: 'none', border: 'none', color: '#9E9E9E', fontSize: 20, cursor: 'pointer' }}>X</button>
               </div>
             </div>
 
@@ -288,29 +288,29 @@ export default function OpManagement(ctx) {
               </div>
 
               {loadingHist && (
-                <div style={{ textAlign: 'center', padding: 32, color: '#777' }}>⏳ Cargando...</div>
+                <div style={{ textAlign: 'center', padding: 32, color: '#777' }}>... Cargando...</div>
               )}
 
               {!loadingHist && opHistory.length === 0 && (
                 <div style={{ textAlign: 'center', padding: 32, color: '#555', fontSize: 13 }}>
-                  <div style={{ fontSize: 32, marginBottom: 8 }}>📋</div>
+                  <div style={{ fontSize: 32, marginBottom: 8 }}></div>
                   Sin transacciones registradas
                 </div>
               )}
 
               {!loadingHist && opHistory.map((h, i) => {
                 const d = h.date ? new Date(h.date) : null;
-                const dateStr = d ? d.toLocaleDateString('es-GT', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+                const dateStr = d ? d.toLocaleDateString('es-GT', { day:'2-digit', month:'short', year:'numeric' }) : '-';
                 const timeStr = d ? d.toLocaleTimeString('es-GT', { hour:'2-digit', minute:'2-digit' }) : '';
                 return (
                   <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: `1px solid ${AT.border}` }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(251,188,4,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>⛽</div>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(251,188,4,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}></div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 800, color: '#E0E0E0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {h.memberName}
                       </div>
                       <div style={{ fontSize: 11, color: '#777', marginTop: 2 }}>
-                        {h.desc} · {h.fuel}
+                        {h.desc}  |  {h.fuel}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
