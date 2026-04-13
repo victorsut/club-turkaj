@@ -35,7 +35,7 @@ import useToast from '../hooks/useToast';
 import BottomNav from '../components/ui/BottomNav';
 import QRCode from '../components/ui/QRCode';
 import TierDeco from '../components/ui/TierDeco';
-import { Check, Fuel, Users, Gift, Ticket, Clock, Gear, Megaphone } from '../components/ui/Icons';
+import { Check, Fuel, Users, Gift, Ticket, Clock, Gear, Megaphone, Menu } from '../components/ui/Icons';
 
 // Auth Views
 import ClientLogin from './client/ClientLogin';
@@ -1097,7 +1097,7 @@ export default function App() {
     { id: 'cat', label: 'Canjear', icon: <Gift /> },
     { id: 'qr', label: '', icon: null, isQR: true },
     { id: 'raf', label: 'Rifa', icon: <Ticket /> },
-    { id: 'menu', label: 'Menú', icon: <Clock /> },
+    { id: 'menu', label: 'Menú', icon: <Menu /> },
   ];
 
   const nav = isA ? adminNav : isO ? operatorNav : clientNav;
