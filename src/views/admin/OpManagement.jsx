@@ -44,7 +44,7 @@ export default function OpManagement(ctx) {
 
   const saveOp = async () => {
     if (!newOp.name || !newOp.user || !newOp.password || !newOp.dpi || !newOp.gafete) {
-      fire('X Nombre, usuario, contraseña, DPI y gafete son obligatorios'); return;
+      fire('X Nombre, usuario, contrasena, DPI y gafete son obligatorios'); return;
     }
     setSaving(true);
 
@@ -98,7 +98,7 @@ export default function OpManagement(ctx) {
         fire('OK Operador registrado: ' + newOp.name);
       }
     } else {
-      fire('X Sin conexión a Supabase');
+      fire('X Sin conexion a Supabase');
       setSaving(false);
       return;
     }
@@ -185,12 +185,12 @@ export default function OpManagement(ctx) {
             <div style={{ width: 40, height: 4, background: '#E0E0E0', borderRadius: 2, margin: '0 auto 20px' }} />
             <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 16 }}>{editOp ? '[E] Editar' : ' Nuevo'} Operador</div>
             {[
-              { k: 'name', l: 'Nombre completo *', p: 'Juan Pérez' },
+              { k: 'name', l: 'Nombre completo *', p: 'Juan Perez' },
               { k: 'user', l: 'Usuario *', p: 'jperez' },
-              { k: 'password', l: 'Contraseña *', p: '******', t: editOp ? 'text' : 'password' },
+              { k: 'password', l: 'Contrasena *', p: '******', t: editOp ? 'text' : 'password' },
               { k: 'dpi', l: 'DPI *', p: '1234567890101', num: true, max: 13 },
               { k: 'gafete', l: 'No. Gafete *', p: 'GAF-001' },
-              { k: 'phone', l: 'Teléfono', p: '55512345', num: true, max: 8 },
+              { k: 'phone', l: 'Telefono', p: '55512345', num: true, max: 8 },
               { k: 'bomba', l: 'No. Bomba', p: '1' },
               { k: 'email', l: 'Email', p: 'operador@turkaj.com', t: 'email' },
             ].map(f => (
@@ -210,7 +210,7 @@ export default function OpManagement(ctx) {
             ))}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
               <div>
-                <label style={sLbl}>Estación</label>
+                <label style={sLbl}>Estacion</label>
                 <select value={newOp.station} onChange={e => setNewOp(p => ({ ...p, station: e.target.value }))}
                   style={{ ...inputStyle, appearance: 'none' }}>
                   {stationNames.map(s => <option key={s} value={s}>{s}</option>)}
@@ -236,7 +236,7 @@ export default function OpManagement(ctx) {
         </div>
       )}
 
-      {/* ── Panel historial del operador ── */}
+      {/* -- Panel historial del operador -- */}
       {selOp && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 300, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
           onClick={() => setSelOp(null)}>
@@ -267,7 +267,7 @@ export default function OpManagement(ctx) {
               </div>
             </div>
 
-            {/* Estadísticas rápidas */}
+            {/* Estadisticas rapidas */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, padding: '12px 20px', borderBottom: `1px solid ${AT.border}` }}>
               {[
                 { l: 'Transacciones', v: opHistory.length, c: '#FBBC04' },
