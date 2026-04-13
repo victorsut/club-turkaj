@@ -534,6 +534,7 @@ export default function App() {
     const provider = u.app_metadata?.provider || 'google';
 
     function buildExisting(m) {
+      const parseV = (v) => { if (!v) return []; if (Array.isArray(v)) return v; if (typeof v === 'object') return Object.values(v); try { return JSON.parse(v); } catch { return []; } };
       return {
         id: m.id, name: m.name, email: m.email || email, avatar,
         phone: m.phone || '', dpi: m.dpi || '', plate: m.plate || '',
@@ -546,6 +547,7 @@ export default function App() {
         lastBuy: utcToLocal(m.last_buy) || '',
         station: m.last_station || '',
         cardId: m.physical_cards?.[0]?.card_code || m.card_id || '',
+        vehicles: parseV(m.vehicles),
         supabaseUser: true, authProvider: provider,
       };
     }
