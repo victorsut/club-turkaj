@@ -396,7 +396,7 @@ export default function App() {
           return {
             id: m.id, name: m.name, email: m.email || '',
             phone: m.phone || '', dpi: m.dpi || '', plate: m.plate || '',
-            vehicles: (() => { const v = m.vehicles; if (Array.isArray(v)) return v; try { return JSON.parse(v || '[]'); } catch { return []; } })(),
+            vehicles: (() => { const v = m.vehicles; if (!v) return []; if (Array.isArray(v)) return v; if (typeof v === 'object') return Object.values(v); try { return JSON.parse(v); } catch { return []; } })(),
             nit: m.nit || '', bday: m.birthday || '',
             points: m.points || 0, gallons: parseFloat(m.gallons) || 0,
             spent: parseFloat(m.spent) || 0, visits: m.visits || 0,
@@ -628,7 +628,7 @@ export default function App() {
             setCusts(res.data.map(m => ({
               id: m.id, name: m.name, email: m.email || '',
               phone: m.phone || '', dpi: m.dpi || '', plate: m.plate || '',
-            vehicles: (() => { const v = m.vehicles; if (Array.isArray(v)) return v; try { return JSON.parse(v || '[]'); } catch { return []; } })(),
+            vehicles: (() => { const v = m.vehicles; if (!v) return []; if (Array.isArray(v)) return v; if (typeof v === 'object') return Object.values(v); try { return JSON.parse(v); } catch { return []; } })(),
               nit: m.nit || '', bday: m.birthday || '',
               points: m.points || 0, gallons: parseFloat(m.gallons) || 0,
               spent: parseFloat(m.spent) || 0, visits: m.visits || 0,
