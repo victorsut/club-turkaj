@@ -31,7 +31,13 @@ export default function ClientMenu(ctx) {
     if (typeof v === 'object') return Object.values(v);
     try { return JSON.parse(v); } catch { return []; }
   };
-  const [vehicles, setVehicles] = useState(() => parseVehicles(me?.vehicles));
+  const [vehicles, setVehicles] = useState(() => {
+    const parsed = parseVehicles(me?.vehicles);
+    console.log('[ClientMenu] me.vehicles raw:', me?.vehicles);
+    console.log('[ClientMenu] me.vehicles type:', typeof me?.vehicles);
+    console.log('[ClientMenu] parsed vehicles:', parsed);
+    return parsed;
+  });
   const [addingV, setAddingV]         = useState(false);
   const [newVType, setNewVType]       = useState('liviano');
   const [newVPlate, setNewVPlate]     = useState('');
