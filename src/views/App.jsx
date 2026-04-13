@@ -396,6 +396,7 @@ export default function App() {
           return {
             id: m.id, name: m.name, email: m.email || '',
             phone: m.phone || '', dpi: m.dpi || '', plate: m.plate || '',
+            vehicles: (() => { try { return JSON.parse(m.vehicles || '[]'); } catch { return []; } })(),
             nit: m.nit || '', bday: m.birthday || '',
             points: m.points || 0, gallons: parseFloat(m.gallons) || 0,
             spent: parseFloat(m.spent) || 0, visits: m.visits || 0,
@@ -627,6 +628,7 @@ export default function App() {
             setCusts(res.data.map(m => ({
               id: m.id, name: m.name, email: m.email || '',
               phone: m.phone || '', dpi: m.dpi || '', plate: m.plate || '',
+            vehicles: (() => { try { return JSON.parse(m.vehicles || '[]'); } catch { return []; } })(),
               nit: m.nit || '', bday: m.birthday || '',
               points: m.points || 0, gallons: parseFloat(m.gallons) || 0,
               spent: parseFloat(m.spent) || 0, visits: m.visits || 0,
