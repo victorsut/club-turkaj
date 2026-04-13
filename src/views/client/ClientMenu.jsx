@@ -190,7 +190,7 @@ export default function ClientMenu(ctx) {
                 if (sb && sbConnected) {
                   await sb.from('members').update({
                     plate: updated[0]?.plate || '',
-                    vehicles: JSON.stringify(updated),
+                    vehicles: updated,
                   }).eq('id', me.id);
                   await sb.from('activity_log').insert({ member_id: me.id, activity_type: 'vehiculo', description: `Vehículo agregado: ${typeInfo(newVType).label} ${newV.plate}`, points_change: 0 });
                 }

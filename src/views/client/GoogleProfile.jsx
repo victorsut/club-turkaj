@@ -261,7 +261,7 @@ export default function GoogleProfile(ctx) {
         phone:            regProfile.phone?.trim() || (provider === 'google' ? 'goog_' + (me?.id || '').substring(0, 12) : null),
         password_hash:    'pw:' + btoa(password), auth_provider: provider, auth_provider_id: providerId,
         name: regProfile.name, dpi: regProfile.dpi || null, plate: firstPlate || null,
-        vehicles: vehicles.length > 0 ? JSON.stringify(vehicles) : '[]',
+        vehicles: vehicles.length > 0 ? vehicles : [],
         nit: regProfile.nit || null, email: regProfile.email || me?.email || null,
         birthday: bdayStored || null, points: totalPts,
         gallons: 0, spent: 0, visits: 0, tickets: 0, redeemed_count: 0, referral_count: 0,
