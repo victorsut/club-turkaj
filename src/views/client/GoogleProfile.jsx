@@ -133,8 +133,8 @@ function DateDrumPicker({ value, onChange }) {
 
 // ── UI helpers ────────────────────────────────────────────
 function StepBar({ step }) {
-  const steps = ['Datos\npersonales', 'Datos\nadicionales', 'Vehículos'];
-  const idx = { step1: 0, step2: 1, step3: 2 }[step] ?? 0;
+  const steps = ['Datos\npersonales', 'Datos\nadicionales', 'Vehículos', 'Contraseña'];
+  const idx = { step1: 0, step2: 1, step3: 2, step4: 3 }[step] ?? 0;
   return (
     <div style={{ display: 'flex', alignItems: 'center', marginBottom: 28 }}>
       {steps.map((label, i) => (
@@ -363,50 +363,7 @@ export default function GoogleProfile(ctx) {
           <Field {...fieldProps} icon="🧾" placeholder="NIT (opcional)" fieldKey="nit" bonus />
         </div>
         <PtsCard total={totalPts} base={cfg.regBase || 15} optional={optFields * regOptional} vehicles={vehiclePts} />
-
-        {/* Contraseña */}
-        <div style={{ marginTop: 8, marginBottom: 20 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: '#0D0D0D', marginBottom: 12 }}>
-            🔒 Crear contraseña <span style={{ fontWeight: 600, color: '#9E9E9E', fontSize: 12 }}>(obligatorio)</span>
-          </div>
-          <div style={{ position: 'relative', marginBottom: 10 }}>
-            <input
-              type={showPass ? 'text' : 'password'}
-              placeholder="Contraseña (mínimo 6 caracteres)"
-              value={password}
-              onChange={e => { setPassword(e.target.value); clearAuthErr(); }}
-              style={{ ...inputStyle, paddingRight: 48 }}
-            />
-            <button type="button" onClick={() => setShowPass(p => !p)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#9E9E9E' }}>
-              {showPass ? '🙈' : '👁️'}
-            </button>
-          </div>
-          <div style={{ position: 'relative' }}>
-            <input
-              type={showPassConfirm ? 'text' : 'password'}
-              placeholder="Confirmar contraseña"
-              value={passConfirm}
-              onChange={e => { setPassConfirm(e.target.value); clearAuthErr(); }}
-              style={{ ...inputStyle, paddingRight: 48, borderColor: passConfirm && passConfirm !== password ? '#EF5350' : passConfirm && passConfirm === password ? '#4CAF50' : undefined }}
-            />
-            <button type="button" onClick={() => setShowPassConfirm(p => !p)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#9E9E9E' }}>
-              {showPassConfirm ? '🙈' : '👁️'}
-            </button>
-          </div>
-          {passConfirm && passConfirm === password && (
-            <div style={{ fontSize: 11, color: '#4CAF50', fontWeight: 700, marginTop: 6 }}>✓ Las contraseñas coinciden</div>
-          )}
-          {passConfirm && passConfirm !== password && (
-            <div style={{ fontSize: 11, color: '#EF5350', fontWeight: 700, marginTop: 6 }}>✗ Las contraseñas no coinciden</div>
-          )}
-        </div>
-
-        <button onClick={() => {
-          clearAuthErr();
-          if (!password.trim() || password.length < 6) { setAuthError('La contraseña debe tener al menos 6 caracteres'); return; }
-          if (password !== passConfirm) { setAuthError('Las contraseñas no coinciden'); return; }
-          setGoogleStep('step3');
-        }} style={{ ...btnStyle, background: '#FBBC04', color: '#0D0D0D' }}>
+        <button onClick={() => { clearAuthErr(); setGoogleStep('step3'); }} style={{ ...btnStyle, background: '#FBBC04', color: '#0D0D0D' }}>
           Siguiente →
         </button>
       </div>
@@ -487,8 +444,79 @@ export default function GoogleProfile(ctx) {
         )}
 
         <PtsCard total={totalPts} base={cfg.regBase || 15} optional={optFields * regOptional} vehicles={vehiclePts} />
+        <button onClick={() => { clearAuthErr(); setGoogleStep('step4'); }} style={{ ...btnStyle, background: '#FBBC04', color: '#0D0D0D' }}>
+          Siguiente →
+        </button>
+      </div>
+    );
+  }
+
+  // ══ PASO 4 — Contraseña ══════════════════════════════════
+  if (googleStep === 'step4') {
+    return (
+      <div style={{ padding: '40px 24px 120px' }}>
+        <button onClick={() => { setGoogleStep('step3'); clearAuthErr(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: '#9E9E9E', fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 600, marginBottom: 24 }}>
+          <Back /> Atrás
+        </button>
+        <StepBar step="step4" />
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: '#0D0D0D', marginBottom: 4 }}>Crear contraseña</div>
+          <div style={{ fontSize: 13, color: '#9E9E9E' }}>Usarás esta contraseña para acceder a tu cuenta</div>
+        </div>
+        {errBox}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
+          {/* Nueva contraseña */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#9E9E9E', marginBottom: 6, textTransform: 'uppercase', letterSpacing: .5 }}>🔒 Contraseña</div>
+            <div style={{ position: 'relative' }}>
+              <input type={showPass ? 'text' : 'password'} placeholder="Mínimo 6 caracteres" value={password}
+                onChange={e => { setPassword(e.target.value); clearAuthErr(); }}
+                style={{ ...inputStyle, paddingRight: 50 }} />
+              <button type="button" onClick={() => setShowPass(p => !p)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#9E9E9E' }}>
+                {showPass ? '🙈' : '👁️'}
+              </button>
+            </div>
+          </div>
+
+          {/* Confirmar contraseña */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#9E9E9E', marginBottom: 6, textTransform: 'uppercase', letterSpacing: .5 }}>🔒 Confirmar contraseña</div>
+            <div style={{ position: 'relative' }}>
+              <input type={showPassConfirm ? 'text' : 'password'} placeholder="Repetí tu contraseña" value={passConfirm}
+                onChange={e => { setPassConfirm(e.target.value); clearAuthErr(); }}
+                style={{ ...inputStyle, paddingRight: 50,
+                  borderColor: passConfirm && passConfirm !== password ? '#EF5350' : passConfirm && passConfirm === password ? '#4CAF50' : undefined }} />
+              <button type="button" onClick={() => setShowPassConfirm(p => !p)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#9E9E9E' }}>
+                {showPassConfirm ? '🙈' : '👁️'}
+              </button>
+            </div>
+            {passConfirm && passConfirm === password && (
+              <div style={{ fontSize: 11, color: '#4CAF50', fontWeight: 700, marginTop: 6 }}>✓ Las contraseñas coinciden</div>
+            )}
+            {passConfirm && passConfirm !== password && (
+              <div style={{ fontSize: 11, color: '#EF5350', fontWeight: 700, marginTop: 6 }}>✗ Las contraseñas no coinciden</div>
+            )}
+          </div>
+        </div>
+
+        {/* Indicador de fortaleza */}
+        {password.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
+              {[1,2,3,4].map(i => (
+                <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: password.length >= i * 2 + 2 ? (password.length >= 10 ? '#4CAF50' : '#FBBC04') : '#E0E0E0', transition: 'background .2s' }} />
+              ))}
+            </div>
+            <div style={{ fontSize: 11, color: '#9E9E9E' }}>
+              {password.length < 6 ? 'Muy corta' : password.length < 8 ? 'Aceptable' : password.length < 10 ? 'Buena' : '✓ Excelente'}
+            </div>
+          </div>
+        )}
+
+        <PtsCard total={totalPts} base={cfg.regBase || 15} optional={optFields * regOptional} vehicles={vehiclePts} />
         <button onClick={doFinish} style={{ ...btnStyle, background: '#FBBC04', color: '#0D0D0D' }}>
-          {vehicles.length > 0 ? `Finalizar registro (+${totalPts} pts) ✓` : 'Finalizar registro ✓'}
+          Finalizar registro ({totalPts} pts) ✓
         </button>
       </div>
     );
