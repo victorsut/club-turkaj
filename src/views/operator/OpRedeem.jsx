@@ -79,9 +79,12 @@ export default function OpRedeem(ctx) {
     if (!sb || !sbConnected) { fire('❌ Sin conexión'); return; }
 
     // Escribir confirm_status = pending
-    const { error } = await sb.from('redemptions')
+    console.log('[OpRedeem] Enviando confirm_status=pending para redemption:', item.id, 'member:', item.memberId);
+    const { error, data: updData } = await sb.from('redemptions')
       .update({ confirm_status: 'pending' })
-      .eq('id', item.id);
+      .eq('id', item.id)
+      .select();
+    console.log('[OpRedeem] Update result:', error ? '❌ ' + error.message : '✅', updData);
     if (error) { fire('❌ Error: ' + error.message); return; }
 
     setWaitingConfirm(item);
