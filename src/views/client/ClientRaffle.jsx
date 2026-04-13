@@ -130,7 +130,7 @@ export default function ClientRaffle(ctx) {
           </div>
         ) : (
           <div style={{ background: T.cardBg, borderRadius: 16, border: `1px solid ${T.cardBorder}`, overflow: 'hidden' }}>
-            {rd.participants.slice().sort((a, b) => b.tickets - a.tickets).map((p, i, arr) => {
+            {rd.participants.slice().sort(() => Math.random() - 0.5).map((p, i, arr) => {
               const isMe  = p.cid === me.id;
               return (
                 <div key={p.cid} style={{
