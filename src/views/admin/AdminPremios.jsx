@@ -176,7 +176,7 @@ export default function AdminPremios(ctx) {
       <div style={{ display: 'flex', gap: 8, padding: '0 20px', marginBottom: 20 }}>
         {tabs.map(t => (
           <button key={t.id} onClick={() => setSub(t.id)} style={{
-            flex: 1, padding: '10px 6px', borderRadius: 12, border: 'none',
+            flex: 1, padding: '10px 6px', borderRadius: 12,
             background: sub === t.id ? '#FBBC04' : AT.card,
             color: sub === t.id ? '#0D0D0D' : AT.sub,
             fontFamily: "'DM Sans'", fontWeight: 800, fontSize: 11,
