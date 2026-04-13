@@ -25,7 +25,13 @@ export default function ClientMenu(ctx) {
   const [form, setForm]       = useState(null);
   const [saving, setSaving]   = useState(false);
   // Vehículos
-  const [vehicles, setVehicles]       = useState([]);
+  const parseVehicles = (v) => {
+    if (!v) return [];
+    if (Array.isArray(v)) return v;
+    if (typeof v === 'object') return Object.values(v);
+    try { return JSON.parse(v); } catch { return []; }
+  };
+  const [vehicles, setVehicles] = useState(() => parseVehicles(me?.vehicles));
   const [addingV, setAddingV]         = useState(false);
   const [newVType, setNewVType]       = useState('liviano');
   const [newVPlate, setNewVPlate]     = useState('');
@@ -105,12 +111,7 @@ export default function ClientMenu(ctx) {
   // ── MI CUENTA ────────────────────────────────────────────
   if (section === 'cuenta') {
     const f = form || { name: me?.name || '', phone: me?.phone || '', email: me?.email || '', nit: me?.nit || '' };
-    if (!form) {
-      setForm(f);
-      // Cargar vehículos desde Supabase (me.vehicles es array parseado)
-      const existing = Array.isArray(me?.vehicles) ? me.vehicles : [];
-      if (vehicles.length === 0 && existing.length > 0) setVehicles(existing);
-    }
+    if (!form) setForm(f);
 
     // Cargar vehículos del activity_log si aún no se cargaron
     const LBL = k => ({ label: '', icon: '' , ...typeInfo(k) });
