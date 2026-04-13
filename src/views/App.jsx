@@ -50,6 +50,7 @@ import ClientHome from './client/ClientHome';
 import Catalog from './shared/Catalog';
 import ClientRaffle from './client/ClientRaffle';
 import Rules from './shared/Rules';
+import ClientMenu from './client/ClientMenu';
 
 // Operator Views
 import OpHome from './operator/OpHome';
@@ -1096,7 +1097,7 @@ export default function App() {
     { id: 'cat', label: 'Canjear', icon: <Gift /> },
     { id: 'qr', label: '', icon: null, isQR: true },
     { id: 'raf', label: 'Rifa', icon: <Ticket /> },
-    { id: 'rules', label: 'Reglas', icon: <Clock /> },
+    { id: 'menu', label: 'Menú', icon: <Clock /> },
   ];
 
   const nav = isA ? adminNav : isO ? operatorNav : clientNav;
@@ -1140,6 +1141,7 @@ export default function App() {
     if (cScr === 'cat') return <Catalog {...ctx} client={true} />;
     if (cScr === 'raf') return <ClientRaffle {...ctx} />;
     if (cScr === 'rules') return <Rules {...ctx} />;
+    if (cScr === 'menu') return <ClientMenu {...ctx} />;
     return <ClientHome {...ctx} />;
   }
 
