@@ -7,7 +7,7 @@ import TierCard from '../../components/ui/TierCard';
 import { makeTier } from '../../lib/tierSystem';
 
 export default function ClientMenu(ctx) {
-  const { me, setMe, cfg, cTier, fire, sbConnected } = ctx;
+  const { me, setMe, cfg, cTier, fire, sbConnected, logout } = ctx;
 
   const [section, setSection] = useState(null); // null | 'cuenta' | 'niveles' | 'inactividad' | 'terminos'
   const [form, setForm]       = useState(null);
@@ -301,6 +301,23 @@ export default function ClientMenu(ctx) {
             <div style={{ fontSize: 18, color: TH.sub }}>›</div>
           </button>
         ))}
+
+        {/* Cerrar sesión */}
+        <button onClick={logout} style={{
+          width: '100%', display: 'flex', alignItems: 'center', gap: 16,
+          padding: '16px 18px', borderRadius: 16,
+          border: `1px solid ${isDark ? 'rgba(239,83,80,.2)' : '#FFCDD2'}`,
+          background: isDark ? 'rgba(239,83,80,.08)' : '#FFF5F5',
+          marginTop: 8, cursor: 'pointer', fontFamily: "'DM Sans'", textAlign: 'left',
+        }}>
+          <div style={{ width: 44, height: 44, borderRadius: 14, background: isDark ? 'rgba(239,83,80,.15)' : '#FFEBEE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>
+            🚪
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#E53935' }}>Cerrar sesión</div>
+            <div style={{ fontSize: 12, color: TH.sub, marginTop: 2 }}>Salir de Club Turkaj</div>
+          </div>
+        </button>
       </div>
     </div>
   );

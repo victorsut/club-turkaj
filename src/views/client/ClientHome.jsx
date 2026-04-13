@@ -10,7 +10,7 @@ import QRCode from '../../components/ui/QRCode';
 import TierDeco from '../../components/ui/TierDeco';
 import GalaxyDust from '../../components/ui/GalaxyDust';
 import InactivityWarning from '../../components/ui/InactivityWarning';
-import { Clock, Logout } from '../../components/ui/Icons';
+import { Clock } from '../../components/ui/Icons';
 
 export default function ClientHome(ctx) {
   const { me, gT, cfg, cTier, TH, activePromos, promoIdx, setPromoIdx,
@@ -171,15 +171,6 @@ export default function ClientHome(ctx) {
               puntos
             </div>
           </div>
-          <button onClick={logout} title="Cerrar sesión" style={{
-            width: 36, height: 36, borderRadius: 10,
-            background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.08)' : '#F5F5F5',
-            border: cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.1)' : '1px solid #E0E0E0',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', color: cTier.name === 'BLACK' ? 'rgba(255,255,255,.5)' : '#9E9E9E',
-          }}>
-            <Logout />
-          </button>
         </div>
       </div>
 
