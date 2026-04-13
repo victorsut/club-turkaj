@@ -34,7 +34,7 @@ export default function OpManagement(ctx) {
           id: p.id,
           type: 'compra',
           memberName: p.members?.name || '—',
-          desc: `${p.gallons?.toFixed ? p.gallons.toFixed(1) : p.gallons} gal · Q${p.amount}`,
+          desc: `${p.gallons?.toFixed ? p.gallons.toFixed(1) : p.gallons} gal - Q${p.amount}`,
           pts: p.points_earned,
           date: p.created_at,
           fuel: p.fuel_type,
@@ -165,7 +165,7 @@ export default function OpManagement(ctx) {
                 📍 {op.station || '—'} · # {op.gafete} · {op.turno}
               </div>
               <div style={{ fontSize: 10, color: '#555', marginTop: 2 }}>
-                👤 @{op.user} · 📱 {op.phone || '—'} {avg ? ` · ⭐ ${avg}` : ''}
+                @{op.user} {op.phone ? `· ${op.phone}` : ''} {avg ? `· ${avg} pts` : ''}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
