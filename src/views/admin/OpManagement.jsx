@@ -235,7 +235,6 @@ export default function OpManagement(ctx) {
           </div>
         </div>
       )}
-    </div>
 
       {/* ── Panel historial del operador ── */}
       {selOp && (
@@ -322,6 +321,7 @@ export default function OpManagement(ctx) {
                   </div>
                 );
               })}
+            </div>
             </div>
           </div>
         </div>
