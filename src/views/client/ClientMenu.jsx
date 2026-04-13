@@ -105,7 +105,12 @@ export default function ClientMenu(ctx) {
   // ── MI CUENTA ────────────────────────────────────────────
   if (section === 'cuenta') {
     const f = form || { name: me?.name || '', phone: me?.phone || '', email: me?.email || '', nit: me?.nit || '' };
-    if (!form) { setForm(f); }
+    if (!form) {
+      setForm(f);
+      // Cargar vehículos desde Supabase (me.vehicles es array parseado)
+      const existing = Array.isArray(me?.vehicles) ? me.vehicles : [];
+      if (vehicles.length === 0 && existing.length > 0) setVehicles(existing);
+    }
 
     // Cargar vehículos del activity_log si aún no se cargaron
     const LBL = k => ({ label: '', icon: '' , ...typeInfo(k) });
@@ -183,9 +188,14 @@ export default function ClientMenu(ctx) {
                 setVehicles(updated);
                 setAddingV(false); setNewVPlate('');
                 if (sb && sbConnected) {
-                  await sb.from('members').update({ plate: updated[0]?.plate || '' }).eq('id', me.id);
+                  await sb.from('members').update({
+                    plate: updated[0]?.plate || '',
+                    vehicles: JSON.stringify(updated),
+                  }).eq('id', me.id);
                   await sb.from('activity_log').insert({ member_id: me.id, activity_type: 'vehiculo', description: `Vehículo agregado: ${typeInfo(newVType).label} ${newV.plate}`, points_change: 0 });
                 }
+                // Actualizar estado local del miembro
+                setMe(p => ({ ...p, vehicles: updated, plate: updated[0]?.plate || p.plate }));
                 fire('✅ Vehículo agregado');
               }} style={{ flex: 2, padding: 12, borderRadius: 12, border: 'none', background: TH.accent, color: isDark ? '#0D0D0D' : isPlatino ? '#fff' : '#0D0D0D', fontFamily: "'DM Sans'", fontWeight: 800, cursor: 'pointer' }}>
                 + Agregar
