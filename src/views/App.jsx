@@ -658,12 +658,12 @@ export default function App() {
     return () => { realtimeReadyRef.current = false; };
   }, [me?.id]);
   useEffect(() => {
-    if (me?.id && sb && sbConnected) loadTodaySurveys(me.id);
+    if (me?.id && !me.id.startsWith('temp-') && sb && sbConnected) loadTodaySurveys(me.id);
   }, [me?.id, sbConnected, loadTodaySurveys]);
 
   // ===== DÍAS FESTIVOS: Verificar al loguearse =====
   useEffect(() => {
-    if (!me?.id || viewRef.current !== 'client' || authScreen !== 'logged') return;
+    if (!me?.id || viewRef.current !== 'client' || authScreen !== 'logged' || me.id.startsWith('temp-')) return;
     checkSpecialDayBonus(me.id, me.bday);
   }, [me?.id, authScreen]);
 
