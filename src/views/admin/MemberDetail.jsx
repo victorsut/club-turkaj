@@ -1,6 +1,7 @@
 // src/views/admin/MemberDetail.jsx
 // Admin member detail — profile, stats, activity history, edit, purchase, card swap
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { sb } from '../../lib/supabaseClient';
 import { sMono, adminTheme as AT, btnYellow, btnDark, inputStyle } from '../../constants/styles';
 import Badge from '../../components/ui/Badge';
 import TierCard from '../../components/ui/TierCard';
@@ -14,11 +15,57 @@ export default function MemberDetail(ctx) {
     editMember, setEditMember, syncMember,
   } = ctx;
 
+  const [localActs, setLocalActs]   = useState(null); // null = cargando
+  const [freshMember, setFreshMember] = useState(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
   if (!sel) { setScr('mem'); return null; }
 
-  const c = custs.find(x => x.id === sel.id) || sel;
+  const c = freshMember || custs.find(x => x.id === sel.id) || sel;
   const t = gT(c.gallons);
-  const acts = (activityLog && activityLog[c.id]) || [];
+  const acts = localActs ?? (activityLog && activityLog[c.id]) ?? [];
+
+  // Cargar datos frescos desde Supabase al abrir el detalle
+  useEffect(() => {
+    if (!sel?.id || !sb) return;
+    setLoadingDetail(true);
+    Promise.all([
+      sb.from('activity_log')
+        .select('*')
+        .eq('member_id', sel.id)
+        .order('created_at', { ascending: false })
+        .limit(100),
+      sb.from('members')
+        .select('*, physical_cards!assigned_to(card_code)')
+        .eq('id', sel.id)
+        .single(),
+    ]).then(([actRes, memRes]) => {
+      setLoadingDetail(false);
+      if (actRes.data) {
+        setLocalActs(actRes.data.map(a => ({
+          type: a.activity_type, desc: a.description,
+          pts: a.points_change, amount: a.amount ? parseFloat(a.amount) : null,
+          date: a.created_at ? new Date(a.created_at).toLocaleDateString('es-GT') : '',
+          station: a.station_id || '',
+        })));
+      }
+      if (memRes.data) {
+        const m = memRes.data;
+        setFreshMember({
+          ...sel,
+          name: m.name, phone: m.phone || '—', dpi: m.dpi || '—',
+          plate: m.plate || '—', email: m.email || '—',
+          nit: m.nit || '—', bday: m.birthday || '—',
+          points: m.points || 0, gallons: parseFloat(m.gallons) || 0,
+          spent: parseFloat(m.spent) || 0, visits: m.visits || 0,
+          tickets: m.tickets || 0, redeemed: m.redeemed_count || 0,
+          cardId: m.physical_cards?.card_code || m.card_id || '—',
+          registered: m.created_at ? new Date(m.created_at).toLocaleDateString('es-GT') : '—',
+          lastBuy: m.last_buy ? new Date(m.last_buy).toLocaleDateString('es-GT') : 'Sin compras',
+        });
+      }
+    });
+  }, [sel?.id]);
 
   const actColors = {
     compra: '#2E7D32', canje: '#1565C0', evento: '#FBBC04',
@@ -41,6 +88,14 @@ export default function MemberDetail(ctx) {
   };
 
   const sLbl = { display: 'block', fontSize: 12, fontWeight: 700, color: '#757575', marginBottom: 6, textTransform: 'uppercase', letterSpacing: .8 };
+  if (loadingDetail && !freshMember) return (
+    <div style={{ paddingBottom: 90 }}>
+      <div style={{ padding: '14px 20px', borderBottom: `1px solid ${AT.border}`, background: '#252525', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <button onClick={() => setScr('mem')} style={{ background: 'none', border: 'none', color: '#9E9E9E', cursor: 'pointer', fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 600 }}>← Miembros</button>
+      </div>
+      <div style={{ textAlign: 'center', padding: 60, color: '#9E9E9E' }}>⏳ Cargando datos...</div>
+    </div>
+  );
 
   return (
     <div style={{ paddingBottom: 90 }}>
@@ -82,7 +137,6 @@ export default function MemberDetail(ctx) {
         {[
           { l: '📱 Teléfono', v: c.phone || '—' },
           { l: '🪪 DPI', v: c.dpi || '—' },
-          { l: '🚗 Placa', v: c.plate || '—' },
           { l: '📧 Email', v: c.email || '—' },
           { l: '🧾 NIT', v: c.nit || '—' },
           { l: '🎂 Cumpleaños', v: c.bday || '—' },
@@ -99,6 +153,29 @@ export default function MemberDetail(ctx) {
           </div>
         ))}
       </div>
+
+      {/* Vehículos */}
+      {(() => {
+        const parseV = (v) => { if (!v) return []; if (Array.isArray(v)) return v; try { return JSON.parse(v); } catch { return []; } };
+        const vList = parseV(c.vehicles || freshMember?.vehicles);
+        if (vList.length === 0) return null;
+        const ICONS = { camion:'🚛', camion_ligero:'🚚', picop:'🛻', microbus:'🚌', liviano:'🚗', mototaxi:'🛺', moto:'🏍️', otro:'🔧' };
+        const LABELS = { camion:'Camión', camion_ligero:'Camión ligero', picop:'Picop', microbus:'Micro Bus', liviano:'Vehículo liviano', mototaxi:'Moto Taxi', moto:'Motocicleta', otro:'Otros' };
+        return (
+          <div style={{ margin: '0 20px 12px', padding: 16, background: AT.card, borderRadius: 18, border: `1px solid ${AT.border}` }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#9E9E9E', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>🚗 Vehículos</div>
+            {vList.map((v, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: i < vList.length - 1 ? `1px solid ${AT.border}` : 'none' }}>
+                <span style={{ fontSize: 22 }}>{ICONS[v.type] || '🚗'}</span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#E0E0E0' }}>{v.plate}</div>
+                  <div style={{ fontSize: 11, color: '#777' }}>{LABELS[v.type] || v.type}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 10, padding: '0 20px', marginBottom: 16 }}>
