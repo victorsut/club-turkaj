@@ -1,6 +1,6 @@
 // src/views/admin/OpManagement.jsx
 // Admin operator management — list, register, edit, toggle active
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { sMono, adminTheme as AT, btnYellow, btnDark, inputStyle } from '../../constants/styles';
 import { Back, Plus } from '../../components/ui/Icons';
@@ -12,7 +12,35 @@ export default function OpManagement(ctx) {
     newOp, setNewOp, sbConnected,
   } = ctx;
 
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving]       = useState(false);
+  const [selOp, setSelOp]         = useState(null);  // operador seleccionado para ver historial
+  const [opHistory, setOpHistory] = useState([]);
+  const [loadingHist, setLoadingHist] = useState(false);
+
+  // Cargar historial cuando se selecciona un operador
+  useEffect(() => {
+    if (!selOp?.id || !sb) return;
+    setLoadingHist(true);
+    setOpHistory([]);
+    // Buscar compras registradas por este operador
+    sb.from('purchases')
+      .select('*, members(name)')
+      .eq('operator_id', selOp.id)
+      .order('created_at', { ascending: false })
+      .limit(100)
+      .then(({ data }) => {
+        setLoadingHist(false);
+        if (data?.length) setOpHistory(data.map(p => ({
+          id: p.id,
+          type: 'compra',
+          memberName: p.members?.name || '—',
+          desc: `${p.gallons?.toFixed ? p.gallons.toFixed(1) : p.gallons} gal · Q${p.amount}`,
+          pts: p.points_earned,
+          date: p.created_at,
+          fuel: p.fuel_type,
+        })));
+      });
+  }, [selOp?.id]);
 
   const saveOp = async () => {
     if (!newOp.name || !newOp.user || !newOp.password || !newOp.dpi || !newOp.gafete) {
@@ -132,7 +160,7 @@ export default function OpManagement(ctx) {
           <div key={op.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: `1px solid ${AT.border}`, opacity: op.active ? 1 : .5 }}>
             <div style={{ width: 44, height: 44, borderRadius: 14, background: op.active ? '#2E7D32' : '#616161', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16, flexShrink: 0 }}>{op.name.charAt(0)}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 700, fontSize: 14, color: '#E0E0E0' }}>{op.name}</div>
+              <div onClick={() => setSelOp(op)} style={{ fontWeight: 700, fontSize: 14, color: '#64B5F6', cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>{op.name}</div>
               <div style={{ fontSize: 11, color: '#777', marginTop: 2 }}>
                 🏪 {op.station || '—'} · 🔖 {op.gafete} · {op.turno}
               </div>
@@ -203,6 +231,97 @@ export default function OpManagement(ctx) {
                 style={{ ...btnYellow, flex: 2, opacity: saving ? .7 : 1 }}>
                 {saving ? '⏳ Guardando...' : editOp ? 'Guardar Cambios' : 'Registrar Operador'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+
+      {/* ── Panel historial del operador ── */}
+      {selOp && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 300, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+          onClick={() => setSelOp(null)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#1E1E1E', borderRadius: '24px 24px 0 0',
+            width: '100%', maxWidth: 480, maxHeight: '80vh',
+            display: 'flex', flexDirection: 'column',
+            animation: 'slideUp .3s ease',
+          }}>
+            {/* Handle */}
+            <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,.2)', borderRadius: 4, margin: '12px auto 0' }} />
+
+            {/* Header */}
+            <div style={{ padding: '16px 20px 12px', borderBottom: `1px solid ${AT.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>{selOp.name}</div>
+                <div style={{ fontSize: 11, color: '#777', marginTop: 2 }}>
+                  🏪 {selOp.station || '—'} · 🔖 {selOp.gafete} · {selOp.turno}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {(() => {
+                  const rats = opRatings[selOp.id] || [];
+                  const avg = rats.length > 0 ? (rats.reduce((s,r) => s + (r.stars||0), 0) / rats.length).toFixed(1) : null;
+                  return avg ? <div style={{ fontSize: 13, fontWeight: 800, color: '#FBBC04' }}>⭐ {avg} <span style={{ fontSize: 10, color: '#777' }}>({rats.length})</span></div> : null;
+                })()}
+                <button onClick={() => setSelOp(null)} style={{ background: 'none', border: 'none', color: '#9E9E9E', fontSize: 20, cursor: 'pointer' }}>✕</button>
+              </div>
+            </div>
+
+            {/* Estadísticas rápidas */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, padding: '12px 20px', borderBottom: `1px solid ${AT.border}` }}>
+              {[
+                { l: 'Transacciones', v: opHistory.length, c: '#FBBC04' },
+                { l: 'Galones totales', v: opHistory.reduce((s,t) => s + (parseFloat(t.desc)||0), 0).toFixed(0), c: '#4CAF50' },
+                { l: 'Pts otorgados', v: opHistory.reduce((s,t) => s + (t.pts||0), 0).toLocaleString(), c: '#64B5F6' },
+              ].map(s => (
+                <div key={s.l} style={{ background: 'rgba(255,255,255,.05)', borderRadius: 10, padding: '10px 8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 16, fontWeight: 900, color: s.c }}>{s.v}</div>
+                  <div style={{ fontSize: 9, color: '#777', textTransform: 'uppercase', letterSpacing: .5, fontWeight: 700, marginTop: 3 }}>{s.l}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Historial */}
+            <div style={{ overflowY: 'auto', flex: 1, paddingBottom: 24 }}>
+              <div style={{ padding: '10px 20px 6px', fontSize: 10, fontWeight: 800, color: '#555', textTransform: 'uppercase', letterSpacing: 1.5 }}>
+                Historial de transacciones
+              </div>
+
+              {loadingHist && (
+                <div style={{ textAlign: 'center', padding: 32, color: '#777' }}>⏳ Cargando...</div>
+              )}
+
+              {!loadingHist && opHistory.length === 0 && (
+                <div style={{ textAlign: 'center', padding: 32, color: '#555', fontSize: 13 }}>
+                  <div style={{ fontSize: 32, marginBottom: 8 }}>📋</div>
+                  Sin transacciones registradas
+                </div>
+              )}
+
+              {!loadingHist && opHistory.map((h, i) => {
+                const d = h.date ? new Date(h.date) : null;
+                const dateStr = d ? d.toLocaleDateString('es-GT', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+                const timeStr = d ? d.toLocaleTimeString('es-GT', { hour:'2-digit', minute:'2-digit' }) : '';
+                return (
+                  <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: `1px solid ${AT.border}` }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(251,188,4,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>⛽</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: '#E0E0E0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {h.memberName}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#777', marginTop: 2 }}>
+                        {h.desc} · {h.fuel}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: '#FBBC04' }}>+{h.pts} pts</div>
+                      <div style={{ fontSize: 10, color: '#555', marginTop: 2 }}>{dateStr}</div>
+                      <div style={{ fontSize: 9, color: '#444' }}>{timeStr}</div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
