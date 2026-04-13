@@ -1,6 +1,6 @@
 // src/views/client/ClientMenu.jsx
 // Pestaña MENÚ: Mi Cuenta, Niveles, Reglas de Inactividad, Términos y Condiciones
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { inputStyle } from '../../constants/styles';
 import TierCard from '../../components/ui/TierCard';
@@ -31,13 +31,15 @@ export default function ClientMenu(ctx) {
     if (typeof v === 'object') return Object.values(v);
     try { return JSON.parse(v); } catch { return []; }
   };
-  const [vehicles, setVehicles] = useState(() => {
-    const parsed = parseVehicles(me?.vehicles);
-    console.log('[ClientMenu] me.vehicles raw:', me?.vehicles);
-    console.log('[ClientMenu] me.vehicles type:', typeof me?.vehicles);
-    console.log('[ClientMenu] parsed vehicles:', parsed);
-    return parsed;
-  });
+  const [vehicles, setVehicles] = useState([]);
+
+  // Sincronizar vehicles cuando me.vehicles se cargue desde Supabase
+  useEffect(() => {
+    if (me?.vehicles) {
+      const parsed = parseVehicles(me.vehicles);
+      if (parsed.length > 0) setVehicles(parsed);
+    }
+  }, [me?.vehicles]);
   const [addingV, setAddingV]         = useState(false);
   const [newVType, setNewVType]       = useState('liviano');
   const [newVPlate, setNewVPlate]     = useState('');
