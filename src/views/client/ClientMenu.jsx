@@ -6,12 +6,34 @@ import { inputStyle } from '../../constants/styles';
 import TierCard from '../../components/ui/TierCard';
 import { makeTier } from '../../lib/tierSystem';
 
+const VEHICLE_TYPES = [
+  { k: 'camion',        label: 'Camión',          icon: '🚛' },
+  { k: 'camion_ligero', label: 'Camión ligero',    icon: '🚚' },
+  { k: 'picop',         label: 'Picop',            icon: '🛻' },
+  { k: 'microbus',      label: 'Micro Bus',        icon: '🚌' },
+  { k: 'liviano',       label: 'Vehículo liviano', icon: '🚗' },
+  { k: 'mototaxi',      label: 'Moto Taxi',        icon: '🛺' },
+  { k: 'moto',          label: 'Motocicleta',      icon: '🏍️' },
+  { k: 'otro',          label: 'Otros',            icon: '🔧' },
+];
+const typeInfo = k => VEHICLE_TYPES.find(t => t.k === k) || VEHICLE_TYPES[4];
+
 export default function ClientMenu(ctx) {
   const { me, setMe, cfg, cTier, fire, sbConnected, logout } = ctx;
 
-  const [section, setSection] = useState(null); // null | 'cuenta' | 'niveles' | 'inactividad' | 'terminos'
+  const [section, setSection] = useState(null);
   const [form, setForm]       = useState(null);
   const [saving, setSaving]   = useState(false);
+  // Vehículos
+  const [vehicles, setVehicles]       = useState([]);
+  const [addingV, setAddingV]         = useState(false);
+  const [newVType, setNewVType]       = useState('liviano');
+  const [newVPlate, setNewVPlate]     = useState('');
+  // Contraseña
+  const [showPassSec, setShowPassSec] = useState(false);
+  const [passForm, setPassForm]       = useState({ current: '', newPass: '', confirm: '' });
+  const [showP, setShowP]             = useState({ c: false, n: false, cf: false });
+  const [savingPass, setSavingPass]   = useState(false);
 
   const tier      = cTier?.name || 'ORO';
   const isDark    = tier === 'BLACK';
@@ -63,53 +85,155 @@ export default function ClientMenu(ctx) {
     </button>
   );
 
+  // ── Guardar contraseña ──────────────────────────────────
+  const savePassword = async () => {
+    if (!passForm.newPass || passForm.newPass.length < 6) { fire('❌ La contraseña debe tener al menos 6 caracteres'); return; }
+    if (passForm.newPass !== passForm.confirm) { fire('❌ Las contraseñas no coinciden'); return; }
+    setSavingPass(true);
+    const hashed = 'pw:' + btoa(passForm.newPass);
+    if (sbConnected && sb) {
+      const { error } = await sb.from('members').update({ password_hash: hashed }).eq('id', me.id);
+      if (error) { fire('❌ Error: ' + error.message); setSavingPass(false); return; }
+    }
+    setMe(p => ({ ...p, password_hash: hashed }));
+    setSavingPass(false);
+    setPassForm({ current: '', newPass: '', confirm: '' });
+    setShowPassSec(false);
+    fire('✅ Contraseña actualizada');
+  };
+
   // ── MI CUENTA ────────────────────────────────────────────
   if (section === 'cuenta') {
-    const f = form || { name: me?.name || '', phone: me?.phone || '', email: me?.email || '', nit: me?.nit || '', plate: me?.plate || '' };
-    if (!form) setForm(f);
-    const fields = [
-      { k: 'name',  l: 'Nombre completo',        icon: '👤', type: 'text',  editable: true  },
-      { k: 'phone', l: 'Teléfono',               icon: '📱', type: 'tel',   editable: true  },
-      { k: 'email', l: 'Correo electrónico',      icon: '📧', type: 'email', editable: true  },
-      { k: 'nit',   l: 'NIT',                    icon: '🧾', type: 'text',  editable: true  },
-      { k: 'plate', l: 'Placa de vehículo',      icon: '🚗', type: 'text',  editable: true  },
-      { k: 'dpi',   l: 'DPI',                    icon: '🪪', type: 'text',  editable: false, val: me?.dpi },
-      { k: 'bday',  l: 'Fecha de nacimiento',    icon: '🎂', type: 'text',  editable: false, val: me?.bday ? me.bday.replace('-', '/') : '—' },
-    ];
-    return (
-      <div style={{ paddingBottom: 100, minHeight: '100vh', background: TH.bg, padding: '20px 20px 100px' }}>
-        <Back />
-        <div style={{ fontSize: 20, fontWeight: 900, color: TH.header, marginBottom: 6 }}>👤 Mi Cuenta</div>
-        <div style={{ fontSize: 13, color: TH.sub, marginBottom: 24 }}>DPI y fecha de nacimiento no son modificables.</div>
+    const f = form || { name: me?.name || '', phone: me?.phone || '', email: me?.email || '', nit: me?.nit || '' };
+    if (!form) { setForm(f); }
 
-        {fields.map(field => (
-          <div key={field.k} style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: TH.sub, marginBottom: 6, textTransform: 'uppercase', letterSpacing: .5 }}>
-              {field.icon} {field.l}
-            </div>
-            {field.editable ? (
-              <input
-                type={field.type}
-                value={form?.[field.k] || ''}
-                onChange={e => setForm(p => ({ ...p, [field.k]: e.target.value }))}
-                style={{ ...inputStyle, background: TH.inputBg, border: TH.cardBorder, color: TH.header, width: '100%', boxSizing: 'border-box' }}
-              />
-            ) : (
-              <div style={{ padding: '14px 16px', borderRadius: 14, background: isDark ? 'rgba(255,255,255,.03)' : '#F5F5F5', border: TH.cardBorder, fontSize: 14, color: TH.sub, fontWeight: 600 }}>
-                {field.val || '—'} <span style={{ fontSize: 10, color: TH.sub, marginLeft: 6 }}>🔒 No modificable</span>
-              </div>
-            )}
+    // Cargar vehículos del activity_log si aún no se cargaron
+    const LBL = k => ({ label: '', icon: '' , ...typeInfo(k) });
+
+    const editFields = [
+      { k: 'name',  l: 'Nombre completo',   icon: '👤', type: 'text'  },
+      { k: 'phone', l: 'Teléfono',          icon: '📱', type: 'tel'   },
+      { k: 'email', l: 'Correo electrónico',icon: '📧', type: 'email' },
+      { k: 'nit',   l: 'NIT',              icon: '🧾', type: 'text'  },
+    ];
+    const readonlyFields = [
+      { l: 'DPI',               icon: '🪪', val: me?.dpi || '—' },
+      { l: 'Fecha de nacimiento',icon: '🎂', val: me?.bday ? me.bday.replace('-', '/') : '—' },
+    ];
+
+    return (
+      <div style={{ minHeight: '100vh', background: TH.bg, padding: '20px 20px 100px' }}>
+        <Back />
+        <div style={{ fontSize: 20, fontWeight: 900, color: TH.header, marginBottom: 20 }}>👤 Mi Cuenta</div>
+
+        {/* Campos editables */}
+        {editFields.map(field => (
+          <div key={field.k} style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: TH.sub, marginBottom: 6, textTransform: 'uppercase', letterSpacing: .5 }}>{field.icon} {field.l}</div>
+            <input type={field.type} value={form?.[field.k] || ''} onChange={e => setForm(p => ({ ...p, [field.k]: e.target.value }))}
+              style={{ ...inputStyle, background: TH.inputBg, border: TH.cardBorder, color: TH.header, width: '100%', boxSizing: 'border-box' }} />
           </div>
         ))}
 
-        <button onClick={saveAccount} disabled={saving} style={{
-          width: '100%', padding: 16, borderRadius: 16, border: 'none',
-          background: TH.accent, color: isDark ? '#0D0D0D' : isPlatino ? '#fff' : '#0D0D0D',
-          fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 900, cursor: 'pointer',
-          marginTop: 8, opacity: saving ? .7 : 1,
-        }}>
+        {/* Campos bloqueados */}
+        {readonlyFields.map(f => (
+          <div key={f.l} style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: TH.sub, marginBottom: 6, textTransform: 'uppercase', letterSpacing: .5 }}>{f.icon} {f.l}</div>
+            <div style={{ padding: '14px 16px', borderRadius: 14, background: isDark ? 'rgba(255,255,255,.03)' : '#F5F5F5', border: TH.cardBorder, fontSize: 14, color: TH.sub, fontWeight: 600, display: 'flex', justifyContent: 'space-between' }}>
+              {f.val} <span style={{ fontSize: 11 }}>🔒</span>
+            </div>
+          </div>
+        ))}
+
+        <button onClick={saveAccount} disabled={saving} style={{ width: '100%', padding: 16, borderRadius: 16, border: 'none', background: TH.accent, color: isDark ? '#0D0D0D' : isPlatino ? '#fff' : '#0D0D0D', fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 900, cursor: 'pointer', marginBottom: 24, opacity: saving ? .7 : 1 }}>
           {saving ? 'Guardando...' : '✓ Guardar cambios'}
         </button>
+
+        {/* ── Vehículos ── */}
+        <div style={{ fontSize: 14, fontWeight: 900, color: TH.header, marginBottom: 12 }}>🚗 Mis Vehículos</div>
+        {vehicles.map((v, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 14, background: TH.cardBg, border: TH.cardBorder, marginBottom: 10 }}>
+            <div style={{ fontSize: 28, flexShrink: 0 }}>{typeInfo(v.type).icon}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: TH.header }}>{v.plate}</div>
+              <div style={{ fontSize: 12, color: TH.sub }}>{typeInfo(v.type).label}</div>
+            </div>
+            <button onClick={() => setVehicles(p => p.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#EF5350' }}>✕</button>
+          </div>
+        ))}
+        {addingV ? (
+          <div style={{ background: TH.cardBg, border: TH.cardBorder, borderRadius: 16, padding: 16, marginBottom: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: TH.sub, marginBottom: 8, textTransform: 'uppercase' }}>Tipo de vehículo</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
+              {VEHICLE_TYPES.map(t => (
+                <button key={t.k} onClick={() => setNewVType(t.k)} style={{ padding: '10px 8px', borderRadius: 10, border: `2px solid ${newVType === t.k ? TH.accent : 'transparent'}`, background: newVType === t.k ? (isDark ? 'rgba(255,213,79,.1)' : '#FFF8E1') : (isDark ? 'rgba(255,255,255,.04)' : '#F5F5F5'), fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 700, cursor: 'pointer', color: TH.header, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 18 }}>{t.icon}</span> {t.label}
+                </button>
+              ))}
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: TH.sub, marginBottom: 8, textTransform: 'uppercase' }}>Placa</div>
+            <input placeholder="Ej: ABC-123" value={newVPlate} onChange={e => setNewVPlate(e.target.value.toUpperCase())}
+              style={{ ...inputStyle, background: TH.inputBg, border: TH.cardBorder, color: TH.header, marginBottom: 12 }} />
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => { setAddingV(false); setNewVPlate(''); }} style={{ flex: 1, padding: 12, borderRadius: 12, border: TH.cardBorder, background: 'none', color: TH.sub, fontFamily: "'DM Sans'", fontWeight: 700, cursor: 'pointer' }}>Cancelar</button>
+              <button onClick={async () => {
+                if (!newVPlate.trim()) { fire('❌ Ingresa la placa'); return; }
+                const newV = { type: newVType, plate: newVPlate.trim() };
+                const updated = [...vehicles, newV];
+                setVehicles(updated);
+                setAddingV(false); setNewVPlate('');
+                if (sb && sbConnected) {
+                  await sb.from('members').update({ plate: updated[0]?.plate || '' }).eq('id', me.id);
+                  await sb.from('activity_log').insert({ member_id: me.id, activity_type: 'vehiculo', description: `Vehículo agregado: ${typeInfo(newVType).label} ${newV.plate}`, points_change: 0 });
+                }
+                fire('✅ Vehículo agregado');
+              }} style={{ flex: 2, padding: 12, borderRadius: 12, border: 'none', background: TH.accent, color: isDark ? '#0D0D0D' : isPlatino ? '#fff' : '#0D0D0D', fontFamily: "'DM Sans'", fontWeight: 800, cursor: 'pointer' }}>
+                + Agregar
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button onClick={() => setAddingV(true)} style={{ width: '100%', padding: 14, borderRadius: 14, border: `2px dashed ${TH.accent}`, background: 'none', color: TH.accent, fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 24 }}>
+            + Agregar vehículo
+          </button>
+        )}
+
+        {/* ── Contraseña ── */}
+        <button onClick={() => setShowPassSec(p => !p)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderRadius: 14, border: TH.cardBorder, background: TH.cardBg, fontFamily: "'DM Sans'", cursor: 'pointer', marginBottom: showPassSec ? 12 : 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 20 }}>🔑</span>
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: TH.header }}>Cambiar contraseña</div>
+              <div style={{ fontSize: 11, color: TH.sub }}>Actualizar tu contraseña de acceso</div>
+            </div>
+          </div>
+          <span style={{ color: TH.sub, fontSize: 18 }}>{showPassSec ? '▲' : '▼'}</span>
+        </button>
+
+        {showPassSec && (
+          <div style={{ background: TH.cardBg, border: TH.cardBorder, borderRadius: 16, padding: 16, marginBottom: 24 }}>
+            {[
+              { k: 'newPass', l: 'Nueva contraseña',    pk: 'n' },
+              { k: 'confirm', l: 'Confirmar contraseña', pk: 'cf' },
+            ].map(f => (
+              <div key={f.k} style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: TH.sub, marginBottom: 6, textTransform: 'uppercase' }}>{f.l}</div>
+                <div style={{ position: 'relative' }}>
+                  <input type={showP[f.pk] ? 'text' : 'password'} placeholder="••••••••" value={passForm[f.k]}
+                    onChange={e => setPassForm(p => ({ ...p, [f.k]: e.target.value }))}
+                    style={{ ...inputStyle, background: TH.inputBg, border: TH.cardBorder, color: TH.header, paddingRight: 48, borderColor: f.k === 'confirm' && passForm.confirm && passForm.confirm !== passForm.newPass ? '#EF5350' : f.k === 'confirm' && passForm.confirm && passForm.confirm === passForm.newPass ? '#4CAF50' : undefined }} />
+                  <button type="button" onClick={() => setShowP(p => ({ ...p, [f.pk]: !p[f.pk] }))} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: TH.sub }}>
+                    {showP[f.pk] ? '🙈' : '👁️'}
+                  </button>
+                </div>
+              </div>
+            ))}
+            {passForm.confirm && passForm.confirm === passForm.newPass && <div style={{ fontSize: 11, color: '#4CAF50', fontWeight: 700, marginBottom: 10 }}>✓ Las contraseñas coinciden</div>}
+            <button onClick={savePassword} disabled={savingPass} style={{ width: '100%', padding: 14, borderRadius: 12, border: 'none', background: TH.accent, color: isDark ? '#0D0D0D' : isPlatino ? '#fff' : '#0D0D0D', fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 900, cursor: 'pointer', opacity: savingPass ? .7 : 1 }}>
+              {savingPass ? 'Guardando...' : '🔒 Actualizar contraseña'}
+            </button>
+          </div>
+        )}
       </div>
     );
   }

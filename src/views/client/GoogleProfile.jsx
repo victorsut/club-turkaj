@@ -4,6 +4,7 @@ import { sb } from '../../lib/supabaseClient';
 import { inputStyle, btnStyle } from '../../constants/styles';
 import { CARD_PREFIX } from '../../constants/config';
 import { Back } from '../../components/ui/Icons';
+import { getNextCardCode } from '../../services/dataService';
 
 // ── Tipos de vehículo ─────────────────────────────────────
 const VEHICLE_TYPES = [
@@ -221,6 +222,10 @@ export default function GoogleProfile(ctx) {
   const [newPlate, setNewPlate]           = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [tempDate, setTempDate]             = useState('2000-01-01');
+  const [password, setPassword]             = useState('');
+  const [passConfirm, setPassConfirm]       = useState('');
+  const [showPass, setShowPass]             = useState(false);
+  const [showPassConfirm, setShowPassConfirm] = useState(false);
 
   const regOptional = cfg.regOptional || 2;
 
@@ -233,8 +238,11 @@ export default function GoogleProfile(ctx) {
 
   // ── Guardar ───────────────────────────────────────────────
   const doFinish = async () => {
-    const firstPlate   = vehicles[0]?.plate || '';
-    const fallbackCard = CARD_PREFIX.ORO + '-' + String(Date.now()).slice(-5);
+    if (!password.trim() || password.length < 6) { setAuthError('La contraseña debe tener al menos 6 caracteres'); return; }
+    if (password !== passConfirm) { setAuthError('Las contraseñas no coinciden'); return; }
+    const firstPlate = vehicles[0]?.plate || '';
+    // Obtener el siguiente correlativo real desde Supabase
+    const fallbackCard = await getNextCardCode('ORO');
     const bdayRaw      = regProfile.bday || '';
     let bdayStored = '';
     if (bdayRaw) { const p = bdayRaw.split('-'); if (p.length === 3) bdayStored = p[1] + '-' + p[2]; }
@@ -251,7 +259,7 @@ export default function GoogleProfile(ctx) {
       const providerId = me?.id?.startsWith('temp-') ? null : me?.id;
       const memberData = {
         phone:            regProfile.phone?.trim() || (provider === 'google' ? 'goog_' + (me?.id || '').substring(0, 12) : null),
-        password_hash:    provider, auth_provider: provider, auth_provider_id: providerId,
+        password_hash:    'pw:' + btoa(password), auth_provider: provider, auth_provider_id: providerId,
         name: regProfile.name, dpi: regProfile.dpi || null, plate: firstPlate || null,
         nit: regProfile.nit || null, email: regProfile.email || me?.email || null,
         birthday: bdayStored || null, points: totalPts,
@@ -355,7 +363,50 @@ export default function GoogleProfile(ctx) {
           <Field {...fieldProps} icon="🧾" placeholder="NIT (opcional)" fieldKey="nit" bonus />
         </div>
         <PtsCard total={totalPts} base={cfg.regBase || 15} optional={optFields * regOptional} vehicles={vehiclePts} />
-        <button onClick={() => { clearAuthErr(); setGoogleStep('step3'); }} style={{ ...btnStyle, background: '#FBBC04', color: '#0D0D0D' }}>
+
+        {/* Contraseña */}
+        <div style={{ marginTop: 8, marginBottom: 20 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#0D0D0D', marginBottom: 12 }}>
+            🔒 Crear contraseña <span style={{ fontWeight: 600, color: '#9E9E9E', fontSize: 12 }}>(obligatorio)</span>
+          </div>
+          <div style={{ position: 'relative', marginBottom: 10 }}>
+            <input
+              type={showPass ? 'text' : 'password'}
+              placeholder="Contraseña (mínimo 6 caracteres)"
+              value={password}
+              onChange={e => { setPassword(e.target.value); clearAuthErr(); }}
+              style={{ ...inputStyle, paddingRight: 48 }}
+            />
+            <button type="button" onClick={() => setShowPass(p => !p)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#9E9E9E' }}>
+              {showPass ? '🙈' : '👁️'}
+            </button>
+          </div>
+          <div style={{ position: 'relative' }}>
+            <input
+              type={showPassConfirm ? 'text' : 'password'}
+              placeholder="Confirmar contraseña"
+              value={passConfirm}
+              onChange={e => { setPassConfirm(e.target.value); clearAuthErr(); }}
+              style={{ ...inputStyle, paddingRight: 48, borderColor: passConfirm && passConfirm !== password ? '#EF5350' : passConfirm && passConfirm === password ? '#4CAF50' : undefined }}
+            />
+            <button type="button" onClick={() => setShowPassConfirm(p => !p)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#9E9E9E' }}>
+              {showPassConfirm ? '🙈' : '👁️'}
+            </button>
+          </div>
+          {passConfirm && passConfirm === password && (
+            <div style={{ fontSize: 11, color: '#4CAF50', fontWeight: 700, marginTop: 6 }}>✓ Las contraseñas coinciden</div>
+          )}
+          {passConfirm && passConfirm !== password && (
+            <div style={{ fontSize: 11, color: '#EF5350', fontWeight: 700, marginTop: 6 }}>✗ Las contraseñas no coinciden</div>
+          )}
+        </div>
+
+        <button onClick={() => {
+          clearAuthErr();
+          if (!password.trim() || password.length < 6) { setAuthError('La contraseña debe tener al menos 6 caracteres'); return; }
+          if (password !== passConfirm) { setAuthError('Las contraseñas no coinciden'); return; }
+          setGoogleStep('step3');
+        }} style={{ ...btnStyle, background: '#FBBC04', color: '#0D0D0D' }}>
           Siguiente →
         </button>
       </div>
