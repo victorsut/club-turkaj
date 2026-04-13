@@ -1,7 +1,7 @@
 // src/views/operator/OpRedeem.jsx
 import { useState, useCallback } from 'react';
 import { sb } from '../../lib/supabaseClient';
-import { sMono, inputStyle, btnYellow } from '../../constants/styles';
+import { sMono, btnYellow } from '../../constants/styles';
 import Badge from '../../components/ui/Badge';
 import QRScanner from '../../components/ui/QRScanner';
 import { Back } from '../../components/ui/Icons';
@@ -21,7 +21,7 @@ export default function OpRedeem(ctx) {
     redeemedList, setRedeemedList, setCusts, syncMember, logActivity } = ctx;
 
   const [client, setClient]         = useState(null);
-  const [scanning, setScanning]     = useState(false);
+  const [scanning, setScanning]     = useState(true); // abre cámara directamente
   const [q, setQ]                   = useState('');
   const [pendingList, setPending]   = useState([]);
   const [loadingPending, setLoadingPending] = useState(false);
@@ -152,59 +152,10 @@ export default function OpRedeem(ctx) {
             ...btnYellow, marginBottom: 16,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontSize: 15,
           }}>
-            📷 Escanear código QR del cliente
+            📷 Escanear código QR
           </button>
 
-          {/* Buscar por nombre/teléfono/código */}
-          <div style={{ position: 'relative', marginBottom: 8 }}>
-            <input
-              placeholder="Buscar por nombre, teléfono o código..."
-              value={q}
-              onChange={e => setQ(e.target.value)}
-              style={{ ...inputStyle, paddingLeft: 40 }}
-              autoComplete="off"
-            />
-            <span style={{ position: 'absolute', left: 14, top: 14, opacity: .4, fontSize: 16 }}>🔍</span>
-          </div>
 
-          {/* Resultados de búsqueda */}
-          {filteredCusts.length > 0 && (
-            <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #eee', overflow: 'hidden', marginTop: 4 }}>
-              {filteredCusts.map((c, i) => {
-                const ct = gT(c.gallons);
-                const pendingCount = (redeemedList || []).filter(r => r.memberId === c.id && !r.collected).length;
-                return (
-                  <div key={c.id} onClick={() => loadPending(c)} style={{
-                    display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
-                    borderBottom: i < filteredCusts.length - 1 ? '1px solid #F5F5F5' : 'none',
-                    cursor: 'pointer',
-                  }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 12, background: '#FFF8E1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, flexShrink: 0 }}>
-                      {(c.name || '?')[0]}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#0D0D0D', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
-                      <div style={{ fontSize: 11, color: '#9E9E9E', marginTop: 2 }}>{c.cardId || '—'} · {c.points} pts</div>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
-                      <Badge t={ct} />
-                      {pendingCount > 0 && (
-                        <div style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: '#C62828', padding: '2px 7px', borderRadius: 8 }}>
-                          {pendingCount} pendiente{pendingCount > 1 ? 's' : ''}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {q.length >= 2 && filteredCusts.length === 0 && (
-            <div style={{ textAlign: 'center', padding: 24, color: '#9E9E9E', fontSize: 13 }}>
-              No se encontraron clientes
-            </div>
-          )}
         </div>
       </div>
     );
