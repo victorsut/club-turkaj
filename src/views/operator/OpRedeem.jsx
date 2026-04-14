@@ -110,6 +110,7 @@ export default function OpRedeem(ctx) {
         setConfirmResult('confirmed');
         fire(`✅ Confirmado por el cliente · ${item.reward.name} entregado`);
         logActivity(item.memberId, 'entrega', `Premio entregado: ${item.reward.name} ${item.reward.icon}`, 0);
+        printReceipt(item, client?.name, loggedOp?.name);
         setTimeout(() => setConfirmResult(null), 3000);
       } else if (data?.confirm_status === 'cancelled') {
         clearInterval(interval);
@@ -126,6 +127,68 @@ export default function OpRedeem(ctx) {
       }
     }, 2000);
   }, [sbConnected, fire, logActivity, setRedeemedList]);
+
+  // Imprimir comprobante en POS
+  const printReceipt = (item, clientName, opName) => {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('es-GT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' });
+    const win = window.open('', '_blank', 'width=300,height=500');
+    if (!win) return;
+    win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Courier New', monospace; font-size: 12px; width: 280px; padding: 8px; }
+  .center { text-align: center; }
+  .bold { font-weight: bold; }
+  .big { font-size: 16px; }
+  .sep { border-top: 1px dashed #000; margin: 6px 0; }
+  .row { display: flex; justify-content: space-between; margin: 2px 0; }
+  .logo { font-size: 18px; font-weight: bold; letter-spacing: 2px; margin-bottom: 2px; }
+  .sub { font-size: 10px; color: #555; margin-bottom: 8px; }
+  .code { font-size: 14px; font-weight: bold; letter-spacing: 1px; background: #f0f0f0; padding: 4px 8px; border-radius: 4px; display: inline-block; margin: 4px 0; }
+  .footer { font-size: 10px; color: #777; margin-top: 8px; }
+  @media print { body { width: 100%; } }
+</style>
+</head>
+<body>
+<div class="center">
+  <div class="logo">TURKAJ</div>
+  <div class="sub">Club Turkaj - Programa de Lealtad</div>
+</div>
+<div class="sep"></div>
+<div class="center bold big">COMPROBANTE DE CANJE</div>
+<div class="sep"></div>
+<div class="row"><span>Fecha:</span><span>${dateStr}</span></div>
+<div class="row"><span>Hora:</span><span>${timeStr}</span></div>
+<div class="row"><span>Cliente:</span><span>${clientName || '-'}</span></div>
+<div class="row"><span>Atendido por:</span><span>${opName || '-'}</span></div>
+<div class="sep"></div>
+<div class="center">
+  <div style="font-size:10px;margin-bottom:4px;">PREMIO CANJEADO</div>
+  <div class="bold big">${item.reward.name}</div>
+  <div style="margin-top:4px;font-size:10px;">Puntos utilizados: <strong>${item.cost} pts</strong></div>
+</div>
+<div class="sep"></div>
+<div class="center">
+  <div style="font-size:10px;margin-bottom:2px;">CODIGO DE VERIFICACION</div>
+  <div class="code">${item.code}</div>
+</div>
+<div class="sep"></div>
+<div class="center footer">
+  Gracias por su preferencia<br>
+  Gasolineras Turkaj - Chichicastenango<br>
+  club-turkaj.vercel.app
+</div>
+</body>
+</html>`);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); win.close(); }, 300);
+  };
 
   const filteredCusts = q.length >= 2
     ? custs.filter(c =>
@@ -259,6 +322,15 @@ export default function OpRedeem(ctx) {
                 📲 Enviar al cliente
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Resultado: confirmado — mostrar botón reimprimir */}
+      {confirmResult === 'confirmed' && (
+        <div style={{ position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', zIndex: 450, display: 'flex', gap: 10 }}>
+          <div style={{ background: '#2E7D32', color: '#fff', borderRadius: 14, padding: '12px 20px', fontSize: 13, fontWeight: 800, boxShadow: '0 4px 20px rgba(0,0,0,.3)' }}>
+            ✅ Entregado y confirmado
           </div>
         </div>
       )}
