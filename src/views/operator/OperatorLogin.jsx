@@ -17,7 +17,8 @@ export default function OperatorLogin(ctx) {
     );
     if (!found) { setAuthError('Credenciales incorrectas'); return; }
     if (!found.active) { setAuthError('Operador inactivo, contacta a gerencia'); return; }
-    setLoggedOp(found); setAuthOp('logged'); fire('👋 Bienvenido ' + found.name);
+    localStorage.setItem('ct_op', JSON.stringify(found));
+    setLoggedOp(found); setAuthOp('logged'); fire('Bienvenido ' + found.name);
   };
 
   return (

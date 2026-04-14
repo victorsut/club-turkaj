@@ -3,7 +3,7 @@
 import { sMono, adminTheme as AT } from '../../constants/styles';
 
 export default function OpHome(ctx) {
-  const { loggedOp, custs, setOScr, setOpScanMode, opRatings } = ctx;
+  const { loggedOp, custs, setOScr, setOpScanMode, opRatings, logout } = ctx;
 
   // Get ratings for this operator
   const myRatings = loggedOp?.id ? (opRatings[loggedOp.id] || []) : [];
@@ -17,8 +17,13 @@ export default function OpHome(ctx) {
       {/* Header */}
       <div style={{ padding: '24px 20px 16px', background: '#1A1A2E', color: '#fff' }}>
         <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, color: '#8C8CFF', fontWeight: 700, marginBottom: 6 }}>Panel Operador</div>
-        <div style={{ fontSize: 22, fontWeight: 800 }}>Hola, {loggedOp?.name || 'Operador'} 👋</div>
-        <div style={{ fontSize: 12, color: '#9E9E9E', marginTop: 4 }}>Estación: {loggedOp?.station || 'Turkaj I'} · {loggedOp?.turno || ''}</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: 22, fontWeight: 800 }}>Hola, {loggedOp?.name || 'Operador'}</div>
+          <button onClick={logout} style={{ background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.2)', color: '#fff', borderRadius: 10, padding: '6px 14px', fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+            Cerrar sesion
+          </button>
+        </div>
+        <div style={{ fontSize: 12, color: '#9E9E9E', marginTop: 4 }}>Estacion: {loggedOp?.station || 'Turkaj I'} · {loggedOp?.turno || ''}</div>
       </div>
 
       {/* Stats — solo Total Clientes y Rating */}
