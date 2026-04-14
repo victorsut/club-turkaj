@@ -26,7 +26,7 @@ export default function OpRedeem(ctx) {
   const [pendingList, setPending]   = useState([]);
   const [loadingPending, setLoadingPending] = useState(false);
   const [confirmItem, setConfirmItem]       = useState(null);
-  const [pendingPrint, setPendingPrint]     = useState(null);
+  const [readyToPrint, setReadyToPrint]     = useState(null); // datos del comprobante listo para imprimir
   const [waitingConfirm, setWaitingConfirm] = useState(null); // id del canje esperando confirmación del miembro
   const [confirmResult, setConfirmResult]   = useState(null); // 'confirmed' | 'cancelled'
 
@@ -111,7 +111,7 @@ export default function OpRedeem(ctx) {
         setConfirmResult('confirmed');
         fire(`✅ Confirmado por el cliente · ${item.reward.name} entregado`);
         logActivity(item.memberId, 'entrega', `Premio entregado: ${item.reward.name} ${item.reward.icon}`, 0);
-        setPendingPrint({ item, clientName: client?.name, opName: loggedOp?.name });
+        setReadyToPrint({ item, clientName: client?.name, opName: loggedOp?.name });
         setTimeout(() => setConfirmResult(null), 3000);
       } else if (data?.confirm_status === 'cancelled') {
         clearInterval(interval);
@@ -130,10 +130,12 @@ export default function OpRedeem(ctx) {
   }, [sbConnected, fire, logActivity, setRedeemedList]);
 
 
-  // Ejecutar print cuando hay un comprobante pendiente (fuera de contexto async)
-  useEffect(() => {
-    if (!pendingPrint) return;
-    const { item, clientName, opName } = pendingPrint;
+
+
+  // Imprimir comprobante — llamado desde click directo del usuario
+  const doPrint = () => {
+    if (!readyToPrint) return;
+    const { item, clientName, opName } = readyToPrint;
     const now     = new Date();
     const dateStr = now.toLocaleDateString('es-GT', { day: '2-digit', month: '2-digit', year: 'numeric' });
     const timeStr = now.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' });
@@ -142,17 +144,7 @@ export default function OpRedeem(ctx) {
     if (!document.getElementById(styleId)) {
       const s = document.createElement('style');
       s.id = styleId;
-      s.textContent = [
-        '@media print{',
-        '  body>*:not(#ct-receipt){display:none!important;}',
-        '  #ct-receipt{display:block!important;}',
-        '}',
-        '#ct-receipt{display:none;font-family:"Courier New",monospace;font-size:12px;width:280px;padding:8px;color:#000;}',
-        '#ct-receipt .rc{text-align:center;}',
-        '#ct-receipt .rs{border-top:1px dashed #000;margin:6px 0;}',
-        '#ct-receipt .rr{display:flex;justify-content:space-between;margin:3px 0;font-size:11px;}',
-        '#ct-receipt .rk{font-size:14px;font-weight:bold;letter-spacing:2px;border:1px solid #000;padding:3px 8px;display:inline-block;margin:4px 0;}',
-      ].join('');
+      s.textContent = '@media print{body>*:not(#ct-receipt){display:none!important;}#ct-receipt{display:block!important;}}#ct-receipt{display:none;font-family:"Courier New",monospace;font-size:12px;width:280px;padding:8px;color:#000;}#ct-receipt .rc{text-align:center;}#ct-receipt .rs{border-top:1px dashed #000;margin:6px 0;}#ct-receipt .rr{display:flex;justify-content:space-between;margin:3px 0;font-size:11px;}#ct-receipt .rk{font-size:14px;font-weight:bold;letter-spacing:2px;border:1px solid #000;padding:3px 8px;display:inline-block;margin:4px 0;}';
       document.head.appendChild(s);
     }
 
@@ -180,8 +172,7 @@ export default function OpRedeem(ctx) {
       + 'Gasolineras Turkaj - Chichicastenango<br>club-turkaj.vercel.app</div>';
 
     window.print();
-    setPendingPrint(null);
-  }, [pendingPrint]);
+  };
 
   const filteredCusts = q.length >= 2
     ? custs.filter(c =>
@@ -319,11 +310,24 @@ export default function OpRedeem(ctx) {
         </div>
       )}
 
-      {/* Resultado: confirmado — mostrar botón reimprimir */}
-      {confirmResult === 'confirmed' && (
-        <div style={{ position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)', zIndex: 450, display: 'flex', gap: 10 }}>
-          <div style={{ background: '#2E7D32', color: '#fff', borderRadius: 14, padding: '12px 20px', fontSize: 13, fontWeight: 800, boxShadow: '0 4px 20px rgba(0,0,0,.3)' }}>
-            ✅ Entregado y confirmado
+      {/* Modal: canje confirmado — botón imprimir */}
+      {readyToPrint && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 24, padding: 28, maxWidth: 340, width: '100%', textAlign: 'center', boxShadow: '0 8px 40px rgba(0,0,0,.3)' }}>
+            <div style={{ fontSize: 52, marginBottom: 12 }}>✅</div>
+            <div style={{ fontSize: 18, fontWeight: 900, color: '#1B5E20', marginBottom: 6 }}>Canje confirmado</div>
+            <div style={{ fontSize: 14, color: '#555', marginBottom: 4 }}>{readyToPrint.item.reward.name}</div>
+            <div style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>Cliente confirmó desde su dispositivo</div>
+            <button
+              onClick={doPrint}
+              style={{ width: '100%', padding: 16, borderRadius: 14, border: 'none', background: '#1976D2', color: '#fff', fontFamily: "'DM Sans'", fontSize: 16, fontWeight: 900, cursor: 'pointer', marginBottom: 10 }}>
+              🖨️ Imprimir comprobante
+            </button>
+            <button
+              onClick={() => setReadyToPrint(null)}
+              style={{ width: '100%', padding: 12, borderRadius: 14, border: '1px solid #ddd', background: '#f5f5f5', fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700, cursor: 'pointer', color: '#555' }}>
+              Omitir impresión
+            </button>
           </div>
         </div>
       )}
