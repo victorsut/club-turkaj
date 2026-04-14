@@ -16,7 +16,8 @@ export default function AdminLogin(ctx) {
     }
     if (adLoginDpi === ADMIN_CRED.dpi && adLoginGafete === ADMIN_CRED.gafete &&
         adLoginEmail === ADMIN_CRED.email && adLoginPass === ADMIN_CRED.password) {
-      setAuthAdmin('logged'); fire('🔧 Sesión de administrador');
+      localStorage.setItem('ct_admin', 'logged');
+      setAuthAdmin('logged'); fire('Sesion de administrador');
     } else {
       setAuthError('Credenciales incorrectas');
     }
