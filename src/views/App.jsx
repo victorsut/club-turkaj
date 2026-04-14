@@ -903,6 +903,7 @@ export default function App() {
       if (sb && sbConnected) {
         const purchaseData = { member_id: cid, amount: a, fuel_type: f, gallons: gal, points_earned: pts };
         if (loggedOp?.stationId) purchaseData.station_id = loggedOp.stationId;
+        if (loggedOp?.id) purchaseData.operator_id = loggedOp.id;
         sb.from('purchases').insert(purchaseData);
 
         // Send push notification to member's phone
