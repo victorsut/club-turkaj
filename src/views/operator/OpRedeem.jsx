@@ -18,7 +18,7 @@ function utcToLocal(isoString) {
 
 export default function OpRedeem(ctx) {
   const { custs, rewards, gT, fire, sbConnected,
-    redeemedList, setRedeemedList, setCusts, syncMember, logActivity } = ctx;
+    redeemedList, setRedeemedList, setCusts, syncMember, logActivity, loggedOp } = ctx;
 
   const [client, setClient]         = useState(null);
   const [scanning, setScanning]     = useState(true); // abre cámara directamente
@@ -111,6 +111,7 @@ export default function OpRedeem(ctx) {
         setConfirmResult('confirmed');
         fire(`✅ Confirmado por el cliente · ${item.reward.name} entregado`);
         logActivity(item.memberId, 'entrega', `Premio entregado: ${item.reward.name} ${item.reward.icon}`, 0);
+        console.log('[Print] client:', client?.name, 'loggedOp:', loggedOp?.name, 'item:', item.reward.name);
         setReadyToPrint({ item, clientName: client?.name, opName: loggedOp?.name });
         setTimeout(() => setConfirmResult(null), 3000);
       } else if (data?.confirm_status === 'cancelled') {
@@ -127,7 +128,7 @@ export default function OpRedeem(ctx) {
         fire('⏱ Tiempo de espera agotado');
       }
     }, 2000);
-  }, [sbConnected, fire, logActivity, setRedeemedList]);
+  }, [sbConnected, fire, logActivity, setRedeemedList, client, loggedOp, setReadyToPrint]);
 
 
 
