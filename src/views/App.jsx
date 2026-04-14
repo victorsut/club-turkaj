@@ -904,7 +904,11 @@ export default function App() {
         const purchaseData = { member_id: cid, amount: a, fuel_type: f, gallons: gal, points_earned: pts };
         if (loggedOp?.stationId) purchaseData.station_id = loggedOp.stationId;
         if (loggedOp?.id) purchaseData.operator_id = loggedOp.id;
-        sb.from('purchases').insert(purchaseData);
+        console.log('[Purchase] Guardando en Supabase:', purchaseData);
+        sb.from('purchases').insert(purchaseData).then(r => {
+          if (r.error) console.error('[Purchase] Error al guardar:', r.error.message, r.error);
+          else console.log('[Purchase] ✅ Guardado correctamente');
+        });
 
         // Send push notification to member's phone
         if (loggedOp) {
