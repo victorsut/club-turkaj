@@ -90,11 +90,15 @@ export default function App() {
 
   // ===== AUTH STATE =====
   const [authScreen, setAuthScreen] = useState('login');   // login|register|verify|profile|googleProfile|logged
-  const [authOp, setAuthOp] = useState('login');           // login|logged
-  const [loggedOp, setLoggedOp] = useState(null);           // operator data after login
+  // Restaurar sesion de operador/admin desde localStorage
+  const savedOp    = (() => { try { return JSON.parse(localStorage.getItem('ct_op') || 'null'); } catch { return null; } })();
+  const savedAdmin = localStorage.getItem('ct_admin') === 'logged';
+
+  const [authOp, setAuthOp]     = useState(savedOp ? 'logged' : 'login');
+  const [loggedOp, setLoggedOp] = useState(savedOp);           // operator data after login
   const [opScanMode, setOpScanMode] = useState(false);      // open QR scanner on OpClients
   const [stations, setStations] = useState([]);               // gas stations from Supabase
-  const [authAdmin, setAuthAdmin] = useState('login');     // login|logged
+  const [authAdmin, setAuthAdmin] = useState(savedAdmin ? 'logged' : 'login');
   const [authError, setAuthError] = useState('');
   const clearAuthErr = () => { if (authError) setAuthError(''); };
 
@@ -1036,8 +1040,8 @@ export default function App() {
     if (sb) sb.auth.signOut({ scope: 'local' });
     setMe(null); setGoogleStep('welcome'); setMySurveyCount(0); setLoggedOp(null);
     if (isC) { setAuthScreen('login'); setCScr('home'); setLoginPhone(''); setLoginPass(''); }
-    else if (isO) { setAuthOp('login'); setOScr('ohome'); }
-    else if (isA) { setAuthAdmin('login'); setScr('dash'); }
+    else if (isO) { localStorage.removeItem('ct_op'); setAuthOp('login'); setLoggedOp(null); setOScr('ohome'); }
+    else if (isA) { localStorage.removeItem('ct_admin'); setAuthAdmin('login'); setScr('dash'); }
     setAuthError(''); fire('👋 Sesión cerrada');
   }, [view, fire]);
 
