@@ -1,5 +1,5 @@
 // src/views/operator/OpRedeem.jsx
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { sMono, btnYellow } from '../../constants/styles';
 import Badge from '../../components/ui/Badge';
@@ -26,6 +26,7 @@ export default function OpRedeem(ctx) {
   const [pendingList, setPending]   = useState([]);
   const [loadingPending, setLoadingPending] = useState(false);
   const [confirmItem, setConfirmItem]       = useState(null);
+  const [pendingPrint, setPendingPrint]     = useState(null);
   const [waitingConfirm, setWaitingConfirm] = useState(null); // id del canje esperando confirmación del miembro
   const [confirmResult, setConfirmResult]   = useState(null); // 'confirmed' | 'cancelled'
 
@@ -110,7 +111,7 @@ export default function OpRedeem(ctx) {
         setConfirmResult('confirmed');
         fire(`✅ Confirmado por el cliente · ${item.reward.name} entregado`);
         logActivity(item.memberId, 'entrega', `Premio entregado: ${item.reward.name} ${item.reward.icon}`, 0);
-        printReceipt(item, client?.name, loggedOp?.name);
+        setPendingPrint({ item, clientName: client?.name, opName: loggedOp?.name });
         setTimeout(() => setConfirmResult(null), 3000);
       } else if (data?.confirm_status === 'cancelled') {
         clearInterval(interval);
@@ -128,67 +129,59 @@ export default function OpRedeem(ctx) {
     }, 2000);
   }, [sbConnected, fire, logActivity, setRedeemedList]);
 
-  // Imprimir comprobante en POS
-  const printReceipt = (item, clientName, opName) => {
-    const now = new Date();
+
+  // Ejecutar print cuando hay un comprobante pendiente (fuera de contexto async)
+  useEffect(() => {
+    if (!pendingPrint) return;
+    const { item, clientName, opName } = pendingPrint;
+    const now     = new Date();
     const dateStr = now.toLocaleDateString('es-GT', { day: '2-digit', month: '2-digit', year: 'numeric' });
     const timeStr = now.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' });
-    const win = window.open('', '_blank', 'width=300,height=500');
-    if (!win) return;
-    win.document.write(`<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Courier New', monospace; font-size: 12px; width: 280px; padding: 8px; }
-  .center { text-align: center; }
-  .bold { font-weight: bold; }
-  .big { font-size: 16px; }
-  .sep { border-top: 1px dashed #000; margin: 6px 0; }
-  .row { display: flex; justify-content: space-between; margin: 2px 0; }
-  .logo { font-size: 18px; font-weight: bold; letter-spacing: 2px; margin-bottom: 2px; }
-  .sub { font-size: 10px; color: #555; margin-bottom: 8px; }
-  .code { font-size: 14px; font-weight: bold; letter-spacing: 1px; background: #f0f0f0; padding: 4px 8px; border-radius: 4px; display: inline-block; margin: 4px 0; }
-  .footer { font-size: 10px; color: #777; margin-top: 8px; }
-  @media print { body { width: 100%; } }
-</style>
-</head>
-<body>
-<div class="center">
-  <div class="logo">TURKAJ</div>
-  <div class="sub">Club Turkaj - Programa de Lealtad</div>
-</div>
-<div class="sep"></div>
-<div class="center bold big">COMPROBANTE DE CANJE</div>
-<div class="sep"></div>
-<div class="row"><span>Fecha:</span><span>${dateStr}</span></div>
-<div class="row"><span>Hora:</span><span>${timeStr}</span></div>
-<div class="row"><span>Cliente:</span><span>${clientName || '-'}</span></div>
-<div class="row"><span>Atendido por:</span><span>${opName || '-'}</span></div>
-<div class="sep"></div>
-<div class="center">
-  <div style="font-size:10px;margin-bottom:4px;">PREMIO CANJEADO</div>
-  <div class="bold big">${item.reward.name}</div>
-  <div style="margin-top:4px;font-size:10px;">Puntos utilizados: <strong>${item.cost} pts</strong></div>
-</div>
-<div class="sep"></div>
-<div class="center">
-  <div style="font-size:10px;margin-bottom:2px;">CODIGO DE VERIFICACION</div>
-  <div class="code">${item.code}</div>
-</div>
-<div class="sep"></div>
-<div class="center footer">
-  Gracias por su preferencia<br>
-  Gasolineras Turkaj - Chichicastenango<br>
-  club-turkaj.vercel.app
-</div>
-</body>
-</html>`);
-    win.document.close();
-    win.focus();
-    setTimeout(() => { win.print(); win.close(); }, 300);
-  };
+
+    const styleId = 'ct-receipt-style';
+    if (!document.getElementById(styleId)) {
+      const s = document.createElement('style');
+      s.id = styleId;
+      s.textContent = [
+        '@media print{',
+        '  body>*:not(#ct-receipt){display:none!important;}',
+        '  #ct-receipt{display:block!important;}',
+        '}',
+        '#ct-receipt{display:none;font-family:"Courier New",monospace;font-size:12px;width:280px;padding:8px;color:#000;}',
+        '#ct-receipt .rc{text-align:center;}',
+        '#ct-receipt .rs{border-top:1px dashed #000;margin:6px 0;}',
+        '#ct-receipt .rr{display:flex;justify-content:space-between;margin:3px 0;font-size:11px;}',
+        '#ct-receipt .rk{font-size:14px;font-weight:bold;letter-spacing:2px;border:1px solid #000;padding:3px 8px;display:inline-block;margin:4px 0;}',
+      ].join('');
+      document.head.appendChild(s);
+    }
+
+    let div = document.getElementById('ct-receipt');
+    if (!div) { div = document.createElement('div'); div.id = 'ct-receipt'; document.body.appendChild(div); }
+
+    div.innerHTML = '<div class="rc"><b style="font-size:20px;letter-spacing:3px">TURKAJ</b><br>'
+      + '<span style="font-size:10px">Club Turkaj - Programa de Lealtad</span></div>'
+      + '<div class="rs"></div>'
+      + '<div class="rc" style="font-size:15px;font-weight:bold">COMPROBANTE DE CANJE</div>'
+      + '<div class="rs"></div>'
+      + '<div class="rr"><span>Fecha:</span><span>' + dateStr + '</span></div>'
+      + '<div class="rr"><span>Hora:</span><span>' + timeStr + '</span></div>'
+      + '<div class="rr"><span>Cliente:</span><span>' + (clientName || '-') + '</span></div>'
+      + '<div class="rr"><span>Operador:</span><span>' + (opName || '-') + '</span></div>'
+      + '<div class="rs"></div>'
+      + '<div class="rc"><div style="font-size:10px;margin-bottom:3px">PREMIO CANJEADO</div>'
+      + '<div style="font-size:15px;font-weight:bold">' + item.reward.name + '</div>'
+      + '<div style="font-size:10px">Puntos: ' + item.cost + ' pts</div></div>'
+      + '<div class="rs"></div>'
+      + '<div class="rc"><div style="font-size:10px;margin-bottom:3px">CODIGO DE VERIFICACION</div>'
+      + '<div class="rk">' + item.code + '</div></div>'
+      + '<div class="rs"></div>'
+      + '<div class="rc" style="font-size:10px">Gracias por su preferencia<br>'
+      + 'Gasolineras Turkaj - Chichicastenango<br>club-turkaj.vercel.app</div>';
+
+    window.print();
+    setPendingPrint(null);
+  }, [pendingPrint]);
 
   const filteredCusts = q.length >= 2
     ? custs.filter(c =>
