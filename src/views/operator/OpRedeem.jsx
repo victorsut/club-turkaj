@@ -145,31 +145,31 @@ export default function OpRedeem(ctx) {
     if (!document.getElementById(styleId)) {
       const s = document.createElement('style');
       s.id = styleId;
-      s.textContent = '@media print{body>*:not(#ct-receipt){display:none!important;}#ct-receipt{display:block!important;}}#ct-receipt{display:none;font-family:"Courier New",monospace;font-size:12px;width:280px;padding:8px;color:#000;}#ct-receipt .rc{text-align:center;}#ct-receipt .rs{border-top:1px dashed #000;margin:6px 0;}#ct-receipt .rr{display:flex;justify-content:space-between;margin:3px 0;font-size:11px;}#ct-receipt .rk{font-size:14px;font-weight:bold;letter-spacing:2px;border:1px solid #000;padding:3px 8px;display:inline-block;margin:4px 0;}';
+      s.textContent = '@media print{body>*:not(#ct-receipt){display:none!important;}#ct-receipt{display:block!important;}}#ct-receipt{display:none;font-family:"Courier New",monospace;font-size:14px;width:100%;max-width:100%;padding:12px 20px;color:#000;}#ct-receipt .rc{text-align:center;}#ct-receipt .rs{border-top:1px dashed #000;margin:8px 0;}#ct-receipt .rr{display:flex;justify-content:space-between;margin:5px 0;font-size:13px;}#ct-receipt .rk{font-size:18px;font-weight:bold;letter-spacing:3px;border:2px solid #000;padding:6px 14px;display:inline-block;margin:6px 0;}';
       document.head.appendChild(s);
     }
 
     let div = document.getElementById('ct-receipt');
     if (!div) { div = document.createElement('div'); div.id = 'ct-receipt'; document.body.appendChild(div); }
 
-    div.innerHTML = '<div class="rc"><b style="font-size:20px;letter-spacing:3px">TURKAJ</b><br>'
-      + '<span style="font-size:10px">Club Turkaj - Programa de Lealtad</span></div>'
+    div.innerHTML = '<div class="rc"><b style="font-size:28px;letter-spacing:4px">TURKAJ</b><br>'
+      + '<span style="font-size:13px">Club Turkaj - Programa de Lealtad</span></div>'
       + '<div class="rs"></div>'
-      + '<div class="rc" style="font-size:15px;font-weight:bold">COMPROBANTE DE CANJE</div>'
+      + '<div class="rc" style="font-size:18px;font-weight:bold">COMPROBANTE DE CANJE</div>'
       + '<div class="rs"></div>'
       + '<div class="rr"><span>Fecha:</span><span>' + dateStr + '</span></div>'
       + '<div class="rr"><span>Hora:</span><span>' + timeStr + '</span></div>'
       + '<div class="rr"><span>Cliente:</span><span>' + (clientName || '-') + '</span></div>'
       + '<div class="rr"><span>Operador:</span><span>' + (opName || '-') + '</span></div>'
       + '<div class="rs"></div>'
-      + '<div class="rc"><div style="font-size:10px;margin-bottom:3px">PREMIO CANJEADO</div>'
-      + '<div style="font-size:15px;font-weight:bold">' + item.reward.name + '</div>'
-      + '<div style="font-size:10px">Puntos: ' + item.cost + ' pts</div></div>'
+      + '<div class="rc"><div style="font-size:12px;margin-bottom:4px">PREMIO CANJEADO</div>'
+      + '<div style="font-size:20px;font-weight:bold">' + item.reward.name + '</div>'
+      + '<div style="font-size:13px;margin-top:4px">Puntos: ' + item.cost + ' pts</div></div>'
       + '<div class="rs"></div>'
-      + '<div class="rc"><div style="font-size:10px;margin-bottom:3px">CODIGO DE VERIFICACION</div>'
+      + '<div class="rc"><div style="font-size:12px;margin-bottom:4px">CODIGO DE VERIFICACION</div>'
       + '<div class="rk">' + item.code + '</div></div>'
       + '<div class="rs"></div>'
-      + '<div class="rc" style="font-size:10px">Gracias por su preferencia<br>'
+      + '<div class="rc" style="font-size:12px">Gracias por su preferencia<br>'
       + 'Gasolineras Turkaj - Chichicastenango<br>club-turkaj.vercel.app</div>';
 
     window.print();
