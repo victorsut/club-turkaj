@@ -17,16 +17,30 @@ export default function OpManagement(ctx) {
     if (!selOp?.id || !sb) return;
     setLoadingHist(true);
     setOpHistory([]);
-    sb.from('purchases').select('*, members(name)').eq('operator_id', selOp.id).order('created_at', { ascending: false }).limit(100)
-      .then(({ data }) => {
-        setLoadingHist(false);
-        if (data?.length) setOpHistory(data.map(p => ({
-          id: p.id,
-          memberName: p.members?.name || '-',
-          desc: (p.gallons?.toFixed ? p.gallons.toFixed(1) : p.gallons) + ' gal - Q' + p.amount,
-          pts: p.points_earned, date: p.created_at, fuel: p.fuel_type,
-        })));
-      });
+    setOpRedeems([]);
+    Promise.all([
+      sb.from('purchases').select('*, members(name)').eq('operator_id', selOp.id).order('created_at', { ascending: false }).limit(100),
+      sb.from('redemptions').select('*, members(name), rewards(name, icon)').eq('operator_id', selOp.id).eq('collected', true).order('created_at', { ascending: false }).limit(100),
+    ]).then(([purchRes, redeemRes]) => {
+      setLoadingHist(false);
+      console.log('[OpMgmt] Compras:', purchRes.data?.length, purchRes.error?.message);
+      console.log('[OpMgmt] Canjes:', redeemRes.data?.length, redeemRes.error?.message);
+      if (purchRes.data?.length) setOpHistory(purchRes.data.map(p => ({
+        id: p.id,
+        memberName: p.members?.name || '-',
+        desc: (p.gallons?.toFixed ? p.gallons.toFixed(1) : p.gallons) + ' gal - Q' + p.amount,
+        pts: p.points_earned, date: p.created_at, fuel: p.fuel_type,
+      })));
+      if (redeemRes.data?.length) setOpRedeems(redeemRes.data.map(r => ({
+        id: r.id,
+        memberName: r.members?.name || '-',
+        rewardName: r.rewards?.name || 'Premio',
+        rewardIcon: r.rewards?.icon || '',
+        pts: r.points_spent,
+        code: r.redemption_code,
+        date: r.created_at,
+      })));
+    });
   }, [selOp?.id]);
 
   const saveOp = async () => {
