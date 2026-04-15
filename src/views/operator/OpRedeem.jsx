@@ -91,6 +91,7 @@ export default function OpRedeem(ctx) {
     sb.from('redemptions')
       .select('*, rewards(name, icon), members(name), collected_at')
       .eq('collected', true)
+      .eq('operator_id', loggedOp.id)
       .gte('created_at', todayUTC.toISOString())
       .order('created_at', { ascending: false })
       .then(({ data }) => {
