@@ -153,7 +153,7 @@ export default function OpRedeem(ctx) {
         .select('confirm_status').eq('id', item.id).single();
       if (data?.confirm_status === 'confirmed') {
         clearInterval(interval);
-        await sb.from('redemptions').update({ collected: true, confirm_status: 'none' }).eq('id', item.id);
+        await sb.from('redemptions').update({ collected: true, confirm_status: 'none', operator_id: loggedOp?.id || null }).eq('id', item.id);
         setPending(p => p.filter(x => x.id !== item.id));
         setRedeemedList(p => p.map(x => x.id === item.id ? { ...x, collected: true } : x));
         setWaitingConfirm(null);
