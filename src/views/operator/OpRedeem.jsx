@@ -26,6 +26,7 @@ function buildAndPrint(item, clientName, opName) {
     const s = document.createElement('style');
     s.id = styleId;
     s.textContent = [
+      '@page{margin:0!important;padding:0!important;size:auto;}',
       '@media print{body>*:not(#ct-receipt){display:none!important;}#ct-receipt{display:block!important;}}',
       '#ct-receipt{display:none;font-family:"Courier New",monospace;font-size:14px;width:100%;max-width:100%;padding:12px 20px;color:#000;}',
       '#ct-receipt .rc{text-align:center;}',
