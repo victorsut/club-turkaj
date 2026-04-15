@@ -8,7 +8,9 @@ export default function OpManagement(ctx) {
   const { operators, setOperators, stations, setScr, fire, opRatings, showOpReg, setShowOpReg, editOp, setEditOp, newOp, setNewOp, sbConnected } = ctx;
   const [saving, setSaving]           = useState(false);
   const [selOp, setSelOp]             = useState(null);
+  const [histTab, setHistTab]         = useState('compras'); // 'compras' | 'canjes'
   const [opHistory, setOpHistory]     = useState([]);
+  const [opRedeems, setOpRedeems]     = useState([]);
   const [loadingHist, setLoadingHist] = useState(false);
 
   useEffect(() => {
@@ -151,7 +153,7 @@ export default function OpManagement(ctx) {
       )}
 
       {selOp && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 300, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => setSelOp(null)}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 300, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => { setSelOp(null); setOpHistory([]); setOpRedeems([]); setHistTab('compras'); }}>
           <div onClick={e => e.stopPropagation()} style={{ background: '#1E1E1E', borderRadius: '24px 24px 0 0', width: '100%', maxWidth: 480, maxHeight: '80vh', display: 'flex', flexDirection: 'column', animation: 'slideUp .3s ease' }}>
 
             <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,.2)', borderRadius: 4, margin: '12px auto 0' }} />
@@ -173,9 +175,9 @@ export default function OpManagement(ctx) {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, padding: '12px 20px', borderBottom: `1px solid ${AT.border}` }}>
               {[
-                { l: 'Transacciones', v: opHistory.length, c: '#FBBC04' },
-                { l: 'Galones', v: opHistory.reduce((s, t) => s + (parseFloat(t.desc) || 0), 0).toFixed(0), c: '#4CAF50' },
-                { l: 'Pts otorgados', v: opHistory.reduce((s, t) => s + (t.pts || 0), 0).toLocaleString(), c: '#64B5F6' },
+                { l: 'Compras', v: opHistory.length, c: '#FBBC04' },
+                { l: 'Pts otorgados', v: opHistory.reduce((s, t) => s + (t.pts || 0), 0).toLocaleString(), c: '#4CAF50' },
+                { l: 'Canjes', v: opRedeems.length, c: '#64B5F6' },
               ].map(s => (
                 <div key={s.l} style={{ background: 'rgba(255,255,255,.05)', borderRadius: 10, padding: '10px 8px', textAlign: 'center' }}>
                   <div style={{ fontSize: 16, fontWeight: 900, color: s.c }}>{s.v}</div>
@@ -185,28 +187,65 @@ export default function OpManagement(ctx) {
             </div>
 
             <div style={{ overflowY: 'auto', flex: 1, paddingBottom: 24 }}>
-              <div style={{ padding: '10px 20px 6px', fontSize: 10, fontWeight: 800, color: '#555', textTransform: 'uppercase', letterSpacing: 1.5 }}>Historial de transacciones</div>
+              {/* Pestañas */}
+              <div style={{ display: 'flex', gap: 8, padding: '10px 20px 0' }}>
+                {[{ id: 'compras', l: 'Compras (' + opHistory.length + ')' }, { id: 'canjes', l: 'Canjes (' + opRedeems.length + ')' }].map(t => (
+                  <button key={t.id} onClick={() => setHistTab(t.id)} style={{ flex: 1, padding: '8px 4px', borderRadius: 10, border: 'none', background: histTab === t.id ? '#FBBC04' : 'rgba(255,255,255,.07)', color: histTab === t.id ? '#0D0D0D' : '#9E9E9E', fontFamily: "'DM Sans'", fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>{t.l}</button>
+                ))}
+              </div>
+
               {loadingHist && <div style={{ textAlign: 'center', padding: 32, color: '#777' }}>Cargando...</div>}
-              {!loadingHist && opHistory.length === 0 && <div style={{ textAlign: 'center', padding: 32, color: '#555', fontSize: 13 }}>Sin transacciones registradas</div>}
-              {!loadingHist && opHistory.map((h) => {
-                const d       = h.date ? new Date(h.date) : null;
-                const dateStr = d ? d.toLocaleDateString('es-GT', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
-                const timeStr = d ? d.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' }) : '';
-                return (
-                  <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: `1px solid ${AT.border}` }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(251,188,4,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, color: '#FBBC04', flexShrink: 0 }}>Q</div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: '#E0E0E0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.memberName}</div>
-                      <div style={{ fontSize: 11, color: '#777', marginTop: 2 }}>{h.desc} | {h.fuel}</div>
-                    </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: '#FBBC04' }}>+{h.pts} pts</div>
-                      <div style={{ fontSize: 10, color: '#555', marginTop: 2 }}>{dateStr}</div>
-                      <div style={{ fontSize: 9, color: '#444' }}>{timeStr}</div>
-                    </div>
-                  </div>
-                );
-              })}
+
+              {/* Lista compras */}
+              {!loadingHist && histTab === 'compras' && (
+                opHistory.length === 0
+                  ? <div style={{ textAlign: 'center', padding: 32, color: '#555', fontSize: 13 }}>Sin compras registradas</div>
+                  : opHistory.map((h) => {
+                      const d = h.date ? new Date(h.date) : null;
+                      const dateStr = d ? d.toLocaleDateString('es-GT', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+                      const timeStr = d ? d.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' }) : '';
+                      return (
+                        <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: `1px solid ${AT.border}` }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(251,188,4,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, color: '#FBBC04', flexShrink: 0 }}>Q</div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 800, color: '#E0E0E0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.memberName}</div>
+                            <div style={{ fontSize: 11, color: '#777', marginTop: 2 }}>{h.desc} | {h.fuel}</div>
+                          </div>
+                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                            <div style={{ fontSize: 12, fontWeight: 800, color: '#FBBC04' }}>+{h.pts} pts</div>
+                            <div style={{ fontSize: 10, color: '#555', marginTop: 2 }}>{dateStr}</div>
+                            <div style={{ fontSize: 9, color: '#444' }}>{timeStr}</div>
+                          </div>
+                        </div>
+                      );
+                    })
+              )}
+
+              {/* Lista canjes */}
+              {!loadingHist && histTab === 'canjes' && (
+                opRedeems.length === 0
+                  ? <div style={{ textAlign: 'center', padding: 32, color: '#555', fontSize: 13 }}>Sin canjes registrados</div>
+                  : opRedeems.map((h) => {
+                      const d = h.date ? new Date(h.date) : null;
+                      const dateStr = d ? d.toLocaleDateString('es-GT', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+                      const timeStr = d ? d.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' }) : '';
+                      return (
+                        <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: `1px solid ${AT.border}` }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(100,181,246,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>{h.rewardIcon || 'P'}</div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 800, color: '#E0E0E0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.memberName}</div>
+                            <div style={{ fontSize: 11, color: '#777', marginTop: 2 }}>{h.rewardName}</div>
+                            <div style={{ fontSize: 10, color: '#555', fontFamily: 'monospace', marginTop: 1 }}>{h.code}</div>
+                          </div>
+                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                            <div style={{ fontSize: 12, fontWeight: 800, color: '#64B5F6' }}>-{h.pts} pts</div>
+                            <div style={{ fontSize: 10, color: '#555', marginTop: 2 }}>{dateStr}</div>
+                            <div style={{ fontSize: 9, color: '#444' }}>{timeStr}</div>
+                          </div>
+                        </div>
+                      );
+                    })
+              )}
             </div>
 
           </div>
