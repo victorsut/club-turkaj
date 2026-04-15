@@ -81,12 +81,16 @@ export default function OpRedeem(ctx) {
   useEffect(() => {
     if (!sb || !sbConnected || !loggedOp?.id) return;
     setLoadingToday(true);
+    // Inicio del dia en Guatemala (UTC-6) = medianoche local = 06:00 UTC
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const gtOffset = 6 * 60 * 60 * 1000; // UTC-6 en ms
+    const todayGT = new Date(today.getTime() - gtOffset);
+    todayGT.setUTCHours(0, 0, 0, 0);
+    const todayUTC = new Date(todayGT.getTime() + gtOffset); // medianoche Guatemala en UTC
     sb.from('redemptions')
       .select('*, rewards(name, icon), members(name)')
       .eq('collected', true)
-      .gte('created_at', today.toISOString())
+      .gte('created_at', todayUTC.toISOString())
       .order('created_at', { ascending: false })
       .then(({ data }) => {
         setLoadingToday(false);
