@@ -88,7 +88,7 @@ export default function OpRedeem(ctx) {
     todayGT.setUTCHours(0, 0, 0, 0);
     const todayUTC = new Date(todayGT.getTime() + gtOffset); // medianoche Guatemala en UTC
     sb.from('redemptions')
-      .select('*, rewards(name, icon), members(name)')
+      .select('*, rewards(name, icon), members(name), collected_at')
       .eq('collected', true)
       .gte('created_at', todayUTC.toISOString())
       .order('created_at', { ascending: false })
@@ -100,7 +100,7 @@ export default function OpRedeem(ctx) {
           reward: { name: r.rewards?.name || 'Premio', icon: r.rewards?.icon || '' },
           cost: r.points_spent,
           code: r.redemption_code,
-          date: r.created_at,
+          date: r.collected_at || r.created_at, // fecha de entrega
         })));
       });
   }, [sbConnected, loggedOp?.id]);
@@ -157,7 +157,7 @@ export default function OpRedeem(ctx) {
         .select('confirm_status').eq('id', item.id).single();
       if (data?.confirm_status === 'confirmed') {
         clearInterval(interval);
-        await sb.from('redemptions').update({ collected: true, confirm_status: 'none', operator_id: loggedOp?.id || null }).eq('id', item.id);
+        await sb.from('redemptions').update({ collected: true, confirm_status: 'none', operator_id: loggedOp?.id || null, collected_at: new Date().toISOString() }).eq('id', item.id);
         setPending(p => p.filter(x => x.id !== item.id));
         setRedeemedList(p => p.map(x => x.id === item.id ? { ...x, collected: true } : x));
         setWaitingConfirm(null);
