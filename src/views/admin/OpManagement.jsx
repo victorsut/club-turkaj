@@ -20,7 +20,7 @@ export default function OpManagement(ctx) {
     setOpRedeems([]);
     Promise.all([
       sb.from('purchases').select('*, members(name)').eq('operator_id', selOp.id).order('created_at', { ascending: false }).limit(100),
-      sb.from('redemptions').select('*, members(name), rewards(name, icon)').eq('operator_id', selOp.id).eq('collected', true).order('created_at', { ascending: false }).limit(100),
+      sb.from('redemptions').select('*, members(name), rewards(name, icon), collected_at').eq('operator_id', selOp.id).eq('collected', true).order('created_at', { ascending: false }).limit(100),
     ]).then(([purchRes, redeemRes]) => {
       setLoadingHist(false);
       console.log('[OpMgmt] Compras:', purchRes.data?.length, purchRes.error?.message);
@@ -38,7 +38,7 @@ export default function OpManagement(ctx) {
         rewardIcon: r.rewards?.icon || '',
         pts: r.points_spent,
         code: r.redemption_code,
-        date: r.created_at,
+        date: r.collected_at || r.created_at, // fecha de entrega, no de canje
       })));
     });
   }, [selOp?.id]);
