@@ -21,7 +21,7 @@ function buildAndPrint(item, clientName, opName) {
   const dateStr = now.toLocaleDateString('es-GT', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const timeStr = now.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' });
 
-  const html = '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+  const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Comprobante</title>'
     + '<style>'
     + '@page{margin:0;padding:0;size:auto;}'
     + '*{margin:0;padding:0;box-sizing:border-box;}'
@@ -50,32 +50,35 @@ function buildAndPrint(item, clientName, opName) {
     + '<div class="rs"></div>'
     + '<div class="rc" style="font-size:11px">Gracias por su preferencia<br>'
     + 'Gasolineras Turkaj - Chichicastenango<br>club-turkaj.vercel.app</div>'
-    + '<script>window.onload=function(){window.print();window.onafterprint=function(){document.body.innerHTML="";}}<\/script>'
+    + '<script>window.onload=function(){try{window.print();}catch(e){}setTimeout(function(){try{window.close();}catch(e){}},1500);}<\/script>'
     + '</body></html>';
 
-  // Usar iframe oculto para aislar el print del app principal
-  let frame = document.getElementById('ct-print-frame');
-  if (!frame) {
-    frame = document.createElement('iframe');
-    frame.id = 'ct-print-frame';
-    frame.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;';
-    document.body.appendChild(frame);
-  }
-
+  // Metodo 1: Blob URL
   try {
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const win  = window.open(url, '_blank');
+    if (win) { setTimeout(() => URL.revokeObjectURL(url), 5000); return; }
+    URL.revokeObjectURL(url);
+  } catch (e) {}
+
+  // Metodo 2: iframe oculto
+  try {
+    let frame = document.getElementById('ct-print-frame');
+    if (!frame) {
+      frame = document.createElement('iframe');
+      frame.id = 'ct-print-frame';
+      frame.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;';
+      document.body.appendChild(frame);
+    }
     const doc = frame.contentDocument || frame.contentWindow.document;
-    doc.open();
-    doc.write(html);
-    doc.close();
-    // Pequeño delay para que el iframe cargue antes de imprimir
-    setTimeout(() => {
-      try { frame.contentWindow.focus(); frame.contentWindow.print(); }
-      catch (e) { window.print(); } // fallback si iframe falla
-    }, 400);
-  } catch (e) {
-    // Fallback final: print directo
-    window.print();
-  }
+    doc.open(); doc.write(html); doc.close();
+    setTimeout(() => { try { frame.contentWindow.print(); } catch(e) { window.print(); } }, 400);
+    return;
+  } catch (e) {}
+
+  // Metodo 3: window.print directo
+  window.print();
 }
 
 export default function OpRedeem(ctx) {
@@ -85,7 +88,7 @@ export default function OpRedeem(ctx) {
   const [client, setClient]             = useState(null);
   const [scanning, setScanning]         = useState(false);
 
-  // Si viene desde el botón de OpHome, abrir cámara directamente
+  // Si viene desde el boton de OpHome, abrir camara directamente
   useEffect(() => {
     if (opRedeemScan) { setScanning(true); setOpRedeemScan(false); }
   }, []);
