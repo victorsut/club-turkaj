@@ -97,6 +97,7 @@ export default function App() {
   const [authOp, setAuthOp]     = useState(savedOp ? 'logged' : 'login');
   const [loggedOp, setLoggedOp] = useState(savedOp);           // operator data after login
   const [opScanMode, setOpScanMode] = useState(false);      // open QR scanner on OpClients
+  const [opRedeemScan, setOpRedeemScan] = useState(false);  // open QR scanner on OpRedeem
   const [stations, setStations] = useState([]);               // gas stations from Supabase
   const [authAdmin, setAuthAdmin] = useState(savedAdmin ? 'logged' : 'login');
   const [authError, setAuthError] = useState('');
@@ -1071,7 +1072,7 @@ export default function App() {
     sortDir, setSortDir, memSort, setMemSort,
     stationFilter, setStationFilter, stationMode, setStationMode,
     // Auth
-    authScreen, setAuthScreen, authOp, setAuthOp, loggedOp, setLoggedOp, opScanMode, setOpScanMode, stations, authAdmin, setAuthAdmin,
+    authScreen, setAuthScreen, authOp, setAuthOp, loggedOp, setLoggedOp, opScanMode, setOpScanMode, opRedeemScan, setOpRedeemScan, stations, authAdmin, setAuthAdmin,
     authError, setAuthError, clearAuthErr,
     loginPhone, setLoginPhone, loginPass, setLoginPass,
     regPhone, setRegPhone, regPass, setRegPass, regPass2, setRegPass2,
