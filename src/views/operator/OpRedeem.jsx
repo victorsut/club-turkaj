@@ -65,10 +65,15 @@ function buildAndPrint(item, clientName, opName) {
 
 export default function OpRedeem(ctx) {
   const { custs, rewards, gT, fire, sbConnected,
-    redeemedList, setRedeemedList, logActivity, loggedOp } = ctx;
+    redeemedList, setRedeemedList, logActivity, loggedOp, opRedeemScan, setOpRedeemScan } = ctx;
 
   const [client, setClient]             = useState(null);
-  const [scanning, setScanning]         = useState(false); // NO abre camara al entrar
+  const [scanning, setScanning]         = useState(false);
+
+  // Si viene desde el botón de OpHome, abrir cámara directamente
+  useEffect(() => {
+    if (opRedeemScan) { setScanning(true); setOpRedeemScan(false); }
+  }, []);
   const [pendingList, setPending]       = useState([]);
   const [loadingPending, setLoadingPending] = useState(false);
   const [confirmItem, setConfirmItem]   = useState(null);

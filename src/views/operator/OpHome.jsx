@@ -3,7 +3,7 @@
 import { sMono, adminTheme as AT } from '../../constants/styles';
 
 export default function OpHome(ctx) {
-  const { loggedOp, custs, setOScr, setOpScanMode, opRatings, logout } = ctx;
+  const { loggedOp, custs, setOScr, setOpScanMode, opRatings, logout, setOpRedeemScan } = ctx;
 
   // Get ratings for this operator
   const myRatings = loggedOp?.id ? (opRatings[loggedOp.id] || []) : [];
@@ -49,7 +49,7 @@ export default function OpHome(ctx) {
         <div style={{ fontSize: 11, fontWeight: 800, color: '#BDBDBD', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>Acciones Rápidas</div>
         {[
           { label: 'Registrar Compra', desc: 'Escanea QR del cliente', ico: '⛽', action: () => { setOpScanMode(true); setOScr('oclients'); } },
-          { label: 'Canjear Premio', desc: 'Escanear y entregar premio', ico: '🎁', action: () => setOScr('oredeem') },
+          { label: 'Canjear Premio', desc: 'Escanear y entregar premio', ico: '🎁', action: () => { setOpRedeemScan(true); setOScr('oredeem'); } },
           { label: 'Vender Boletos', desc: 'Rifa mensual', ico: '🎟️', action: () => setOScr('oraffle') },
         ].map(a => (
           <button key={a.label} onClick={a.action} style={{
