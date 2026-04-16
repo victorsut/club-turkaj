@@ -21,30 +21,42 @@ function buildAndPrint(item, clientName, opName) {
   var dateStr = now.toLocaleDateString('es-GT', { day: '2-digit', month: '2-digit', year: 'numeric' });
   var timeStr = now.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' });
 
-  // Construir partes del HTML por separado para evitar problemas de escaping
-  var head = [
-    '<!DOCTYPE html><html>',
-    '<head>',
-    '<meta charset="UTF-8">',
-    '<meta name="viewport" content="width=device-width,initial-scale=1">',
-    '<title>Comprobante Turkaj</title>',
-    '<style>',
-    '@page{margin:0;size:auto;}',
-    '*{margin:0;padding:0;box-sizing:border-box;}',
-    'body{font-family:Courier New,monospace;font-size:15px;color:#000;padding:10px;}',
-    '.rc{text-align:center;}',
-    '.rs{border-top:1px dashed #000;margin:8px 0;}',
-    '.rr{display:flex;justify-content:space-between;margin:5px 0;}',
-    '.rk{font-size:20px;font-weight:bold;letter-spacing:3px;border:2px solid #000;padding:6px 14px;display:inline-block;margin:6px 0;}',
-    '#pb{display:block;width:90%;margin:16px auto;padding:20px;background:#1976D2;color:#fff;border:none;border-radius:12px;font-size:22px;font-weight:bold;cursor:pointer;font-family:sans-serif;}',
-    '@media print{#pb{display:none!important;}}',
-    '</style>',
-    '</head>',
-  ].join('');
+  // Inyectar CSS de impresion en el documento principal
+  var styleId = 'ct-print-style';
+  var existing = document.getElementById(styleId);
+  if (existing) existing.remove();
+  var style = document.createElement('style');
+  style.id = styleId;
+  style.innerHTML = [
+    '@page { margin: 0; size: auto; }',
+    '@media print {',
+    '  body > *:not(#ct-receipt) { display: none !important; }',
+    '  #ct-receipt { display: block !important; }',
+    '}',
+    '#ct-receipt {',
+    '  display: none;',
+    '  font-family: Courier New, monospace;',
+    '  font-size: 15px;',
+    '  width: 100%;',
+    '  padding: 8px 10px;',
+    '  color: #000;',
+    '}',
+    '#ct-receipt .rc { text-align: center; }',
+    '#ct-receipt .rs { border-top: 1px dashed #000; margin: 8px 0; }',
+    '#ct-receipt .rr { display: flex; justify-content: space-between; margin: 5px 0; font-size: 14px; }',
+    '#ct-receipt .rk { font-size: 20px; font-weight: bold; letter-spacing: 3px; border: 2px solid #000; padding: 6px 14px; display: inline-block; margin: 6px 0; }',
+  ].join(' ');
+  document.head.appendChild(style);
 
-  var body = [
-    '<body>',
-    '<button id="pb">IMPRIMIR COMPROBANTE</button>',
+  // Inyectar contenido del comprobante
+  var div = document.getElementById('ct-receipt');
+  if (!div) {
+    div = document.createElement('div');
+    div.id = 'ct-receipt';
+    document.body.appendChild(div);
+  }
+
+  div.innerHTML = [
     '<div class="rc"><b style="font-size:26px;letter-spacing:4px">TURKAJ</b><br>',
     '<span style="font-size:12px">Club Turkaj - Programa de Lealtad</span></div>',
     '<div class="rs"></div>',
@@ -64,31 +76,9 @@ function buildAndPrint(item, clientName, opName) {
     '<div class="rs"></div>',
     '<div class="rc" style="font-size:11px">Gracias por su preferencia<br>',
     'Gasolineras Turkaj - Chichicastenango</div>',
-    '</body></html>',
   ].join('');
 
-  // Script separado - sin escaping de comillas
-  var script = '<scr' + 'ipt>'
-    + 'document.getElementById("pb").addEventListener("click",function(){'
-    + '  this.style.display="none";'
-    + '  window.print();'
-    + '  var btn=this;'
-    + '  setTimeout(function(){btn.style.display="block";},3000);'
-    + '});'
-    + '</scr' + 'ipt>';
-
-  var receiptHtml = head + body.replace('</body>', script + '</body>');
-
-  if (window.Blob && window.URL && window.URL.createObjectURL) {
-    var blob = new Blob([receiptHtml], { type: 'text/html;charset=utf-8' });
-    var url  = URL.createObjectURL(blob);
-    var win  = window.open(url, '_blank');
-    if (win) {
-      setTimeout(function() { URL.revokeObjectURL(url); }, 15000);
-      return;
-    }
-    URL.revokeObjectURL(url);
-  }
+  // Llamar window.print() directamente desde el click del usuario
   window.print();
 }
 
