@@ -17,108 +17,62 @@ function utcToLocal(isoString) {
 
 // Funcion de impresion - siempre llamada desde click directo
 function buildAndPrint(item, clientName, opName) {
-  const now     = new Date();
-  const dateStr = now.toLocaleDateString('es-GT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const timeStr = now.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' });
+  var now     = new Date();
+  var dateStr = now.toLocaleDateString('es-GT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  var timeStr = now.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' });
 
-  // Detectar API de impresion nativa del POS (Sunmi, PAX, Urovo, etc.)
-  const sunmi = window.SunmiInnerPrinter || window.sunmiInnerPrinter;
-  if (sunmi) {
-    try {
-      sunmi.printerInit();
-      sunmi.setAlignment(1); // centrar
-      sunmi.printTextWithFont('TURKAJ\n', '', 28);
-      sunmi.printTextWithFont('Club Turkaj - Programa de Lealtad\n\n', '', 16);
-      sunmi.printTextWithFont('COMPROBANTE DE CANJE\n', '', 20);
-      sunmi.printTextWithFont('--------------------------------\n', '', 16);
-      sunmi.setAlignment(0);
-      sunmi.printTextWithFont('Fecha: ' + dateStr + '\n', '', 16);
-      sunmi.printTextWithFont('Hora:  ' + timeStr + '\n', '', 16);
-      sunmi.printTextWithFont('Cliente: ' + (clientName || '-') + '\n', '', 16);
-      sunmi.printTextWithFont('Operador: ' + (opName || '-') + '\n', '', 16);
-      sunmi.setAlignment(1);
-      sunmi.printTextWithFont('--------------------------------\n', '', 16);
-      sunmi.printTextWithFont('PREMIO CANJEADO\n', '', 16);
-      sunmi.printTextWithFont(item.reward.name + '\n', '', 22);
-      sunmi.printTextWithFont('Puntos: ' + item.cost + ' pts\n', '', 16);
-      sunmi.printTextWithFont('--------------------------------\n', '', 16);
-      sunmi.printTextWithFont('CODIGO DE VERIFICACION\n', '', 16);
-      sunmi.printTextWithFont(item.code + '\n', '', 22);
-      sunmi.printTextWithFont('--------------------------------\n', '', 16);
-      sunmi.printTextWithFont('Gracias por su preferencia\n', '', 14);
-      sunmi.printTextWithFont('Gasolineras Turkaj\n', '', 14);
-      sunmi.printTextWithFont('Chichicastenango\n\n\n', '', 14);
-      sunmi.cutPaper(1);
-      return;
-    } catch (e) { /* no es Sunmi, continuar */ }
-  }
+  var btnStyle = 'display:block;width:90%;margin:16px auto;padding:20px;background:#1976D2;color:#fff;border:none;border-radius:12px;font-size:22px;font-weight:bold;cursor:pointer;font-family:sans-serif;';
 
-  // Para Android: abrir comprobante en nueva pestana con boton manual
-  const btnStyle = 'display:block;width:90%;margin:16px auto;padding:20px;'
-    + 'background:#1976D2;color:#fff;border:none;border-radius:12px;'
-    + 'font-size:22px;font-weight:bold;cursor:pointer;font-family:sans-serif;';
-
-  const html = '<!DOCTYPE html><html><head><meta charset="UTF-8">'
-    + '<meta name="viewport" content="width=device-width,initial-scale=1">'
-    + '<title>Comprobante Club Turkaj</title>'
+  var receiptHtml = '<!DOCTYPE html><html><head><meta charset=\"UTF-8\">'
+    + '<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">'
+    + '<title>Comprobante</title>'
     + '<style>'
     + '@page{margin:0;size:auto;}'
     + '*{margin:0;padding:0;box-sizing:border-box;}'
-    + 'body{font-family:"Courier New",monospace;font-size:15px;color:#000;padding:10px;}'
-    + '.rc{text-align:center;} .rs{border-top:1px dashed #000;margin:8px 0;}'
+    + 'body{font-family:\"Courier New\",monospace;font-size:15px;color:#000;padding:10px;}'
+    + '.rc{text-align:center;}.rs{border-top:1px dashed #000;margin:8px 0;}'
     + '.rr{display:flex;justify-content:space-between;margin:5px 0;}'
     + '.rk{font-size:20px;font-weight:bold;letter-spacing:3px;border:2px solid #000;padding:6px 14px;display:inline-block;margin:6px 0;}'
-    + '#printBtn{' + btnStyle + '}'
-    + '@media print{#printBtn,#closeBtn{display:none!important;}}'
+    + '#pb{' + btnStyle + '}'
+    + '@media print{#pb{display:none!important;}}'
     + '</style></head><body>'
-    + '<button id="printBtn" onclick="doPrint()">IMPRIMIR COMPROBANTE</button>'
-    + '<div class="rc"><b style="font-size:26px;letter-spacing:4px">TURKAJ</b><br>'
-    + '<span style="font-size:13px">Club Turkaj - Programa de Lealtad</span></div>'
-    + '<div class="rs"></div>'
-    + '<div class="rc" style="font-size:17px;font-weight:bold">COMPROBANTE DE CANJE</div>'
-    + '<div class="rs"></div>'
-    + '<div class="rr"><span>Fecha:</span><span>' + dateStr + '</span></div>'
-    + '<div class="rr"><span>Hora:</span><span>' + timeStr + '</span></div>'
-    + '<div class="rr"><span>Cliente:</span><span>' + (clientName || '-') + '</span></div>'
-    + '<div class="rr"><span>Operador:</span><span>' + (opName || '-') + '</span></div>'
-    + '<div class="rs"></div>'
-    + '<div class="rc"><div style="font-size:12px;margin-bottom:3px">PREMIO CANJEADO</div>'
-    + '<div style="font-size:20px;font-weight:bold">' + item.reward.name + '</div>'
-    + '<div style="font-size:13px;margin-top:3px">Puntos: ' + item.cost + ' pts</div></div>'
-    + '<div class="rs"></div>'
-    + '<div class="rc"><div style="font-size:12px;margin-bottom:3px">CODIGO DE VERIFICACION</div>'
-    + '<div class="rk">' + item.code + '</div></div>'
-    + '<div class="rs"></div>'
-    + '<div class="rc" style="font-size:12px">Gracias por su preferencia<br>'
+    + '<button id=\"pb\" onclick=\"this.style.display=\\\"none\\\";window.print();var t=this;setTimeout(function(){t.style.display=\\\"block\\\";},2000)\">IMPRIMIR COMPROBANTE</button>'
+    + '<div class=\"rc\"><b style=\"font-size:26px;letter-spacing:4px\">TURKAJ</b><br>'
+    + '<span style=\"font-size:12px\">Club Turkaj - Programa de Lealtad</span></div>'
+    + '<div class=\"rs\"></div>'
+    + '<div class=\"rc\" style=\"font-size:17px;font-weight:bold\">COMPROBANTE DE CANJE</div>'
+    + '<div class=\"rs\"></div>'
+    + '<div class=\"rr\"><span>Fecha:</span><span>' + dateStr + '</span></div>'
+    + '<div class=\"rr\"><span>Hora:</span><span>' + timeStr + '</span></div>'
+    + '<div class=\"rr\"><span>Cliente:</span><span>' + (clientName || '-') + '</span></div>'
+    + '<div class=\"rr\"><span>Operador:</span><span>' + (opName || '-') + '</span></div>'
+    + '<div class=\"rs\"></div>'
+    + '<div class=\"rc\"><div style=\"font-size:11px;margin-bottom:3px\">PREMIO CANJEADO</div>'
+    + '<div style=\"font-size:20px;font-weight:bold\">' + item.reward.name + '</div>'
+    + '<div style=\"font-size:12px;margin-top:3px\">Puntos: ' + item.cost + ' pts</div></div>'
+    + '<div class=\"rs\"></div>'
+    + '<div class=\"rc\"><div style=\"font-size:11px;margin-bottom:3px\">CODIGO DE VERIFICACION</div>'
+    + '<div class=\"rk\">' + item.code + '</div></div>'
+    + '<div class=\"rs\"></div>'
+    + '<div class=\"rc\" style=\"font-size:11px\">Gracias por su preferencia<br>'
     + 'Gasolineras Turkaj - Chichicastenango</div>'
-    + '<script>'
-    + 'function doPrint(){'
-    + '  document.getElementById("printBtn").style.display="none";'
-    + '  try{window.print();}catch(e){document.getElementById("printBtn").style.display="block";}'
-    + '  setTimeout(function(){document.getElementById("printBtn").style.display="block";},2000);'
-    + '}'
-    + '<\/script>'
     + '</body></html>';
 
-  try {
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    const url  = URL.createObjectURL(blob);
-    const win  = window.open(url, '_blank');
-    if (win) { setTimeout(() => URL.revokeObjectURL(url), 10000); return; }
-    URL.revokeObjectURL(url);
-  } catch (e) {}
-
-  // Fallback: window.print directo
-  window.print();
-}
-    const doc = frame.contentDocument || frame.contentWindow.document;
-    doc.open(); doc.write(html); doc.close();
-    setTimeout(function() { try { frame.contentWindow.print(); } catch(e2) { window.print(); } }, 400);
-    return;
-  } catch (e) {}
-
-  // Metodo 3: window.print directo
-  window.print();
+  var opened = false;
+  if (window.Blob && window.URL && window.URL.createObjectURL) {
+    var blob = new Blob([receiptHtml], { type: 'text/html;charset=utf-8' });
+    var url  = URL.createObjectURL(blob);
+    var win  = window.open(url, '_blank');
+    if (win) {
+      opened = true;
+      setTimeout(function() { URL.revokeObjectURL(url); }, 10000);
+    } else {
+      URL.revokeObjectURL(url);
+    }
+  }
+  if (!opened) {
+    window.print();
+  }
 }
 
 export default function OpRedeem(ctx) {
