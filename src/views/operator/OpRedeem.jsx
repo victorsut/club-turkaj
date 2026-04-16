@@ -113,7 +113,7 @@ function buildAndPrint(item, clientName, opName) {
 }
     const doc = frame.contentDocument || frame.contentWindow.document;
     doc.open(); doc.write(html); doc.close();
-    setTimeout(() => { try { frame.contentWindow.print(); } catch(e) { window.print(); } }, 400);
+    setTimeout(function() { try { frame.contentWindow.print(); } catch(e2) { window.print(); } }, 400);
     return;
   } catch (e) {}
 
