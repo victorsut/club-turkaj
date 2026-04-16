@@ -21,46 +21,61 @@ function buildAndPrint(item, clientName, opName) {
   const dateStr = now.toLocaleDateString('es-GT', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const timeStr = now.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' });
 
-  const styleId = 'ct-receipt-style';
-  if (!document.getElementById(styleId)) {
-    const s = document.createElement('style');
-    s.id = styleId;
-    s.textContent = [
-      '@page{margin:0!important;padding:0!important;size:auto;}',
-      '@media print{body>*:not(#ct-receipt){display:none!important;}#ct-receipt{display:block!important;}}',
-      '#ct-receipt{display:none;font-family:"Courier New",monospace;font-size:14px;width:100%;max-width:100%;padding:12px 20px;color:#000;}',
-      '#ct-receipt .rc{text-align:center;}',
-      '#ct-receipt .rs{border-top:1px dashed #000;margin:8px 0;}',
-      '#ct-receipt .rr{display:flex;justify-content:space-between;margin:5px 0;font-size:13px;}',
-      '#ct-receipt .rk{font-size:18px;font-weight:bold;letter-spacing:3px;border:2px solid #000;padding:6px 14px;display:inline-block;margin:6px 0;}',
-    ].join('');
-    document.head.appendChild(s);
-  }
-
-  let div = document.getElementById('ct-receipt');
-  if (!div) { div = document.createElement('div'); div.id = 'ct-receipt'; document.body.appendChild(div); }
-
-  div.innerHTML = '<div class="rc"><b style="font-size:28px;letter-spacing:4px">TURKAJ</b><br>'
-    + '<span style="font-size:13px">Club Turkaj - Programa de Lealtad</span></div>'
+  const html = '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+    + '<style>'
+    + '@page{margin:0;padding:0;size:auto;}'
+    + '*{margin:0;padding:0;box-sizing:border-box;}'
+    + 'body{font-family:"Courier New",monospace;font-size:14px;width:100%;padding:8px 10px;color:#000;}'
+    + '.rc{text-align:center;}'
+    + '.rs{border-top:1px dashed #000;margin:7px 0;}'
+    + '.rr{display:flex;justify-content:space-between;margin:4px 0;font-size:13px;}'
+    + '.rk{font-size:18px;font-weight:bold;letter-spacing:3px;border:2px solid #000;padding:5px 12px;display:inline-block;margin:5px 0;}'
+    + '</style></head><body>'
+    + '<div class="rc"><b style="font-size:26px;letter-spacing:4px">TURKAJ</b><br>'
+    + '<span style="font-size:12px">Club Turkaj - Programa de Lealtad</span></div>'
     + '<div class="rs"></div>'
-    + '<div class="rc" style="font-size:18px;font-weight:bold">COMPROBANTE DE CANJE</div>'
+    + '<div class="rc" style="font-size:17px;font-weight:bold">COMPROBANTE DE CANJE</div>'
     + '<div class="rs"></div>'
     + '<div class="rr"><span>Fecha:</span><span>' + dateStr + '</span></div>'
     + '<div class="rr"><span>Hora:</span><span>' + timeStr + '</span></div>'
     + '<div class="rr"><span>Cliente:</span><span>' + (clientName || '-') + '</span></div>'
     + '<div class="rr"><span>Operador:</span><span>' + (opName || '-') + '</span></div>'
     + '<div class="rs"></div>'
-    + '<div class="rc"><div style="font-size:12px;margin-bottom:4px">PREMIO CANJEADO</div>'
-    + '<div style="font-size:20px;font-weight:bold">' + item.reward.name + '</div>'
-    + '<div style="font-size:13px;margin-top:4px">Puntos: ' + item.cost + ' pts</div></div>'
+    + '<div class="rc"><div style="font-size:11px;margin-bottom:3px">PREMIO CANJEADO</div>'
+    + '<div style="font-size:19px;font-weight:bold">' + item.reward.name + '</div>'
+    + '<div style="font-size:12px;margin-top:3px">Puntos: ' + item.cost + ' pts</div></div>'
     + '<div class="rs"></div>'
-    + '<div class="rc"><div style="font-size:12px;margin-bottom:4px">CODIGO DE VERIFICACION</div>'
+    + '<div class="rc"><div style="font-size:11px;margin-bottom:3px">CODIGO DE VERIFICACION</div>'
     + '<div class="rk">' + item.code + '</div></div>'
     + '<div class="rs"></div>'
-    + '<div class="rc" style="font-size:12px">Gracias por su preferencia<br>'
-    + 'Gasolineras Turkaj - Chichicastenango<br>club-turkaj.vercel.app</div>';
+    + '<div class="rc" style="font-size:11px">Gracias por su preferencia<br>'
+    + 'Gasolineras Turkaj - Chichicastenango<br>club-turkaj.vercel.app</div>'
+    + '<script>window.onload=function(){window.print();window.onafterprint=function(){document.body.innerHTML="";}}<\/script>'
+    + '</body></html>';
 
-  window.print();
+  // Usar iframe oculto para aislar el print del app principal
+  let frame = document.getElementById('ct-print-frame');
+  if (!frame) {
+    frame = document.createElement('iframe');
+    frame.id = 'ct-print-frame';
+    frame.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;';
+    document.body.appendChild(frame);
+  }
+
+  try {
+    const doc = frame.contentDocument || frame.contentWindow.document;
+    doc.open();
+    doc.write(html);
+    doc.close();
+    // Pequeño delay para que el iframe cargue antes de imprimir
+    setTimeout(() => {
+      try { frame.contentWindow.focus(); frame.contentWindow.print(); }
+      catch (e) { window.print(); } // fallback si iframe falla
+    }, 400);
+  } catch (e) {
+    // Fallback final: print directo
+    window.print();
+  }
 }
 
 export default function OpRedeem(ctx) {
