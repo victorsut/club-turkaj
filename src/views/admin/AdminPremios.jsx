@@ -55,7 +55,9 @@ export default function AdminPremios(ctx) {
     const data = { name: form.name.trim(), points_cost: parseInt(form.pts), icon: form.icon, category: form.cat, tier_exclusive: form.tier !== 'todos' ? form.tier : null, active: form.active, description: form.description || null };
     if (sb && sbConnected) {
       if (editR) {
-        const { error } = await sb.from('rewards').update(data).eq('id', editR.id);
+        console.log('[Premios] Update ID:', editR.id, 'data:', data);
+        const { error, data: updData } = await sb.from('rewards').update(data).eq('id', editR.id).select();
+        console.log('[Premios] Update result:', error ? 'ERROR: ' + error.message : 'OK', updData);
         if (error) { fire('Error: ' + error.message); setSaving(false); return; }
         setRewards(p => p.map(r => r.id === editR.id ? { ...r, ...data, pts: data.points_cost, cat: data.category, tier: data.tier_exclusive } : r));
         fire('Premio actualizado');
