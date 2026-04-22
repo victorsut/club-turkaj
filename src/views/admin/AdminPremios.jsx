@@ -40,29 +40,29 @@ export default function AdminPremios(ctx) {
   const [filterCat, setFilterCat] = useState('todos');
   const [delConfirm, setDelConfirm] = useState(null);
 
-  const filtered = (rewards || []).filter(r => filterCat === 'todos' || r.cat === filterCat);
+  const filtered = (rewards || []).filter(r => filterCat === 'todos' || r.category === filterCat);
 
   const openNew = () => { setEditR(null); setForm({ ...EMPTY }); setShowForm(true); };
   const openEdit = (r) => {
     setEditR(r);
-    setForm({ name: r.name || '', pts: String(r.pts || ''), icon: r.icon || '🎁', cat: r.cat || 'merch', tier: r.tier || 'todos', active: r.active !== false, description: r.description || '' });
+    setForm({ name: r.name || '', pts: String(r.points_cost || ''), icon: r.icon || '🎁', cat: r.category || 'merch', tier: r.tier_exclusive || 'todos', active: r.active !== false, description: r.description || '' });
     setShowForm(true);
   };
 
   const save = async () => {
     if (!form.name.trim() || !form.pts) { fire('Nombre y puntos son obligatorios'); return; }
     setSaving(true);
-    const data = { name: form.name.trim(), pts: parseInt(form.pts), icon: form.icon, cat: form.cat, tier: form.tier, active: form.active, description: form.description || null };
+    const data = { name: form.name.trim(), points_cost: parseInt(form.pts), icon: form.icon, category: form.cat, tier_exclusive: form.tier !== 'todos' ? form.tier : null, active: form.active, description: form.description || null };
     if (sb && sbConnected) {
       if (editR) {
         const { error } = await sb.from('rewards').update(data).eq('id', editR.id);
         if (error) { fire('Error: ' + error.message); setSaving(false); return; }
-        setRewards(p => p.map(r => r.id === editR.id ? { ...r, ...data } : r));
+        setRewards(p => p.map(r => r.id === editR.id ? { ...r, ...data, pts: data.points_cost, cat: data.category, tier: data.tier_exclusive } : r));
         fire('Premio actualizado');
       } else {
         const { data: nd, error } = await sb.from('rewards').insert(data).select().single();
         if (error) { fire('Error: ' + error.message); setSaving(false); return; }
-        setRewards(p => [...p, { ...data, id: nd.id }]);
+        setRewards(p => [...p, { ...data, id: nd.id, pts: data.points_cost, cat: data.category, tier: data.tier_exclusive }]);
         fire('Premio creado');
       }
     }
@@ -130,7 +130,7 @@ export default function AdminPremios(ctx) {
           {filtered.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: '#555', fontSize: 13 }}>Sin premios</div>}
 
           {filtered.map(r => {
-            const cs = CAT_COLORS[r.cat] || { bg: '#F5F5F5', c: '#616161' };
+            const cs = CAT_COLORS[r.category] || { bg: '#F5F5F5', c: '#616161' };
             const isActive = r.active !== false;
             return (
               <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: `1px solid ${AT.border}`, opacity: isActive ? 1 : .5 }}>
@@ -141,9 +141,9 @@ export default function AdminPremios(ctx) {
                     {!isActive && <span style={{ fontSize: 10, color: '#EF5350', marginLeft: 6, fontWeight: 700 }}>INACTIVO</span>}
                   </div>
                   <div style={{ display: 'flex', gap: 6, marginTop: 3, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <span style={{ fontSize: 10, background: cs.bg, color: cs.c, padding: '2px 7px', borderRadius: 8, fontWeight: 700 }}>{CAT_LABELS[r.cat] || r.cat}</span>
-                    {r.tier && r.tier !== 'todos' && <span style={{ fontSize: 10, background: 'rgba(251,188,4,.15)', color: '#FBBC04', padding: '2px 7px', borderRadius: 8, fontWeight: 700 }}>{r.tier}</span>}
-                    <span style={{ ...sMono, fontSize: 11, color: '#FBBC04', fontWeight: 800 }}>{r.pts} pts</span>
+                    <span style={{ fontSize: 10, background: cs.bg, color: cs.c, padding: '2px 7px', borderRadius: 8, fontWeight: 700 }}>{CAT_LABELS[r.category] || r.category}</span>
+                    {r.tier_exclusive && <span style={{ fontSize: 10, background: 'rgba(251,188,4,.15)', color: '#FBBC04', padding: '2px 7px', borderRadius: 8, fontWeight: 700 }}>{r.tier_exclusive}</span>}
+                    <span style={{ ...sMono, fontSize: 11, color: '#FBBC04', fontWeight: 800 }}>{r.points_cost} pts</span>
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
