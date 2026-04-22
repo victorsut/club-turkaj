@@ -1,5 +1,5 @@
 // src/views/admin/AdminPremios.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { adminTheme as AT, btnYellow, btnDark, inputStyle, sMono } from '../../constants/styles';
 import { Back, Plus } from '../../components/ui/Icons';
@@ -39,6 +39,25 @@ export default function AdminPremios(ctx) {
   const [saving, setSaving]       = useState(false);
   const [filterCat, setFilterCat] = useState('todos');
   const [delConfirm, setDelConfirm] = useState(null);
+
+  // Estados Rifa
+  const [raffleList, setRaffleList]   = useState([]);
+  const [loadingRaf, setLoadingRaf]   = useState(false);
+  const [showRafForm, setShowRafForm] = useState(false);
+  const [editRaf, setEditRaf]         = useState(null);
+  const [rafForm, setRafForm]         = useState({ month: '', year: new Date().getFullYear(), prize_name: '', prize_icon: '🎁', prize_value: '' });
+  const [savingRaf, setSavingRaf]     = useState(false);
+  const [delRaf, setDelRaf]           = useState(null);
+
+  // Cargar rifas al abrir esa pestana
+  useEffect(() => {
+    if (sub !== 'rifa' || !sb || !sbConnected || raffleList.length > 0) return;
+    setLoadingRaf(true);
+    sb.from('raffle_calendar').select('*').order('year').order('month')
+      .then(({ data }) => { setLoadingRaf(false); if (data) setRaffleList(data); });
+  }, [sub, sbConnected]);
+
+  const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
   const filtered = (rewards || []).filter(r => filterCat === 'todos' || (r.category || r.cat) === filterCat);
 
@@ -87,6 +106,39 @@ export default function AdminPremios(ctx) {
     setRewards(p => p.filter(x => x.id !== r.id));
     setDelConfirm(null);
     fire('Premio eliminado');
+  };
+
+  const openNewRaf = () => { setEditRaf(null); setRafForm({ month: '', year: new Date().getFullYear(), prize_name: '', prize_icon: '🎁', prize_value: '' }); setShowRafForm(true); };
+  const openEditRaf = (r) => { setEditRaf(r); setRafForm({ month: r.month, year: r.year, prize_name: r.prize_name, prize_icon: r.prize_icon || '🎁', prize_value: String(r.prize_value) }); setShowRafForm(true); };
+
+  const saveRaf = async () => {
+    if (!rafForm.month || !rafForm.prize_name || !rafForm.prize_value) { fire('Mes, premio y valor son obligatorios'); return; }
+    setSavingRaf(true);
+    const data = { month: parseInt(rafForm.month), year: parseInt(rafForm.year), prize_name: rafForm.prize_name.trim(), prize_icon: rafForm.prize_icon, prize_value: parseFloat(rafForm.prize_value) };
+    if (sb && sbConnected) {
+      if (editRaf) {
+        const { error } = await sb.from('raffle_calendar').update(data).eq('id', editRaf.id);
+        if (error) { fire('Error: ' + error.message); setSavingRaf(false); return; }
+        setRaffleList(p => p.map(r => r.id === editRaf.id ? { ...r, ...data } : r));
+        fire('Rifa actualizada');
+      } else {
+        const { data: nd, error } = await sb.from('raffle_calendar').insert(data).select().single();
+        if (error) { fire('Error: ' + error.message); setSavingRaf(false); return; }
+        setRaffleList(p => [...p, { ...data, id: nd.id }].sort((a,b) => a.year !== b.year ? a.year-b.year : a.month-b.month));
+        fire('Rifa creada');
+      }
+    }
+    setSavingRaf(false); setShowRafForm(false); setEditRaf(null);
+  };
+
+  const delRafConfirmed = async (r) => {
+    if (sb && sbConnected) {
+      const { error } = await sb.from('raffle_calendar').delete().eq('id', r.id);
+      if (error) { fire('Error: ' + error.message); return; }
+    }
+    setRaffleList(p => p.filter(x => x.id !== r.id));
+    setDelRaf(null);
+    fire('Rifa eliminada');
   };
 
   const sLbl = { display: 'block', fontSize: 11, fontWeight: 700, color: '#757575', marginBottom: 4, textTransform: 'uppercase', letterSpacing: .8 };
@@ -154,6 +206,116 @@ export default function AdminPremios(ctx) {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* RIFA */}
+      {sub === 'rifa' && (
+        <div>
+          <div style={{ padding: '0 20px 12px' }}>
+            <button onClick={openNewRaf} style={{ ...btnYellow, borderRadius: 14, fontSize: 14 }}><Plus /> Nueva Rifa</button>
+          </div>
+
+          {loadingRaf && <div style={{ textAlign: 'center', padding: 32, color: '#777' }}>Cargando...</div>}
+
+          {!loadingRaf && raffleList.length === 0 && (
+            <div style={{ textAlign: 'center', padding: 40, color: '#555', fontSize: 13 }}>Sin rifas configuradas</div>
+          )}
+
+          {!loadingRaf && raffleList.map(r => {
+            const hasWinner = !!r.winner_id;
+            return (
+              <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: `1px solid ${AT.border}` }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: hasWinner ? 'rgba(46,125,50,.2)' : 'rgba(251,188,4,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 18 }}>{r.prize_icon || '🎁'}</div>
+                  </div>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: '#E0E0E0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {MONTHS[(r.month || 1) - 1]} {r.year}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#9E9E9E', marginTop: 2 }}>{r.prize_name}</div>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 3, alignItems: 'center' }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: '#FBBC04' }}>Q{r.prize_value}</span>
+                    {hasWinner && <span style={{ fontSize: 10, background: 'rgba(46,125,50,.3)', color: '#69F0AE', padding: '2px 7px', borderRadius: 8, fontWeight: 700 }}>Sorteada</span>}
+                    {!hasWinner && <span style={{ fontSize: 10, background: 'rgba(251,188,4,.15)', color: '#FBBC04', padding: '2px 7px', borderRadius: 8, fontWeight: 700 }}>Pendiente</span>}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
+                  <button onClick={() => openEditRaf(r)} style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, color: '#64B5F6', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans'" }}>Editar</button>
+                  <button onClick={() => setDelRaf(r)} style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, color: '#EF5350', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans'" }}>Borrar</button>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* MODAL FORM RIFA */}
+          {showRafForm && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 400, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => !savingRaf && setShowRafForm(false)}>
+              <div onClick={e => e.stopPropagation()} style={{ background: '#1E1E1E', borderRadius: '24px 24px 0 0', width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto', padding: '20px 20px 40px' }}>
+                <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,.2)', borderRadius: 4, margin: '0 auto 20px' }} />
+                <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginBottom: 18 }}>{editRaf ? 'Editar Rifa' : 'Nueva Rifa'}</div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+                  <div>
+                    <label style={sLbl}>Mes *</label>
+                    <select value={rafForm.month} onChange={e => setRafForm(p => ({ ...p, month: e.target.value }))} style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A', appearance: 'none' }}>
+                      <option value="">Seleccionar</option>
+                      {MONTHS.map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={sLbl}>Ano *</label>
+                    <input value={rafForm.year} onChange={e => setRafForm(p => ({ ...p, year: e.target.value.replace(/[^0-9]/g,'') }))} placeholder="2026" inputMode="numeric" maxLength={4} style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A' }} />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 14 }}>
+                  <label style={sLbl}>Premio *</label>
+                  <input value={rafForm.prize_name} onChange={e => setRafForm(p => ({ ...p, prize_name: e.target.value }))} placeholder="Ej: iPhone 17 Pro" style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A' }} />
+                </div>
+
+                <div style={{ marginBottom: 14 }}>
+                  <label style={sLbl}>Valor estimado (Q) *</label>
+                  <input value={rafForm.prize_value} onChange={e => setRafForm(p => ({ ...p, prize_value: e.target.value.replace(/[^0-9.]/g,'') }))} placeholder="Ej: 15000" inputMode="decimal" style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A' }} />
+                </div>
+
+                <div style={{ marginBottom: 20 }}>
+                  <label style={sLbl}>Icono</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {ICONS.map(ico => (
+                      <button key={ico} onClick={() => setRafForm(p => ({ ...p, prize_icon: ico }))} style={{ fontSize: 22, padding: '6px 8px', borderRadius: 10, border: rafForm.prize_icon === ico ? '2px solid #FBBC04' : '2px solid transparent', background: rafForm.prize_icon === ico ? 'rgba(251,188,4,.15)' : 'rgba(255,255,255,.05)', cursor: 'pointer' }}>{ico}</button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button onClick={() => setShowRafForm(false)} disabled={savingRaf} style={{ ...btnDark, flex: 1 }}>Cancelar</button>
+                  <button onClick={saveRaf} disabled={savingRaf} style={{ ...btnYellow, flex: 2, opacity: savingRaf ? .7 : 1 }}>
+                    {savingRaf ? 'Guardando...' : editRaf ? 'Guardar cambios' : 'Crear rifa'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL CONFIRMAR BORRAR RIFA */}
+          {delRaf && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+              <div style={{ background: '#1E1E1E', borderRadius: 20, padding: 28, maxWidth: 320, width: '100%', textAlign: 'center' }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>{delRaf.prize_icon || '🎁'}</div>
+                <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', marginBottom: 8 }}>Eliminar rifa</div>
+                <div style={{ fontSize: 13, color: '#9E9E9E', marginBottom: 24 }}>
+                  Se eliminara la rifa de <strong style={{ color: '#E0E0E0' }}>{MONTHS[(delRaf.month||1)-1]} {delRaf.year}</strong> ({delRaf.prize_name}).
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button onClick={() => setDelRaf(null)} style={{ ...btnDark, flex: 1, fontSize: 14 }}>Cancelar</button>
+                  <button onClick={() => delRafConfirmed(delRaf)} style={{ flex: 1, padding: 14, borderRadius: 14, border: 'none', background: '#C62828', color: '#fff', fontFamily: "'DM Sans'", fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>Eliminar</button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
