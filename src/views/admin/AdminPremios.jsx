@@ -51,15 +51,19 @@ export default function AdminPremios(ctx) {
 
   // Cargar festivos al abrir esa pestana
   useEffect(() => {
-    if (sub !== 'festivos' || !sb || !sbConnected || festList.length > 0) return;
+    console.log('[Festivos] sub:', sub, 'sb:', !!sb, 'sbConnected:', sbConnected, 'festList:', festList.length);
+    if (sub !== 'festivos') return;
+    if (!sb) { fire('Sin conexion a base de datos'); return; }
     setLoadingFest(true);
+    setFestList([]); // resetear para forzar recarga
     sb.from('special_days').select('id, name, month, day, points, icon, active, system').order('month').order('day')
       .then(({ data, error }) => {
         setLoadingFest(false);
-        if (error) { fire('Error cargando festivos: ' + error.message); return; }
-        if (data) setFestList(data);
+        console.log('[Festivos] resultado:', error?.message || (data?.length + ' registros'));
+        if (error) { fire('Error: ' + error.message); return; }
+        setFestList(data || []);
       });
-  }, [sub, sbConnected]);
+  }, [sub]);
 
   // Estados Rifa
   const [raffleList, setRaffleList]   = useState([]);
