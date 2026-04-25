@@ -45,7 +45,7 @@ export default function AdminPremios(ctx) {
   const [loadingFest, setLoadingFest] = useState(false);
   const [showFestForm, setShowFestForm] = useState(false);
   const [editFest, setEditFest]       = useState(null);
-  const [festForm, setFestForm]       = useState({ label: '', month: '', day: '', points: '70', type: 'custom', active: true });
+  const [festForm, setFestForm]       = useState({ name: '', month: '', day: '', points: '70', icon: 'F', active: true });
   const [savingFest, setSavingFest]   = useState(false);
   const [delFest, setDelFest]         = useState(null);
 
@@ -53,7 +53,7 @@ export default function AdminPremios(ctx) {
   useEffect(() => {
     if (sub !== 'festivos' || !sb || !sbConnected || festList.length > 0) return;
     setLoadingFest(true);
-    sb.from('special_days').select('*').order('month').order('day')
+    sb.from('special_days').select('id, name, month, day, points, icon, active, system').order('month').order('day')
       .then(({ data, error }) => {
         setLoadingFest(false);
         if (error) { fire('Error cargando festivos: ' + error.message); return; }
@@ -129,7 +129,7 @@ export default function AdminPremios(ctx) {
     fire('Premio eliminado');
   };
 
-  const FIXED_TYPES = ['anniversary', 'birthday'];
+  // Los festivos con system=true no se pueden eliminar
 
   const openNewFest = () => {
     setEditFest(null);
@@ -138,19 +138,19 @@ export default function AdminPremios(ctx) {
   };
   const openEditFest = (f) => {
     setEditFest(f);
-    setFestForm({ label: f.label || '', month: String(f.month || ''), day: String(f.day || ''), points: String(f.points || '70'), type: f.type || 'custom', active: f.active !== false });
+    setFestForm({ name: f.name || '', month: String(f.month || ''), day: String(f.day || ''), points: String(f.points || '70'), icon: f.icon || 'F', active: f.active !== false });
     setShowFestForm(true);
   };
 
   const saveFest = async () => {
-    if (!festForm.label.trim() || !festForm.month) { fire('Nombre y mes son obligatorios'); return; }
+    if (!festForm.name.trim() || !festForm.month) { fire('Nombre y mes son obligatorios'); return; }
     setSavingFest(true);
     const data = {
-      label: festForm.label.trim(),
+      name: festForm.name.trim(),
       month: parseInt(festForm.month),
       day: festForm.day ? parseInt(festForm.day) : 0,
       points: parseInt(festForm.points) || 70,
-      type: festForm.type,
+      icon: festForm.icon || 'F',
       active: festForm.active,
     };
     if (sb && sbConnected) {
@@ -158,12 +158,12 @@ export default function AdminPremios(ctx) {
         const { error } = await sb.from('special_days').update(data).eq('id', editFest.id);
         if (error) { fire('Error: ' + error.message); setSavingFest(false); return; }
         setFestList(p => p.map(x => x.id === editFest.id ? { ...x, ...data } : x));
-        fire('Dia festivo actualizado');
+        fire('Festivo actualizado');
       } else {
         const { data: nd, error } = await sb.from('special_days').insert(data).select().single();
         if (error) { fire('Error: ' + error.message); setSavingFest(false); return; }
         setFestList(p => [...p, { ...data, id: nd.id }].sort((a,b) => a.month !== b.month ? a.month-b.month : a.day-b.day));
-        fire('Dia festivo creado');
+        fire('Festivo creado');
       }
     }
     setSavingFest(false); setShowFestForm(false); setEditFest(null);
@@ -176,7 +176,7 @@ export default function AdminPremios(ctx) {
     }
     setFestList(p => p.filter(x => x.id !== f.id));
     setDelFest(null);
-    fire('Dia festivo eliminado');
+    fire('Festivo eliminado');
   };
 
   const openNewRaf = () => { setEditRaf(null); setRafForm({ month: '', year: new Date().getFullYear(), prize_name: '', prize_icon: '🎁', prize_value: '' }); setShowRafForm(true); };
@@ -421,7 +421,7 @@ export default function AdminPremios(ctx) {
                   </div>
                   <div style={{ display: 'flex', gap: 6, marginTop: 3, alignItems: 'center', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 11, color: '#9E9E9E' }}>{MONTHS[(f.month||1)-1]}{dayStr}</span>
-                    <span style={{ fontSize: 10, background: `rgba(${typeColor.replace('#','').match(/.{2}/g).map(h=>parseInt(h,16)).join(',')}, .15)`, color: typeColor, padding: '2px 7px', borderRadius: 8, fontWeight: 700 }}>{typeLabel}</span>
+                    {isFixed && <span style={{ fontSize: 10, background: 'rgba(255,143,0,.15)', color: '#FF8F00', padding: '2px 7px', borderRadius: 8, fontWeight: 700 }}>Sistema</span>}
                     <span style={{ fontSize: 11, fontWeight: 800, color: '#FBBC04' }}>{f.points} pts</span>
                   </div>
                 </div>
@@ -442,7 +442,7 @@ export default function AdminPremios(ctx) {
 
                 <div style={{ marginBottom: 14 }}>
                   <label style={sLbl}>Nombre del dia festivo *</label>
-                  <input value={festForm.label} onChange={e => setFestForm(p => ({ ...p, label: e.target.value }))} placeholder="Ej: Dia del Trabajador" style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A' }} />
+                  <input value={festForm.name} onChange={e => setFestForm(p => ({ ...p, name: e.target.value }))} placeholder="Ej: Dia del Trabajador" style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A' }} />
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
@@ -465,12 +465,8 @@ export default function AdminPremios(ctx) {
                     <input value={festForm.points} onChange={e => setFestForm(p => ({ ...p, points: e.target.value.replace(/[^0-9]/g,'') }))} placeholder="70" inputMode="numeric" style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A' }} />
                   </div>
                   <div>
-                    <label style={sLbl}>Tipo</label>
-                    <select value={festForm.type} onChange={e => setFestForm(p => ({ ...p, type: e.target.value }))} style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A', appearance: 'none' }}>
-                      <option value="custom">Personalizado</option>
-                      <option value="anniversary">Aniversario</option>
-                      <option value="birthday">Cumpleanos</option>
-                    </select>
+                    <label style={sLbl}>Icono (emoji)</label>
+                    <input value={festForm.icon} onChange={e => setFestForm(p => ({ ...p, icon: e.target.value }))} placeholder="Emoji" style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A', fontSize: 20, textAlign: 'center' }} />
                   </div>
                 </div>
 
@@ -495,10 +491,10 @@ export default function AdminPremios(ctx) {
           {delFest && (
             <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
               <div style={{ background: '#1E1E1E', borderRadius: 20, padding: 28, maxWidth: 320, width: '100%', textAlign: 'center' }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>F</div>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>{delFest.icon || 'F'}</div>
                 <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', marginBottom: 8 }}>Eliminar festivo</div>
                 <div style={{ fontSize: 13, color: '#9E9E9E', marginBottom: 24 }}>
-                  Se eliminara <strong style={{ color: '#E0E0E0' }}>{delFest.label}</strong>.
+                  Se eliminara <strong style={{ color: '#E0E0E0' }}>{delFest.name}</strong>.
                 </div>
                 <div style={{ display: 'flex', gap: 10 }}>
                   <button onClick={() => setDelFest(null)} style={{ ...btnDark, flex: 1, fontSize: 14 }}>Cancelar</button>
