@@ -40,6 +40,27 @@ export default function AdminPremios(ctx) {
   const [filterCat, setFilterCat] = useState('todos');
   const [delConfirm, setDelConfirm] = useState(null);
 
+  // Estados Festivos
+  const [festList, setFestList]       = useState([]);
+  const [loadingFest, setLoadingFest] = useState(false);
+  const [showFestForm, setShowFestForm] = useState(false);
+  const [editFest, setEditFest]       = useState(null);
+  const [festForm, setFestForm]       = useState({ label: '', month: '', day: '', points: '70', type: 'custom', active: true });
+  const [savingFest, setSavingFest]   = useState(false);
+  const [delFest, setDelFest]         = useState(null);
+
+  // Cargar festivos al abrir esa pestana
+  useEffect(() => {
+    if (sub !== 'festivos' || !sb || !sbConnected || festList.length > 0) return;
+    setLoadingFest(true);
+    sb.from('special_days').select('*').order('month').order('day')
+      .then(({ data, error }) => {
+        setLoadingFest(false);
+        if (error) { fire('Error cargando festivos: ' + error.message); return; }
+        if (data) setFestList(data);
+      });
+  }, [sub, sbConnected]);
+
   // Estados Rifa
   const [raffleList, setRaffleList]   = useState([]);
   const [loadingRaf, setLoadingRaf]   = useState(false);
@@ -106,6 +127,56 @@ export default function AdminPremios(ctx) {
     setRewards(p => p.filter(x => x.id !== r.id));
     setDelConfirm(null);
     fire('Premio eliminado');
+  };
+
+  const FIXED_TYPES = ['anniversary', 'birthday'];
+
+  const openNewFest = () => {
+    setEditFest(null);
+    setFestForm({ label: '', month: '', day: '', points: '70', type: 'custom', active: true });
+    setShowFestForm(true);
+  };
+  const openEditFest = (f) => {
+    setEditFest(f);
+    setFestForm({ label: f.label || '', month: String(f.month || ''), day: String(f.day || ''), points: String(f.points || '70'), type: f.type || 'custom', active: f.active !== false });
+    setShowFestForm(true);
+  };
+
+  const saveFest = async () => {
+    if (!festForm.label.trim() || !festForm.month) { fire('Nombre y mes son obligatorios'); return; }
+    setSavingFest(true);
+    const data = {
+      label: festForm.label.trim(),
+      month: parseInt(festForm.month),
+      day: festForm.day ? parseInt(festForm.day) : 0,
+      points: parseInt(festForm.points) || 70,
+      type: festForm.type,
+      active: festForm.active,
+    };
+    if (sb && sbConnected) {
+      if (editFest) {
+        const { error } = await sb.from('special_days').update(data).eq('id', editFest.id);
+        if (error) { fire('Error: ' + error.message); setSavingFest(false); return; }
+        setFestList(p => p.map(x => x.id === editFest.id ? { ...x, ...data } : x));
+        fire('Dia festivo actualizado');
+      } else {
+        const { data: nd, error } = await sb.from('special_days').insert(data).select().single();
+        if (error) { fire('Error: ' + error.message); setSavingFest(false); return; }
+        setFestList(p => [...p, { ...data, id: nd.id }].sort((a,b) => a.month !== b.month ? a.month-b.month : a.day-b.day));
+        fire('Dia festivo creado');
+      }
+    }
+    setSavingFest(false); setShowFestForm(false); setEditFest(null);
+  };
+
+  const delFestConfirmed = async (f) => {
+    if (sb && sbConnected) {
+      const { error } = await sb.from('special_days').delete().eq('id', f.id);
+      if (error) { fire('Error: ' + error.message); return; }
+    }
+    setFestList(p => p.filter(x => x.id !== f.id));
+    setDelFest(null);
+    fire('Dia festivo eliminado');
   };
 
   const openNewRaf = () => { setEditRaf(null); setRafForm({ month: '', year: new Date().getFullYear(), prize_name: '', prize_icon: '🎁', prize_value: '' }); setShowRafForm(true); };
@@ -312,6 +383,126 @@ export default function AdminPremios(ctx) {
                 <div style={{ display: 'flex', gap: 10 }}>
                   <button onClick={() => setDelRaf(null)} style={{ ...btnDark, flex: 1, fontSize: 14 }}>Cancelar</button>
                   <button onClick={() => delRafConfirmed(delRaf)} style={{ flex: 1, padding: 14, borderRadius: 14, border: 'none', background: '#C62828', color: '#fff', fontFamily: "'DM Sans'", fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>Eliminar</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* FESTIVOS */}
+      {sub === 'festivos' && (
+        <div>
+          <div style={{ padding: '0 20px 12px' }}>
+            <button onClick={openNewFest} style={{ ...btnYellow, borderRadius: 14, fontSize: 14 }}><Plus /> Nuevo Festivo</button>
+          </div>
+
+          {loadingFest && <div style={{ textAlign: 'center', padding: 32, color: '#777' }}>Cargando...</div>}
+
+          {!loadingFest && festList.length === 0 && (
+            <div style={{ textAlign: 'center', padding: 40, color: '#555', fontSize: 13 }}>Sin dias festivos configurados</div>
+          )}
+
+          {!loadingFest && festList.map(f => {
+            const isFixed  = FIXED_TYPES.includes(f.type);
+            const isActive = f.active !== false;
+            const dayStr   = f.day && f.day > 0 ? ` ${f.day}` : ' (cumpleanos)';
+            const typeLabel = f.type === 'anniversary' ? 'Aniversario' : f.type === 'birthday' ? 'Cumpleanos' : 'Personalizado';
+            const typeColor = f.type === 'anniversary' ? '#FF8F00' : f.type === 'birthday' ? '#7B1FA2' : '#1565C0';
+            return (
+              <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: `1px solid ${AT.border}`, opacity: isActive ? 1 : .5 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(251,188,4,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span style={{ fontSize: 22 }}>{f.type === 'anniversary' ? 'X' : f.type === 'birthday' ? 'B' : 'F'}</span>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: isActive ? '#E0E0E0' : '#777', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {f.label}
+                    {!isActive && <span style={{ fontSize: 10, color: '#EF5350', marginLeft: 6, fontWeight: 700 }}>INACTIVO</span>}
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, marginTop: 3, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 11, color: '#9E9E9E' }}>{MONTHS[(f.month||1)-1]}{dayStr}</span>
+                    <span style={{ fontSize: 10, background: `rgba(${typeColor.replace('#','').match(/.{2}/g).map(h=>parseInt(h,16)).join(',')}, .15)`, color: typeColor, padding: '2px 7px', borderRadius: 8, fontWeight: 700 }}>{typeLabel}</span>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: '#FBBC04' }}>{f.points} pts</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
+                  <button onClick={() => openEditFest(f)} style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, color: '#64B5F6', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans'" }}>Editar</button>
+                  {!isFixed && <button onClick={() => setDelFest(f)} style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, color: '#EF5350', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans'" }}>Borrar</button>}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* MODAL FORM FESTIVO */}
+          {showFestForm && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 400, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => !savingFest && setShowFestForm(false)}>
+              <div onClick={e => e.stopPropagation()} style={{ background: '#1E1E1E', borderRadius: '24px 24px 0 0', width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto', padding: '20px 20px 40px' }}>
+                <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,.2)', borderRadius: 4, margin: '0 auto 20px' }} />
+                <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginBottom: 18 }}>{editFest ? 'Editar Festivo' : 'Nuevo Festivo'}</div>
+
+                <div style={{ marginBottom: 14 }}>
+                  <label style={sLbl}>Nombre del dia festivo *</label>
+                  <input value={festForm.label} onChange={e => setFestForm(p => ({ ...p, label: e.target.value }))} placeholder="Ej: Dia del Trabajador" style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A' }} />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+                  <div>
+                    <label style={sLbl}>Mes *</label>
+                    <select value={festForm.month} onChange={e => setFestForm(p => ({ ...p, month: e.target.value }))} style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A', appearance: 'none' }}>
+                      <option value="">Seleccionar</option>
+                      {MONTHS.map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={sLbl}>Dia (0 = cumpleanos)</label>
+                    <input value={festForm.day} onChange={e => setFestForm(p => ({ ...p, day: e.target.value.replace(/[^0-9]/g,'') }))} placeholder="Ej: 15" inputMode="numeric" maxLength={2} style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A' }} />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+                  <div>
+                    <label style={sLbl}>Puntos bonus</label>
+                    <input value={festForm.points} onChange={e => setFestForm(p => ({ ...p, points: e.target.value.replace(/[^0-9]/g,'') }))} placeholder="70" inputMode="numeric" style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A' }} />
+                  </div>
+                  <div>
+                    <label style={sLbl}>Tipo</label>
+                    <select value={festForm.type} onChange={e => setFestForm(p => ({ ...p, type: e.target.value }))} style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A', appearance: 'none' }}>
+                      <option value="custom">Personalizado</option>
+                      <option value="anniversary">Aniversario</option>
+                      <option value="birthday">Cumpleanos</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(255,255,255,.05)', borderRadius: 12 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#E0E0E0' }}>Dia activo</span>
+                  <button onClick={() => setFestForm(p => ({ ...p, active: !p.active }))} style={{ padding: '6px 16px', borderRadius: 10, border: 'none', background: festForm.active ? '#2E7D32' : '#616161', color: '#fff', fontFamily: "'DM Sans'", fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>
+                    {festForm.active ? 'Activo' : 'Inactivo'}
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button onClick={() => setShowFestForm(false)} disabled={savingFest} style={{ ...btnDark, flex: 1 }}>Cancelar</button>
+                  <button onClick={saveFest} disabled={savingFest} style={{ ...btnYellow, flex: 2, opacity: savingFest ? .7 : 1 }}>
+                    {savingFest ? 'Guardando...' : editFest ? 'Guardar cambios' : 'Crear festivo'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* CONFIRMAR BORRAR FESTIVO */}
+          {delFest && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+              <div style={{ background: '#1E1E1E', borderRadius: 20, padding: 28, maxWidth: 320, width: '100%', textAlign: 'center' }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>F</div>
+                <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', marginBottom: 8 }}>Eliminar festivo</div>
+                <div style={{ fontSize: 13, color: '#9E9E9E', marginBottom: 24 }}>
+                  Se eliminara <strong style={{ color: '#E0E0E0' }}>{delFest.label}</strong>.
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button onClick={() => setDelFest(null)} style={{ ...btnDark, flex: 1, fontSize: 14 }}>Cancelar</button>
+                  <button onClick={() => delFestConfirmed(delFest)} style={{ flex: 1, padding: 14, borderRadius: 14, border: 'none', background: '#C62828', color: '#fff', fontFamily: "'DM Sans'", fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>Eliminar</button>
                 </div>
               </div>
             </div>
