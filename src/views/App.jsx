@@ -237,7 +237,7 @@ export default function App() {
     const day   = now.getDate();
 
     // Verificar si ya recibió bonus hoy
-    const { data: memberRow } = await sb.from('members').select('last_special_bonus').eq('id', memberId).single();
+    const { data: memberRow } = await sb.from('members').select('last_special_bonus, points').eq('id', memberId).single();
     if (memberRow?.last_special_bonus === today) return; // ya recibió hoy
 
     // Cargar días festivos activos
@@ -251,8 +251,18 @@ export default function App() {
       // Cumpleaños del miembro (month=0, day=0 = especial)
       if (sd.month === 0) {
         if (!memberBday) continue;
-        // bday guardado como MM-DD
-        const [bMonth, bDay] = (memberBday || '').split('-').map(Number);
+        // birthday puede ser YYYY-MM-DD o MM-DD o MM/DD
+        const parts = memberBday.split(/[-\/]/);
+        let bMonth, bDay;
+        if (parts.length === 3) {
+          // YYYY-MM-DD → mes en índice 1, día en índice 2
+          bMonth = parseInt(parts[1]);
+          bDay   = parseInt(parts[2]);
+        } else if (parts.length === 2) {
+          // MM-DD
+          bMonth = parseInt(parts[0]);
+          bDay   = parseInt(parts[1]);
+        } else { continue; }
         if (bMonth === month && bDay === day) {
           totalBonus += sd.points;
           bonusNames.push(`${sd.icon} ${sd.name}`);
