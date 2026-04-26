@@ -9,7 +9,6 @@ export default function TierCard({ t, gal, small = false, cfg }) {
   const cc = cfg || CFG_INIT;
   const bens = [
     { i: '⛽', t: `1 pt por cada Q${cc.qPerPt}` },
-    ...(t.discount > 0 ? [{ i: '💰', t: `Descuento Q${t.discount.toFixed(2)}/galón` }] : []),
     ...(t.redeemDisc > 0 ? [{ i: '🏷️', t: `-${Math.round(t.redeemDisc * 100)}% en canje de premios` }] : []),
     { i: '📶', t: 'WiFi ilimitado' },
     ...(t.bath ? [{ i: '🚻', t: 'Acceso a baños' }] : []),
