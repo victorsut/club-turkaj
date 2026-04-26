@@ -56,12 +56,19 @@ export default function AdminPremios(ctx) {
     if (!sb) { fire('Sin conexion a base de datos'); return; }
     setLoadingFest(true);
     setFestList([]); // resetear para forzar recarga
-    sb.from('special_days').select('id, name, month, day, points, icon, active, system').order('month').order('day')
+    sb.from('special_days').select('id, name, month, day, points, icon, active, system').order('created_at', { ascending: true })
       .then(({ data, error }) => {
         setLoadingFest(false);
-        console.log('[Festivos] resultado:', error?.message || (data?.length + ' registros'));
+        console.log('[Festivos] resultado:', error?.message || (data?.length + ' registros'), data);
         if (error) { fire('Error: ' + error.message); return; }
-        setFestList(data || []);
+        // Ordenar localmente: primero los del sistema, luego por mes/dia
+        const sorted = (data || []).sort((a, b) => {
+          if (a.system && !b.system) return -1;
+          if (!a.system && b.system) return 1;
+          if (a.month !== b.month) return a.month - b.month;
+          return a.day - b.day;
+        });
+        setFestList(sorted);
       });
   }, [sub]);
 
