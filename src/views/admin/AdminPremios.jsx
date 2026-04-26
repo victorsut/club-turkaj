@@ -415,24 +415,29 @@ export default function AdminPremios(ctx) {
           )}
 
           {!loadingFest && festList.map(f => {
-            const isFixed  = FIXED_TYPES.includes(f.type);
-            const isActive = f.active !== false;
-            const dayStr   = f.day && f.day > 0 ? ` ${f.day}` : ' (cumpleanos)';
-            const typeLabel = f.type === 'anniversary' ? 'Aniversario' : f.type === 'birthday' ? 'Cumpleanos' : 'Personalizado';
-            const typeColor = f.type === 'anniversary' ? '#FF8F00' : f.type === 'birthday' ? '#7B1FA2' : '#1565C0';
+            const isBirthday = f.month === 0;
+            const isFixed    = f.system === true;
+            const isActive   = f.active !== false;
+            const monthStr   = isBirthday ? null : (MONTHS[(f.month || 1) - 1] + (f.day > 0 ? ' ' + f.day : ''));
             return (
               <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: `1px solid ${AT.border}`, opacity: isActive ? 1 : .5 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(251,188,4,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <span style={{ fontSize: 22 }}>{f.type === 'anniversary' ? 'X' : f.type === 'birthday' ? 'B' : 'F'}</span>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: isBirthday ? 'rgba(123,31,162,.15)' : 'rgba(251,188,4,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 22 }}>
+                  {f.icon || (isBirthday ? 'B' : 'F')}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 800, color: isActive ? '#E0E0E0' : '#777', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {f.label}
+                    {f.name}
                     {!isActive && <span style={{ fontSize: 10, color: '#EF5350', marginLeft: 6, fontWeight: 700 }}>INACTIVO</span>}
                   </div>
                   <div style={{ display: 'flex', gap: 6, marginTop: 3, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 11, color: '#9E9E9E' }}>{MONTHS[(f.month||1)-1]}{dayStr}</span>
-                    {isFixed && <span style={{ fontSize: 10, background: 'rgba(255,143,0,.15)', color: '#FF8F00', padding: '2px 7px', borderRadius: 8, fontWeight: 700 }}>Sistema</span>}
+                    {isBirthday ? (
+                      <span style={{ fontSize: 10, background: 'rgba(123,31,162,.2)', color: '#CE93D8', padding: '2px 8px', borderRadius: 8, fontWeight: 700 }}>
+                        Fecha de nacimiento de cada miembro
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: 11, color: '#9E9E9E' }}>{monthStr}</span>
+                    )}
+                    {isFixed && !isBirthday && <span style={{ fontSize: 10, background: 'rgba(255,143,0,.15)', color: '#FF8F00', padding: '2px 7px', borderRadius: 8, fontWeight: 700 }}>Sistema</span>}
                     <span style={{ fontSize: 11, fontWeight: 800, color: '#FBBC04' }}>{f.points} pts</span>
                   </div>
                 </div>
