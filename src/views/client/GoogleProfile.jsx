@@ -236,48 +236,75 @@ export default function GoogleProfile(ctx) {
 
   const fieldProps = { regProfile, setRegProfile, clearAuthErr, regOptional };
 
+  const [saving, setSaving] = useState(false);
+
   // ── Guardar ───────────────────────────────────────────────
   const doFinish = async () => {
-    if (!password.trim() || password.length < 6) { setAuthError('La contraseña debe tener al menos 6 caracteres'); return; }
-    if (password !== passConfirm) { setAuthError('Las contraseñas no coinciden'); return; }
-    const firstPlate = vehicles[0]?.plate || '';
-    // Obtener el siguiente correlativo real desde Supabase
-    const fallbackCard = await getNextCardCode('ORO');
-    const bdayRaw      = regProfile.bday || '';
-    let bdayStored = '';
-    if (bdayRaw) { const p = bdayRaw.split('-'); if (p.length === 3) bdayStored = p[1] + '-' + p[2]; }
+    if (!password.trim() || password.length < 6) { setAuthError('La contrasena debe tener al menos 6 caracteres'); return; }
+    if (password !== passConfirm) { setAuthError('Las contrasenas no coinciden'); return; }
+    setSaving(true);
+    try {
+      const firstPlate = vehicles[0]?.plate || '';
+      // Obtener correlativo con fallback si falla Supabase
+      let fallbackCard = 'CTOD-00001';
+      try { fallbackCard = await getNextCardCode('ORO'); } catch(e) { console.warn('[Reg] getNextCardCode falló, usando fallback'); }
 
-    const updated = { ...me, name: regProfile.name, phone: regProfile.phone || '', dpi: regProfile.dpi || '', plate: firstPlate, email: regProfile.email || me?.email || '', bday: bdayStored, nit: regProfile.nit || '', points: totalPts, cardId: fallbackCard };
-    setMe(updated);
-    setCusts(p => [...p, updated]);
-    setAuthScreen('logged');
-    setGoogleStep('welcome');
-    fire(`🎉 ¡Bienvenido! +${totalPts} pts de registro`);
+      const bdayRaw = regProfile.bday || '';
+      let bdayStored = '';
+      if (bdayRaw) { const p = bdayRaw.split('-'); if (p.length === 3) bdayStored = p[1] + '-' + p[2]; }
 
-    if (sb && sbConnected) {
-      const provider   = me?.authProvider || 'manual';
-      const providerId = me?.id?.startsWith('temp-') ? null : me?.id;
-      const memberData = {
-        phone:            regProfile.phone?.trim() || (provider === 'google' ? 'goog_' + (me?.id || '').substring(0, 12) : null),
-        password_hash:    'pw:' + btoa(password), auth_provider: provider, auth_provider_id: providerId,
-        name: regProfile.name, dpi: regProfile.dpi || null, plate: firstPlate || null,
-        vehicles: vehicles.length > 0 ? vehicles : [],
-        nit: regProfile.nit || null, email: regProfile.email || me?.email || null,
-        birthday: bdayStored || null, points: totalPts,
-        gallons: 0, spent: 0, visits: 0, tickets: 0, redeemed_count: 0, referral_count: 0,
-      };
-      const { data: rows, error: memberErr } = await sb.from('members').insert(memberData).select();
-      if (memberErr) { console.error('[Reg]', memberErr); return; }
-      const dbId = rows?.[0]?.id;
-      if (!dbId) return;
-      setMe(p => ({ ...p, id: dbId }));
-      const { data: cardRows } = await sb.from('physical_cards').insert({ assigned_to: dbId, card_code: fallbackCard, tier: 'ORO', status: 'active' }).select();
-      if (cardRows?.[0]) await sb.from('members').update({ card_id: cardRows[0].id }).eq('id', dbId);
-      if (vehicles.length > 0) {
-        await sb.from('activity_log').insert({ member_id: dbId, activity_type: 'registro_vehiculos', description: `${vehicles.length} vehículo(s) · +${vehiclePts} pts`, points_change: vehiclePts, metadata: { vehicles } });
+      const updated = { ...me, name: regProfile.name, phone: regProfile.phone || '', dpi: regProfile.dpi || '', plate: firstPlate, email: regProfile.email || me?.email || '', bday: bdayStored, nit: regProfile.nit || '', points: totalPts, cardId: fallbackCard };
+      setMe(updated);
+      setCusts(p => [...p, updated]);
+      setAuthScreen('logged');
+      setGoogleStep('welcome');
+      fire('Bienvenido a Club Turkaj! +' + totalPts + ' pts de registro');
+
+      if (sb && sbConnected) {
+        const provider   = me?.authProvider || 'manual';
+        const providerId = me?.id?.startsWith('temp-') ? null : me?.id;
+        const memberData = {
+          phone:            regProfile.phone?.trim() || (provider === 'google' ? 'goog_' + (me?.id || '').substring(0, 12) : null),
+          password_hash:    'pw:' + btoa(password),
+          auth_provider:    provider,
+          auth_provider_id: providerId,
+          name:             regProfile.name,
+          dpi:              regProfile.dpi || null,
+          plate:            firstPlate || null,
+          vehicles:         vehicles.length > 0 ? vehicles : [],
+          nit:              regProfile.nit || null,
+          email:            regProfile.email || me?.email || null,
+          birthday:         bdayStored || null,
+          points:           totalPts,
+          gallons: 0, spent: 0, visits: 0, tickets: 0, redeemed_count: 0, referral_count: 0,
+        };
+        console.log('[Reg] Insertando miembro:', memberData.name, memberData.phone);
+        const { data: rows, error: memberErr } = await sb.from('members').insert(memberData).select();
+        if (memberErr) { console.error('[Reg] Error insert members:', memberErr.message, memberErr.details); setSaving(false); return; }
+        const dbId = rows?.[0]?.id;
+        if (!dbId) { console.error('[Reg] No se obtuvo ID del miembro'); setSaving(false); return; }
+        console.log('[Reg] Miembro creado con ID:', dbId);
+        setMe(p => ({ ...p, id: dbId }));
+
+        // Crear tarjeta
+        const { data: cardRows, error: cardErr } = await sb.from('physical_cards').insert({ assigned_to: dbId, card_code: fallbackCard, tier: 'ORO', status: 'active' }).select();
+        if (cardErr) console.error('[Reg] Error creando tarjeta:', cardErr.message);
+        if (cardRows?.[0]) await sb.from('members').update({ card_id: cardRows[0].id }).eq('id', dbId);
+
+        // Actividad de vehiculos
+        if (vehicles.length > 0) {
+          await sb.from('activity_log').insert({ member_id: dbId, activity_type: 'registro_vehiculos', description: vehicles.length + ' vehiculo(s) - +' + vehiclePts + ' pts', points_change: vehiclePts, metadata: { vehicles } });
+        }
+        logActivity(dbId, 'registro', 'Bienvenido a Club Turkaj - +' + totalPts + ' pts', totalPts);
+        console.log('[Reg] Registro completado exitosamente');
+      } else {
+        console.warn('[Reg] Sin conexion a Supabase — registro solo en memoria');
       }
-      logActivity(dbId, 'registro', `Bienvenido a Club Turkaj · +${totalPts} pts`, totalPts);
+    } catch (err) {
+      console.error('[Reg] Error inesperado:', err.message);
+      setAuthError('Error al guardar. Intenta de nuevo.');
     }
+    setSaving(false);
   };
 
   const errBox = authError ? (
@@ -516,8 +543,8 @@ export default function GoogleProfile(ctx) {
         )}
 
         <PtsCard total={totalPts} base={cfg.regBase || 15} optional={optFields * regOptional} vehicles={vehiclePts} />
-        <button onClick={doFinish} style={{ ...btnStyle, background: '#FBBC04', color: '#0D0D0D' }}>
-          Finalizar registro ({totalPts} pts) ✓
+        <button onClick={doFinish} disabled={saving} style={{ ...btnStyle, background: saving ? '#E0E0E0' : '#FBBC04', color: '#0D0D0D', opacity: saving ? .7 : 1 }}>
+          {saving ? 'Guardando...' : 'Finalizar registro (' + totalPts + ' pts)'}
         </button>
       </div>
     );
