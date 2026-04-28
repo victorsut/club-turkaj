@@ -89,10 +89,14 @@ export default function App() {
   const [oScr, setOScr] = useState('ohome');          // operator screen
 
   // ===== AUTH STATE =====
-  const [authScreen, setAuthScreen] = useState('login');   // login|register|verify|profile|googleProfile|logged
+  const [authOp, setAuthOp]     = useState(savedOp ? 'logged' : 'login');
   // Restaurar sesion de operador/admin desde localStorage
-  const savedOp    = (() => { try { return JSON.parse(localStorage.getItem('ct_op') || 'null'); } catch { return null; } })();
-  const savedAdmin = localStorage.getItem('ct_admin') === 'logged';
+  const savedOp     = (() => { try { return JSON.parse(localStorage.getItem('ct_op') || 'null'); } catch { return null; } })();
+  const savedAdmin  = localStorage.getItem('ct_admin') === 'logged';
+  const savedMe     = (() => { try { return JSON.parse(localStorage.getItem('ct_me') || 'null'); } catch { return null; } })();
+
+  const [authScreen, setAuthScreen] = useState(savedMe?.id ? 'logged' : 'login');
+  const [me, setMe]                 = useState(savedMe);
 
   const [authOp, setAuthOp]     = useState(savedOp ? 'logged' : 'login');
   const [loggedOp, setLoggedOp] = useState(savedOp);           // operator data after login
@@ -124,7 +128,7 @@ export default function App() {
   const [adLoginPass, setAdLoginPass] = useState('');
 
   // ===== DATA STATE =====
-  const [me, setMe] = useState(null);
+  // me y authScreen ya declarados arriba con persistencia localStorage
   const [custs, setCusts] = useState([]);
   const [operators, setOperators] = useState([]);
   const [showOpReg, setShowOpReg] = useState(false);
@@ -237,7 +241,7 @@ export default function App() {
     const day   = now.getDate();
 
     // Verificar si ya recibió bonus hoy
-    const { data: memberRow } = await sb.from('members').select('last_special_bonus, points').eq('id', memberId).single();
+    const { data: memberRow } = await sb.from('members').select('last_special_bonus').eq('id', memberId).single();
     if (memberRow?.last_special_bonus === today) return; // ya recibió hoy
 
     // Cargar días festivos activos
@@ -251,18 +255,8 @@ export default function App() {
       // Cumpleaños del miembro (month=0, day=0 = especial)
       if (sd.month === 0) {
         if (!memberBday) continue;
-        // birthday puede ser YYYY-MM-DD o MM-DD o MM/DD
-        const parts = memberBday.split(/[-\/]/);
-        let bMonth, bDay;
-        if (parts.length === 3) {
-          // YYYY-MM-DD → mes en índice 1, día en índice 2
-          bMonth = parseInt(parts[1]);
-          bDay   = parseInt(parts[2]);
-        } else if (parts.length === 2) {
-          // MM-DD
-          bMonth = parseInt(parts[0]);
-          bDay   = parseInt(parts[1]);
-        } else { continue; }
+        // bday guardado como MM-DD
+        const [bMonth, bDay] = (memberBday || '').split('-').map(Number);
         if (bMonth === month && bDay === day) {
           totalBonus += sd.points;
           bonusNames.push(`${sd.icon} ${sd.name}`);
@@ -894,6 +888,13 @@ export default function App() {
   }, [activePromos.length]);
 
   // ===== BUSINESS LOGIC CALLBACKS =====
+  // Sincronizar sesion cliente a localStorage cuando cambia
+  useEffect(() => {
+    if (me?.id && !me.id.startsWith('temp-') && authScreen === 'logged') {
+      localStorage.setItem('ct_me', JSON.stringify(me));
+    }
+  }, [me?.id, authScreen]);
+
   const addPurchase = useCallback((cid, a, f) => {
     const pts = Math.floor(a / cfg.qPerPt);
     const gal = +(a / FUEL[f]).toFixed(2);
@@ -1050,7 +1051,7 @@ export default function App() {
   const logout = useCallback(() => {
     if (sb) sb.auth.signOut({ scope: 'local' });
     setMe(null); setGoogleStep('welcome'); setMySurveyCount(0); setLoggedOp(null);
-    if (isC) { setAuthScreen('login'); setCScr('home'); setLoginPhone(''); setLoginPass(''); }
+    if (isC) { localStorage.removeItem('ct_me'); setAuthScreen('login'); setCScr('home'); setLoginPhone(''); setLoginPass(''); setMe(null); }
     else if (isO) { localStorage.removeItem('ct_op'); setAuthOp('login'); setLoggedOp(null); setOScr('ohome'); }
     else if (isA) { localStorage.removeItem('ct_admin'); setAuthAdmin('login'); setScr('dash'); }
     setAuthError(''); fire('👋 Sesión cerrada');
