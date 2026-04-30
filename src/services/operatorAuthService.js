@@ -1,21 +1,22 @@
 // src/services/operatorAuthService.js
-import { supabase } from '../lib/supabaseClient';
+import { sb } from '../lib/supabaseClient';
 
-const STORAGE_KEY = 'club_turkaj_operator_session';
+const STORAGE_KEY = 'ct_op';
 
 /**
  * Autentica un operador contra Supabase usando la RPC authenticate_operator.
- * @param {Object} credentials - { gafete, dpi, username, password }
  * @returns {Promise<{ok: boolean, operator?: object, error?: string}>}
  */
 export async function loginOperator({ gafete, dpi, username, password }) {
-  // Validaciones básicas en cliente
-  if (!gafete?.trim() || !dpi?.trim() || !username?.trim() || !password?.trim()) {
-    return { ok: false, error: 'Todos los campos son requeridos' };
+  if (!gafete?.trim() || !dpi?.trim() || !username?.trim() || !password) {
+    return { ok: false, error: 'Completa todos los campos' };
+  }
+  if (!sb) {
+    return { ok: false, error: 'Sin conexión al servidor' };
   }
 
   try {
-    const { data, error } = await supabase.rpc('authenticate_operator', {
+    const { data, error } = await sb.rpc('authenticate_operator', {
       p_gafete: gafete.trim(),
       p_dpi: dpi.trim(),
       p_username: username.trim().toLowerCase(),
@@ -24,64 +25,53 @@ export async function loginOperator({ gafete, dpi, username, password }) {
 
     if (error) {
       console.error('[operatorAuth] RPC error:', error);
-      return { ok: false, error: 'Error de conexión. Intenta de nuevo.' };
+      return { ok: false, error: 'Error de conexión, intenta de nuevo' };
     }
-
     if (!data || data.length === 0) {
       return { ok: false, error: 'Credenciales incorrectas' };
     }
 
-    const operator = data[0];
+    // Mapear al shape que espera el resto de la app (loggedOp.*)
+    const r = data[0];
+    const operator = {
+      id: r.id,
+      name: r.name,
+      user: r.username,
+      dpi: r.dpi,
+      gafete: r.gafete,
+      station: r.station_name || '',
+      stationId: r.station_id || null,
+      bomba: r.bomba || '',
+      turno: r.turno || '',
+      active: true,
+    };
     saveSession(operator);
     return { ok: true, operator };
   } catch (err) {
     console.error('[operatorAuth] Unexpected error:', err);
-    return { ok: false, error: 'Error inesperado. Intenta de nuevo.' };
+    return { ok: false, error: 'Error inesperado' };
   }
 }
 
-/**
- * Guarda la sesión del operador en sessionStorage.
- * sessionStorage se limpia al cerrar el navegador (apropiado para turnos).
- */
 export function saveSession(operator) {
   try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
-      ...operator,
-      logged_at: new Date().toISOString(),
-    }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(operator));
   } catch (err) {
-    console.error('[operatorAuth] Could not save session:', err);
+    console.error('[operatorAuth] save fail:', err);
   }
 }
 
-/**
- * Recupera la sesión actual del operador (si existe).
- * @returns {object|null}
- */
 export function getOperatorSession() {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 }
 
-/**
- * Cierra la sesión del operador.
- */
 export function logoutOperator() {
   try {
-    sessionStorage.removeItem(STORAGE_KEY);
-  } catch (err) {
-    console.error('[operatorAuth] Could not clear session:', err);
-  }
-}
-
-/**
- * Verifica si hay una sesión de operador activa.
- */
-export function isOperatorLoggedIn() {
-  return getOperatorSession() !== null;
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {}
 }
