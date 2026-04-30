@@ -89,8 +89,8 @@ export default function App() {
   const [oScr, setOScr] = useState('ohome');          // operator screen
 
   // ===== AUTH STATE =====
-  const [authOp, setAuthOp]     = useState(savedOp ? 'logged' : 'login');
   // Restaurar sesion de operador/admin desde localStorage
+  // (DEBE declararse antes de cualquier useState que use savedOp)
   const savedOp     = (() => { try { return JSON.parse(localStorage.getItem('ct_op') || 'null'); } catch { return null; } })();
   const savedAdmin  = localStorage.getItem('ct_admin') === 'logged';
   const savedMe     = (() => { try { return JSON.parse(localStorage.getItem('ct_me') || 'null'); } catch { return null; } })();
@@ -428,7 +428,7 @@ export default function App() {
         const opRes = await sb.from('operators').select('*, stations(name)').order('name');
         if (opRes.data?.length > 0) {
           setOperators(opRes.data.map(o => ({
-            id: o.id, name: o.name, user: o.username, password: o.password_hash,
+            id: o.id, name: o.name, user: o.username,
             dpi: o.dpi, gafete: o.gafete, phone: o.phone || '', email: o.email || '',
             station: o.stations?.name || o.station_id || '', stationId: o.station_id || null, bomba: o.bomba || '', turno: o.turno || '',
             active: o.active !== false,
