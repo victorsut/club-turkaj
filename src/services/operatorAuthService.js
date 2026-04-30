@@ -1,10 +1,20 @@
 // src/services/operatorAuthService.js
+// Servicio de autenticación de operadores Club Turkaj.
+// Usa la RPC `authenticate_operator` de Supabase, que valida contra
+// password_hash con bcrypt en el servidor (extensions.crypt).
+// La contraseña en texto plano nunca se guarda en el cliente.
+
 import { sb } from '../lib/supabaseClient';
 
 const STORAGE_KEY = 'ct_op';
 
 /**
- * Autentica un operador contra Supabase usando la RPC authenticate_operator.
+ * Autentica un operador contra Supabase.
+ * @param {Object} credentials
+ * @param {string} credentials.gafete    - Número de gafete
+ * @param {string} credentials.dpi       - DPI del operador
+ * @param {string} credentials.username  - Nombre de usuario
+ * @param {string} credentials.password  - Contraseña en texto plano
  * @returns {Promise<{ok: boolean, operator?: object, error?: string}>}
  */
 export async function loginOperator({ gafete, dpi, username, password }) {
@@ -31,7 +41,7 @@ export async function loginOperator({ gafete, dpi, username, password }) {
       return { ok: false, error: 'Credenciales incorrectas' };
     }
 
-    // Mapear al shape que espera el resto de la app (loggedOp.*)
+    // Mapear al shape que ya espera el resto de la app (loggedOp.*)
     const r = data[0];
     const operator = {
       id: r.id,
@@ -45,6 +55,7 @@ export async function loginOperator({ gafete, dpi, username, password }) {
       turno: r.turno || '',
       active: true,
     };
+
     saveSession(operator);
     return { ok: true, operator };
   } catch (err) {
@@ -53,6 +64,10 @@ export async function loginOperator({ gafete, dpi, username, password }) {
   }
 }
 
+/**
+ * Guarda la sesión del operador en localStorage.
+ * Mantenemos la misma key 'ct_op' para no romper código existente.
+ */
 export function saveSession(operator) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(operator));
@@ -61,6 +76,10 @@ export function saveSession(operator) {
   }
 }
 
+/**
+ * Recupera la sesión actual del operador (si existe).
+ * @returns {object|null}
+ */
 export function getOperatorSession() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -70,8 +89,20 @@ export function getOperatorSession() {
   }
 }
 
+/**
+ * Cierra la sesión del operador (limpia localStorage).
+ */
 export function logoutOperator() {
   try {
     localStorage.removeItem(STORAGE_KEY);
-  } catch {}
+  } catch (err) {
+    console.error('[operatorAuth] clear fail:', err);
+  }
+}
+
+/**
+ * Verifica si hay sesión de operador activa.
+ */
+export function isOperatorLoggedIn() {
+  return getOperatorSession() !== null;
 }
