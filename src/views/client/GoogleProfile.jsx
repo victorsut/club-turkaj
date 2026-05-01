@@ -227,7 +227,12 @@ export default function GoogleProfile(ctx) {
   const [showPass, setShowPass]             = useState(false);
   const [showPassConfirm, setShowPassConfirm] = useState(false);
 
-  const regOptional = cfg.regOptional || 2;
+  // ── Verificar si el telefono ya existe en Supabase ───────
+  const checkPhoneDuplicate = async (phone) => {
+    if (!sb || !phone) return false;
+    const { data } = await sb.from('members').select('id').eq('phone', phone.trim()).maybeSingle();
+    return !!data;
+  };
 
   // Solo email y nit dan puntos opcionales
   const optFields  = ['email', 'nit'].filter(k => regProfile[k]?.trim()).length;
@@ -279,6 +284,13 @@ export default function GoogleProfile(ctx) {
           gallons: 0, spent: 0, visits: 0, tickets: 0, redeemed_count: 0, referral_count: 0,
         };
         console.log('[Reg] Insertando miembro:', memberData.name, memberData.phone);
+        // Segunda verificacion de seguridad antes del insert
+        const doubleCheck = await checkPhoneDuplicate(regProfile.phone?.trim());
+        if (doubleCheck) {
+          setAuthScreen('login'); setGoogleStep('welcome');
+          fire('Este numero ya esta registrado. Inicia sesion.');
+          setSaving(false); return;
+        }
         const { data: rows, error: memberErr } = await sb.from('members').insert(memberData).select();
         if (memberErr) { console.error('[Reg] Error insert members:', memberErr.message, memberErr.details); setSaving(false); return; }
         const dbId = rows?.[0]?.id;
@@ -330,14 +342,23 @@ export default function GoogleProfile(ctx) {
 
   // ══ PASO 1 — Datos personales (todos obligatorios, sin bonus) ═
   if (googleStep === 'step1' || googleStep === 'welcome') {
-    const next = () => {
+    const [checkingPhone, setCheckingPhone] = useState(false);
+    const next = async () => {
       clearAuthErr();
       if (!regProfile.name?.trim())  { setAuthError('El nombre es obligatorio'); return; }
       if (!regProfile.bday?.trim())  { setAuthError('La fecha de nacimiento es obligatoria'); return; }
       if (!regProfile.dpi?.trim())   { setAuthError('El DPI es obligatorio'); return; }
-      if (!/^\d{13}$/.test(regProfile.dpi.trim())) { setAuthError('El DPI debe tener exactamente 13 dígitos'); return; }
-      if (!regProfile.phone?.trim()) { setAuthError('El teléfono es obligatorio'); return; }
-      if (!/^\d{8}$/.test(regProfile.phone.trim())) { setAuthError('El teléfono debe tener exactamente 8 dígitos'); return; }
+      if (!/^\d{13}$/.test(regProfile.dpi.trim())) { setAuthError('El DPI debe tener exactamente 13 digitos'); return; }
+      if (!regProfile.phone?.trim()) { setAuthError('El telefono es obligatorio'); return; }
+      if (!/^\d{8}$/.test(regProfile.phone.trim())) { setAuthError('El telefono debe tener exactamente 8 digitos'); return; }
+      // Verificar si el telefono ya esta registrado
+      setCheckingPhone(true);
+      const exists = await checkPhoneDuplicate(regProfile.phone.trim());
+      setCheckingPhone(false);
+      if (exists) {
+        setAuthError('Este numero de telefono ya esta registrado. Si ya tienes cuenta, inicia sesion.');
+        return;
+      }
       setGoogleStep('step2');
     };
     return (
@@ -368,7 +389,9 @@ export default function GoogleProfile(ctx) {
           </div>
         </div>
         <PtsCard total={totalPts} base={cfg.regBase || 15} optional={optFields * regOptional} vehicles={vehiclePts} />
-        <button onClick={next} style={{ ...btnStyle, background: '#FBBC04', color: '#0D0D0D' }}>Siguiente →</button>
+        <button onClick={next} disabled={checkingPhone} style={{ ...btnStyle, background: '#FBBC04', color: '#0D0D0D', opacity: checkingPhone ? .7 : 1 }}>
+          {checkingPhone ? 'Verificando...' : 'Siguiente →'}
+        </button>
       </div>
     );
   }
