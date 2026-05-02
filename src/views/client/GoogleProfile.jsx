@@ -227,10 +227,16 @@ export default function GoogleProfile(ctx) {
   const [showPass, setShowPass]             = useState(false);
   const [showPassConfirm, setShowPassConfirm] = useState(false);
 
-  // ── Verificar si el telefono ya existe en Supabase ───────
+  // ── Verificar si el telefono o DPI ya existe en Supabase ─
   const checkPhoneDuplicate = async (phone) => {
     if (!sb || !phone) return false;
     const { data } = await sb.from('members').select('id').eq('phone', phone.trim()).maybeSingle();
+    return !!data;
+  };
+
+  const checkDpiDuplicate = async (dpi) => {
+    if (!sb || !dpi) return false;
+    const { data } = await sb.from('members').select('id').eq('dpi', dpi.trim()).maybeSingle();
     return !!data;
   };
 
@@ -285,11 +291,17 @@ export default function GoogleProfile(ctx) {
           gallons: 0, spent: 0, visits: 0, tickets: 0, redeemed_count: 0, referral_count: 0,
         };
         console.log('[Reg] Insertando miembro:', memberData.name, memberData.phone);
-        // Segunda verificacion de seguridad antes del insert
+        // Segunda verificacion antes del insert (por si acaso)
         const doubleCheck = await checkPhoneDuplicate(regProfile.phone?.trim());
         if (doubleCheck) {
           setAuthScreen('login'); setGoogleStep('welcome');
           fire('Este numero ya esta registrado. Inicia sesion.');
+          setSaving(false); return;
+        }
+        const dpiDoubleCheck = await checkDpiDuplicate(regProfile.dpi?.trim());
+        if (dpiDoubleCheck) {
+          setAuthScreen('login'); setGoogleStep('welcome');
+          fire('Este DPI ya esta registrado. Inicia sesion.');
           setSaving(false); return;
         }
         const { data: rows, error: memberErr } = await sb.from('members').insert(memberData).select();
@@ -354,10 +366,17 @@ export default function GoogleProfile(ctx) {
       if (!/^\d{8}$/.test(regProfile.phone.trim())) { setAuthError('El telefono debe tener exactamente 8 digitos'); return; }
       // Verificar si el telefono ya esta registrado
       setCheckingPhone(true);
-      const exists = await checkPhoneDuplicate(regProfile.phone.trim());
-      setCheckingPhone(false);
-      if (exists) {
+      const phoneExists = await checkPhoneDuplicate(regProfile.phone.trim());
+      if (phoneExists) {
+        setCheckingPhone(false);
         setAuthError('Este numero de telefono ya esta registrado. Si ya tienes cuenta, inicia sesion.');
+        return;
+      }
+      // Verificar si el DPI ya esta registrado
+      const dpiExists = await checkDpiDuplicate(regProfile.dpi.trim());
+      setCheckingPhone(false);
+      if (dpiExists) {
+        setAuthError('Este DPI ya esta registrado. Si ya tienes cuenta, inicia sesion.');
         return;
       }
       setGoogleStep('step2');
