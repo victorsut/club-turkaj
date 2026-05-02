@@ -235,6 +235,7 @@ export default function GoogleProfile(ctx) {
   };
 
   // Solo email y nit dan puntos opcionales
+  const regOptional = cfg.regOptional || 2;
   const optFields  = ['email', 'nit'].filter(k => regProfile[k]?.trim()).length;
   const vehiclePts = vehicles.length * VEHICLE_PTS;
   const totalPts   = (cfg.regBase || 15) + optFields * regOptional + vehiclePts;
