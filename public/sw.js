@@ -1,7 +1,86 @@
-// Service Worker for Club Turkaj Push Notifications
+// public/sw.js — Club Turkaj Service Worker
+// Push Notifications + Cache Offline
 
+const CACHE_NAME = 'club-turkaj-v2';
+const OFFLINE_URLS = [
+  '/',
+  '/index.html',
+  '/favicon.svg',
+  '/manifest.json',
+];
+
+// ── Instalacion: pre-cachear recursos esenciales ──────────
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => cache.addAll(OFFLINE_URLS))
+  );
+  self.skipWaiting();
+});
+
+// ── Activacion: limpiar caches viejas ────────────────────
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+    ).then(() => clients.claim())
+  );
+});
+
+// ── Fetch: Cache First para assets, Network First para API ─
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // No interceptar llamadas a Supabase ni a APIs externas
+  if (
+    url.hostname.includes('supabase.co') ||
+    url.hostname.includes('googleapis.com') ||
+    url.hostname.includes('twilio.com') ||
+    url.pathname.startsWith('/api/')
+  ) {
+    return; // dejar pasar sin cache
+  }
+
+  // Para assets estaticos: Cache First
+  if (
+    event.request.destination === 'script' ||
+    event.request.destination === 'style' ||
+    event.request.destination === 'image' ||
+    event.request.destination === 'font' ||
+    url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.css') ||
+    url.pathname.endsWith('.svg') ||
+    url.pathname.endsWith('.png') ||
+    url.pathname.endsWith('.woff2')
+  ) {
+    event.respondWith(
+      caches.match(event.request).then(cached => {
+        if (cached) return cached;
+        return fetch(event.request).then(response => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          }
+          return response;
+        });
+      })
+    );
+    return;
+  }
+
+  // Para la app principal (navegacion): Network First con fallback offline
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() =>
+        caches.match('/index.html').then(cached => cached || caches.match('/'))
+      )
+    );
+    return;
+  }
+});
+
+// ── Push Notifications ────────────────────────────────────
 self.addEventListener('push', (event) => {
-  let data = { title: 'Club Turkaj', body: 'Tenés una notificación', icon: '/favicon.svg' };
+  let data = { title: 'Club Turkaj', body: 'Tenes una notificacion', icon: '/favicon.svg' };
   try {
     if (event.data) data = { ...data, ...event.data.json() };
   } catch (e) {
@@ -50,6 +129,3 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
-
-self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', (event) => event.waitUntil(clients.claim()));
