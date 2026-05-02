@@ -48,7 +48,8 @@ export default function OpManagement(ctx) {
     setSaving(true);
     const stationObj = (stations || []).find(s => s.name === newOp.station);
     const stationId  = stationObj?.id || null;
-    const dbData = { name: newOp.name, username: newOp.user, password_hash: newOp.password, dpi: newOp.dpi, gafete: newOp.gafete, phone: newOp.phone || null, email: newOp.email || null, station_id: stationId, bomba: newOp.bomba || null, turno: newOp.turno || 'Matutino' };
+    const hashPw = (pw) => 'pw:' + btoa(unescape(encodeURIComponent(pw)));
+    const dbData = { name: newOp.name, username: newOp.user, password_hash: hashPw(newOp.password), dpi: newOp.dpi, gafete: newOp.gafete, phone: newOp.phone || null, email: newOp.email || null, station_id: stationId, bomba: newOp.bomba || null, turno: newOp.turno || 'Matutino' };
     if (sb && sbConnected) {
       if (editOp) {
         const { error } = await sb.from('operators').update(dbData).eq('id', editOp.id);
