@@ -89,11 +89,19 @@ export default function App() {
   const [oScr, setOScr] = useState('ohome');          // operator screen
 
   // ===== AUTH STATE =====
-  // Restaurar sesion de operador/admin desde localStorage
+  // Restaurar sesion de operador/admin/cliente desde localStorage
   // (DEBE declararse antes de cualquier useState que use savedOp)
-  const savedOp     = (() => { try { return JSON.parse(localStorage.getItem('ct_op') || 'null'); } catch { return null; } })();
-  const savedAdmin  = localStorage.getItem('ct_admin') === 'logged';
-  const savedMe     = (() => { try { return JSON.parse(localStorage.getItem('ct_me') || 'null'); } catch { return null; } })();
+  const savedOp = (() => { try { return JSON.parse(localStorage.getItem('ct_op') || 'null'); } catch { return null; } })();
+  const savedAdmin = (() => {
+    try {
+      const raw = localStorage.getItem('ct_admin');
+      if (!raw) return null;
+      // Compatibilidad con formato antiguo ('logged' suelto) → forzar re-login
+      if (raw === 'logged') { localStorage.removeItem('ct_admin'); return null; }
+      return JSON.parse(raw);
+    } catch { return null; }
+  })();
+  const savedMe = (() => { try { return JSON.parse(localStorage.getItem('ct_me') || 'null'); } catch { return null; } })();
 
   const [authScreen, setAuthScreen] = useState(savedMe?.id ? 'logged' : 'login');
   const [me, setMe]                 = useState(savedMe);
@@ -103,7 +111,8 @@ export default function App() {
   const [opScanMode, setOpScanMode] = useState(false);      // open QR scanner on OpClients
   const [opRedeemScan, setOpRedeemScan] = useState(false);  // open QR scanner on OpRedeem
   const [stations, setStations] = useState([]);               // gas stations from Supabase
-  const [authAdmin, setAuthAdmin] = useState(savedAdmin ? 'logged' : 'login');
+  const [authAdmin, setAuthAdmin]   = useState(savedAdmin ? 'logged' : 'login');
+  const [loggedAdmin, setLoggedAdmin] = useState(savedAdmin); // admin data after login
   const [authError, setAuthError] = useState('');
   const clearAuthErr = () => { if (authError) setAuthError(''); };
 
@@ -1053,7 +1062,7 @@ export default function App() {
     setMe(null); setGoogleStep('welcome'); setMySurveyCount(0); setLoggedOp(null);
     if (isC) { localStorage.removeItem('ct_me'); setAuthScreen('login'); setCScr('home'); setLoginPhone(''); setLoginPass(''); setMe(null); }
     else if (isO) { localStorage.removeItem('ct_op'); setAuthOp('login'); setLoggedOp(null); setOScr('ohome'); }
-    else if (isA) { localStorage.removeItem('ct_admin'); setAuthAdmin('login'); setScr('dash'); }
+    else if (isA) { localStorage.removeItem('ct_admin'); setAuthAdmin('login'); setLoggedAdmin(null); setScr('dash'); }
     setAuthError(''); fire('👋 Sesión cerrada');
   }, [view, fire]);
 
@@ -1083,7 +1092,7 @@ export default function App() {
     sortDir, setSortDir, memSort, setMemSort,
     stationFilter, setStationFilter, stationMode, setStationMode,
     // Auth
-    authScreen, setAuthScreen, authOp, setAuthOp, loggedOp, setLoggedOp, opScanMode, setOpScanMode, opRedeemScan, setOpRedeemScan, stations, authAdmin, setAuthAdmin,
+    authScreen, setAuthScreen, authOp, setAuthOp, loggedOp, setLoggedOp, opScanMode, setOpScanMode, opRedeemScan, setOpRedeemScan, stations, authAdmin, setAuthAdmin, loggedAdmin, setLoggedAdmin,
     authError, setAuthError, clearAuthErr,
     loginPhone, setLoginPhone, loginPass, setLoginPass,
     regPhone, setRegPhone, regPass, setRegPass, regPass2, setRegPass2,
