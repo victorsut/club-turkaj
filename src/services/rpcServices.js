@@ -6,7 +6,7 @@
 // (transacciones atómicas, validaciones de negocio).
 //
 // Las funciones RPC correspondientes están definidas en:
-//   supabase-schema.sql → Sección 18. FUNCIONES RPC
+//   sql/02-rpc-refactor.sql
 // ============================================================
 
 import { sb } from '../lib/supabaseClient';
@@ -33,18 +33,19 @@ async function callRpc(fnName, params) {
 // 1. COMPRAS — register_purchase
 // ──────────────────────────────────────────────
 // Registra una compra de combustible de forma atómica:
+//   - Lee precios de combustible desde program_config
 //   - Inserta en `purchases`
-//   - Actualiza puntos, galones, visitas en `members`
+//   - Actualiza puntos, galones, visitas, last_operator_id en `members`
 //   - Registra en `activity_log`
+//   - Si hay cambio de tier → actualiza `physical_cards` (código + tier)
 //
-// @param {string} memberId    - UUID del miembro
-// @param {string} operatorId  - UUID del operador que registra
-// @param {string} stationId   - UUID de la estación
-// @param {number} amount      - Monto en Quetzales (ej: 250.00)
-// @param {string} fuelType    - 'super' | 'regular' | 'diesel'
-// @param {string} [invoiceNo] - Número de factura (opcional)
-//
-// @returns {{ purchase_id, points, gallons } | error}
+// @returns {{
+//   purchase_id, points, gallons,
+//   tier_changed: boolean,
+//   old_tier: 'ORO'|'PLATINO'|'BLACK',
+//   new_tier: 'ORO'|'PLATINO'|'BLACK',
+//   new_card_code: string|null
+// } | error}
 // ──────────────────────────────────────────────
 export async function registerPurchase({
   memberId,
@@ -67,18 +68,15 @@ export async function registerPurchase({
 // ──────────────────────────────────────────────
 // 2. CANJES — redeem_reward
 // ──────────────────────────────────────────────
-// Canjea un premio del catálogo:
-//   - Verifica puntos suficientes
-//   - Aplica descuento por nivel (PLATINO -10%, BLACK -15%)
-//   - Inserta en `redemptions`
-//   - Descuenta puntos en `members`
-//   - Registra en `activity_log`
+// Canjea un premio. Crea la fila con confirm_status='none'.
+// El flujo realtime de operador (OpRedeem.jsx) hace luego
+// update confirm_status='pending' → cliente confirma → operador
+// marca collected=true.
 //
-// @param {string} memberId   - UUID del miembro
-// @param {string} rewardId   - UUID del premio a canjear
-// @param {string} [operatorId] - UUID del operador (opcional)
-//
-// @returns {{ code, cost, discount } | error}
+// @returns {{
+//   redemption_id, code, cost, discount,
+//   reward_name, reward_icon
+// } | error}
 // ──────────────────────────────────────────────
 export async function redeemReward({
   memberId,
@@ -95,17 +93,13 @@ export async function redeemReward({
 // ──────────────────────────────────────────────
 // 3. BOLETOS DE RIFA — buy_raffle_tickets
 // ──────────────────────────────────────────────
-// Compra boletos de rifa mensual:
-//   - Verifica puntos (5 pts = 1 boleto por defecto)
-//   - Inserta en `raffle_tickets`
-//   - Descuenta puntos, incrementa tickets en `members`
-//   - Registra en `activity_log`
+// Compra boletos de rifa mensual. Inserta en `raffle_tickets`
+// (no `raffle_entries` — esa tabla está deprecada).
 //
-// @param {string} memberId  - UUID del miembro
-// @param {string} raffleId  - UUID de la rifa mensual (raffle_calendar.id)
-// @param {number} quantity  - Cantidad de boletos a comprar
-//
-// @returns {{ tickets, cost } | error}
+// @returns {{
+//   tickets, cost,
+//   remaining_points, new_ticket_total
+// } | error}
 // ──────────────────────────────────────────────
 export async function buyRaffleTickets({
   memberId,
@@ -122,15 +116,15 @@ export async function buyRaffleTickets({
 // ──────────────────────────────────────────────
 // 4. ENCUESTAS — complete_survey
 // ──────────────────────────────────────────────
-// Completa una encuesta diaria:
-//   - Verifica límite diario (5 por defecto)
-//   - Si es la 5ta encuesta → otorga boleto bonus
-//   - Suma puntos en `members`
-//   - Registra en `activity_log`
+// Completa una encuesta diaria. La RPC cuenta sola las
+// encuestas del día desde la tabla `surveys`, así que el
+// cliente debe CONFIAR en `count` y `bonus_ticket` retornados
+// (no llevar contador local separado).
 //
-// @param {string} memberId - UUID del miembro
-//
-// @returns {{ points, count, limit, bonus_ticket } | error}
+// @returns {{
+//   points, count, limit, bonus_ticket,
+//   remaining_points, new_ticket_total
+// } | error}
 // ──────────────────────────────────────────────
 export async function completeSurvey(memberId) {
   return callRpc('complete_survey', {
@@ -146,9 +140,7 @@ export async function completeSurvey(memberId) {
 //   - 150-499 gal → PLATINO
 //   - 500+ gal    → BLACK
 //
-// @param {number} gallons - Galones acumulados del miembro
-//
-// @returns {string} 'ORO' | 'PLATINO' | 'BLACK'
+// @returns 'ORO' | 'PLATINO' | 'BLACK'
 // ──────────────────────────────────────────────
 export async function getMemberTier(gallons) {
   return callRpc('get_member_tier', { gal: gallons });
