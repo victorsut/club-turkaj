@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { sb } from '../lib/supabaseClient';
 import { makeTier, daysInactive } from '../lib/tierSystem';
 import { CFG_INIT, FUEL, FUEL_LABELS } from '../constants/config';
+import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey } from '../services';
 
 // Guatemala es UTC-6 — usar siempre fecha/hora local, nunca UTC
 function localDate() {
@@ -904,158 +905,210 @@ export default function App() {
     }
   }, [me?.id, authScreen]);
 
-  const addPurchase = useCallback((cid, a, f) => {
-    const pts = Math.floor(a / cfg.qPerPt);
-    const gal = +(a / FUEL[f]).toFixed(2);
-    if (pts <= 0) { fire('Mínimo Q10'); return; }
-    const today = localDate();
-    const buyer = custs.find(c => c.id === cid);
+  // ──────────────────────────────────────────────
+  // addPurchase — delega en RPC register_purchase
+  // ──────────────────────────────────────────────
+  // La RPC hace TODO de forma atómica:
+  //   - Lee precios desde program_config
+  //   - Inserta en purchases
+  //   - Actualiza members (puntos, galones, visitas, last_buy, last_operator_id)
+  //   - Inserta en activity_log
+  //   - Si hay cambio de tier → actualiza physical_cards
+  //
+  // El cliente solo: muestra toast, optimistic UI, push notification.
+  const addPurchase = useCallback(async (cid, a, f) => {
+    if (!a || a < 10) { fire('Mínimo Q10'); return; }
+    if (!sb || !sbConnected) { fire('Sin conexión'); return; }
+
     const stationName = loggedOp?.station || '';
-    console.log('[Purchase] Station:', stationName, 'StationId:', loggedOp?.stationId, 'LoggedOp:', loggedOp?.name);
-    setCusts(p => p.map(c => c.id === cid ? { ...c, points: c.points + pts, gallons: +(c.gallons + gal).toFixed(2), spent: c.spent + a, visits: c.visits + 1, lastBuy: today, station: stationName || c.station } : c));
-    if (me?.id === cid) setMe(p => ({ ...p, points: p.points + pts, gallons: +(p.gallons + gal).toFixed(2), spent: p.spent + a, visits: p.visits + 1, lastBuy: today, station: stationName || p.station }));
+
+    // Llamada al RPC
+    const { data, error } = await registerPurchase({
+      memberId: cid,
+      operatorId: loggedOp?.id || null,
+      stationId: loggedOp?.stationId || null,
+      amount: a,
+      fuelType: f,
+    });
+
+    if (error) {
+      console.error('[Purchase] RPC error:', error.message);
+      fire('Error: ' + error.message);
+      return;
+    }
+
+    const { points: pts, gallons: gal, tier_changed, new_tier, new_card_code } = data;
+    const today = localDate();
+
+    // Optimistic update del state local con los valores REALES devueltos por el server
+    setCusts(p => p.map(c => c.id === cid ? {
+      ...c,
+      points: c.points + pts,
+      gallons: +(parseFloat(c.gallons || 0) + gal).toFixed(2),
+      spent: +(parseFloat(c.spent || 0) + a).toFixed(2),
+      visits: (c.visits || 0) + 1,
+      lastBuy: today,
+      station: stationName || c.station,
+      cardId: new_card_code || c.cardId,
+    } : c));
+
+    if (me?.id === cid) setMe(p => ({
+      ...p,
+      points: p.points + pts,
+      gallons: +(parseFloat(p.gallons || 0) + gal).toFixed(2),
+      spent: +(parseFloat(p.spent || 0) + a).toFixed(2),
+      visits: (p.visits || 0) + 1,
+      lastBuy: today,
+      station: stationName || p.station,
+      cardId: new_card_code || p.cardId,
+    }));
+
     fire(`+${pts} pts · ${gal} gal · Q${a}`);
     setModal(null); setAmt('');
-    if (buyer) {
-      const oldTier = gT(parseFloat(buyer.gallons || 0)).name;
-      const newGal = +(parseFloat(buyer.gallons || 0) + gal).toFixed(2);
-      const newTier = gT(newGal).name;
-      const syncData = { points: (buyer.points || 0) + pts, gallons: newGal, spent: +(parseFloat(buyer.spent || 0) + a).toFixed(2), visits: (buyer.visits || 0) + 1, last_buy: localISO(), updated_at: localISO() };
-      if (stationName) syncData.last_station = stationName;
-      if (loggedOp?.id) syncData.last_operator_id = loggedOp.id;
-      syncMember(cid, syncData);
-      logActivity(cid, 'compra', `Compra ${gal} gal ${f} \u00b7 Q${a}`, pts, a);
-      if (sb && sbConnected) {
-        const purchaseData = { member_id: cid, amount: a, fuel_type: f, gallons: gal, points_earned: pts };
-        if (loggedOp?.stationId) purchaseData.station_id = loggedOp.stationId;
-        if (loggedOp?.id) purchaseData.operator_id = loggedOp.id;
-        console.log('[Purchase] Guardando en Supabase:', purchaseData);
-        sb.from('purchases').insert(purchaseData).then(r => {
-          if (r.error) console.error('[Purchase] Error al guardar:', r.error.message, r.error);
-          else console.log('[Purchase] ✅ Guardado correctamente');
-        });
 
-        // Send push notification to member's phone
-        if (loggedOp) {
-          sendPushToMember(cid, {
-            title: '⛽ ¡Compra registrada!',
-            body: `+${pts} pts · ${gal} gal · Q${a} — Atendido por ${loggedOp.name}`,
-            operatorId: loggedOp.id,
-            operatorName: loggedOp.name,
-            stationName: stationName,
-          });
-        }
-        if (oldTier !== newTier) {
-          sb.from('members').select('card_id').eq('id', cid).single().then(memR => {
-            if (memR.data?.card_id) {
-              sb.from('physical_cards').select('card_code').eq('id', memR.data.card_id).single().then(cardR => {
-                if (cardR.data?.card_code) {
-                  const pm = { ORO: 'CTOD', PLATINO: 'CTPD', BLACK: 'CTBD' };
-                  const cm = cardR.data.card_code.match(/^CT[OPB]D-(\d+)$/);
-                  if (cm) {
-                    const nc = (pm[newTier] || 'CTOD') + '-' + cm[1];
-                    sb.from('physical_cards').update({ card_code: nc, tier: newTier }).eq('id', memR.data.card_id);
-                    fire('\u2b50 \u00a1Subiste a ' + newTier + '! Tu c\u00f3digo es ' + nc);
-                    setCusts(p => p.map(c => c.id === cid ? { ...c, cardId: nc } : c));
-                    if (me?.id === cid) setMe(p => ({ ...p, cardId: nc }));
-                  }
-                }
-              });
-            }
-          });
-        }
-      }
+    // Push notification
+    if (loggedOp) {
+      sendPushToMember(cid, {
+        title: '⛽ ¡Compra registrada!',
+        body: `+${pts} pts · ${gal} gal · Q${a} — Atendido por ${loggedOp.name}`,
+        operatorId: loggedOp.id,
+        operatorName: loggedOp.name,
+        stationName,
+      });
     }
-  }, [me, custs, fire, cfg, gT, syncMember, logActivity, sbConnected, loggedOp]);
 
-  const redeem = useCallback((r) => {
-    const t = gT(me.gallons);
-    const cost = Math.round(r.pts * (1 - t.redeemDisc));
-    if (me.points < cost) return;
-    const code = `TK-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    // Aviso de upgrade de tier
+    if (tier_changed && new_card_code) {
+      fire('⭐ ¡Subiste a ' + new_tier + '! Tu código es ' + new_card_code);
+    }
+  }, [me, fire, sbConnected, loggedOp]);
+
+  // ──────────────────────────────────────────────
+  // redeem — delega en RPC redeem_reward
+  // ──────────────────────────────────────────────
+  // La RPC valida puntos, calcula descuento por tier, valida exclusividad
+  // de tier, crea la fila en redemptions con confirm_status='none' (default),
+  // descuenta puntos y registra activity_log.
+  // El flujo de confirmación con el operador (OpRedeem) sigue intacto:
+  // operador escanea → update confirm_status='pending' → cliente confirma.
+  //
+  // r.id debe ser el UUID del reward en Supabase (no el campo "id" local).
+  const redeem = useCallback(async (r) => {
+    if (!me?.id) return;
+    if (!sb || !sbConnected) { fire('Sin conexión'); return; }
+    if (!r.id) { fire('Premio sin ID válido'); return; }
+
+    const { data, error } = await redeemReward({
+      memberId: me.id,
+      rewardId: r.id,
+      operatorId: null, // canje desde cliente, sin operador asociado aún
+    });
+
+    if (error) {
+      fire('❌ ' + (error.message || 'Error al canjear'));
+      return;
+    }
+
+    const { redemption_id, code, cost, reward_name, reward_icon } = data;
     const today = localDate();
-    const newEntry = { id: `RD-${Date.now()}`, memberId: me.id, reward: { name: r.name, icon: r.icon, cat: r.cat }, cost, date: today, code, collected: false };
+    const newEntry = {
+      id: redemption_id,
+      memberId: me.id,
+      reward: { name: reward_name, icon: reward_icon, cat: r.cat },
+      cost, date: today, code, collected: false,
+    };
 
-    // Actualizar estado local inmediatamente
+    // Update local state con valores REALES del server
     setMe(p => ({ ...p, points: p.points - cost, redeemed: (p.redeemed || 0) + 1 }));
-    setCusts(p => p.map(c => c.id === me.id ? { ...c, points: c.points - cost, redeemed: (c.redeemed || 0) + 1 } : c));
+    setCusts(p => p.map(c => c.id === me.id
+      ? { ...c, points: c.points - cost, redeemed: (c.redeemed || 0) + 1 }
+      : c));
     setRedeemedList(p => [newEntry, ...p]);
-    fire(`🎉 ¡Canjeaste ${r.name} por ${cost} pts!`);
+    fire(`🎉 ¡Canjeaste ${reward_name} por ${cost} pts!`);
+  }, [me, fire, sbConnected]);
 
-    // Sincronizar con Supabase
-    syncMember(me.id, { points: me.points - cost, redeemed_count: (me.redeemed || 0) + 1, updated_at: localISO() });
-    logActivity(me.id, 'canje', `Canjeó: ${r.name} ${r.icon}`, -cost);
-    if (sb && sbConnected) {
-      sb.from('redemptions')
-        .insert({ member_id: me.id, reward_id: r.id, points_spent: cost, redemption_code: code })
-        .then(res => {
-          if (res.error) console.error('[Redeem] Supabase error:', res.error);
-          else console.log('[Redeem] ✅ Guardado en Supabase:', code);
-        });
+  // ──────────────────────────────────────────────
+  // buyTickets — delega en RPC buy_raffle_tickets
+  // ──────────────────────────────────────────────
+  // La RPC valida puntos, descuenta, inserta en raffle_tickets
+  // (no raffle_entries — esa tabla está deprecada) y registra activity.
+  const buyTickets = useCallback(async (n) => {
+    if (!me?.id) return;
+    if (!n || n < 1) { fire('Cantidad inválida'); return; }
+    if (!sb || !sbConnected) { fire('Sin conexión'); return; }
+
+    // Obtener ID de la rifa del mes actual (curMonth es 0-indexed)
+    const { data: rafRow, error: rafErr } = await sb
+      .from('raffle_calendar')
+      .select('id')
+      .eq('month', curMonth + 1)
+      .maybeSingle();
+
+    if (rafErr || !rafRow?.id) {
+      fire('Rifa no disponible para este mes');
+      return;
     }
-  }, [me, fire, gT, syncMember, logActivity, sbConnected]);
 
-  const buyTickets = useCallback((n) => {
-    const cost = n * cfg.ticketPts;
-    if (me.points < cost) { fire('❌ Puntos insuficientes'); return; }
+    const { data, error } = await buyRaffleTickets({
+      memberId: me.id,
+      raffleId: rafRow.id,
+      quantity: n,
+    });
 
-    // Actualizar estado local inmediatamente
-    setMe(p => ({ ...p, points: p.points - cost, tickets: p.tickets + n }));
-    setCusts(p => p.map(c => c.id === me.id ? { ...c, points: c.points - cost, tickets: c.tickets + n } : c));
+    if (error) {
+      fire('❌ ' + (error.message || 'Error al comprar boletos'));
+      return;
+    }
+
+    const { tickets, cost, remaining_points, new_ticket_total } = data;
+
+    setMe(p => ({ ...p, points: remaining_points, tickets: new_ticket_total }));
+    setCusts(p => p.map(c => c.id === me.id
+      ? { ...c, points: remaining_points, tickets: new_ticket_total }
+      : c));
     setRafData(p => p.map((rd, i) => {
       if (i !== curMonth) return rd;
       const ps = [...rd.participants];
       const ex = ps.findIndex(p2 => p2.cid === me.id);
-      if (ex >= 0) ps[ex] = { ...ps[ex], tickets: ps[ex].tickets + n };
-      else ps.push({ cid: me.id, name: me.name, tickets: n });
+      if (ex >= 0) ps[ex] = { ...ps[ex], tickets: ps[ex].tickets + tickets };
+      else ps.push({ cid: me.id, name: me.name, tickets });
       return { ...rd, participants: ps };
     }));
-    fire(`🎟️ ${n} boleto${n > 1 ? 's' : ''} · -${cost} pts`);
-    syncMember(me.id, { points: me.points - cost, tickets: me.tickets + n, updated_at: localISO() });
-    logActivity(me.id, 'rifa', `Compró ${n} boleto${n > 1 ? 's' : ''} de rifa`, -cost);
 
-    // Guardar en Supabase
-    if (sb && sbConnected) {
-      // Buscar el ID de raffle_calendar para el mes actual (mes 1-indexed)
-      sb.from('raffle_calendar')
-        .select('id')
-        .eq('month', curMonth + 1)
-        .single()
-        .then(res => {
-          if (res.error) { console.error('[Raffle] calendar lookup:', res.error); return; }
-          sb.from('raffle_entries')
-            .insert({ member_id: me.id, raffle_id: res.data.id, tickets: n })
-            .then(r => {
-              if (r.error) console.error('[Raffle] insert error:', r.error);
-              else console.log('[Raffle] ✅ Boletos guardados:', n);
-            });
-        });
+    fire(`🎟️ ${tickets} boleto${tickets > 1 ? 's' : ''} · -${cost} pts`);
+  }, [me, fire, curMonth, sbConnected]);
+
+  // ──────────────────────────────────────────────
+  // doSurvey — delega en RPC complete_survey
+  // ──────────────────────────────────────────────
+  // La RPC cuenta encuestas del día desde la tabla `surveys`,
+  // valida límite, suma puntos, otorga bonus si es la 5ta.
+  // El cliente CONFÍA en `count` y `bonus_ticket` retornados.
+  const doSurvey = useCallback(async () => {
+    if (!me?.id) return;
+    if (!sb || !sbConnected) { fire('Sin conexión'); return; }
+
+    const { data, error } = await completeSurvey(me.id);
+
+    if (error) {
+      fire('❌ ' + (error.message || 'Error al guardar encuesta'));
+      return;
     }
-  }, [me, fire, cfg, curMonth, syncMember, logActivity, sbConnected]);
 
-  const doSurvey = useCallback(() => {
-    if (mySurveyCount >= cfg.surveyDaily) { fire('❌ Límite diario alcanzado'); return; }
-    const newCount = mySurveyCount + 1;
-    setMySurveyCount(newCount);
-    setMe(p => ({ ...p, points: p.points + cfg.surveyPts }));
-    setCusts(p => p.map(c => c.id === me.id ? { ...c, points: c.points + cfg.surveyPts } : c));
-    const bonusTicket = newCount >= cfg.surveyDaily;
-    if (bonusTicket) {
-      setMe(p => ({ ...p, tickets: p.tickets + 1 }));
-      fire(`📋 +${cfg.surveyPts} pts · 🎟️ ¡Bonus! 5/5 encuestas = 1 boleto gratis`);
+    const { points: pts, count, limit, bonus_ticket, remaining_points, new_ticket_total } = data;
+
+    setMySurveyCount(count);
+    setMe(p => ({ ...p, points: remaining_points, tickets: new_ticket_total }));
+    setCusts(p => p.map(c => c.id === me.id
+      ? { ...c, points: remaining_points, tickets: new_ticket_total }
+      : c));
+
+    if (bonus_ticket) {
+      fire(`📋 +${pts} pts · 🎟️ ¡Bonus! ${count}/${limit} encuestas = 1 boleto gratis`);
     } else {
-      fire(`📋 Encuesta completada · +${cfg.surveyPts} pts (${newCount}/${cfg.surveyDaily})`);
+      fire(`📋 Encuesta completada · +${pts} pts (${count}/${limit})`);
     }
-    syncMember(me.id, { points: me.points + cfg.surveyPts, tickets: bonusTicket ? me.tickets + 1 : me.tickets, updated_at: localISO() });
-    logActivity(me.id, 'encuesta', 'Encuesta completada' + (bonusTicket ? ' + Boleto bonus' : ''), cfg.surveyPts);
-    if (sb && sbConnected) {
-      sb.from('surveys').insert({ member_id: me.id, points_earned: cfg.surveyPts, bonus_ticket: bonusTicket })
-        .then(r => {
-          if (r.error) console.error('[Surveys] Error guardando encuesta:', r.error);
-          else console.log('[Surveys] Encuesta guardada OK, count:', newCount);
-        });
-    }
-  }, [me, mySurveyCount, fire, cfg, syncMember, logActivity, sbConnected]);
+  }, [me, fire, sbConnected]);
 
   const logout = useCallback(() => {
     if (sb) sb.auth.signOut({ scope: 'local' });
