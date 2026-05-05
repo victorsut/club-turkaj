@@ -1,20 +1,19 @@
 // ============================================================
 // Club Turkaj — Auth Service
 // ============================================================
-// Maneja toda la autenticación:
-//   - Login/Registro de clientes (teléfono + contraseña)
+// Maneja la autenticación de CLIENTES (miembros):
+//   - Login/Registro por teléfono + contraseña
 //   - OAuth (Google, Apple)
-//   - Login de operadores (gafete + DPI + user + pass)
-//   - Login de administradores (DPI + gafete + email + pass)
+//   - Resolución de sesión OAuth (busca o crea perfil)
+//
+// NOTA: La autenticación de operadores y administradores se hace
+// vía servicios dedicados con RPCs server-side (bcrypt):
+//   - operatorAuthService.js  → loginOperator()
+//   - adminAuthService.js     → loginAdmin()
 // ============================================================
 
 import { sb } from '../lib/supabaseClient';
-import {
-  fetchMemberByAuthId,
-  fetchMemberByEmail,
-  authenticateOperator as authOp,
-  authenticateAdmin as authAdmin,
-} from './dataService';
+import { fetchMemberByAuthId, fetchMemberByEmail } from './dataService';
 
 // ──────────────────────────────────────────────
 // CLIENTES — OAuth (Google / Apple)
@@ -41,6 +40,8 @@ export async function signInWithApple() {
 // CLIENTES — Teléfono + Contraseña
 // (Busca directamente en tabla `members`)
 // ──────────────────────────────────────────────
+// TODO: migrar a una RPC `authenticate_member` con bcrypt,
+// igual que operadores y admins, para no exponer password_hash al cliente.
 export async function signInWithPhone(phone, password) {
   const { data, error } = await sb
     .from('members')
@@ -51,7 +52,6 @@ export async function signInWithPhone(phone, password) {
   if (error || !data) {
     return { data: null, error: { message: 'Número no registrado' } };
   }
-  // TODO: Migrar a bcrypt-compare vía función RPC en producción
   if (data.password_hash !== password) {
     return { data: null, error: { message: 'Contraseña incorrecta' } };
   }
@@ -75,20 +75,6 @@ export async function resolveOAuthUser(supabaseUser) {
   }
   // 3. No existe → es usuario nuevo
   return null;
-}
-
-// ──────────────────────────────────────────────
-// OPERADORES
-// ──────────────────────────────────────────────
-export async function signInOperator({ gafete, dpi, username, password }) {
-  return authOp({ gafete, dpi, username, password });
-}
-
-// ──────────────────────────────────────────────
-// ADMINISTRADORES
-// ──────────────────────────────────────────────
-export async function signInAdmin({ dpi, gafete, email, password }) {
-  return authAdmin({ dpi, gafete, email, password });
 }
 
 // ──────────────────────────────────────────────
