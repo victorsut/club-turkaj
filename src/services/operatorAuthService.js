@@ -106,3 +106,48 @@ export function logoutOperator() {
 export function isOperatorLoggedIn() {
   return getOperatorSession() !== null;
 }
+
+/**
+ * Crea un operador nuevo. Hashea la contraseña con bcrypt en el servidor.
+ * @returns {Promise<{ data: object|null, error: object|null }>}
+ */
+export async function createOperatorRPC({
+  name, username, password, dpi, gafete,
+  stationId = null, phone = null, email = null, bomba = null, turno = 'Matutino',
+}) {
+  if (!sb) return { data: null, error: { message: 'Sin conexión al servidor' } };
+  const { data, error } = await sb.rpc('create_operator', {
+    p_name: name,
+    p_username: (username || '').trim().toLowerCase(),
+    p_password: password,
+    p_dpi: dpi,
+    p_gafete: gafete,
+    p_station_id: stationId,
+    p_phone: phone,
+    p_email: email,
+    p_bomba: bomba,
+    p_turno: turno,
+  });
+  if (error) {
+    console.error('[operatorAuth] create RPC error:', error);
+    return { data: null, error };
+  }
+  return { data: data?.[0] || null, error: null };
+}
+
+/**
+ * Resetea la contraseña de un operador. Hashea con bcrypt server-side.
+ * @returns {Promise<{ ok: boolean, error: object|null }>}
+ */
+export async function updateOperatorPassword(operatorId, newPassword) {
+  if (!sb) return { ok: false, error: { message: 'Sin conexión al servidor' } };
+  const { data, error } = await sb.rpc('update_operator_password', {
+    p_id: operatorId,
+    p_new_password: newPassword,
+  });
+  if (error) {
+    console.error('[operatorAuth] update password RPC error:', error);
+    return { ok: false, error };
+  }
+  return { ok: data === true, error: null };
+}

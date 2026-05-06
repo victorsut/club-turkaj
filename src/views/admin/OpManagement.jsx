@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { sMono, adminTheme as AT, btnYellow, btnDark, inputStyle } from '../../constants/styles';
 import { Back, Plus } from '../../components/ui/Icons';
+import { createOperatorRPC, updateOperatorPassword } from '../../services/operatorAuthService';
 
 export default function OpManagement(ctx) {
   const { operators, setOperators, stations, setScr, fire, opRatings, showOpReg, setShowOpReg, editOp, setEditOp, newOp, setNewOp, sbConnected } = ctx;
@@ -44,27 +45,92 @@ export default function OpManagement(ctx) {
   }, [selOp?.id]);
 
   const saveOp = async () => {
-    if (!newOp.name || !newOp.user || !newOp.password || !newOp.dpi || !newOp.gafete) { fire('Campos obligatorios incompletos'); return; }
+    const isEdit = !!editOp;
+    const requirePass = !isEdit;
+
+    if (!newOp.name || !newOp.user || !newOp.dpi || !newOp.gafete) {
+      fire('Campos obligatorios incompletos'); return;
+    }
+    if (requirePass && !newOp.password) {
+      fire('La contraseña es obligatoria para nuevos operadores'); return;
+    }
+    if (!sb || !sbConnected) { fire('Sin conexion'); return; }
+
     setSaving(true);
     const stationObj = (stations || []).find(s => s.name === newOp.station);
     const stationId  = stationObj?.id || null;
-    const hashPw = (pw) => 'pw:' + btoa(unescape(encodeURIComponent(pw)));
-    const dbData = { name: newOp.name, username: newOp.user, password_hash: hashPw(newOp.password), dpi: newOp.dpi, gafete: newOp.gafete, phone: newOp.phone || null, email: newOp.email || null, station_id: stationId, bomba: newOp.bomba || null, turno: newOp.turno || 'Matutino' };
-    if (sb && sbConnected) {
-      if (editOp) {
-        const { error } = await sb.from('operators').update(dbData).eq('id', editOp.id);
-        if (error) { fire('Error: ' + error.message); setSaving(false); return; }
-        setOperators(prev => prev.map(o => o.id === editOp.id ? { ...o, ...newOp, station: newOp.station, stationId } : o));
+
+    try {
+      if (isEdit) {
+        const updates = {
+          name: newOp.name,
+          username: newOp.user,
+          dpi: newOp.dpi,
+          gafete: newOp.gafete,
+          phone: newOp.phone || null,
+          email: newOp.email || null,
+          station_id: stationId,
+          bomba: newOp.bomba || null,
+          turno: newOp.turno || 'Matutino',
+          updated_at: new Date().toISOString(),
+        };
+        const { error: upErr } = await sb.from('operators').update(updates).eq('id', editOp.id);
+        if (upErr) {
+          fire(upErr.message.includes('unique') ? 'Usuario o gafete ya existe' : 'Error: ' + upErr.message);
+          setSaving(false); return;
+        }
+
+        if (newOp.password && newOp.password.trim()) {
+          const { error: pwErr } = await updateOperatorPassword(editOp.id, newOp.password);
+          if (pwErr) {
+            fire('Datos guardados, pero falló cambio de contraseña: ' + pwErr.message);
+            setSaving(false); return;
+          }
+        }
+
+        setOperators(prev => prev.map(o =>
+          o.id === editOp.id ? { ...o, ...newOp, station: newOp.station, stationId } : o
+        ));
         fire('Operador actualizado');
       } else {
-        const { data, error } = await sb.from('operators').insert(dbData).select();
-        if (error) { fire(error.message.includes('unique') ? 'Usuario o gafete ya existe' : 'Error: ' + error.message); setSaving(false); return; }
-        if (data?.[0]) setOperators(prev => [...prev, { id: data[0].id, name: newOp.name, user: newOp.user, password: newOp.password, dpi: newOp.dpi, gafete: newOp.gafete, phone: newOp.phone || '', email: newOp.email || '', station: newOp.station, stationId, bomba: newOp.bomba || '', turno: newOp.turno || 'Matutino', active: true }]);
+        const { data, error } = await createOperatorRPC({
+          name: newOp.name,
+          username: newOp.user,
+          password: newOp.password,
+          dpi: newOp.dpi,
+          gafete: newOp.gafete,
+          stationId,
+          phone: newOp.phone || null,
+          email: newOp.email || null,
+          bomba: newOp.bomba || null,
+          turno: newOp.turno || 'Matutino',
+        });
+        if (error) {
+          const msg = (error.message || '').toLowerCase();
+          fire(msg.includes('unique') || msg.includes('duplicate')
+            ? 'Usuario o gafete ya existe'
+            : 'Error: ' + error.message);
+          setSaving(false); return;
+        }
+        if (data) {
+          setOperators(prev => [...prev, {
+            id: data.id, name: data.name, user: data.username,
+            dpi: data.dpi, gafete: data.gafete,
+            phone: data.phone || '', email: data.email || '',
+            station: newOp.station, stationId: data.station_id,
+            bomba: data.bomba || '', turno: data.turno || 'Matutino',
+            active: data.active,
+          }]);
+        }
         fire('Operador registrado: ' + newOp.name);
       }
-    } else { fire('Sin conexion'); setSaving(false); return; }
-    setNewOp({ name: '', user: '', password: '', dpi: '', gafete: '', phone: '', station: 'Turkaj I', bomba: '', turno: 'Matutino', email: '' });
-    setEditOp(null); setShowOpReg(false); setSaving(false);
+
+      setNewOp({ name: '', user: '', password: '', dpi: '', gafete: '', phone: '', station: 'Turkaj I', bomba: '', turno: 'Matutino', email: '' });
+      setEditOp(null);
+      setShowOpReg(false);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const toggleOp = async (id, currentActive) => {
@@ -116,7 +182,7 @@ export default function OpManagement(ctx) {
               <div style={{ fontSize: 10, color: '#555', marginTop: 2 }}>@{op.user}{op.phone ? ' | ' + op.phone : ''}{avg ? ' | ' + avg + ' pts' : ''}</div>
             </div>
             <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-              <button onClick={() => { setEditOp(op); setNewOp({ name: op.name, user: op.user, password: op.password, dpi: op.dpi, gafete: op.gafete, phone: op.phone, station: op.station || stationNames[0], bomba: op.bomba, turno: op.turno, email: op.email }); setShowOpReg(true); }} style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, fontFamily: "'DM Sans'", fontSize: 11, fontWeight: 700, cursor: 'pointer', color: '#64B5F6' }}>Editar</button>
+              <button onClick={() => { setEditOp(op); setNewOp({ name: op.name, user: op.user, password: '', dpi: op.dpi, gafete: op.gafete, phone: op.phone, station: op.station || stationNames[0], bomba: op.bomba, turno: op.turno, email: op.email }); setShowOpReg(true); }} style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, fontFamily: "'DM Sans'", fontSize: 11, fontWeight: 700, cursor: 'pointer', color: '#64B5F6' }}>Editar</button>
               <button onClick={() => toggleOp(op.id, op.active)} style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, fontFamily: "'DM Sans'", fontSize: 11, fontWeight: 700, cursor: 'pointer', color: op.active ? '#EF5350' : '#2E7D32' }}>{op.active ? 'Desact.' : 'Activar'}</button>
             </div>
           </div>
@@ -131,7 +197,7 @@ export default function OpManagement(ctx) {
             {[
               { k: 'name', l: 'Nombre completo *', p: 'Juan Perez' },
               { k: 'user', l: 'Usuario *', p: 'jperez' },
-              { k: 'password', l: 'Contrasena *', p: '******', t: editOp ? 'text' : 'password' },
+              { k: 'password', l: editOp ? 'Contrasena (dejar vacio para no cambiar)' : 'Contrasena *', p: editOp ? 'Dejar vacio para no cambiar' : '******', t: 'password' },
               { k: 'dpi', l: 'DPI *', p: '1234567890101', num: true, max: 13 },
               { k: 'gafete', l: 'No. Gafete *', p: 'GAF-001' },
               { k: 'phone', l: 'Telefono', p: '55512345', num: true, max: 8 },
