@@ -371,3 +371,77 @@ export async function fetchRedemptions(memberId) {
   if (error) console.error('[Data:redemptions]', error.message);
   return data || [];
 }
+
+// ──────────────────────────────────────────────
+// IDENTIFICACIÓN POR QR — fetchMemberByCardCode
+// ──────────────────────────────────────────────
+// Busca un miembro a partir del código que viaja en el QR
+// (formato CT[OPB]D-NNNNN, ya validado por src/lib/cardCodes.js).
+//
+// Modelo: physical_cards.card_code es el código legible. La FK
+// physical_cards.assigned_to → members.id permite hacer resource
+// embedding en una sola query.
+//
+// Casos posibles (return shape):
+//   1. Sin conexión           → { data: null, error: { message } }
+//   2. Código vacío           → { data: null, error: { message } }
+//   3. Error de Supabase      → { data: null, error }
+//   4. card_code no existe    → { data: null, error: null, reason: 'card_not_found' }
+//   5. Tarjeta sin asignar    → { data: null, error: null, reason: 'card_not_assigned', cardInfo }
+//   6. Tarjeta asignada       → { data: { ...member, cardInfo }, error: null }
+// ──────────────────────────────────────────────
+export async function fetchMemberByCardCode(code) {
+  if (!sb) return { data: null, error: { message: 'Sin conexión al servidor' } };
+
+  const normalized = (code || '').trim().toUpperCase();
+  if (!normalized) {
+    return { data: null, error: { message: 'Código vacío' } };
+  }
+
+  const { data, error } = await sb
+    .from('physical_cards')
+    .select(`
+      id,
+      card_code,
+      tier,
+      status,
+      assigned_to,
+      members:assigned_to (*)
+    `)
+    .eq('card_code', normalized)
+    .maybeSingle();
+
+  if (error) {
+    console.error('[Data:fetchMemberByCardCode]', error.message);
+    return { data: null, error };
+  }
+
+  if (!data) {
+    return { data: null, error: null, reason: 'card_not_found' };
+  }
+
+  if (!data.members) {
+    return {
+      data: null,
+      error: null,
+      reason: 'card_not_assigned',
+      cardInfo: {
+        card_code: data.card_code,
+        card_status: data.status,
+        card_tier: data.tier,
+      },
+    };
+  }
+
+  return {
+    data: {
+      ...data.members,
+      cardInfo: {
+        card_code: data.card_code,
+        card_status: data.status,
+        card_tier: data.tier,
+      },
+    },
+    error: null,
+  };
+}
