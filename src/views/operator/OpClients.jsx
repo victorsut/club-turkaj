@@ -4,9 +4,11 @@ import { sMono, inputStyle, btnYellow } from '../../constants/styles';
 import { FUEL_LABELS } from '../../constants/config';
 import Badge from '../../components/ui/Badge';
 import QRScanner from '../../components/ui/QRScanner';
+import { parseCardCode } from '../../lib/cardCodes';
+import { fetchMemberByCardCode } from '../../services/dataService';
 
 export default function OpClients(ctx) {
-  const { custs, gT, cfg, fire, opScanMode, setOpScanMode, setPurchaseConfirm } = ctx;
+  const { custs, gT, cfg, fire, opScanMode, setOpScanMode, setPurchaseConfirm, sbConnected } = ctx;
   const [q, setQ] = useState('');
   const [sel, setSel] = useState(null);
   const [amt, setAmt] = useState('');
@@ -29,24 +31,60 @@ export default function OpClients(ctx) {
   const selClient = sel ? custs.find(c => c.id === sel) : null;
   const selTier = selClient ? gT(selClient.gallons) : null;
 
-  const handleScan = useCallback((code) => {
+  const handleScan = useCallback(async (code) => {
     setScanning(false);
     setScanResult(code);
-    const match = code.match(/^CT[OPB]D-(\d+)$/);
-    if (!match) { fire('❌ Código no reconocido: ' + code); return; }
-    const correlative = match[1];
-    const found = custs.find(c => {
-      if (!c.cardId) return false;
-      const cm = c.cardId.match(/^CT[OPB]D-(\d+)$/);
-      return cm && cm[1] === correlative;
-    });
-    if (found) { setSel(found.id); fire('✅ ' + found.name + ' · ' + code); }
-    else {
-      const exact = custs.find(c => c.cardId === code);
-      if (exact) { setSel(exact.id); fire('✅ ' + exact.name); }
-      else fire('❌ Miembro no encontrado para código: ' + code);
+
+    // Defensa: el scanner ya validó, pero handleScan puede ser
+    // llamado desde modo manual u otros flujos futuros.
+    const parsed = parseCardCode(code);
+    if (!parsed.valid) {
+      fire('❌ Código no reconocido');
+      return;
     }
-  }, [custs, fire]);
+
+    // 1. Búsqueda local primero (rápido, sin red)
+    const localMatch = (custs || []).find(c => c.cardId === parsed.normalized);
+    if (localMatch) {
+      setSel(localMatch.id);
+      fire(`✓ ${localMatch.name}`);
+      return;
+    }
+
+    // 2. Fallback a Supabase
+    if (!sbConnected) {
+      fire('Sin conexión. Buscá al cliente manualmente.');
+      return;
+    }
+
+    const { data, error, reason } = await fetchMemberByCardCode(parsed.normalized);
+
+    if (error) {
+      fire('Sin conexión, intentá de nuevo');
+      return;
+    }
+
+    if (reason === 'card_not_found') {
+      fire('❌ QR no reconocido en el sistema');
+      return;
+    }
+
+    if (reason === 'card_not_assigned') {
+      fire('⚠️ Tarjeta sin registrar. Pedile al cliente que pase con el admin.');
+      return;
+    }
+
+    if (data) {
+      // Miembro encontrado en Supabase pero NO está en cache local
+      // todavía (creado en otro dispositivo, realtime aún sin propagar).
+      // No seteamos sel porque selClient = custs.find(c => c.id === sel)
+      // devolvería undefined y la UI quedaría en blanco. En lugar de
+      // eso, damos al operador una salida accionable: buscar por
+      // nombre (funciona ya) o reintentar el QR en unos segundos
+      // cuando el realtime propague.
+      fire(`${data.name} encontrado. Buscalo por nombre o reintentá el QR en 5 segundos.`);
+    }
+  }, [custs, fire, sbConnected]);
 
   // Abre el modal a nivel raíz (escapa el overflow:hidden del contenedor)
   const handlePurchaseClick = () => {
