@@ -2,7 +2,6 @@
 // Admin dashboard — KPIs, points economy, fuel stats, top members, surveys
 import { useState } from 'react';
 import { sMono, adminTheme as AT, btnYellow } from '../../constants/styles';
-import { FUEL } from '../../constants/config';
 import Badge from '../../components/ui/Badge';
 import { Gear, Logout, QR as QRIcon, Plus } from '../../components/ui/Icons';
 
@@ -31,9 +30,9 @@ export default function AdminDash(ctx) {
   const gSuper = +(tG * 0.45).toFixed(0);
   const gRegular = +(tG * 0.35).toFixed(0);
   const gDiesel = +(tG - gSuper - gRegular).toFixed(0);
-  const iSuper = +(gSuper * FUEL.super).toFixed(0);
-  const iRegular = +(gRegular * FUEL.regular).toFixed(0);
-  const iDiesel = +(gDiesel * FUEL.diesel).toFixed(0);
+  const iSuper = +(gSuper * (cfg.fuelPrices?.super ?? 0)).toFixed(0);
+  const iRegular = +(gRegular * (cfg.fuelPrices?.regular ?? 0)).toFixed(0);
+  const iDiesel = +(gDiesel * (cfg.fuelPrices?.diesel ?? 0)).toFixed(0);
 
   const rm = raffleCal[curMonth] || { m: '—', p: '—' };
 
