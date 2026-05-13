@@ -145,3 +145,20 @@ export async function completeSurvey(memberId) {
 export async function getMemberTier(gallons) {
   return callRpc('get_member_tier', { gal: gallons });
 }
+
+// ──────────────────────────────────────────────
+// 6. PRECIOS — update_fuel_prices
+// ──────────────────────────────────────────────
+// Actualiza los precios de combustible vía RPC con SECURITY
+// DEFINER. program_config tiene RLS estricta (solo SELECT a
+// anon). El UPDATE directo no funciona — devuelve data:null sin
+// error. El RPC valida server-side: 3 claves obligatorias
+// (super, regular, diesel), cada precio Q1.00-Q100.00, hace
+// UPSERT idempotente. Devuelve el JSON exacto persistido.
+//
+// @param {Object} prices - { super, regular, diesel } como numbers
+// @returns {Promise<{ data: Object|null, error: Object|null }>}
+// ──────────────────────────────────────────────
+export async function updateFuelPrices(prices) {
+  return callRpc('update_fuel_prices', { p_prices: prices });
+}

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { sMono, adminTheme as AT, inputStyleDark } from '../../constants/styles';
 import { Back } from '../../components/ui/Icons';
-import { updateConfig } from '../../services/dataService';
+import { updateFuelPrices } from '../../services/rpcServices';
 
 export default function Settings(ctx) {
   const { cfg, setCfg, setScr, fire, operators, setScr: navTo } = ctx;
@@ -57,7 +57,7 @@ export default function Settings(ctx) {
     };
     setSaving(true);
     setSaveError('');
-    const { data, error } = await updateConfig('fuel_prices', payload);
+    const { data, error } = await updateFuelPrices(payload);
     setSaving(false);
     if (error) {
       console.error('[Settings:updatePrices]', error.message);
@@ -65,10 +65,8 @@ export default function Settings(ctx) {
       return;
     }
     if (!data) {
-      // UPDATE no afectó filas → la key no existe en program_config.
-      // Seed inicial debe correrse manualmente en SQL Editor.
-      console.error('[Settings:updatePrices] No row updated — program_config.fuel_prices may not exist. Run seed first.');
-      setSaveError('No se pudo guardar. Verificá que la clave fuel_prices exista en program_config.');
+      console.error('[Settings:updatePrices] Unexpected null response from update_fuel_prices RPC.');
+      setSaveError('No se pudo guardar. Intentá de nuevo o contactá soporte.');
       return;
     }
     if (typeof setCfg === 'function') {
