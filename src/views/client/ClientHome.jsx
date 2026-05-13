@@ -6,7 +6,6 @@ import { sMono, GAL3, clientTheme } from '../../constants/styles';
 import { CARD_PREFIX } from '../../constants/config';
 import { tierProgress } from '../../lib/tierSystem';
 import Badge from '../../components/ui/Badge';
-import QRCode from '../../components/ui/QRCode';
 import TierDeco from '../../components/ui/TierDeco';
 import GalaxyDust from '../../components/ui/GalaxyDust';
 import InactivityWarning from '../../components/ui/InactivityWarning';
