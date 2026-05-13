@@ -1,11 +1,82 @@
 // src/views/admin/Settings.jsx
 // Admin settings — program config, fuel prices, tier thresholds
-import { sMono, adminTheme as AT, btnYellow } from '../../constants/styles';
-import { FUEL } from '../../constants/config';
+import { useState, useEffect } from 'react';
+import { sMono, adminTheme as AT, inputStyleDark } from '../../constants/styles';
 import { Back } from '../../components/ui/Icons';
+import { updateConfig } from '../../services/dataService';
 
 export default function Settings(ctx) {
-  const { cfg, setScr, fire, operators, setScr: navTo } = ctx;
+  const { cfg, setCfg, setScr, fire, operators, setScr: navTo } = ctx;
+
+  // ─── Modal: edición de precios de combustible ───
+  const [showPriceModal, setShowPriceModal] = useState(false);
+  const [priceForm, setPriceForm] = useState({ super: '', regular: '', diesel: '' });
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+
+  // Valida un campo de precio (string desde el input).
+  // Retorna null si OK, string con mensaje si inválido.
+  const fieldError = (v) => {
+    const n = parseFloat(v);
+    if (Number.isNaN(n)) return 'Ingresá un número';
+    if (n < 1 || n > 100) return 'Debe estar entre Q1.00 y Q100.00';
+    return null;
+  };
+  const formInvalid = ['super', 'regular', 'diesel'].some((k) => fieldError(priceForm[k]) !== null);
+
+  const openPriceModal = () => {
+    setPriceForm({
+      super: String(cfg.fuelPrices?.super ?? 0),
+      regular: String(cfg.fuelPrices?.regular ?? 0),
+      diesel: String(cfg.fuelPrices?.diesel ?? 0),
+    });
+    setSaveError('');
+    setShowPriceModal(true);
+  };
+
+  const closePriceModal = () => {
+    if (saving) return;
+    setShowPriceModal(false);
+    setSaveError('');
+  };
+
+  // Esc cierra el modal (a menos que estemos guardando).
+  useEffect(() => {
+    if (!showPriceModal) return;
+    const onKey = (e) => { if (e.key === 'Escape' && !saving) closePriceModal(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showPriceModal, saving]);
+
+  const savePrices = async () => {
+    if (formInvalid || saving) return;
+    const payload = {
+      super: parseFloat(priceForm.super),
+      regular: parseFloat(priceForm.regular),
+      diesel: parseFloat(priceForm.diesel),
+    };
+    setSaving(true);
+    setSaveError('');
+    const { data, error } = await updateConfig('fuel_prices', payload);
+    setSaving(false);
+    if (error) {
+      console.error('[Settings:updatePrices]', error.message);
+      setSaveError('Error al guardar. Intentá de nuevo.');
+      return;
+    }
+    if (!data) {
+      // UPDATE no afectó filas → la key no existe en program_config.
+      // Seed inicial debe correrse manualmente en SQL Editor.
+      console.error('[Settings:updatePrices] No row updated — program_config.fuel_prices may not exist. Run seed first.');
+      setSaveError('No se pudo guardar. Verificá que la clave fuel_prices exista en program_config.');
+      return;
+    }
+    if (typeof setCfg === 'function') {
+      setCfg((prev) => ({ ...prev, fuelPrices: payload }));
+    }
+    if (typeof fire === 'function') fire('✓ Precios actualizados');
+    setShowPriceModal(false);
+  };
 
   const aSec = { padding: '20px 20px 8px', fontSize: 12, fontWeight: 800, color: '#9E9E9E', textTransform: 'uppercase', letterSpacing: 2 };
   const aCard = { background: AT.card, borderRadius: 18, border: `1px solid ${AT.border}`, margin: '0 20px 12px', padding: 16 };
@@ -59,15 +130,26 @@ export default function Settings(ctx) {
       <div style={aSec}>Precios de Combustible</div>
       <div style={aCard}>
         {[
-          { name: 'Súper', price: FUEL.super, color: '#E65100' },
-          { name: 'Regular', price: FUEL.regular, color: '#2E7D32' },
-          { name: 'Diésel', price: FUEL.diesel, color: '#1565C0' },
+          { name: 'Súper', price: cfg.fuelPrices?.super ?? 0, color: '#E65100' },
+          { name: 'Regular', price: cfg.fuelPrices?.regular ?? 0, color: '#2E7D32' },
+          { name: 'Diésel', price: cfg.fuelPrices?.diesel ?? 0, color: '#1565C0' },
         ].map((f, i) => (
           <div key={f.name} style={{ ...row, borderBottom: i < 2 ? `1px solid ${AT.border}` : 'none' }}>
             <span style={{ color: f.color, fontWeight: 700 }}>⛽ {f.name}</span>
             <span style={{ color: '#fff', fontWeight: 800, ...sMono }}>Q{f.price.toFixed(2)}/gal</span>
           </div>
         ))}
+        <button
+          onClick={openPriceModal}
+          style={{
+            marginTop: 14, width: '100%', padding: '11px 16px',
+            background: 'transparent', border: `1px solid ${AT.border}`,
+            borderRadius: 12, color: '#FBBC04',
+            fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700, cursor: 'pointer',
+          }}
+        >
+          ✏️ Editar precios
+        </button>
       </div>
 
       {/* Tiers */}
@@ -124,6 +206,113 @@ export default function Settings(ctx) {
         ))}
         <div style={{ marginTop: 8, fontSize: 11, color: '#2E7D32', fontWeight: 700 }}>✅ Cualquier compra (hasta Q10) resetea el reloj</div>
       </div>
+
+      {/* ─── Modal: editar precios de combustible ─── */}
+      {showPriceModal && (
+        <div
+          onClick={closePriceModal}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 300,
+            background: 'rgba(0,0,0,.6)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 20,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: AT.bg, border: `1px solid ${AT.border}`,
+              borderRadius: 20, padding: 24, width: '100%', maxWidth: 400,
+              maxHeight: '90vh', overflowY: 'auto',
+            }}
+          >
+            <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginBottom: 4 }}>
+              Editar precios de combustible
+            </div>
+            <div style={{ fontSize: 12, color: '#9E9E9E', marginBottom: 20 }}>
+              Rango válido: Q1.00 a Q100.00 por galón
+            </div>
+
+            {[
+              { k: 'super', label: 'Súper', color: '#E65100' },
+              { k: 'regular', label: 'Regular', color: '#2E7D32' },
+              { k: 'diesel', label: 'Diésel', color: '#1565C0' },
+            ].map((f) => {
+              const err = fieldError(priceForm[f.k]);
+              return (
+                <div key={f.k} style={{ marginBottom: 16 }}>
+                  <label style={{
+                    display: 'block', fontSize: 12, fontWeight: 800,
+                    color: f.color, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6,
+                  }}>
+                    ⛽ {f.label}
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="1"
+                    max="100"
+                    required
+                    value={priceForm[f.k]}
+                    onChange={(e) => setPriceForm((p) => ({ ...p, [f.k]: e.target.value }))}
+                    disabled={saving}
+                    style={{
+                      ...inputStyleDark,
+                      border: `1.5px solid ${err ? '#EF5350' : '#3A3A3A'}`,
+                    }}
+                  />
+                  <div style={{ fontSize: 11, color: '#777', marginTop: 4 }}>Q por galón</div>
+                  {err && (
+                    <div style={{ fontSize: 11, color: '#EF5350', marginTop: 4, fontWeight: 600 }}>
+                      {err}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {saveError && (
+              <div style={{
+                background: 'rgba(239,83,80,.1)', border: '1px solid rgba(239,83,80,.3)',
+                borderRadius: 10, padding: '10px 12px', marginBottom: 16,
+                fontSize: 12, color: '#EF5350', fontWeight: 600,
+              }}>
+                {saveError}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+              <button
+                onClick={closePriceModal}
+                disabled={saving}
+                style={{
+                  flex: 1, padding: '14px 16px',
+                  background: 'transparent', border: `1px solid ${AT.border}`,
+                  borderRadius: 14, color: '#9E9E9E',
+                  fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700,
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={savePrices}
+                disabled={formInvalid || saving}
+                style={{
+                  flex: 1, padding: '14px 16px',
+                  background: formInvalid || saving ? '#3A3A3A' : '#FBBC04',
+                  border: 'none', borderRadius: 14,
+                  color: formInvalid || saving ? '#777' : '#0D0D0D',
+                  fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 800,
+                  cursor: formInvalid || saving ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {saving ? 'Guardando...' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

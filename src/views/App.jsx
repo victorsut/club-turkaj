@@ -384,12 +384,20 @@ export default function App() {
             const deg = cfgMap.degradation ? (typeof cfgMap.degradation === 'string' ? JSON.parse(cfgMap.degradation) : cfgMap.degradation) : [];
             const tu = cfgMap.terms_use ? (typeof cfgMap.terms_use === 'string' ? JSON.parse(cfgMap.terms_use) : cfgMap.terms_use) : [];
             const tc = cfgMap.terms_canje ? (typeof cfgMap.terms_canje === 'string' ? JSON.parse(cfgMap.terms_canje) : cfgMap.terms_canje) : [];
+            let fp;
+            if (cfgMap.fuel_prices) {
+              fp = typeof cfgMap.fuel_prices === 'string' ? JSON.parse(cfgMap.fuel_prices) : cfgMap.fuel_prices;
+            } else {
+              console.warn('[Club Turkaj] program_config.fuel_prices no encontrado — usando fallback {0,0,0}. Configurar en admin/Settings.');
+              fp = { super: 0, regular: 0, diesel: 0 };
+            }
             setCfg({
               qPerPt: gen.qPerPt || 10, ticketPts: gen.ticketPts || 5,
               regBase: gen.regBase || 15, regOptional: gen.regOptional || 2,
               referralPts: gen.referralPts || 25, surveyPts: gen.surveyPts || 3,
               surveyDaily: gen.surveyDaily || 5, tiers: trs, degrad: deg,
               termsUse: tu, termsCanje: tc,
+              fuelPrices: fp,
             });
           }
         }
