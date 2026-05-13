@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { sb } from '../lib/supabaseClient';
 import { makeTier, daysInactive } from '../lib/tierSystem';
-import { CFG_INIT, FUEL, FUEL_LABELS } from '../constants/config';
+import { CFG_INIT, FUEL_LABELS } from '../constants/config';
 import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey } from '../services';
 
 // Guatemala es UTC-6 — usar siempre fecha/hora local, nunca UTC

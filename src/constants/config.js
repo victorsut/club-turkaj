@@ -5,15 +5,6 @@
 // Los valores editables vienen de Supabase (program_config).
 // ============================================================
 
-// ──────────────────────────────────────────────
-// Precios de combustible (Q/galón)
-// ──────────────────────────────────────────────
-export const FUEL_PRICES = {
-  super: 31.49,
-  regular: 30.99,
-  diesel: 28.99,
-};
-
 export const FUEL_LABELS = {
   super: 'Súper',
   regular: 'Regular',
@@ -125,4 +116,3 @@ export const ALL_CARD_PREFIXES = ['CTOD', 'CTPD', 'CTBD'];
 // Aliases (compatibilidad con vistas)
 // ──────────────────────────────────────────────
 export { DEFAULT_CONFIG as CFG_INIT };
-export { FUEL_PRICES as FUEL };
