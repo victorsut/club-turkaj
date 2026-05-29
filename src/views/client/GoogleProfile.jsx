@@ -226,6 +226,7 @@ export default function GoogleProfile(ctx) {
   const [passConfirm, setPassConfirm]       = useState('');
   const [showPass, setShowPass]             = useState(false);
   const [showPassConfirm, setShowPassConfirm] = useState(false);
+  const [checkingPhone, setCheckingPhone] = useState(false);
 
   // ── Verificar si el telefono o DPI ya existe en Supabase ─
   const checkPhoneDuplicate = async (phone) => {
@@ -355,7 +356,6 @@ export default function GoogleProfile(ctx) {
 
   // ══ PASO 1 — Datos personales (todos obligatorios, sin bonus) ═
   if (googleStep === 'step1' || googleStep === 'welcome') {
-    const [checkingPhone, setCheckingPhone] = useState(false);
     const next = async () => {
       clearAuthErr();
       if (!regProfile.name?.trim())  { setAuthError('El nombre es obligatorio'); return; }
