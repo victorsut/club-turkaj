@@ -157,8 +157,19 @@ export async function getMemberTier(gallons) {
 // UPSERT idempotente. Devuelve el JSON exacto persistido.
 //
 // @param {Object} prices - { super, regular, diesel } como numbers
+// @param {Object} [audit] - Auditoría opcional (F0.3.1). Si trae
+//   adminId, el RPC registra la acción en admin_audit_log dentro de
+//   la misma transacción. Shape: { adminId, adminName, adminEmail,
+//   reasonText }. Sin adminId → path legacy sin logging.
 // @returns {Promise<{ data: Object|null, error: Object|null }>}
 // ──────────────────────────────────────────────
-export async function updateFuelPrices(prices) {
-  return callRpc('update_fuel_prices', { p_prices: prices });
+export async function updateFuelPrices(prices, audit = {}) {
+  const params = { p_prices: prices };
+  if (audit.adminId) {
+    params.p_admin_id = audit.adminId;
+    params.p_admin_name = audit.adminName;
+    params.p_admin_email = audit.adminEmail;
+    params.p_reason_text = audit.reasonText;
+  }
+  return callRpc('update_fuel_prices', params);
 }

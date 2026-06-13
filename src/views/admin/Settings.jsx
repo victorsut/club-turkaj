@@ -4,12 +4,14 @@ import { useState, useEffect } from 'react';
 import { sMono, adminTheme as AT, inputStyleDark } from '../../constants/styles';
 import { Back } from '../../components/ui/Icons';
 import { updateFuelPrices } from '../../services/rpcServices';
+import ReasonModal from '../../components/ui/ReasonModal';
 
 export default function Settings(ctx) {
-  const { cfg, setCfg, setScr, fire, operators, setScr: navTo } = ctx;
+  const { cfg, setCfg, setScr, fire, operators, setScr: navTo, loggedAdmin } = ctx;
 
   // ─── Modal: edición de precios de combustible ───
   const [showPriceModal, setShowPriceModal] = useState(false);
+  const [showReasonModal, setShowReasonModal] = useState(false);
   const [priceForm, setPriceForm] = useState({ super: '', regular: '', diesel: '' });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
@@ -48,32 +50,75 @@ export default function Settings(ctx) {
     return () => window.removeEventListener('keydown', onKey);
   }, [showPriceModal, saving]);
 
-  const savePrices = async () => {
-    if (formInvalid || saving) return;
+  // PASO 1: valida los precios y abre el ReasonModal (cierra el de
+  // precios sin tocar priceForm, para poder reabrirlo si el RPC falla).
+  const openReasonStep = () => {
+    if (formInvalid) return;
+    setSaveError('');
+    setShowPriceModal(false);
+    setShowReasonModal(true);
+  };
+
+  // PASO 2: recibe el motivo del ReasonModal y ejecuta el RPC con
+  // auditoría. En error reabre el modal de precios con priceForm intacto.
+  const confirmSaveWithReason = async (reason) => {
+    // Guard: sin admin logueado no se audita ni se guarda (la épica
+    // F0.3 exige auditoría obligatoria; no degradar a legacy).
+    if (!loggedAdmin || !loggedAdmin.id) {
+      setShowReasonModal(false);
+      fire('Error: sesion admin no disponible. Cerra sesion y volve a ingresar.');
+      return;
+    }
+
+    setSaving(true);
+    setSaveError('');
+
     const payload = {
       super: parseFloat(priceForm.super),
       regular: parseFloat(priceForm.regular),
       diesel: parseFloat(priceForm.diesel),
     };
-    setSaving(true);
-    setSaveError('');
-    const { data, error } = await updateFuelPrices(payload);
-    setSaving(false);
-    if (error) {
-      console.error('[Settings:updatePrices]', error.message);
-      setSaveError('Error al guardar. Intentá de nuevo.');
-      return;
+
+    const audit = {
+      adminId: loggedAdmin.id,
+      adminName: loggedAdmin.name,
+      adminEmail: loggedAdmin.email,
+      reasonText: reason,
+    };
+
+    try {
+      const { data, error } = await updateFuelPrices(payload, audit);
+
+      if (error) {
+        // RPC falló: cerrar ReasonModal, reabrir Modal de precios
+        // con el error visible.
+        setShowReasonModal(false);
+        setShowPriceModal(true);
+        setSaveError(error.message || 'Error al guardar los precios');
+        fire('Error al guardar: ' + (error.message || 'desconocido'));
+        return;
+      }
+
+      if (!data) {
+        setShowReasonModal(false);
+        setShowPriceModal(true);
+        setSaveError('No se recibieron datos del servidor');
+        fire('Error al guardar: respuesta vacia del servidor');
+        return;
+      }
+
+      // Éxito: actualizar cfg, cerrar ReasonModal, toast de éxito.
+      setCfg(prev => ({ ...prev, fuelPrices: data }));
+      setShowReasonModal(false);
+      fire('Precios actualizados');
+    } catch (err) {
+      setShowReasonModal(false);
+      setShowPriceModal(true);
+      setSaveError(err.message || 'Error inesperado');
+      fire('Error al guardar: ' + (err.message || 'desconocido'));
+    } finally {
+      setSaving(false);
     }
-    if (!data) {
-      console.error('[Settings:updatePrices] Unexpected null response from update_fuel_prices RPC.');
-      setSaveError('No se pudo guardar. Intentá de nuevo o contactá soporte.');
-      return;
-    }
-    if (typeof setCfg === 'function') {
-      setCfg((prev) => ({ ...prev, fuelPrices: payload }));
-    }
-    if (typeof fire === 'function') fire('✓ Precios actualizados');
-    setShowPriceModal(false);
   };
 
   const aSec = { padding: '20px 20px 8px', fontSize: 12, fontWeight: 800, color: '#9E9E9E', textTransform: 'uppercase', letterSpacing: 2 };
@@ -294,7 +339,7 @@ export default function Settings(ctx) {
                 Cancelar
               </button>
               <button
-                onClick={savePrices}
+                onClick={openReasonStep}
                 disabled={formInvalid || saving}
                 style={{
                   flex: 1, padding: '14px 16px',
@@ -311,6 +356,15 @@ export default function Settings(ctx) {
           </div>
         </div>
       )}
+
+      {/* ─── Modal: motivo del cambio (auditoría F0.3.3) ─── */}
+      <ReasonModal
+        open={showReasonModal}
+        onClose={() => setShowReasonModal(false)}
+        onConfirm={confirmSaveWithReason}
+        actionLabel="Actualizar precios de combustible"
+        loading={saving}
+      />
     </div>
   );
 }
