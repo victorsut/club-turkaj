@@ -1,8 +1,8 @@
 # Puntos+ — Roadmap de Producto
 
-> **Versión:** 2.2
+> **Versión:** 2.3
 > **Fecha de creación:** 17 de mayo de 2026
-> **Última actualización:** 30 de mayo de 2026
+> **Última actualización:** 13 de junio de 2026
 > **Estado:** Vivo (este documento evoluciona con el proyecto)
 
 ---
@@ -312,7 +312,8 @@ Mover el `useState(checkingPhone)` al tope del componente con los otros useState
 |---|---|---|---|---|---|
 | P0 | Bug-fix pantalla blanca | 1-3 hs | Antes de F0 | Crítica | ✅ Completado |
 | F0 | Setup de auditoría Nivel 2 | 23-31 hs | 1-2 sem | Crítica | ⏳ En curso (F0.1 ✅) |
-| **FA** | **Optimización impresión POS Sunmi** | **42-59 hs** | **2-3 sem** | **Crítica** | ⏳ Próxima |
+| **FB** | **Integridad y trazabilidad de puntos** | **16-26 hs** | **3-5 sem** | **Crítica** | 🔜 Próxima |
+| **FA** | **Optimización impresión POS Sunmi** | **42-59 hs** | **2-3 sem** | **Crítica** | ⏳ Pendiente |
 | F1 | Configurabilidad empresa + estaciones + precios + KPIs | 61-78 hs | 3-5 sem | Crítica | Pendiente |
 | F2 | Mejoras programa de lealtad | 75-97 hs | 4-6 sem | Crítica | Pendiente |
 | F3 | Rediseño visual + rebranding completo Puntos+ | 95-120 hs | 5-7 sem | Alta | Pendiente |
@@ -323,12 +324,12 @@ Mover el `useState(checkingPhone)` al tope del componente con los otros useState
 | F8 | Spike Club Business | 1 sem | 1 sem | Baja | Pendiente |
 | F9 | Reportería enriquecida (opcional) | 40-55 hs | 2-3 sem | Opcional | Pendiente |
 
-**Total estimado:** 30-44 semanas calendario (≈7-10 meses).
+**Total estimado:** 33-49 semanas calendario (≈8-11 meses).
 
 ### 4.2 Diagrama de dependencias
 
 ```
-P0 (Bug-fix) ✅ ──► F0 (Auditoría) ──► FA (Impresión POS) ──► F1 (Empresa) ──► F2 (Lealtad) ──► F3 (Visual + Rebrand)
+P0 (Bug-fix) ✅ ──► F0 (Auditoría) ──► FB (Integridad Puntos) ──► FA (Impresión POS) ──► F1 (Empresa) ──► F2 (Lealtad) ──► F3 (Visual + Rebrand)
                                                                                                        │
                                                                                                        ├──► F4 (Tarjeta) ──► F7 (API/PROPER)
                                                                                                        │
@@ -338,6 +339,7 @@ P0 (Bug-fix) ✅ ──► F0 (Auditoría) ──► FA (Impresión POS) ──�
 ```
 
 **Lectura del diagrama:**
+- FB (integridad de puntos) va **inmediatamente después de F0** y antes que FA: sin trazabilidad de `members.points`, la auditoría Nivel 2 queda incompleta y el programa pierde confianza del cliente.
 - FA (impresión) es ahora **prerequisito crítico** porque sin impresión estable, el producto no es completamente útil.
 - F3 (visual + rebranding) absorbe la transformación completa de identidad a Puntos+.
 - Todo lo demás mantiene dependencias previas.
@@ -378,7 +380,13 @@ Implementar el sistema de auditoría que va a registrar todas las acciones de ad
 
 1. **F0.1** ✅ Schema `admin_audit_log` + migration. Completado, commit `557e173`.
 2. **F0.2** ⏳ RPC `log_admin_action` con SECURITY DEFINER y validación de reason_text para acciones sensibles.
-3. **F0.3** Modificar RPCs existentes para registrar en el log.
+3. **F0.3** Modificar RPCs existentes para registrar en el log. ⏳ En curso.
+   - **F0.3.1** ✅ Completada — `update_fuel_prices` con auditoría atómica (commit `b2320a4`).
+   - **F0.3.1.5** ✅ Completada — validación server-side de longitud de `reason_text` (commit `3359bdc`).
+   - **F0.3.2** ✅ Completada — `ReasonModal` genérico reusable (commit `261128f`).
+   - **F0.3.3** ✅ Completada — integración Settings ↔ ReasonModal ↔ RPC precios (commit `ed6c920`).
+   - **F0.3.4** ✅ Completada — RPCs de operadores con auditoría (commit `30d710a`).
+   - **F0.3.5–F0.3.8** Pendiente — integración cliente (OpManagement, AdminPremios, AdminPromos, MemberDetail) + client-first logging para mutaciones directas.
 4. **F0.4** Crear `AuditLog.jsx` con tabla paginada + filtros.
 5. **F0.5** Agregar modal de "motivo del cambio" a operaciones de edición.
 6. **F0.6** Build + commits + push.
@@ -395,6 +403,7 @@ Confirmadas en F0.2:
 - `toggle_operator_active`
 - `delete_reward`, `delete_special_day`, `delete_promotion`
 - `delete_raffle_entry`
+- `update_raffle`
 
 **Sobre perfiles de cliente (patrón híbrido):**
 - `update_member_profile` (datos personales: nombre, phone, dpi, plate, nit, email, birthday, vehicles)
@@ -405,7 +414,7 @@ Confirmadas en F0.2:
 - `assign_physical_card` (preparado para futuro)
 - `unassign_physical_card` (preparado para futuro)
 
-**Total: 15 acciones sensibles.**
+**Total: 16 acciones sensibles.**
 
 #### 5.0.5 Estimación
 
@@ -414,6 +423,86 @@ Confirmadas en F0.2:
 #### 5.0.6 Dependencias
 
 P0 completado.
+
+---
+
+### Fase FB — Integridad y Trazabilidad de Puntos
+
+**Estado:** Pendiente
+**Estimación:** 16-26 horas (3-5 sesiones)
+**Posición:** Entre F0 y FA
+
+**Contexto y Evidencia:**
+
+Sesión post-F0.3.4 (junio 2026) detectó caso documentado: cliente
+ángel macario (tel 42985694, id ba2d11a5-cb7f-4f38-839d-ded7a7b6b02c)
+presenta 71 puntos actuales vs 50 puntos justificables por
+activity_log (1 registro de bienvenida +19 + 5 compras = 50).
+Discrepancia: +21 puntos sin trazabilidad.
+
+Diagnóstico técnico ejecutado con 19 queries en Supabase:
+
+- 0 surveys completadas por el cliente.
+- 0 raffle_entries, 0 raffle_tickets, 0 participants.
+- 0 redemptions (redeemed_count = 0).
+- Ningún RPC documentado (register_purchase, complete_survey,
+  redeem_reward, buy_raffle_tickets) pudo haber generado el excedente.
+- Ninguna función PostgreSQL no documentada modifica points
+  (query a pg_proc descartó funciones huérfanas).
+- Sin triggers en tabla members.
+
+CONCLUSIÓN: existe vía de modificación directa a members.points
+sin auditoría. Probable causa: edición admin vía MemberDetail.jsx
+durante desarrollo, o UPDATE manual desde SQL Editor. El código
+está bien; falta protección arquitectónica contra mutaciones directas.
+
+CASO SECUNDARIO: cliente marcelino tiriquiz (tel 32519384, id
+e45e7e3f-b02f-4496-9c23-e838c320a934) tiene puntos exactos al
+historial (41 = 15 bienvenida + 26 compras). Reporte original
+de "bajaron puntos" es percepción del cliente sin sustento técnico.
+
+**Objetivos:**
+
+1. Garantizar que TODO cambio en members.points genere entrada
+   en activity_log con tipo, descripción y referencia.
+2. Eliminar vías de modificación directa no auditadas.
+3. Decidir tratamiento del caso de Ángel.
+4. Política formal documentada: solo RPCs auditados modifican
+   members.points.
+
+**Sub-fases:**
+
+| Sub-fase | Descripción | Estimación |
+|----------|-------------|------------|
+| FB.1 | Inventario exhaustivo de modificadores de members.points | 1-2 hs |
+| FB.2 | RPC universal modify_member_points con SECURITY DEFINER | 4-6 hs |
+| FB.3 | Refactor del cliente: MemberDetail, OpRedeem y otros | 3-5 hs |
+| FB.4 | Trigger BEFORE UPDATE protector con session variable | 3-5 hs |
+| FB.5 | Reconstrucción del caso ángel macario | 1 hs |
+| FB.6 | Migración de datos potencialmente afectados (otros clientes) | 2-4 hs |
+| FB.7 | Testing exhaustivo + documentación | 2-3 hs |
+
+**Dependencias:**
+
+- F0.3.5 a F0.3.8 (cliente integrado con ReasonModal) DEBEN
+  completarse antes para tener el patrón ReasonModal usable en FB.5.
+- F0.3.8 específicamente (MemberDetail con diff Opción B) prepara
+  el terreno para que FB.3 reemplace mutaciones directas.
+
+**Decisiones pendientes para arranque:**
+
+1. Tratamiento de Ángel: ajustar puntos a 50 o crear entrada
+   manual "+21 ajuste con motivo".
+2. Identificar otros clientes que pueda haber editado puntos
+   manualmente (la decisión se toma en FB.6).
+
+**Justificación estratégica:**
+
+La integridad de puntos es base del programa de lealtad. Sin FB,
+F0 (auditoría Nivel 2) queda incompleta: auditamos acciones admin
+explícitas pero no la mutación directa que reveló este caso.
+FA (impresión POS) puede esperar; sin FB el programa pierde
+confianza del cliente.
 
 ---
 
@@ -737,7 +826,7 @@ Sin cambios respecto a v2.1. Ver versiones anteriores del documento para detalle
 
 | Item | Severidad | Cuándo |
 |---|---|---|
-| `App.jsx` con 1583 líneas — refactor a componentes más pequeños | Media | F3 |
+| `App.jsx` con 1591 líneas (medido junio 2026) — refactor a componentes más pequeños | Media | F3 |
 | Credenciales de admins NO migradas a BD | Media | F1 |
 | `OpRedeem.jsx` sin cablear al nuevo flujo de QR | Alta | F2 |
 | `updateConfig` en `dataService.js` como código zombie | Baja | F7 |
@@ -753,6 +842,10 @@ Sin cambios respecto a v2.1. Ver versiones anteriores del documento para detalle
 | **Infraestructura parcial de referidos en BD (`members.referral_count`, `referred_by`, `referral_bonus_paid`) sin lógica completa** | Baja | Cuando se priorice sistema de referidos |
 | **`saving` useState en GoogleProfile.jsx:252 fuera del bloque agrupado** | Baja | F3 cuando se rediseñe |
 | **Falta ESLint con regla `react-hooks/rules-of-hooks`** (habría detectado el bug P0 antes de producción) | Media | Antes de F1 idealmente |
+| **`toggle_operator_active` es mutación directa, no RPC (`OpManagement.jsx:138`)** — no auditable server-side | Media | F0.3.5 (client-first logging) |
+| **`update_operator` (editar operador) es mutación directa (`OpManagement.jsx:77`)** — no auditable server-side | Media | F0.3.5 (client-first logging) |
+| **`reset_operator_password` no existe como RPC separado; entrada huérfana en lista sensible de `log_admin_action`** | Baja | Diferida (revisar en F2+) |
+| **`members.points` modificable sin auditoría — caso ángel macario +21 pts (diagnóstico 19 queries)** | Alta | FB completa |
 
 ### 7.2 Deuda operacional
 
@@ -867,6 +960,15 @@ Cambios mayores van en commits separados con mensaje `docs: actualizar ROADMAP �
 ---
 
 ## Changelog
+
+### Versión 2.3 — 13 de junio de 2026
+
+- **AGREGADA fase FB:** Integridad y Trazabilidad de Puntos. Ubicada entre F0 y FA. Estimación 16-26 horas. Motivada por diagnóstico documentado del caso ángel macario (+21 puntos sin trazabilidad).
+- **AGREGADA documentación de 4 nuevos ítems de deuda técnica** (`toggle_operator_active`, `update_operator`, `reset_operator_password`, `members.points` sin auditoría).
+- **CORREGIDO conteo de acciones sensibles:** 15 → 16 (incluye `update_raffle` que se agregó durante F0.2).
+- **CORREGIDO conteo de App.jsx:** 1583 → 1591 líneas.
+- **MARCADAS como completadas** las sub-fases F0.3.1, F0.3.1.5, F0.3.2, F0.3.3, F0.3.4 con sus commits respectivos.
+- Estimación total del proyecto actualizada (suma 16-26 hs / 3-5 sem de FB): 33-49 semanas.
 
 ### Versión 2.2 — 30 de mayo de 2026
 **Cambios estratégicos:**
