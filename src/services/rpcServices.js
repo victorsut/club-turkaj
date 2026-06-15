@@ -173,3 +173,42 @@ export async function updateFuelPrices(prices, audit = {}) {
   }
   return callRpc('update_fuel_prices', params);
 }
+
+// ──────────────────────────────────────────────
+// 7. AUDITORÍA — log_admin_action (client-first)
+// ──────────────────────────────────────────────
+// Wrapper genérico para registrar una acción admin en
+// admin_audit_log. Se usa en el patrón "client-first" para
+// mutaciones directas que NO tienen RPC propio con auditoría
+// atómica (p.ej. update_operator en OpManagement). Para acciones
+// que SÍ tienen RPC con auditoría integrada (update_fuel_prices,
+// create_operator, update_operator_password, toggle_operator_active)
+// NO se usa esto: el log ya ocurre server-side en la transacción.
+//
+// NOTA TÉCNICA: NO usa el helper callRpc. log_admin_action retorna
+// un uuid escalar; callRpc hace JSON.parse(data) sobre strings, y
+// un uuid pelado no es JSON válido → SyntaxError. Por eso la llamada
+// es cruda vía sb.rpc.
+//
+// El server valida reason_text obligatorio para acciones sensibles
+// (lista en log_admin_action). update_operator NO es sensible, pero
+// igual aceptamos reason si se provee.
+//
+// @returns {Promise<{ data: string|null, error: Object|null }>}
+//   data = uuid del log creado.
+// ──────────────────────────────────────────────
+export async function logAdminAction({
+  adminId, adminName, adminEmail, action,
+  entityType = null, entityId = null, reasonText = null,
+  oldValue = null, newValue = null, metadata = null,
+}) {
+  if (!sb) return { data: null, error: { message: 'Sin conexión al servidor' } };
+  const { data, error } = await sb.rpc('log_admin_action', {
+    p_admin_id: adminId, p_admin_name: adminName, p_admin_email: adminEmail,
+    p_action: action, p_entity_type: entityType, p_entity_id: entityId,
+    p_reason_text: reasonText, p_old_value: oldValue, p_new_value: newValue,
+    p_metadata: metadata,
+  });
+  if (error) { console.error('[RPC:log_admin_action]', error.message); return { data: null, error }; }
+  return { data, error: null };
+}

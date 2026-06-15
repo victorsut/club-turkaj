@@ -3,16 +3,20 @@ import { useState, useEffect } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { sMono, adminTheme as AT, btnYellow, btnDark, inputStyle } from '../../constants/styles';
 import { Back, Plus } from '../../components/ui/Icons';
-import { createOperatorRPC, updateOperatorPassword } from '../../services/operatorAuthService';
+import { createOperatorRPC, updateOperatorPassword, toggleOperatorActive } from '../../services/operatorAuthService';
+import { logAdminAction } from '../../services/rpcServices';
+import ReasonModal from '../../components/ui/ReasonModal';
 
 export default function OpManagement(ctx) {
-  const { operators, setOperators, stations, setScr, fire, opRatings, showOpReg, setShowOpReg, editOp, setEditOp, newOp, setNewOp, sbConnected } = ctx;
+  const { operators, setOperators, stations, setScr, fire, opRatings, showOpReg, setShowOpReg, editOp, setEditOp, newOp, setNewOp, sbConnected, loggedAdmin } = ctx;
   const [saving, setSaving]           = useState(false);
   const [selOp, setSelOp]             = useState(null);
   const [histTab, setHistTab]         = useState('compras'); // 'compras' | 'canjes'
   const [opHistory, setOpHistory]     = useState([]);
   const [opRedeems, setOpRedeems]     = useState([]);
   const [loadingHist, setLoadingHist] = useState(false);
+  const [showReasonModal, setShowReasonModal] = useState(false);
+  const [pendingAction, setPendingAction]     = useState(null);
 
   useEffect(() => {
     if (!selOp?.id || !sb) return;
@@ -56,74 +60,74 @@ export default function OpManagement(ctx) {
     }
     if (!sb || !sbConnected) { fire('Sin conexion'); return; }
 
-    setSaving(true);
     const stationObj = (stations || []).find(s => s.name === newOp.station);
     const stationId  = stationObj?.id || null;
 
-    try {
-      if (isEdit) {
-        const updates = {
-          name: newOp.name,
-          username: newOp.user,
-          dpi: newOp.dpi,
-          gafete: newOp.gafete,
-          phone: newOp.phone || null,
-          email: newOp.email || null,
-          station_id: stationId,
-          bomba: newOp.bomba || null,
-          turno: newOp.turno || 'Matutino',
-          updated_at: new Date().toISOString(),
-        };
-        const { error: upErr } = await sb.from('operators').update(updates).eq('id', editOp.id);
-        if (upErr) {
-          fire(upErr.message.includes('unique') ? 'Usuario o gafete ya existe' : 'Error: ' + upErr.message);
-          setSaving(false); return;
-        }
-
-        if (newOp.password && newOp.password.trim()) {
-          const { error: pwErr } = await updateOperatorPassword(editOp.id, newOp.password);
-          if (pwErr) {
-            fire('Datos guardados, pero falló cambio de contraseña: ' + pwErr.message);
-            setSaving(false); return;
-          }
-        }
-
-        setOperators(prev => prev.map(o =>
-          o.id === editOp.id ? { ...o, ...newOp, station: newOp.station, stationId } : o
-        ));
-        fire('Operador actualizado');
-      } else {
-        const { data, error } = await createOperatorRPC({
-          name: newOp.name,
-          username: newOp.user,
-          password: newOp.password,
-          dpi: newOp.dpi,
-          gafete: newOp.gafete,
-          stationId,
-          phone: newOp.phone || null,
-          email: newOp.email || null,
-          bomba: newOp.bomba || null,
-          turno: newOp.turno || 'Matutino',
-        });
-        if (error) {
-          const msg = (error.message || '').toLowerCase();
-          fire(msg.includes('unique') || msg.includes('duplicate')
-            ? 'Usuario o gafete ya existe'
-            : 'Error: ' + error.message);
-          setSaving(false); return;
-        }
-        if (data) {
-          setOperators(prev => [...prev, {
-            id: data.id, name: data.name, user: data.username,
-            dpi: data.dpi, gafete: data.gafete,
-            phone: data.phone || '', email: data.email || '',
-            station: newOp.station, stationId: data.station_id,
-            bomba: data.bomba || '', turno: data.turno || 'Matutino',
-            active: data.active,
-          }]);
-        }
-        fire('Operador registrado: ' + newOp.name);
+    // EDITAR: encolar la acción y pasar por ReasonModal (auditoría
+    // obligatoria F0.3.5). El UPDATE real ocurre en confirmAction.
+    if (isEdit) {
+      if (!loggedAdmin?.id) {
+        fire('Error: sesion admin no disponible. Cerra sesion y volve a ingresar.');
+        return;
       }
+      const updates = {
+        name: newOp.name,
+        username: newOp.user,
+        dpi: newOp.dpi,
+        gafete: newOp.gafete,
+        phone: newOp.phone || null,
+        email: newOp.email || null,
+        station_id: stationId,
+        bomba: newOp.bomba || null,
+        turno: newOp.turno || 'Matutino',
+        updated_at: new Date().toISOString(),
+      };
+      const hasPassword = !!(newOp.password && newOp.password.trim());
+      setPendingAction({
+        type: hasPassword ? 'edit_with_password' : 'edit',
+        operatorId: editOp.id,
+        operatorUsername: newOp.user,
+        payload: { updates, newPassword: newOp.password, station: newOp.station, stationId },
+        actionLabel: hasPassword ? 'Editar operador y cambiar contraseña' : 'Editar operador',
+      });
+      setShowOpReg(false);        // NO limpiar newOp/editOp: poder reabrir si falla
+      setShowReasonModal(true);
+      return;
+    }
+
+    // CREAR: directo al RPC, sin ReasonModal ni auditoría.
+    setSaving(true);
+    try {
+      const { data, error } = await createOperatorRPC({
+        name: newOp.name,
+        username: newOp.user,
+        password: newOp.password,
+        dpi: newOp.dpi,
+        gafete: newOp.gafete,
+        stationId,
+        phone: newOp.phone || null,
+        email: newOp.email || null,
+        bomba: newOp.bomba || null,
+        turno: newOp.turno || 'Matutino',
+      });
+      if (error) {
+        const msg = (error.message || '').toLowerCase();
+        fire(msg.includes('unique') || msg.includes('duplicate')
+          ? 'Usuario o gafete ya existe'
+          : 'Error: ' + error.message);
+        setSaving(false); return;
+      }
+      if (data) {
+        setOperators(prev => [...prev, {
+          id: data.id, name: data.name, user: data.username,
+          dpi: data.dpi, gafete: data.gafete,
+          phone: data.phone || '', email: data.email || '',
+          station: newOp.station, stationId: data.station_id,
+          bomba: data.bomba || '', turno: data.turno || 'Matutino',
+          active: data.active,
+        }]);
+      }
+      fire('Operador registrado: ' + newOp.name);
 
       setNewOp({ name: '', user: '', password: '', dpi: '', gafete: '', phone: '', station: 'Turkaj I', bomba: '', turno: 'Matutino', email: '' });
       setEditOp(null);
@@ -133,13 +137,137 @@ export default function OpManagement(ctx) {
     }
   };
 
-  const toggleOp = async (id, currentActive) => {
-    if (sb && sbConnected) {
-      const { error } = await sb.from('operators').update({ active: !currentActive }).eq('id', id);
-      if (error) { fire('Error: ' + error.message); return; }
+  // Ejecuta la acción encolada (editar / editar+password / toggle)
+  // recibiendo el motivo del ReasonModal. Patrón client-first F0.3.5:
+  // muta primero, audita después; si el log falla NO se revierte
+  // (warning rojo + console.error).
+  const confirmAction = async (reason) => {
+    if (!loggedAdmin?.id) {
+      setShowReasonModal(false);
+      fire('Error: sesion admin no disponible. Cerra sesion y volve a ingresar.');
+      return;
     }
-    setOperators(prev => prev.map(o => o.id === id ? { ...o, active: !o.active } : o));
-    fire(currentActive ? 'Operador desactivado' : 'Operador activado');
+    if (!pendingAction) { setShowReasonModal(false); return; }
+
+    const audit = {
+      adminId: loggedAdmin.id,
+      adminName: loggedAdmin.name,
+      adminEmail: loggedAdmin.email,
+      reasonText: reason,
+    };
+    const { type, operatorId, operatorUsername, payload } = pendingAction;
+
+    setSaving(true);
+    try {
+      switch (type) {
+        case 'edit':
+        case 'edit_with_password': {
+          // old_value desde editOp (snapshot previo, sin re-query).
+          const oldValue = editOp ? {
+            operator_id: operatorId,
+            operator_username: editOp.user,
+            name: editOp.name,
+            dpi: editOp.dpi,
+            gafete: editOp.gafete,
+            phone: editOp.phone || null,
+            email: editOp.email || null,
+            station_id: editOp.stationId || null,
+            bomba: editOp.bomba || null,
+            turno: editOp.turno || null,
+          } : null;
+          const newValue = {
+            operator_id: operatorId,
+            operator_username: payload.updates.username,
+            name: payload.updates.name,
+            dpi: payload.updates.dpi,
+            gafete: payload.updates.gafete,
+            phone: payload.updates.phone,
+            email: payload.updates.email,
+            station_id: payload.updates.station_id,
+            bomba: payload.updates.bomba,
+            turno: payload.updates.turno,
+          };
+
+          const { error: upErr } = await sb.from('operators').update(payload.updates).eq('id', operatorId);
+          if (upErr) {
+            setShowReasonModal(false);
+            setShowOpReg(true);   // reabrir modal de edición con datos intactos
+            fire(upErr.message.includes('unique') ? 'Usuario o gafete ya existe' : 'Error: ' + upErr.message);
+            return;
+          }
+
+          // Log client-first (update_operator NO es sensible server-side).
+          const { error: logErr } = await logAdminAction({
+            ...audit,
+            action: 'update_operator',
+            entityType: 'operator',
+            entityId: operatorId,
+            oldValue,
+            newValue,
+          });
+          if (logErr) {
+            console.error('[OpMgmt] log update_operator falló:', logErr);
+            fire('⚠️ Operador actualizado, pero la auditoría falló');
+          }
+
+          // Cambio de contraseña (RPC con auditoría atómica propia).
+          if (type === 'edit_with_password') {
+            const { ok, error: pwErr } = await updateOperatorPassword(operatorId, payload.newPassword, audit);
+            if (pwErr || !ok) {
+              fire('Datos guardados, pero falló cambio de contraseña: ' + (pwErr?.message || 'desconocido'));
+            }
+          }
+
+          setOperators(prev => prev.map(o =>
+            o.id === operatorId
+              ? { ...o, ...newOp, station: payload.station, stationId: payload.stationId }
+              : o
+          ));
+          setShowReasonModal(false);
+          setNewOp({ name: '', user: '', password: '', dpi: '', gafete: '', phone: '', station: 'Turkaj I', bomba: '', turno: 'Matutino', email: '' });
+          setEditOp(null);
+          fire('Operador actualizado');
+          break;
+        }
+
+        case 'toggle': {
+          const { ok, error } = await toggleOperatorActive(operatorId, payload.newActive, audit);
+          if (error || !ok) {
+            setShowReasonModal(false);
+            fire('Error: ' + (error?.message || 'no se pudo cambiar el estado'));
+            return;
+          }
+          setOperators(prev => prev.map(o => o.id === operatorId ? { ...o, active: payload.newActive } : o));
+          setShowReasonModal(false);
+          fire(payload.newActive ? 'Operador activado' : 'Operador desactivado');
+          break;
+        }
+
+        default:
+          setShowReasonModal(false);
+      }
+    } finally {
+      setSaving(false);
+      setPendingAction(null);
+    }
+  };
+
+  // Encola el toggle y abre el ReasonModal (toggle_operator_active es
+  // acción sensible: reason obligatorio).
+  const toggleOp = (op) => {
+    if (!loggedAdmin?.id) {
+      fire('Error: sesion admin no disponible. Cerra sesion y volve a ingresar.');
+      return;
+    }
+    if (!sb || !sbConnected) { fire('Sin conexion'); return; }
+    setPendingAction({
+      type: 'toggle',
+      operatorId: op.id,
+      operatorUsername: op.user,
+      payload: { newActive: !op.active },
+      actionLabel: op.active ? 'Desactivar operador' : 'Activar operador',
+    });
+    setShowReasonModal(true);
   };
 
   const aSec = { padding: '20px 20px 8px', fontSize: 12, fontWeight: 800, color: '#9E9E9E', textTransform: 'uppercase', letterSpacing: 2 };
@@ -183,7 +311,7 @@ export default function OpManagement(ctx) {
             </div>
             <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
               <button onClick={() => { setEditOp(op); setNewOp({ name: op.name, user: op.user, password: '', dpi: op.dpi, gafete: op.gafete, phone: op.phone, station: op.station || stationNames[0], bomba: op.bomba, turno: op.turno, email: op.email }); setShowOpReg(true); }} style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, fontFamily: "'DM Sans'", fontSize: 11, fontWeight: 700, cursor: 'pointer', color: '#64B5F6' }}>Editar</button>
-              <button onClick={() => toggleOp(op.id, op.active)} style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, fontFamily: "'DM Sans'", fontSize: 11, fontWeight: 700, cursor: 'pointer', color: op.active ? '#EF5350' : '#2E7D32' }}>{op.active ? 'Desact.' : 'Activar'}</button>
+              <button onClick={() => toggleOp(op)} style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, fontFamily: "'DM Sans'", fontSize: 11, fontWeight: 700, cursor: 'pointer', color: op.active ? '#EF5350' : '#2E7D32' }}>{op.active ? 'Desact.' : 'Activar'}</button>
             </div>
           </div>
         );
@@ -332,6 +460,15 @@ export default function OpManagement(ctx) {
           </div>
         </div>
       )}
+
+      {/* ─── Modal: motivo del cambio (auditoría F0.3.5) ─── */}
+      <ReasonModal
+        open={showReasonModal}
+        onClose={() => { if (!saving) { setShowReasonModal(false); setPendingAction(null); } }}
+        onConfirm={confirmAction}
+        actionLabel={pendingAction?.actionLabel || 'Confirmar acción'}
+        loading={saving}
+      />
 
     </div>
   );
