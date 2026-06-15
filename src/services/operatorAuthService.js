@@ -114,9 +114,9 @@ export function isOperatorLoggedIn() {
 export async function createOperatorRPC({
   name, username, password, dpi, gafete,
   stationId = null, phone = null, email = null, bomba = null, turno = 'Matutino',
-}) {
+}, audit = {}) {
   if (!sb) return { data: null, error: { message: 'Sin conexión al servidor' } };
-  const { data, error } = await sb.rpc('create_operator', {
+  const params = {
     p_name: name,
     p_username: (username || '').trim().toLowerCase(),
     p_password: password,
@@ -127,7 +127,14 @@ export async function createOperatorRPC({
     p_email: email,
     p_bomba: bomba,
     p_turno: turno,
-  });
+  };
+  if (audit.adminId) {
+    params.p_admin_id = audit.adminId;
+    params.p_admin_name = audit.adminName;
+    params.p_admin_email = audit.adminEmail;
+    params.p_reason_text = audit.reasonText;
+  }
+  const { data, error } = await sb.rpc('create_operator', params);
   if (error) {
     console.error('[operatorAuth] create RPC error:', error);
     return { data: null, error };
@@ -139,14 +146,44 @@ export async function createOperatorRPC({
  * Resetea la contraseña de un operador. Hashea con bcrypt server-side.
  * @returns {Promise<{ ok: boolean, error: object|null }>}
  */
-export async function updateOperatorPassword(operatorId, newPassword) {
+export async function updateOperatorPassword(operatorId, newPassword, audit = {}) {
   if (!sb) return { ok: false, error: { message: 'Sin conexión al servidor' } };
-  const { data, error } = await sb.rpc('update_operator_password', {
-    p_id: operatorId,
-    p_new_password: newPassword,
-  });
+  const params = { p_id: operatorId, p_new_password: newPassword };
+  if (audit.adminId) {
+    params.p_admin_id = audit.adminId;
+    params.p_admin_name = audit.adminName;
+    params.p_admin_email = audit.adminEmail;
+    params.p_reason_text = audit.reasonText;
+  }
+  const { data, error } = await sb.rpc('update_operator_password', params);
   if (error) {
     console.error('[operatorAuth] update password RPC error:', error);
+    return { ok: false, error };
+  }
+  return { ok: data === true, error: null };
+}
+
+/**
+ * Activa o desactiva un operador. Acción sensible: si se pasa audit
+ * con adminId, el RPC registra toggle_operator_active en
+ * admin_audit_log (reason obligatorio) en la misma transacción.
+ * @param {string} operatorId
+ * @param {boolean} newActive - nuevo estado (el cliente calcula !actual)
+ * @param {Object} [audit] - { adminId, adminName, adminEmail, reasonText }
+ * @returns {Promise<{ ok: boolean, error: object|null }>}
+ */
+export async function toggleOperatorActive(operatorId, newActive, audit = {}) {
+  if (!sb) return { ok: false, error: { message: 'Sin conexión al servidor' } };
+  const params = { p_id: operatorId, p_new_active: newActive };
+  if (audit.adminId) {
+    params.p_admin_id = audit.adminId;
+    params.p_admin_name = audit.adminName;
+    params.p_admin_email = audit.adminEmail;
+    params.p_reason_text = audit.reasonText;
+  }
+  const { data, error } = await sb.rpc('toggle_operator_active', params);
+  if (error) {
+    console.error('[operatorAuth] toggle active RPC error:', error);
     return { ok: false, error };
   }
   return { ok: data === true, error: null };
