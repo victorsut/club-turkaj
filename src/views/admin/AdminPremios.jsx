@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { adminTheme as AT, btnYellow, btnDark, inputStyle, sMono } from '../../constants/styles';
 import { Back, Plus } from '../../components/ui/Icons';
+import ReasonModal from '../../components/ui/ReasonModal';
+import { logAdminAction } from '../../services/rpcServices';
 
 const CAT_LABELS = {
   combustible: 'Combustible', servicio: 'Servicio', merch: 'Club Turkaj',
@@ -30,7 +32,7 @@ const TABS = [
 ];
 
 export default function AdminPremios(ctx) {
-  const { rewards, setRewards, fire, setScr, sbConnected } = ctx;
+  const { rewards, setRewards, fire, setScr, sbConnected, loggedAdmin } = ctx;
 
   const [sub, setSub]             = useState('canjear');
   const [showForm, setShowForm]   = useState(false);
@@ -38,7 +40,9 @@ export default function AdminPremios(ctx) {
   const [form, setForm]           = useState(EMPTY);
   const [saving, setSaving]       = useState(false);
   const [filterCat, setFilterCat] = useState('todos');
-  const [delConfirm, setDelConfirm] = useState(null);
+  // F0.3.6: ReasonModal unificado para acciones sensibles (edit/delete/toggle).
+  const [showReasonModal, setShowReasonModal] = useState(false);
+  const [pendingAction, setPendingAction]     = useState(null);
 
   // Estados Festivos
   const [festList, setFestList]       = useState([]);
@@ -47,7 +51,6 @@ export default function AdminPremios(ctx) {
   const [editFest, setEditFest]       = useState(null);
   const [festForm, setFestForm]       = useState({ name: '', month: '', day: '', points: '70', icon: 'F', active: true });
   const [savingFest, setSavingFest]   = useState(false);
-  const [delFest, setDelFest]         = useState(null);
 
   // Cargar festivos al abrir esa pestana
   useEffect(() => {
@@ -79,7 +82,6 @@ export default function AdminPremios(ctx) {
   const [editRaf, setEditRaf]         = useState(null);
   const [rafForm, setRafForm]         = useState({ month: '', year: new Date().getFullYear(), prize_name: '', prize_icon: '🎁', prize_value: '' });
   const [savingRaf, setSavingRaf]     = useState(false);
-  const [delRaf, setDelRaf]           = useState(null);
 
   // Cargar rifas al abrir esa pestana
   useEffect(() => {
@@ -102,42 +104,67 @@ export default function AdminPremios(ctx) {
 
   const save = async () => {
     if (!form.name.trim() || !form.pts) { fire('Nombre y puntos son obligatorios'); return; }
-    setSaving(true);
     const data = { name: form.name.trim(), points_cost: parseInt(form.pts), icon: form.icon, category: form.cat, tier_exclusive: form.tier !== 'todos' ? form.tier : null, active: form.active, description: form.description || null };
+
+    // EDITAR: auditar via ReasonModal (el UPDATE real ocurre en confirmAction).
+    if (editR) {
+      if (!loggedAdmin?.id) { fire('Error: sesion admin no disponible. Cerra sesion y volve a ingresar.'); return; }
+      setPendingAction({
+        type: 'edit_reward',
+        entityId: editR.id,
+        payload: { updates: data },
+        actionLabel: 'Editar premio: ' + data.name,
+        oldSnapshot: {
+          name: editR.name,
+          points_cost: editR.points_cost ?? editR.pts,
+          icon: editR.icon,
+          category: editR.category ?? editR.cat,
+          tier_exclusive: editR.tier_exclusive ?? editR.tier ?? null,
+          active: editR.active,
+          description: editR.description ?? null,
+        },
+      });
+      setShowForm(false);
+      setShowReasonModal(true);
+      return;
+    }
+
+    // CREAR: directo al insert, sin auditoria.
+    setSaving(true);
     if (sb && sbConnected) {
-      if (editR) {
-        const { error } = await sb.from('rewards').update(data).eq('id', editR.id);
-        if (error) { fire('Error: ' + error.message); setSaving(false); return; }
-        setRewards(p => p.map(r => r.id === editR.id ? { ...r, ...data, pts: data.points_cost, cat: data.category, tier: data.tier_exclusive } : r));
-        fire('Premio actualizado');
-      } else {
-        const { data: nd, error } = await sb.from('rewards').insert(data).select().single();
-        if (error) { fire('Error: ' + error.message); setSaving(false); return; }
-        setRewards(p => [...p, { ...data, id: nd.id, pts: data.points_cost, cat: data.category, tier: data.tier_exclusive }]);
-        fire('Premio creado');
-      }
+      const { data: nd, error } = await sb.from('rewards').insert(data).select().single();
+      if (error) { fire('Error: ' + error.message); setSaving(false); return; }
+      setRewards(p => [...p, { ...data, id: nd.id, pts: data.points_cost, cat: data.category, tier: data.tier_exclusive }]);
+      fire('Premio creado');
     }
     setSaving(false); setShowForm(false); setEditR(null);
   };
 
-  const toggle = async (r) => {
-    const val = !r.active;
-    if (sb && sbConnected) {
-      const { error } = await sb.from('rewards').update({ active: val }).eq('id', r.id);
-      if (error) { fire('Error: ' + error.message); return; }
-    }
-    setRewards(p => p.map(x => x.id === r.id ? { ...x, active: val } : x));
-    fire(val ? 'Premio activado' : 'Premio desactivado');
+  // F0.3.6: toggle ahora es accion auditada. Encola y abre ReasonModal.
+  const toggle = (r) => {
+    if (!loggedAdmin?.id) { fire('Error: sesion admin no disponible. Cerra sesion y volve a ingresar.'); return; }
+    const newActive = !r.active;
+    setPendingAction({
+      type: 'toggle_reward_active',
+      entityId: r.id,
+      payload: { newActive },
+      actionLabel: (r.active ? 'Desactivar premio: ' : 'Activar premio: ') + r.name,
+      oldSnapshot: { active: r.active },
+    });
+    setShowReasonModal(true);
   };
 
-  const del = async (r) => {
-    if (sb && sbConnected) {
-      const { error } = await sb.from('rewards').delete().eq('id', r.id);
-      if (error) { fire('Error: ' + error.message); return; }
-    }
-    setRewards(p => p.filter(x => x.id !== r.id));
-    setDelConfirm(null);
-    fire('Premio eliminado');
+  // F0.3.6: eliminar ahora pasa por ReasonModal (sin modal de confirmacion intermedio).
+  const del = (r) => {
+    if (!loggedAdmin?.id) { fire('Error: sesion admin no disponible. Cerra sesion y volve a ingresar.'); return; }
+    setPendingAction({
+      type: 'delete_reward',
+      entityId: r.id,
+      payload: { entity: r },
+      actionLabel: 'Eliminar premio: ' + r.name,
+      oldSnapshot: r,
+    });
+    setShowReasonModal(true);
   };
 
   // Los festivos con system=true no se pueden eliminar
@@ -155,7 +182,6 @@ export default function AdminPremios(ctx) {
 
   const saveFest = async () => {
     if (!festForm.name.trim() || !festForm.month) { fire('Nombre y mes son obligatorios'); return; }
-    setSavingFest(true);
     const data = {
       name: festForm.name.trim(),
       month: parseInt(festForm.month),
@@ -164,30 +190,51 @@ export default function AdminPremios(ctx) {
       icon: festForm.icon || 'F',
       active: festForm.active,
     };
+
+    // EDITAR: auditar via ReasonModal.
+    if (editFest) {
+      if (!loggedAdmin?.id) { fire('Error: sesion admin no disponible. Cerra sesion y volve a ingresar.'); return; }
+      setPendingAction({
+        type: 'edit_special_day',
+        entityId: editFest.id,
+        payload: { updates: data },
+        actionLabel: 'Editar festivo: ' + data.name,
+        oldSnapshot: {
+          name: editFest.name,
+          month: editFest.month,
+          day: editFest.day,
+          points: editFest.points,
+          icon: editFest.icon,
+          active: editFest.active,
+        },
+      });
+      setShowFestForm(false);
+      setShowReasonModal(true);
+      return;
+    }
+
+    // CREAR: directo.
+    setSavingFest(true);
     if (sb && sbConnected) {
-      if (editFest) {
-        const { error } = await sb.from('special_days').update(data).eq('id', editFest.id);
-        if (error) { fire('Error: ' + error.message); setSavingFest(false); return; }
-        setFestList(p => p.map(x => x.id === editFest.id ? { ...x, ...data } : x));
-        fire('Festivo actualizado');
-      } else {
-        const { data: nd, error } = await sb.from('special_days').insert(data).select().single();
-        if (error) { fire('Error: ' + error.message); setSavingFest(false); return; }
-        setFestList(p => [...p, { ...data, id: nd.id }].sort((a,b) => a.month !== b.month ? a.month-b.month : a.day-b.day));
-        fire('Festivo creado');
-      }
+      const { data: nd, error } = await sb.from('special_days').insert(data).select().single();
+      if (error) { fire('Error: ' + error.message); setSavingFest(false); return; }
+      setFestList(p => [...p, { ...data, id: nd.id }].sort((a,b) => a.month !== b.month ? a.month-b.month : a.day-b.day));
+      fire('Festivo creado');
     }
     setSavingFest(false); setShowFestForm(false); setEditFest(null);
   };
 
-  const delFestConfirmed = async (f) => {
-    if (sb && sbConnected) {
-      const { error } = await sb.from('special_days').delete().eq('id', f.id);
-      if (error) { fire('Error: ' + error.message); return; }
-    }
-    setFestList(p => p.filter(x => x.id !== f.id));
-    setDelFest(null);
-    fire('Festivo eliminado');
+  // F0.3.6: eliminar festivo pasa por ReasonModal.
+  const delFest = (f) => {
+    if (!loggedAdmin?.id) { fire('Error: sesion admin no disponible. Cerra sesion y volve a ingresar.'); return; }
+    setPendingAction({
+      type: 'delete_special_day',
+      entityId: f.id,
+      payload: { entity: f },
+      actionLabel: 'Eliminar festivo: ' + f.name,
+      oldSnapshot: f,
+    });
+    setShowReasonModal(true);
   };
 
   const openNewRaf = () => { setEditRaf(null); setRafForm({ month: '', year: new Date().getFullYear(), prize_name: '', prize_icon: '🎁', prize_value: '' }); setShowRafForm(true); };
@@ -195,32 +242,173 @@ export default function AdminPremios(ctx) {
 
   const saveRaf = async () => {
     if (!rafForm.month || !rafForm.prize_name || !rafForm.prize_value) { fire('Mes, premio y valor son obligatorios'); return; }
-    setSavingRaf(true);
     const data = { month: parseInt(rafForm.month), year: parseInt(rafForm.year), prize_name: rafForm.prize_name.trim(), prize_icon: rafForm.prize_icon, prize_value: parseFloat(rafForm.prize_value) };
+
+    // EDITAR: auditar via ReasonModal.
+    if (editRaf) {
+      if (!loggedAdmin?.id) { fire('Error: sesion admin no disponible. Cerra sesion y volve a ingresar.'); return; }
+      setPendingAction({
+        type: 'edit_raffle',
+        entityId: editRaf.id,
+        payload: { updates: data },
+        actionLabel: 'Editar rifa: ' + data.prize_name,
+        oldSnapshot: {
+          month: editRaf.month,
+          year: editRaf.year,
+          prize_name: editRaf.prize_name,
+          prize_icon: editRaf.prize_icon,
+          prize_value: editRaf.prize_value,
+        },
+      });
+      setShowRafForm(false);
+      setShowReasonModal(true);
+      return;
+    }
+
+    // CREAR: directo.
+    setSavingRaf(true);
     if (sb && sbConnected) {
-      if (editRaf) {
-        const { error } = await sb.from('raffle_calendar').update(data).eq('id', editRaf.id);
-        if (error) { fire('Error: ' + error.message); setSavingRaf(false); return; }
-        setRaffleList(p => p.map(r => r.id === editRaf.id ? { ...r, ...data } : r));
-        fire('Rifa actualizada');
-      } else {
-        const { data: nd, error } = await sb.from('raffle_calendar').insert(data).select().single();
-        if (error) { fire('Error: ' + error.message); setSavingRaf(false); return; }
-        setRaffleList(p => [...p, { ...data, id: nd.id }].sort((a,b) => a.year !== b.year ? a.year-b.year : a.month-b.month));
-        fire('Rifa creada');
-      }
+      const { data: nd, error } = await sb.from('raffle_calendar').insert(data).select().single();
+      if (error) { fire('Error: ' + error.message); setSavingRaf(false); return; }
+      setRaffleList(p => [...p, { ...data, id: nd.id }].sort((a,b) => a.year !== b.year ? a.year-b.year : a.month-b.month));
+      fire('Rifa creada');
     }
     setSavingRaf(false); setShowRafForm(false); setEditRaf(null);
   };
 
-  const delRafConfirmed = async (r) => {
-    if (sb && sbConnected) {
-      const { error } = await sb.from('raffle_calendar').delete().eq('id', r.id);
-      if (error) { fire('Error: ' + error.message); return; }
+  // F0.3.6: eliminar rifa pasa por ReasonModal.
+  const delRaf = (r) => {
+    if (!loggedAdmin?.id) { fire('Error: sesion admin no disponible. Cerra sesion y volve a ingresar.'); return; }
+    setPendingAction({
+      type: 'delete_raffle_entry',
+      entityId: r.id,
+      payload: { entity: r },
+      actionLabel: 'Eliminar rifa: ' + (r.prize_name || ''),
+      oldSnapshot: r,
+    });
+    setShowReasonModal(true);
+  };
+
+  // F0.3.6: ejecutor unificado de acciones sensibles (edit/delete/toggle de las
+  // 3 entidades). Patron client-first: muta primero, audita despues; si el log
+  // falla NO se revierte (warning + console.error). Espeja OpManagement F0.3.5.4.
+  const confirmAction = async (reason) => {
+    if (!loggedAdmin?.id) {
+      setShowReasonModal(false);
+      fire('Error: sesion admin no disponible. Cerra sesion y volve a ingresar.');
+      return;
     }
-    setRaffleList(p => p.filter(x => x.id !== r.id));
-    setDelRaf(null);
-    fire('Rifa eliminada');
+    if (!pendingAction) { setShowReasonModal(false); return; }
+
+    const audit = {
+      adminId: loggedAdmin.id,
+      adminName: loggedAdmin.name,
+      adminEmail: loggedAdmin.email,
+      reasonText: reason,
+    };
+    const eid = pendingAction.entityId;
+    setSaving(true);
+    try {
+      switch (pendingAction.type) {
+        case 'edit_reward':
+        case 'edit_special_day':
+        case 'edit_raffle': {
+          const tableMap  = { edit_reward: 'rewards', edit_special_day: 'special_days', edit_raffle: 'raffle_calendar' };
+          const actionMap = { edit_reward: 'update_reward', edit_special_day: 'update_special_day', edit_raffle: 'update_raffle' };
+          const entityMap = { edit_reward: 'reward', edit_special_day: 'special_day', edit_raffle: 'raffle' };
+          const updates = pendingAction.payload.updates;
+
+          if (sb && sbConnected) {
+            const { error: upErr } = await sb.from(tableMap[pendingAction.type]).update(updates).eq('id', eid);
+            if (upErr) {
+              setShowReasonModal(false);
+              // Reabrir el modal de edicion correspondiente (form intacto).
+              if (pendingAction.type === 'edit_reward') setShowForm(true);
+              else if (pendingAction.type === 'edit_special_day') setShowFestForm(true);
+              else setShowRafForm(true);
+              fire('Error: ' + upErr.message);
+              return;
+            }
+            const { error: logErr } = await logAdminAction({
+              ...audit,
+              action: actionMap[pendingAction.type],
+              entityType: entityMap[pendingAction.type],
+              entityId: eid,
+              oldValue: pendingAction.oldSnapshot,
+              newValue: updates,
+            });
+            if (logErr) { console.error('[AdminPremios] log ' + actionMap[pendingAction.type] + ' fallo:', logErr); fire('⚠️ Actualizado, pero la auditoria fallo'); }
+          }
+
+          if (pendingAction.type === 'edit_reward') {
+            setRewards(prev => prev.map(r => r.id === eid ? { ...r, ...updates, pts: updates.points_cost, cat: updates.category, tier: updates.tier_exclusive } : r));
+            setShowForm(false); setEditR(null); setForm({ ...EMPTY });
+            fire('Premio actualizado');
+          } else if (pendingAction.type === 'edit_special_day') {
+            setFestList(prev => prev.map(x => x.id === eid ? { ...x, ...updates } : x));
+            setShowFestForm(false); setEditFest(null);
+            fire('Festivo actualizado');
+          } else {
+            setRaffleList(prev => prev.map(r => r.id === eid ? { ...r, ...updates } : r));
+            setShowRafForm(false); setEditRaf(null);
+            fire('Rifa actualizada');
+          }
+          break;
+        }
+
+        case 'delete_reward':
+        case 'delete_special_day':
+        case 'delete_raffle_entry': {
+          const tableMap  = { delete_reward: 'rewards', delete_special_day: 'special_days', delete_raffle_entry: 'raffle_calendar' };
+          const entityMap = { delete_reward: 'reward', delete_special_day: 'special_day', delete_raffle_entry: 'raffle' };
+
+          if (sb && sbConnected) {
+            const { error: delErr } = await sb.from(tableMap[pendingAction.type]).delete().eq('id', eid);
+            if (delErr) { setShowReasonModal(false); fire('Error: ' + delErr.message); return; }
+            const { error: logErr } = await logAdminAction({
+              ...audit,
+              action: pendingAction.type,
+              entityType: entityMap[pendingAction.type],
+              entityId: eid,
+              oldValue: pendingAction.oldSnapshot,
+              newValue: null,
+            });
+            if (logErr) { console.error('[AdminPremios] log ' + pendingAction.type + ' fallo:', logErr); fire('⚠️ Eliminado, pero la auditoria fallo'); }
+          }
+
+          if (pendingAction.type === 'delete_reward') { setRewards(prev => prev.filter(r => r.id !== eid)); fire('Premio eliminado'); }
+          else if (pendingAction.type === 'delete_special_day') { setFestList(prev => prev.filter(x => x.id !== eid)); fire('Festivo eliminado'); }
+          else { setRaffleList(prev => prev.filter(x => x.id !== eid)); fire('Rifa eliminada'); }
+          break;
+        }
+
+        case 'toggle_reward_active': {
+          if (sb && sbConnected) {
+            const { error: upErr } = await sb.from('rewards').update({ active: pendingAction.payload.newActive }).eq('id', eid);
+            if (upErr) { setShowReasonModal(false); fire('Error: ' + upErr.message); return; }
+            const { error: logErr } = await logAdminAction({
+              ...audit,
+              action: 'toggle_reward_active',
+              entityType: 'reward',
+              entityId: eid,
+              oldValue: pendingAction.oldSnapshot,
+              newValue: { active: pendingAction.payload.newActive },
+            });
+            if (logErr) { console.error('[AdminPremios] log toggle_reward_active fallo:', logErr); fire('⚠️ Toggle aplicado, pero la auditoria fallo'); }
+          }
+          setRewards(prev => prev.map(r => r.id === eid ? { ...r, active: pendingAction.payload.newActive } : r));
+          fire(pendingAction.payload.newActive ? 'Premio activado' : 'Premio desactivado');
+          break;
+        }
+
+        default:
+          break;
+      }
+    } finally {
+      setSaving(false);
+      setPendingAction(null);
+      setShowReasonModal(false);
+    }
   };
 
   const sLbl = { display: 'block', fontSize: 11, fontWeight: 700, color: '#757575', marginBottom: 4, textTransform: 'uppercase', letterSpacing: .8 };
@@ -283,7 +471,7 @@ export default function AdminPremios(ctx) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
                   <button onClick={() => openEdit(r)} style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, color: '#64B5F6', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans'" }}>Editar</button>
                   <button onClick={() => toggle(r)} style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, color: isActive ? '#FF8F00' : '#2E7D32', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans'" }}>{isActive ? 'Desact.' : 'Activar'}</button>
-                  <button onClick={() => setDelConfirm(r)} style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, color: '#EF5350', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans'" }}>Borrar</button>
+                  <button onClick={() => del(r)} style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, color: '#EF5350', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans'" }}>Borrar</button>
                 </div>
               </div>
             );
@@ -326,7 +514,7 @@ export default function AdminPremios(ctx) {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
                   <button onClick={() => openEditRaf(r)} style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, color: '#64B5F6', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans'" }}>Editar</button>
-                  <button onClick={() => setDelRaf(r)} style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, color: '#EF5350', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans'" }}>Borrar</button>
+                  <button onClick={() => delRaf(r)} style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, color: '#EF5350', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans'" }}>Borrar</button>
                 </div>
               </div>
             );
@@ -382,22 +570,6 @@ export default function AdminPremios(ctx) {
             </div>
           )}
 
-          {/* MODAL CONFIRMAR BORRAR RIFA */}
-          {delRaf && (
-            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-              <div style={{ background: '#1E1E1E', borderRadius: 20, padding: 28, maxWidth: 320, width: '100%', textAlign: 'center' }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>{delRaf.prize_icon || '🎁'}</div>
-                <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', marginBottom: 8 }}>Eliminar rifa</div>
-                <div style={{ fontSize: 13, color: '#9E9E9E', marginBottom: 24 }}>
-                  Se eliminara la rifa de <strong style={{ color: '#E0E0E0' }}>{MONTHS[(delRaf.month||1)-1]} {delRaf.year}</strong> ({delRaf.prize_name}).
-                </div>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <button onClick={() => setDelRaf(null)} style={{ ...btnDark, flex: 1, fontSize: 14 }}>Cancelar</button>
-                  <button onClick={() => delRafConfirmed(delRaf)} style={{ flex: 1, padding: 14, borderRadius: 14, border: 'none', background: '#C62828', color: '#fff', fontFamily: "'DM Sans'", fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>Eliminar</button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -443,7 +615,7 @@ export default function AdminPremios(ctx) {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
                   <button onClick={() => openEditFest(f)} style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, color: '#64B5F6', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans'" }}>Editar</button>
-                  {!isFixed && <button onClick={() => setDelFest(f)} style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, color: '#EF5350', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans'" }}>Borrar</button>}
+                  {!isFixed && <button onClick={() => delFest(f)} style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, color: '#EF5350', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans'" }}>Borrar</button>}
                 </div>
               </div>
             );
@@ -503,22 +675,6 @@ export default function AdminPremios(ctx) {
             </div>
           )}
 
-          {/* CONFIRMAR BORRAR FESTIVO */}
-          {delFest && (
-            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-              <div style={{ background: '#1E1E1E', borderRadius: 20, padding: 28, maxWidth: 320, width: '100%', textAlign: 'center' }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>{delFest.icon || 'F'}</div>
-                <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', marginBottom: 8 }}>Eliminar festivo</div>
-                <div style={{ fontSize: 13, color: '#9E9E9E', marginBottom: 24 }}>
-                  Se eliminara <strong style={{ color: '#E0E0E0' }}>{delFest.name}</strong>.
-                </div>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <button onClick={() => setDelFest(null)} style={{ ...btnDark, flex: 1, fontSize: 14 }}>Cancelar</button>
-                  <button onClick={() => delFestConfirmed(delFest)} style={{ flex: 1, padding: 14, borderRadius: 14, border: 'none', background: '#C62828', color: '#fff', fontFamily: "'DM Sans'", fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>Eliminar</button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -583,22 +739,14 @@ export default function AdminPremios(ctx) {
         </div>
       )}
 
-      {/* MODAL CONFIRMAR BORRADO */}
-      {delConfirm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: '#1E1E1E', borderRadius: 20, padding: 28, maxWidth: 320, width: '100%', textAlign: 'center' }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>{delConfirm.icon || '🎁'}</div>
-            <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', marginBottom: 8 }}>Eliminar premio</div>
-            <div style={{ fontSize: 13, color: '#9E9E9E', marginBottom: 24 }}>
-              Se eliminara <strong style={{ color: '#E0E0E0' }}>{delConfirm.name}</strong> permanentemente.
-            </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setDelConfirm(null)} style={{ ...btnDark, flex: 1, fontSize: 14 }}>Cancelar</button>
-              <button onClick={() => del(delConfirm)} style={{ flex: 1, padding: 14, borderRadius: 14, border: 'none', background: '#C62828', color: '#fff', fontFamily: "'DM Sans'", fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>Eliminar</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* F0.3.6: ReasonModal unificado para edit/delete/toggle de las 3 entidades */}
+      <ReasonModal
+        open={showReasonModal}
+        onClose={() => { if (!saving) { setShowReasonModal(false); setPendingAction(null); } }}
+        onConfirm={confirmAction}
+        actionLabel={pendingAction?.actionLabel || 'Confirmar accion'}
+        loading={saving}
+      />
     </div>
   );
 }
