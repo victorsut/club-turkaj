@@ -345,7 +345,7 @@ export default function App() {
     async function loadFromSupabase() {
       try {
         const [rwRes, prRes, stRes, cfgRes, rcRes] = await Promise.all([
-          sb.from('rewards').select('*').eq('active', true).order('sort_order'),
+          sb.from('rewards').select('*').order('sort_order'),
           sb.from('promotions').select('*').eq('active', true).order('sort_order'),
           sb.from('stations').select('*'),
           sb.from('program_config').select('*'),
@@ -353,10 +353,12 @@ export default function App() {
         ]);
         if (!mounted) return;
 
-        if (rwRes.data?.length > 0) {
+        if (rwRes.data) {
           setRewards(rwRes.data.map(r => ({
-            id: r.id, name: r.name, icon: r.icon, pts: r.points_cost,
-            cat: r.category, tier: r.tier_exclusive || undefined,
+            id: r.id, name: r.name, icon: r.icon,
+            pts: r.points_cost, cat: r.category, tier: r.tier_exclusive || undefined,
+            points_cost: r.points_cost, category: r.category, tier_exclusive: r.tier_exclusive,
+            description: r.description, active: r.active !== false,
           })));
         }
 

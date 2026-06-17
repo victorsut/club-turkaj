@@ -5,7 +5,8 @@ export default function Catalog(ctx) {
   const { rewards, me, gT, cfg, cTier, catF, setCatF, redeem, setRedeemConfirm, client = true } = ctx;
   const t    = me ? gT(me.gallons) : gT(0);
   const cats = ['todos', ...Object.keys(CAT_LABELS)];
-  const filtered = catF === 'todos' ? rewards : rewards.filter(r => r.cat === catF);
+  const visible = (rewards || []).filter(r => r.active !== false);
+  const filtered = catF === 'todos' ? visible : visible.filter(r => r.cat === catF);
 
   // ── Tema por tier ──────────────────────────────────────
   const tier = cTier?.name || 'ORO';
