@@ -346,7 +346,7 @@ export default function App() {
       try {
         const [rwRes, prRes, stRes, cfgRes, rcRes] = await Promise.all([
           sb.from('rewards').select('*').order('sort_order'),
-          sb.from('promotions').select('*').eq('active', true).order('sort_order'),
+          sb.from('promotions').select('*').order('sort_order'),
           sb.from('stations').select('*'),
           sb.from('program_config').select('*'),
           sb.from('raffle_calendar').select('*').order('month'),
@@ -362,10 +362,12 @@ export default function App() {
           })));
         }
 
-        if (prRes.data?.length > 0) {
+        if (prRes.data) {
           setPromos(prRes.data.map(p => ({
             id: p.id, title: p.title, desc: p.description, icon: p.icon,
-            bg: p.bg_gradient, color: p.text_color, active: p.active,
+            bg: p.bg_gradient, color: p.text_color,
+            sort_order: p.sort_order,
+            active: p.active !== false,
           })));
         }
 

@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { inputStyle, btnYellow, adminTheme as AT } from '../../constants/styles';
+import ReasonModal from '../../components/ui/ReasonModal';
+import { logAdminAction } from '../../services/rpcServices';
 
 const GRADIENTS = [
   { label: 'Dorado',    value: 'linear-gradient(135deg,#FBBC04,#FFD540)' },
@@ -18,11 +20,14 @@ const GRADIENTS = [
 const EMPTY = { title: '', desc: '', icon: '', bg_gradient: GRADIENTS[0].value, text_color: '#ffffff', sort_order: 0, active: true };
 
 export default function AdminPromos(ctx) {
-  const { promos, setPromos, fire, sbConnected } = ctx;
+  const { promos, setPromos, fire, sbConnected, loggedAdmin } = ctx;
 
   const [editing, setEditing]   = useState(null);  // promo en edición
   const [form, setForm]         = useState(EMPTY);
   const [saving, setSaving]     = useState(false);
+  // F0.3.7: ReasonModal unificado para acciones sensibles (edit/delete/toggle).
+  const [showReasonModal, setShowReasonModal] = useState(false);
+  const [pendingAction, setPendingAction]     = useState(null);
 
   const AT_card = { background: AT.card, borderRadius: 16, padding: 20, border: `1px solid ${AT.border}`, marginBottom: 12 };
 
@@ -33,8 +38,42 @@ export default function AdminPromos(ctx) {
   const save = async () => {
     if (!form.title.trim()) { fire('❌ El título es obligatorio'); return; }
     if (!sb || !sbConnected) { fire('❌ Sin conexión a Supabase'); return; }
-    setSaving(true);
 
+    // RAMA EDIT: auditar via ReasonModal (el UPDATE real ocurre en confirmAction).
+    if (editing !== 'new') {
+      if (!loggedAdmin?.id) { fire('Error: sesion admin no disponible'); return; }
+      const oldPromo = promos.find(p => p.id === editing);
+      const oldSnapshot = oldPromo ? {
+        title: oldPromo.title,
+        description: oldPromo.desc,
+        icon: oldPromo.icon,
+        bg_gradient: oldPromo.bg,
+        text_color: oldPromo.color,
+        sort_order: oldPromo.sort_order,
+        active: oldPromo.active !== false,
+      } : null;
+      const updates = {
+        title:       form.title.trim(),
+        description: form.desc.trim(),
+        icon:        form.icon.trim(),
+        bg_gradient: form.bg_gradient,
+        text_color:  form.text_color,
+        sort_order:  parseInt(form.sort_order) || 0,
+      };
+      setPendingAction({
+        type: 'edit',
+        entityId: editing,
+        payload: { updates },
+        actionLabel: 'Editar promocion: ' + updates.title,
+        oldSnapshot,
+      });
+      setEditing(null);   // Cerrar form inline (se reabre si el update falla)
+      setShowReasonModal(true);
+      return;
+    }
+
+    // RAMA CREATE: insert directo, sin auditoria (consistente con F0.3.5/F0.3.6).
+    setSaving(true);
     const data = {
       title:       form.title.trim(),
       description: form.desc.trim(),
@@ -44,49 +83,145 @@ export default function AdminPromos(ctx) {
       sort_order:  parseInt(form.sort_order) || 0,
       active:      form.active,
     };
-
-    let res;
-    if (editing === 'new') {
-      res = await sb.from('promotions').insert(data).select();
-    } else {
-      res = await sb.from('promotions').update(data).eq('id', editing).select();
-    }
-
+    const res = await sb.from('promotions').insert(data).select();
     setSaving(false);
     if (res.error) { fire('❌ Error: ' + res.error.message); return; }
 
     const updated = res.data[0];
     const mapped = { id: updated.id, title: updated.title, desc: updated.description, icon: updated.icon, bg: updated.bg_gradient, color: updated.text_color, sort_order: updated.sort_order, active: updated.active };
-
-    if (editing === 'new') {
-      setPromos(p => [...p, mapped].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
-      fire('✅ Promoción creada');
-    } else {
-      setPromos(p => p.map(x => x.id === editing ? mapped : x));
-      fire('✅ Promoción actualizada');
-    }
+    setPromos(p => [...p, mapped].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
+    fire('✅ Promoción creada');
     cancel();
   };
 
-  const toggleActive = async (promo) => {
-    if (!sb || !sbConnected) { fire('❌ Sin conexión'); return; }
-    const newVal = !promo.active;
-    const { error } = await sb.from('promotions').update({ active: newVal }).eq('id', promo.id);
-    if (error) {
-      console.error('[Promos] toggleActive error:', error);
-      fire('❌ Error al actualizar: ' + error.message);
-      return;
-    }
-    setPromos(p => p.map(x => x.id === promo.id ? { ...x, active: newVal } : x));
-    fire(newVal ? '✅ Promoción activada' : '⏸️ Promoción desactivada');
+  // F0.3.7: toggle ahora es accion auditada. Encola y abre ReasonModal.
+  const toggleActive = (promo) => {
+    if (!loggedAdmin?.id) { fire('Error: sesion admin no disponible'); return; }
+    const isActive = promo.active !== false;
+    const newActive = !isActive;
+    setPendingAction({
+      type: 'toggle',
+      entityId: promo.id,
+      payload: { newActive },
+      actionLabel: (isActive ? 'Desactivar promocion: ' : 'Activar promocion: ') + promo.title,
+      oldSnapshot: { active: isActive },
+    });
+    setShowReasonModal(true);
   };
 
-  const deletePromo = async (id) => {
-    if (!sb || !sbConnected) return;
-    await sb.from('promotions').delete().eq('id', id);
-    setPromos(p => p.filter(x => x.id !== id));
-    fire('🗑️ Promoción eliminada');
-    if (editing === id) cancel();
+  // F0.3.7: eliminar ahora pasa por ReasonModal (reemplaza el delete instantaneo).
+  const deletePromo = (promo) => {
+    if (!loggedAdmin?.id) { fire('Error: sesion admin no disponible'); return; }
+    setPendingAction({
+      type: 'delete',
+      entityId: promo.id,
+      payload: { entity: promo },
+      actionLabel: 'Eliminar promocion: ' + promo.title,
+      oldSnapshot: {
+        title: promo.title,
+        description: promo.desc,
+        icon: promo.icon,
+        bg_gradient: promo.bg,
+        text_color: promo.color,
+        sort_order: promo.sort_order,
+        active: promo.active !== false,
+      },
+    });
+    setShowReasonModal(true);
+  };
+
+  // F0.3.7: ejecutor unificado de acciones sensibles (edit/delete/toggle).
+  // Patron client-first: muta primero, audita despues; si el log falla NO se
+  // revierte (warning + console.error). Espeja AdminPremios F0.3.6.
+  const confirmAction = async (reason) => {
+    if (!loggedAdmin?.id) {
+      setShowReasonModal(false);
+      fire('Error: sesion admin no disponible');
+      return;
+    }
+    if (!pendingAction) { setShowReasonModal(false); return; }
+
+    const audit = {
+      adminId: loggedAdmin.id,
+      adminName: loggedAdmin.name,
+      adminEmail: loggedAdmin.email,
+      reasonText: reason,
+    };
+    const eid = pendingAction.entityId;
+    setSaving(true);
+    try {
+      switch (pendingAction.type) {
+        case 'edit': {
+          const { error: upErr } = await sb.from('promotions').update(pendingAction.payload.updates).eq('id', eid);
+          if (upErr) {
+            setShowReasonModal(false);
+            setEditing(eid);   // Reabrir form inline
+            fire('Error: ' + upErr.message);
+            return;
+          }
+          const { error: logErr } = await logAdminAction({
+            ...audit,
+            action: 'update_promotion',
+            entityType: 'promotion',
+            entityId: eid,
+            oldValue: pendingAction.oldSnapshot,
+            newValue: pendingAction.payload.updates,
+          });
+          if (logErr) { console.error('[F0.3.7] log update_promotion fallo:', logErr); fire('⚠️ Actualizado, pero la auditoria fallo'); }
+
+          const u = pendingAction.payload.updates;
+          setPromos(prev => prev.map(p => p.id === eid ? {
+            ...p, title: u.title, desc: u.description, icon: u.icon,
+            bg: u.bg_gradient, color: u.text_color, sort_order: u.sort_order,
+          } : p));
+          fire('Promocion actualizada');
+          break;
+        }
+
+        case 'delete': {
+          const { error: delErr } = await sb.from('promotions').delete().eq('id', eid);
+          if (delErr) { setShowReasonModal(false); fire('Error: ' + delErr.message); return; }
+          const { error: logErr } = await logAdminAction({
+            ...audit,
+            action: 'delete_promotion',
+            entityType: 'promotion',
+            entityId: eid,
+            oldValue: pendingAction.oldSnapshot,
+            newValue: null,
+          });
+          if (logErr) { console.error('[F0.3.7] log delete_promotion fallo:', logErr); fire('⚠️ Eliminado, pero la auditoria fallo'); }
+
+          setPromos(prev => prev.filter(p => p.id !== eid));
+          fire('Promocion eliminada');
+          break;
+        }
+
+        case 'toggle': {
+          const { error: upErr } = await sb.from('promotions').update({ active: pendingAction.payload.newActive }).eq('id', eid);
+          if (upErr) { setShowReasonModal(false); fire('Error: ' + upErr.message); return; }
+          const { error: logErr } = await logAdminAction({
+            ...audit,
+            action: 'toggle_promotion_active',
+            entityType: 'promotion',
+            entityId: eid,
+            oldValue: pendingAction.oldSnapshot,
+            newValue: { active: pendingAction.payload.newActive },
+          });
+          if (logErr) { console.error('[F0.3.7] log toggle_promotion_active fallo:', logErr); fire('⚠️ Toggle aplicado, pero la auditoria fallo'); }
+
+          setPromos(prev => prev.map(p => p.id === eid ? { ...p, active: pendingAction.payload.newActive } : p));
+          fire(pendingAction.payload.newActive ? 'Promocion activada' : 'Promocion desactivada');
+          break;
+        }
+
+        default:
+          break;
+      }
+    } finally {
+      setSaving(false);
+      setPendingAction(null);
+      setShowReasonModal(false);
+    }
   };
 
   const F = ({ label, fieldKey, type = 'text', placeholder = '' }) => (
@@ -158,16 +293,19 @@ export default function AdminPromos(ctx) {
 
             <F label="Orden (número)" fieldKey="sort_order" type="number" placeholder="0" />
 
-            {/* Activa */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <div onClick={() => setForm(p => ({ ...p, active: !p.active }))} style={{
-                width: 44, height: 24, borderRadius: 12, background: form.active ? '#FBBC04' : '#555',
-                position: 'relative', cursor: 'pointer', transition: 'background .2s',
-              }}>
-                <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#fff', position: 'absolute', top: 3, left: form.active ? 23 : 3, transition: 'left .2s' }} />
+            {/* Activa — solo en CREATE. En EDIT el estado se gestiona via el
+                boton Desact./Activar de la lista (auditado por ReasonModal). */}
+            {editing === 'new' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <div onClick={() => setForm(p => ({ ...p, active: !p.active }))} style={{
+                  width: 44, height: 24, borderRadius: 12, background: form.active ? '#FBBC04' : '#555',
+                  position: 'relative', cursor: 'pointer', transition: 'background .2s',
+                }}>
+                  <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#fff', position: 'absolute', top: 3, left: form.active ? 23 : 3, transition: 'left .2s' }} />
+                </div>
+                <span style={{ fontSize: 13, color: AT.txt, fontWeight: 600 }}>{form.active ? 'Activa' : 'Inactiva'}</span>
               </div>
-              <span style={{ fontSize: 13, color: AT.txt, fontWeight: 600 }}>{form.active ? 'Activa' : 'Inactiva'}</span>
-            </div>
+            )}
 
             {/* Preview */}
             <div style={{ marginBottom: 16 }}>
@@ -229,7 +367,7 @@ export default function AdminPromos(ctx) {
               }}>
                 ✏️ Editar
               </button>
-              <button onClick={() => deletePromo(p.id)} style={{
+              <button onClick={() => deletePromo(p)} style={{
                 padding: '9px 14px', borderRadius: 10, border: `1px solid ${AT.border}`,
                 background: 'none', color: '#EF5350', fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 12, cursor: 'pointer',
               }}>
@@ -239,6 +377,15 @@ export default function AdminPromos(ctx) {
           </div>
         ))}
       </div>
+
+      {/* F0.3.7: ReasonModal unificado para edit/delete/toggle de promociones */}
+      <ReasonModal
+        open={showReasonModal}
+        onClose={() => { if (!saving) { setShowReasonModal(false); setPendingAction(null); } }}
+        onConfirm={confirmAction}
+        actionLabel={pendingAction?.actionLabel || 'Confirmar accion'}
+        loading={saving}
+      />
     </div>
   );
 }
