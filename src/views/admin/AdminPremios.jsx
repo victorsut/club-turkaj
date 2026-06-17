@@ -143,13 +143,14 @@ export default function AdminPremios(ctx) {
   // F0.3.6: toggle ahora es accion auditada. Encola y abre ReasonModal.
   const toggle = (r) => {
     if (!loggedAdmin?.id) { fire('Error: sesion admin no disponible. Cerra sesion y volve a ingresar.'); return; }
-    const newActive = !r.active;
+    const isActive = r.active !== false;   // misma semantica que el render (active null/undefined = activo)
+    const newActive = !isActive;
     setPendingAction({
       type: 'toggle_reward_active',
       entityId: r.id,
       payload: { newActive },
-      actionLabel: (r.active ? 'Desactivar premio: ' : 'Activar premio: ') + r.name,
-      oldSnapshot: { active: r.active },
+      actionLabel: (isActive ? 'Desactivar premio: ' : 'Activar premio: ') + r.name,
+      oldSnapshot: { active: isActive },
     });
     setShowReasonModal(true);
   };
