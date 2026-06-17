@@ -251,81 +251,105 @@ export default function AdminPromos(ctx) {
 
         {/* ── Formulario edición/creación ── */}
         {editing && (
-          <div style={{ ...AT_card, border: `1px solid #FBBC04` }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: AT.txt, marginBottom: 16 }}>
-              {editing === 'new' ? '➕ Nueva promoción' : '✏️ Editar promoción'}
-            </div>
+          <div
+            style={{
+              position: 'fixed', inset: 0,
+              background: 'rgba(0,0,0,.6)',
+              zIndex: 400,
+              display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+            }}
+            onClick={() => !saving && cancel()}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: AT.card,
+                border: `1px solid #FBBC04`,
+                borderRadius: '24px 24px 0 0',
+                width: '100%',
+                maxWidth: 480,
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                padding: '20px 20px 40px',
+              }}
+            >
+              <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,.2)', borderRadius: 4, margin: '0 auto 20px' }} />
 
-            <F label="Título *" fieldKey="title" placeholder="Ej: ¡Combustible al 10% off!" />
-            <F label="Descripción" fieldKey="desc" placeholder="Descripción breve de la promo" />
-            <F label="Ícono (emoji)" fieldKey="icon" placeholder="🎉" />
-
-            {/* Gradiente */}
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: AT.sub, marginBottom: 6, textTransform: 'uppercase', letterSpacing: .5 }}>Color de fondo</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-                {GRADIENTS.map(g => (
-                  <div key={g.value} onClick={() => setForm(p => ({ ...p, bg_gradient: g.value }))} style={{
-                    height: 36, borderRadius: 10, background: g.value, cursor: 'pointer',
-                    border: form.bg_gradient === g.value ? '2px solid #FBBC04' : '2px solid transparent',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 9, fontWeight: 700, color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,.5)',
-                  }}>{g.label}</div>
-                ))}
+              <div style={{ fontSize: 14, fontWeight: 800, color: AT.txt, marginBottom: 16 }}>
+                {editing === 'new' ? '➕ Nueva promoción' : '✏️ Editar promoción'}
               </div>
-            </div>
 
-            {/* Color texto */}
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: AT.sub, marginBottom: 6, textTransform: 'uppercase', letterSpacing: .5 }}>Color del texto</div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {['#ffffff', '#0D0D0D', '#FBBC04', '#FFD54F'].map(c => (
-                  <div key={c} onClick={() => setForm(p => ({ ...p, text_color: c }))} style={{
-                    width: 36, height: 36, borderRadius: 10, background: c, cursor: 'pointer',
-                    border: form.text_color === c ? '2px solid #FBBC04' : `2px solid ${AT.border}`,
-                  }} />
-                ))}
-                <input type="color" value={form.text_color}
-                  onChange={e => setForm(p => ({ ...p, text_color: e.target.value }))}
-                  style={{ width: 36, height: 36, borderRadius: 10, border: `2px solid ${AT.border}`, background: 'none', cursor: 'pointer', padding: 2 }} />
-              </div>
-            </div>
+              <F label="Título *" fieldKey="title" placeholder="Ej: ¡Combustible al 10% off!" />
+              <F label="Descripción" fieldKey="desc" placeholder="Descripción breve de la promo" />
+              <F label="Ícono (emoji)" fieldKey="icon" placeholder="🎉" />
 
-            <F label="Orden (número)" fieldKey="sort_order" type="number" placeholder="0" />
-
-            {/* Activa — solo en CREATE. En EDIT el estado se gestiona via el
-                boton Desact./Activar de la lista (auditado por ReasonModal). */}
-            {editing === 'new' && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                <div onClick={() => setForm(p => ({ ...p, active: !p.active }))} style={{
-                  width: 44, height: 24, borderRadius: 12, background: form.active ? '#FBBC04' : '#555',
-                  position: 'relative', cursor: 'pointer', transition: 'background .2s',
-                }}>
-                  <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#fff', position: 'absolute', top: 3, left: form.active ? 23 : 3, transition: 'left .2s' }} />
-                </div>
-                <span style={{ fontSize: 13, color: AT.txt, fontWeight: 600 }}>{form.active ? 'Activa' : 'Inactiva'}</span>
-              </div>
-            )}
-
-            {/* Preview */}
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: AT.sub, marginBottom: 6, textTransform: 'uppercase', letterSpacing: .5 }}>Vista previa</div>
-              <div style={{ borderRadius: 14, padding: '14px 18px', background: form.bg_gradient, display: 'flex', alignItems: 'center', gap: 14 }}>
-                {form.icon && <div style={{ fontSize: 32 }}>{form.icon}</div>}
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 900, color: form.text_color }}>{form.title || 'Título de la promo'}</div>
-                  {form.desc && <div style={{ fontSize: 11, color: form.text_color, opacity: .8, marginTop: 2 }}>{form.desc}</div>}
+              {/* Gradiente */}
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: AT.sub, marginBottom: 6, textTransform: 'uppercase', letterSpacing: .5 }}>Color de fondo</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                  {GRADIENTS.map(g => (
+                    <div key={g.value} onClick={() => setForm(p => ({ ...p, bg_gradient: g.value }))} style={{
+                      height: 36, borderRadius: 10, background: g.value, cursor: 'pointer',
+                      border: form.bg_gradient === g.value ? '2px solid #FBBC04' : '2px solid transparent',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 9, fontWeight: 700, color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,.5)',
+                    }}>{g.label}</div>
+                  ))}
                 </div>
               </div>
-            </div>
 
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={cancel} style={{ flex: 1, padding: 12, borderRadius: 12, border: `1px solid ${AT.border}`, background: 'none', color: AT.sub, fontFamily: "'DM Sans'", fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
-                Cancelar
-              </button>
-              <button onClick={save} disabled={saving} style={{ ...btnYellow, flex: 2, padding: 12, fontSize: 14, opacity: saving ? .7 : 1 }}>
-                {saving ? 'Guardando...' : editing === 'new' ? 'Crear promoción' : 'Guardar cambios'}
-              </button>
+              {/* Color texto */}
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: AT.sub, marginBottom: 6, textTransform: 'uppercase', letterSpacing: .5 }}>Color del texto</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {['#ffffff', '#0D0D0D', '#FBBC04', '#FFD54F'].map(c => (
+                    <div key={c} onClick={() => setForm(p => ({ ...p, text_color: c }))} style={{
+                      width: 36, height: 36, borderRadius: 10, background: c, cursor: 'pointer',
+                      border: form.text_color === c ? '2px solid #FBBC04' : `2px solid ${AT.border}`,
+                    }} />
+                  ))}
+                  <input type="color" value={form.text_color}
+                    onChange={e => setForm(p => ({ ...p, text_color: e.target.value }))}
+                    style={{ width: 36, height: 36, borderRadius: 10, border: `2px solid ${AT.border}`, background: 'none', cursor: 'pointer', padding: 2 }} />
+                </div>
+              </div>
+
+              <F label="Orden (número)" fieldKey="sort_order" type="number" placeholder="0" />
+
+              {/* Activa — solo en CREATE. En EDIT el estado se gestiona via el
+                  boton Desact./Activar de la lista (auditado por ReasonModal). */}
+              {editing === 'new' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                  <div onClick={() => setForm(p => ({ ...p, active: !p.active }))} style={{
+                    width: 44, height: 24, borderRadius: 12, background: form.active ? '#FBBC04' : '#555',
+                    position: 'relative', cursor: 'pointer', transition: 'background .2s',
+                  }}>
+                    <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#fff', position: 'absolute', top: 3, left: form.active ? 23 : 3, transition: 'left .2s' }} />
+                  </div>
+                  <span style={{ fontSize: 13, color: AT.txt, fontWeight: 600 }}>{form.active ? 'Activa' : 'Inactiva'}</span>
+                </div>
+              )}
+
+              {/* Preview */}
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: AT.sub, marginBottom: 6, textTransform: 'uppercase', letterSpacing: .5 }}>Vista previa</div>
+                <div style={{ borderRadius: 14, padding: '14px 18px', background: form.bg_gradient, display: 'flex', alignItems: 'center', gap: 14 }}>
+                  {form.icon && <div style={{ fontSize: 32 }}>{form.icon}</div>}
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 900, color: form.text_color }}>{form.title || 'Título de la promo'}</div>
+                    {form.desc && <div style={{ fontSize: 11, color: form.text_color, opacity: .8, marginTop: 2 }}>{form.desc}</div>}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={cancel} style={{ flex: 1, padding: 12, borderRadius: 12, border: `1px solid ${AT.border}`, background: 'none', color: AT.sub, fontFamily: "'DM Sans'", fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
+                  Cancelar
+                </button>
+                <button onClick={save} disabled={saving} style={{ ...btnYellow, flex: 2, padding: 12, fontSize: 14, opacity: saving ? .7 : 1 }}>
+                  {saving ? 'Guardando...' : editing === 'new' ? 'Crear promoción' : 'Guardar cambios'}
+                </button>
+              </div>
             </div>
           </div>
         )}
