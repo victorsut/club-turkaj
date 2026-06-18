@@ -7,17 +7,21 @@ import Badge from '../../components/ui/Badge';
 import TierCard from '../../components/ui/TierCard';
 import InactivityWarning from '../../components/ui/InactivityWarning';
 import { Back } from '../../components/ui/Icons';
+import ReasonModal from '../../components/ui/ReasonModal';
+import { updateMemberWithAudit } from '../../services/rpcServices';
 
 export default function MemberDetail(ctx) {
   const {
     sel, setSel, setScr, custs, setCusts, gT, cfg, fire,
-    activityLog, setModal, me, setMe,
-    editMember, setEditMember, syncMember,
+    activityLog, setModal, me, setMe, loggedAdmin,
+    editMember, setEditMember,
   } = ctx;
 
   const [localActs, setLocalActs]   = useState(null); // null = cargando
   const [freshMember, setFreshMember] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [showReasonModal, setShowReasonModal] = useState(false);
+  const [pendingChanges, setPendingChanges] = useState(null);
 
   if (!sel) { setScr('mem'); return null; }
 
@@ -73,18 +77,101 @@ export default function MemberDetail(ctx) {
     registro: '#FBBC04', wifi: '#9E9E9E', degradacion: '#C62828',
   };
 
-  const saveMember = (edited) => {
-    setCusts(prev => prev.map(m => m.id === edited.id ? { ...m, ...edited } : m));
-    if (me?.id === edited.id) setMe(prev => ({ ...prev, ...edited }));
-    syncMember(edited.id, {
-      name: edited.name, phone: edited.phone, dpi: edited.dpi,
-      plate: edited.plate, nit: edited.nit, email: edited.email,
-      birthday: edited.bday, points: +edited.points, gallons: +edited.gallons,
-      spent: +edited.spent, visits: +edited.visits,
-      updated_at: new Date().toISOString(),
+  const PROFILE_FIELDS = ['name', 'phone', 'dpi', 'plate', 'email', 'nit', 'birthday'];
+
+  // Construye el diff por categoria: solo campos/categorias modificados.
+  // `original` y `edited` usan nombres de campo del cliente (bday, no birthday).
+  const buildDiff = (original, edited) => {
+    const changes = {};
+    const profileDiff = {};
+
+    PROFILE_FIELDS.forEach(field => {
+      // El cliente guarda el cumpleaños en `bday`; el server lo espera como `birthday`.
+      const clientField = field === 'birthday' ? 'bday' : field;
+      if ((edited[clientField] || '') !== (original[clientField] || '')) {
+        profileDiff[field] = edited[clientField] || null;
+      }
     });
-    setEditMember(null);
-    fire('✅ Cambios guardados para ' + edited.name);
+    if (Object.keys(profileDiff).length > 0) changes.profile = profileDiff;
+
+    const editedPoints = +edited.points || 0;
+    const originalPoints = +original.points || 0;
+    if (editedPoints !== originalPoints) changes.points = editedPoints;
+
+    const editedGallons = +edited.gallons || 0;
+    const originalGallons = +original.gallons || 0;
+    if (editedGallons !== originalGallons) changes.gallons = editedGallons;
+
+    return changes;
+  };
+
+  // F0.3.8.4: la edicion ahora pasa por auditoria atomica (RPC
+  // update_member_with_audit). El snapshot original es `c` (sin mutar:
+  // custs/freshMember no cambian hasta el exito) y `edited` es editMember
+  // (el form vivo). Si no hay diff → toast + cerrar. Si hay → ReasonModal.
+  const saveMember = (edited) => {
+    if (!loggedAdmin?.id) {
+      fire('Error: sesion admin no disponible. Cerra sesion y volve a ingresar.');
+      return;
+    }
+
+    const changes = buildDiff(c, edited);
+
+    if (Object.keys(changes).length === 0) {
+      fire('Sin cambios');
+      setEditMember(null);
+      return;
+    }
+
+    setPendingChanges({ memberId: edited.id, changes, edited });
+    setEditMember(null);       // cerrar el modal de edicion
+    setShowReasonModal(true);  // pedir motivo (obligatorio server-side)
+  };
+
+  const confirmEditWithReason = async (reason) => {
+    if (!loggedAdmin?.id) {
+      setShowReasonModal(false);
+      fire('Error: sesion admin no disponible');
+      return;
+    }
+    if (!pendingChanges) { setShowReasonModal(false); return; }
+
+    const audit = {
+      adminId: loggedAdmin.id,
+      adminName: loggedAdmin.name,
+      adminEmail: loggedAdmin.email,
+      reasonText: reason,
+    };
+
+    const result = await updateMemberWithAudit(
+      pendingChanges.memberId,
+      audit,
+      pendingChanges.changes,
+    );
+
+    if (!result.ok) {
+      setShowReasonModal(false);
+      const errMsg = result.error?.message || 'Error desconocido';
+      fire('Error: ' + errMsg);
+      // Errores corregibles (validacion 22023 / UNIQUE 23505): reabrir el
+      // form con lo editado intacto para que el admin pueda corregir.
+      if (result.error?.code === '23505' || result.error?.code === '22023') {
+        setEditMember(pendingChanges.edited);
+      }
+      setPendingChanges(null);
+      return;
+    }
+
+    // Exito: refrescar state local (custs, freshMember y me si aplica).
+    const { edited: ed, memberId } = pendingChanges;
+    setCusts(prev => prev.map(m => m.id === memberId ? { ...m, ...ed } : m));
+    setFreshMember(prev => (prev && prev.id === memberId ? { ...prev, ...ed } : prev));
+    if (me?.id === memberId) setMe(prev => ({ ...prev, ...ed }));
+
+    setShowReasonModal(false);
+    setPendingChanges(null);
+    const n = result.data?.categories_updated?.length || 0;
+    fire('✅ Cliente actualizado (' + n + ' cambio' + (n === 1 ? '' : 's') + ')');
   };
 
   const sLbl = { display: 'block', fontSize: 12, fontWeight: 700, color: '#757575', marginBottom: 6, textTransform: 'uppercase', letterSpacing: .8 };
@@ -251,6 +338,20 @@ export default function MemberDetail(ctx) {
           </div>
         </div>
       )}
+
+      {/* F0.3.8.4: motivo obligatorio para auditar la edicion del miembro */}
+      <ReasonModal
+        open={showReasonModal}
+        onClose={() => {
+          setShowReasonModal(false);
+          // Reabrir el modal de edicion con lo editado intacto si cancela.
+          if (pendingChanges?.edited) setEditMember(pendingChanges.edited);
+          setPendingChanges(null);
+        }}
+        onConfirm={confirmEditWithReason}
+        actionLabel="Guardar cambios del cliente"
+        loading={false}
+      />
     </div>
   );
 }
