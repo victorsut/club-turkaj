@@ -212,3 +212,67 @@ export async function logAdminAction({
   if (error) { console.error('[RPC:log_admin_action]', error.message); return { data: null, error }; }
   return { data, error: null };
 }
+
+// ──────────────────────────────────────────────
+// 8. MIEMBROS — update_member_with_audit (F0.3.8)
+// ──────────────────────────────────────────────
+/**
+ * Actualiza un miembro (perfil/puntos/galones) con auditoria
+ * atomica gamma.
+ *
+ * La RPC server-side aplica todos los cambios + emite 1-3 logs
+ * en admin_audit_log en una sola transaccion. Si algo falla,
+ * rollback completo.
+ *
+ * NOTA TÉCNICA: NO usa el helper callRpc. Mantiene el patrón crudo
+ * coherente con logAdminAction (familia de auditoría) y controla
+ * de forma explícita el shape de retorno { ok, data?, error? }.
+ * La RPC retorna jsonb { ok, logs_created, categories_updated } en
+ * éxito y RAISE (22023 / 23505) en error — el error llega en el
+ * campo `error` de PostgREST, no dentro de `data`.
+ *
+ * @param {string} memberId - UUID del miembro a actualizar.
+ * @param {Object} audit - { adminId, adminName, adminEmail, reasonText }.
+ * @param {Object} changes - Diff por categoria, ej:
+ *   { profile: { name, phone, ... }, points: 50, gallons: 30.5 }
+ *   Solo incluir categorias y campos que efectivamente cambian.
+ * @returns {Promise<{ ok: boolean, data?: Object, error?: Object }>}
+ *   En caso de exito: { ok: true, data: { ok, logs_created,
+ *   categories_updated } }.
+ *   En caso de error: { ok: false, error: {...} }.
+ *   Errores conocidos del server:
+ *   - 22023: validaciones (member inexistente, reason vacio,
+ *     campo no whitelisted, categoria no permitida, etc.)
+ *   - 23505: UNIQUE violation traducida al español (phone/dpi)
+ */
+export async function updateMemberWithAudit(memberId, audit = {}, changes = {}) {
+  // ── Validaciones cliente-side (defensivas, evitan round trips) ──
+  if (!sb) return { ok: false, error: { message: 'Sin conexión al servidor' } };
+  if (!memberId) return { ok: false, error: { message: 'memberId es obligatorio' } };
+  if (!audit.adminId) return { ok: false, error: { message: 'adminId es obligatorio' } };
+  if (!audit.reasonText || !String(audit.reasonText).trim()) {
+    return { ok: false, error: { message: 'reasonText es obligatorio' } };
+  }
+  const hasValidCategory = changes && typeof changes === 'object'
+    && ['profile', 'points', 'gallons'].some(k => k in changes);
+  if (!hasValidCategory) {
+    return { ok: false, error: { message: 'changes no contiene ninguna categoría válida' } };
+  }
+
+  // ── Patrón crudo (sin callRpc): retorna jsonb estructurado ──
+  const { data, error } = await sb.rpc('update_member_with_audit', {
+    p_member_id: memberId,
+    p_admin_id: audit.adminId,
+    p_admin_name: audit.adminName,
+    p_admin_email: audit.adminEmail,
+    p_reason_text: audit.reasonText,
+    p_changes: changes,
+  });
+
+  if (error) {
+    console.error('[F0.3.8] updateMemberWithAudit error:', error.message);
+    return { ok: false, error };
+  }
+  // data es jsonb: { ok, logs_created, categories_updated }
+  return { ok: true, data };
+}
