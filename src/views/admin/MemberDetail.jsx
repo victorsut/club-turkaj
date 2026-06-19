@@ -227,9 +227,13 @@ export default function MemberDetail(ctx) {
 
     // Exito: refrescar state local (custs, freshMember y me si aplica).
     const { edited: ed, memberId } = pendingChanges;
-    setCusts(prev => prev.map(m => m.id === memberId ? { ...m, ...ed } : m));
-    setFreshMember(prev => (prev && prev.id === memberId ? { ...prev, ...ed } : prev));
-    if (me?.id === memberId) setMe(prev => ({ ...prev, ...ed }));
+    // Normalizar campos numericos: los inputs type="number" devuelven
+    // strings ("45.5"), y al hacer spread pisarian points/gallons con
+    // strings, rompiendo componentes que usan .toFixed() (TierCard, etc).
+    const edN = { ...ed, points: +ed.points || 0, gallons: +ed.gallons || 0 };
+    setCusts(prev => prev.map(m => m.id === memberId ? { ...m, ...edN } : m));
+    setFreshMember(prev => (prev && prev.id === memberId ? { ...prev, ...edN } : prev));
+    if (me?.id === memberId) setMe(prev => ({ ...prev, ...edN }));
 
     setShowReasonModal(false);
     setPendingChanges(null);
