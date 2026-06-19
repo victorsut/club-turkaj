@@ -19,6 +19,24 @@ const GRADIENTS = [
 
 const EMPTY = { title: '', desc: '', icon: '', bg_gradient: GRADIENTS[0].value, text_color: '#ffffff', sort_order: 0, active: true };
 
+// F0.3.9 S3.1: campo de texto reutilizable. DEBE vivir a nivel de modulo
+// (no dentro de AdminPromos): declararlo in-line creaba una funcion nueva
+// en cada render, lo que hacia que React remontara el <input> y perdiera
+// el focus tras cada tecla. AT e inputStyle son imports de modulo; form y
+// setForm se reciben como props.
+const F = ({ label, fieldKey, type = 'text', placeholder = '', form, setForm }) => (
+  <div style={{ marginBottom: 12 }}>
+    <div style={{ fontSize: 11, fontWeight: 700, color: AT.sub, marginBottom: 6, textTransform: 'uppercase', letterSpacing: .5 }}>{label}</div>
+    <input
+      type={type}
+      value={form[fieldKey] || ''}
+      placeholder={placeholder}
+      onChange={e => setForm(p => ({ ...p, [fieldKey]: e.target.value }))}
+      style={{ ...inputStyle, background: '#333', border: `1px solid ${AT.border}`, color: AT.txt }}
+    />
+  </div>
+);
+
 export default function AdminPromos(ctx) {
   const { promos, setPromos, fire, sbConnected, loggedAdmin } = ctx;
 
@@ -224,19 +242,6 @@ export default function AdminPromos(ctx) {
     }
   };
 
-  const F = ({ label, fieldKey, type = 'text', placeholder = '' }) => (
-    <div style={{ marginBottom: 12 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: AT.sub, marginBottom: 6, textTransform: 'uppercase', letterSpacing: .5 }}>{label}</div>
-      <input
-        type={type}
-        value={form[fieldKey] || ''}
-        placeholder={placeholder}
-        onChange={e => setForm(p => ({ ...p, [fieldKey]: e.target.value }))}
-        style={{ ...inputStyle, background: '#333', border: `1px solid ${AT.border}`, color: AT.txt }}
-      />
-    </div>
-  );
-
   return (
     <div style={{ paddingBottom: 100, background: AT.bg, minHeight: '100vh' }}>
       {/* Header */}
@@ -279,9 +284,9 @@ export default function AdminPromos(ctx) {
                 {editing === 'new' ? '➕ Nueva promoción' : '✏️ Editar promoción'}
               </div>
 
-              <F label="Título *" fieldKey="title" placeholder="Ej: ¡Combustible al 10% off!" />
-              <F label="Descripción" fieldKey="desc" placeholder="Descripción breve de la promo" />
-              <F label="Ícono (emoji)" fieldKey="icon" placeholder="🎉" />
+              <F label="Título *" fieldKey="title" placeholder="Ej: ¡Combustible al 10% off!" form={form} setForm={setForm} />
+              <F label="Descripción" fieldKey="desc" placeholder="Descripción breve de la promo" form={form} setForm={setForm} />
+              <F label="Ícono (emoji)" fieldKey="icon" placeholder="🎉" form={form} setForm={setForm} />
 
               {/* Gradiente */}
               <div style={{ marginBottom: 12 }}>
@@ -314,7 +319,7 @@ export default function AdminPromos(ctx) {
                 </div>
               </div>
 
-              <F label="Orden (número)" fieldKey="sort_order" type="number" placeholder="0" />
+              <F label="Orden (número)" fieldKey="sort_order" type="number" placeholder="0" form={form} setForm={setForm} />
 
               {/* Activa — solo en CREATE. En EDIT el estado se gestiona via el
                   boton Desact./Activar de la lista (auditado por ReasonModal). */}
