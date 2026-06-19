@@ -131,6 +131,27 @@ function DateDrumPicker({ value, onChange }) {
   );
 }
 
+// F0.3.9.2: bottom sheet del drum picker. DEBE vivir a nivel de modulo
+// (no dentro de GoogleProfile): declararlo in-line creaba un tipo nuevo
+// en cada render, lo que remontaba DateDrumPicker/DrumPicker e interrumpia
+// el scroll del tambor en cada tick. Recibe las 4 dependencias del padre
+// como props; DateDrumPicker ya es module-level.
+const DatePickerSheet = ({ tempDate, setTempDate, setShowDatePicker, setRegProfile }) => (
+  <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 500, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+    <div style={{ background: '#fff', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 480, padding: '0 0 32px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #f0f0f0' }}>
+        <button onClick={() => setShowDatePicker(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 700, color: '#9E9E9E', fontFamily: "'DM Sans'" }}>Cancelar</button>
+        <div style={{ fontSize: 15, fontWeight: 800, color: '#0D0D0D' }}>Fecha de nacimiento</div>
+        <button onClick={() => { setRegProfile(p => ({ ...p, bday: tempDate })); setShowDatePicker(false); }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 800, color: '#FBBC04', fontFamily: "'DM Sans'" }}>Seleccionar</button>
+      </div>
+      <div style={{ padding: '12px 20px 0' }}>
+        <DateDrumPicker value={tempDate} onChange={setTempDate} />
+      </div>
+    </div>
+  </div>
+);
+
 // ── UI helpers ────────────────────────────────────────────
 function StepBar({ step }) {
   const steps = ['Datos\npersonales', 'Datos\nadicionales', 'Vehículos', 'Contraseña'];
@@ -337,23 +358,6 @@ export default function GoogleProfile(ctx) {
     <div style={{ background: '#FFEBEE', color: '#C62828', padding: '10px 14px', borderRadius: 12, fontSize: 12, fontWeight: 700, marginBottom: 16, textAlign: 'center' }}>{authError}</div>
   ) : null;
 
-  // ── Bottom sheet del drum picker ──────────────────────────
-  const DatePickerSheet = () => (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 500, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-      <div style={{ background: '#fff', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 480, padding: '0 0 32px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #f0f0f0' }}>
-          <button onClick={() => setShowDatePicker(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 700, color: '#9E9E9E', fontFamily: "'DM Sans'" }}>Cancelar</button>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#0D0D0D' }}>Fecha de nacimiento</div>
-          <button onClick={() => { setRegProfile(p => ({ ...p, bday: tempDate })); setShowDatePicker(false); }}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 800, color: '#FBBC04', fontFamily: "'DM Sans'" }}>Seleccionar</button>
-        </div>
-        <div style={{ padding: '12px 20px 0' }}>
-          <DateDrumPicker value={tempDate} onChange={setTempDate} />
-        </div>
-      </div>
-    </div>
-  );
-
   // ══ PASO 1 — Datos personales (todos obligatorios, sin bonus) ═
   if (googleStep === 'step1' || googleStep === 'welcome') {
     const next = async () => {
@@ -383,7 +387,14 @@ export default function GoogleProfile(ctx) {
     };
     return (
       <div style={{ padding: '40px 24px 120px' }}>
-        {showDatePicker && <DatePickerSheet />}
+        {showDatePicker && (
+          <DatePickerSheet
+            tempDate={tempDate}
+            setTempDate={setTempDate}
+            setShowDatePicker={setShowDatePicker}
+            setRegProfile={setRegProfile}
+          />
+        )}
         <button onClick={() => setAuthScreen('login')} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: '#9E9E9E', fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 600, marginBottom: 24 }}>
           <Back /> Volver
         </button>
