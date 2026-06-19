@@ -22,6 +22,7 @@ export default function MemberDetail(ctx) {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [showReasonModal, setShowReasonModal] = useState(false);
   const [pendingChanges, setPendingChanges] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   if (!sel) { setScr('mem'); return null; }
 
@@ -105,6 +106,59 @@ export default function MemberDetail(ctx) {
     return changes;
   };
 
+  // F0.3.8.6: validacion por campo. Devuelve mensaje de error o null.
+  // phone/dpi son bloqueantes (formato estricto); el resto valida solo
+  // si no esta vacio. name se valida en validateForm (pre-submit).
+  const validateField = (field, value) => {
+    const v = (value || '').toString().trim();
+    switch (field) {
+      case 'name':
+        return null;
+      case 'phone':
+        if (!v) return null;
+        if (!/^\d{8}$/.test(v)) return 'Telefono debe tener exactamente 8 digitos';
+        return null;
+      case 'dpi':
+        if (!v) return null;
+        if (!/^\d{13}$/.test(v)) return 'DPI debe tener exactamente 13 digitos';
+        return null;
+      case 'email':
+        if (!v) return null;
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'Email invalido';
+        return null;
+      case 'bday':
+        if (!v) return null;
+        if (!/^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(v)) return 'Formato MM-DD (ej: 01-15)';
+        return null;
+      case 'points': {
+        if (v === '') return null;
+        const p = Number(v);
+        if (isNaN(p) || p < 0 || !Number.isInteger(p)) return 'Debe ser entero >= 0';
+        return null;
+      }
+      case 'gallons': {
+        if (v === '') return null;
+        const g = Number(v);
+        if (isNaN(g) || g < 0) return 'Debe ser numero >= 0';
+        return null;
+      }
+      default:
+        return null;
+    }
+  };
+
+  // F0.3.8.6: validacion completa pre-submit. Devuelve mapa de errores.
+  const validateForm = (edited) => {
+    const errors = {};
+    ['phone', 'dpi', 'email', 'bday', 'points', 'gallons'].forEach(f => {
+      const err = validateField(f, edited[f]);
+      if (err) errors[f] = err;
+    });
+    const name = (edited.name || '').trim();
+    if (!name || name.length < 2) errors.name = 'Nombre requerido (minimo 2 caracteres)';
+    return errors;
+  };
+
   // F0.3.8.4: la edicion ahora pasa por auditoria atomica (RPC
   // update_member_with_audit). El snapshot original es `c` (sin mutar:
   // custs/freshMember no cambian hasta el exito) y `edited` es editMember
@@ -115,11 +169,20 @@ export default function MemberDetail(ctx) {
       return;
     }
 
+    // F0.3.8.6: validacion pre-submit (bloqueante).
+    const errors = validateForm(edited);
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      fire('Corrige los errores del formulario');
+      return;
+    }
+
     const changes = buildDiff(c, edited);
 
     if (Object.keys(changes).length === 0) {
       fire('Sin cambios');
       setEditMember(null);
+      setFieldErrors({});
       return;
     }
 
@@ -170,6 +233,7 @@ export default function MemberDetail(ctx) {
 
     setShowReasonModal(false);
     setPendingChanges(null);
+    setFieldErrors({});
     const n = result.data?.categories_updated?.length || 0;
     fire('✅ Cliente actualizado (' + n + ' cambio' + (n === 1 ? '' : 's') + ')');
   };
@@ -300,39 +364,87 @@ export default function MemberDetail(ctx) {
 
       {/* Edit Modal */}
       {editMember && editMember.id === c.id && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', backdropFilter: 'blur(6px)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => setEditMember(null)}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', backdropFilter: 'blur(6px)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => { setEditMember(null); setFieldErrors({}); }}>
           <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '28px 28px 0 0', padding: '28px 24px 32px', maxWidth: 480, width: '100%', maxHeight: '85vh', overflowY: 'auto' }}>
             <div style={{ width: 40, height: 4, background: '#E0E0E0', borderRadius: 2, margin: '0 auto 20px' }} />
             <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 16 }}>✏️ Editar Miembro</div>
             {[
-              { k: 'name', l: 'Nombre', t: 'text' },
-              { k: 'phone', l: 'Teléfono', t: 'tel' },
-              { k: 'dpi', l: 'DPI', t: 'text' },
-              { k: 'plate', l: 'Placa', t: 'text' },
-              { k: 'email', l: 'Email', t: 'email' },
-              { k: 'nit', l: 'NIT', t: 'text' },
-              { k: 'bday', l: 'Cumpleaños', t: 'text' },
+              { k: 'name',  l: 'Nombre',     t: 'text',  max: 60 },
+              { k: 'phone', l: 'Teléfono',   t: 'tel',   max: 8,  numeric: true },
+              { k: 'dpi',   l: 'DPI',        t: 'text',  max: 13, numeric: true },
+              { k: 'plate', l: 'Placa',      t: 'text',  max: 10 },
+              { k: 'email', l: 'Email',      t: 'email', max: 80 },
+              { k: 'nit',   l: 'NIT',        t: 'text',  max: 12 },
+              { k: 'bday',  l: 'Cumpleaños', t: 'text',  max: 5 },
             ].map(f => (
-              <div key={f.k} style={{ marginBottom: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#9E9E9E', width: 80, flexShrink: 0 }}>{f.l}</span>
-                <input type={f.t} value={editMember[f.k] || ''} onChange={e => setEditMember(p => ({ ...p, [f.k]: e.target.value }))}
-                  style={{ flex: 1, padding: '10px 12px', borderRadius: 10, border: '2px solid #eee', fontFamily: "'DM Sans'", fontSize: 13, outline: 'none' }} />
+              <div key={f.k} style={{ marginBottom: 8 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#9E9E9E', marginBottom: 4 }}>{f.l}</label>
+                <input
+                  type={f.t}
+                  value={editMember[f.k] || ''}
+                  maxLength={f.max}
+                  inputMode={f.numeric ? 'numeric' : undefined}
+                  onChange={e => {
+                    let val = e.target.value;
+                    if (f.numeric) val = val.replace(/[^0-9]/g, '');
+                    setEditMember(p => ({ ...p, [f.k]: val }));
+                    if (fieldErrors[f.k]) setFieldErrors(prev => ({ ...prev, [f.k]: null }));
+                  }}
+                  onBlur={e => {
+                    let val = e.target.value;
+                    if (!f.numeric && val !== val.trim()) {
+                      val = val.trim();
+                      setEditMember(p => ({ ...p, [f.k]: val }));
+                    }
+                    setFieldErrors(prev => ({ ...prev, [f.k]: validateField(f.k, val) }));
+                  }}
+                  style={{ ...inputStyle, fontSize: 13, padding: '10px 12px', borderColor: fieldErrors[f.k] ? '#ef4444' : undefined, borderWidth: fieldErrors[f.k] ? 2 : 1 }}
+                />
+                {fieldErrors[f.k] && (
+                  <div style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>{fieldErrors[f.k]}</div>
+                )}
               </div>
             ))}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, margin: '16px 0' }}>
               <div>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#9E9E9E' }}>Puntos</span>
-                <input type="number" value={editMember.points} onChange={e => setEditMember(p => ({ ...p, points: +e.target.value }))}
-                  style={{ width: '100%', padding: 8, borderRadius: 8, border: '2px solid #eee', ...sMono, fontSize: 14, textAlign: 'center', outline: 'none', marginTop: 4 }} />
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#9E9E9E', marginBottom: 4 }}>Puntos</label>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={editMember.points ?? ''}
+                  onChange={e => {
+                    setEditMember(p => ({ ...p, points: e.target.value }));
+                    if (fieldErrors.points) setFieldErrors(prev => ({ ...prev, points: null }));
+                  }}
+                  onBlur={e => setFieldErrors(prev => ({ ...prev, points: validateField('points', e.target.value) }))}
+                  style={{ ...inputStyle, ...sMono, fontSize: 14, textAlign: 'center', padding: 10, borderColor: fieldErrors.points ? '#ef4444' : undefined, borderWidth: fieldErrors.points ? 2 : 1 }}
+                />
+                {fieldErrors.points && (
+                  <div style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>{fieldErrors.points}</div>
+                )}
               </div>
               <div>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#9E9E9E' }}>Galones</span>
-                <input type="number" value={editMember.gallons} onChange={e => setEditMember(p => ({ ...p, gallons: +e.target.value }))}
-                  style={{ width: '100%', padding: 8, borderRadius: 8, border: '2px solid #eee', ...sMono, fontSize: 14, textAlign: 'center', outline: 'none', marginTop: 4 }} />
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#9E9E9E', marginBottom: 4 }}>Galones</label>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  value={editMember.gallons ?? ''}
+                  onChange={e => {
+                    setEditMember(p => ({ ...p, gallons: e.target.value }));
+                    if (fieldErrors.gallons) setFieldErrors(prev => ({ ...prev, gallons: null }));
+                  }}
+                  onBlur={e => setFieldErrors(prev => ({ ...prev, gallons: validateField('gallons', e.target.value) }))}
+                  style={{ ...inputStyle, ...sMono, fontSize: 14, textAlign: 'center', padding: 10, borderColor: fieldErrors.gallons ? '#ef4444' : undefined, borderWidth: fieldErrors.gallons ? 2 : 1 }}
+                />
+                {fieldErrors.gallons && (
+                  <div style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>{fieldErrors.gallons}</div>
+                )}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setEditMember(null)} style={{ ...btnDark, flex: 1 }}>Cancelar</button>
+              <button onClick={() => { setEditMember(null); setFieldErrors({}); }} style={{ ...btnDark, flex: 1 }}>Cancelar</button>
               <button onClick={() => saveMember(editMember)} style={{ ...btnYellow, flex: 2 }}>Guardar Cambios</button>
             </div>
           </div>
