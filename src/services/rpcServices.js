@@ -276,3 +276,93 @@ export async function updateMemberWithAudit(memberId, audit = {}, changes = {}) 
   // data es jsonb: { ok, logs_created, categories_updated }
   return { ok: true, data };
 }
+
+// ──────────────────────────────────────────────
+// 9. MIEMBROS — modify_member_points (FB.3 / FB.4)
+// ──────────────────────────────────────────────
+/**
+ * Modifica los puntos de un miembro con auditoria atomica gamma.
+ *
+ * La RPC server-side aplica el cambio (delta o set absoluto) y
+ * emite un log en admin_audit_log en una sola transaccion. Si
+ * algo falla, rollback completo. Tambien setea
+ * app.allow_points_write para preparar el trigger de FB.7.
+ *
+ * MODOS XOR: change debe tener EXACTAMENTE uno de:
+ *   - delta: suma/resta relativa, rango [-50000, 50000].
+ *   - setTo: valor absoluto, >= 0.
+ *
+ * NOTA TÉCNICA: NO usa el helper callRpc. Mantiene el patrón crudo
+ * coherente con logAdminAction y updateMemberWithAudit (familia de
+ * auditoría) y controla de forma explícita el shape de retorno
+ * { ok, data?, error? }. La RPC retorna jsonb estructurado en éxito
+ * y RAISE (22023) en error — el error llega en el campo `error` de
+ * PostgREST, no dentro de `data`.
+ *
+ * @param {string} memberId - UUID del miembro.
+ * @param {Object} audit - { adminId, adminName, adminEmail, reasonText }.
+ * @param {Object} change - { delta?: number, setTo?: number, actionType: string }.
+ *   actionType debe ser uno de: manual_adjustment, special_day_bonus,
+ *   compensation, correction, promotional_grant.
+ * @returns {Promise<{ ok: boolean, data?: Object, error?: Object }>}
+ *   En exito: { ok: true, data: { ok, log_id, old_points,
+ *     new_points, delta_applied, action_type } }.
+ *   En error: { ok: false, error: {...} }.
+ *   Codigos de error conocidos del server:
+ *   - 22023: validaciones (member inexistente, reason vacio o
+ *     corto/largo, action_type invalido, delta fuera de rango,
+ *     resultado negativo, etc).
+ */
+export async function modifyMemberPoints(memberId, audit, change) {
+  // ── Validaciones cliente-side defensivas (evitan round-trip) ──
+  if (!sb) {
+    return { ok: false, error: { message: 'Sin conexión al servidor' } };
+  }
+  if (!memberId) {
+    return { ok: false, error: { message: 'memberId obligatorio' } };
+  }
+  if (!audit?.adminId) {
+    return { ok: false, error: { message: 'audit.adminId obligatorio' } };
+  }
+  if (!audit?.reasonText || !audit.reasonText.trim()) {
+    return { ok: false, error: { message: 'audit.reasonText obligatorio' } };
+  }
+
+  // ── Validar XOR de modos ──
+  const hasDelta = change?.delta !== undefined && change?.delta !== null;
+  const hasSetTo = change?.setTo !== undefined && change?.setTo !== null;
+
+  if (!hasDelta && !hasSetTo) {
+    return { ok: false, error: { message: 'Debe especificar delta o setTo' } };
+  }
+  if (hasDelta && hasSetTo) {
+    return { ok: false, error: { message: 'delta y setTo son mutuamente exclusivos' } };
+  }
+
+  if (!change?.actionType) {
+    return { ok: false, error: { message: 'change.actionType obligatorio' } };
+  }
+
+  // ── Patrón crudo (sin callRpc): retorna jsonb estructurado ──
+  const params = {
+    p_member_id: memberId,
+    p_admin_id: audit.adminId,
+    p_admin_name: audit.adminName,
+    p_admin_email: audit.adminEmail,
+    p_reason_text: audit.reasonText,
+    p_delta: hasDelta ? change.delta : null,
+    p_set_to: hasSetTo ? change.setTo : null,
+    p_action_type: change.actionType,
+  };
+
+  const { data, error } = await sb.rpc('modify_member_points', params);
+
+  if (error) {
+    console.error('[FB] modifyMemberPoints error:', error.message);
+    return { ok: false, error };
+  }
+
+  // data es jsonb: { ok, log_id, old_points, new_points,
+  //                  delta_applied, action_type }
+  return { ok: true, data };
+}
