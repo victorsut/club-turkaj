@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { sb } from '../lib/supabaseClient';
 import { makeTier, daysInactive } from '../lib/tierSystem';
 import { CFG_INIT, FUEL_LABELS } from '../constants/config';
-import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey } from '../services';
+import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey, grantSpecialDayBonus } from '../services';
 
 // Guatemala es UTC-6 — usar siempre fecha/hora local, nunca UTC
 function localDate() {
@@ -244,67 +244,51 @@ export default function App() {
   }, []);
 
   // ===== DÍAS FESTIVOS: otorgar puntos al abrir la app =====
-  const checkSpecialDayBonus = async (memberId, memberBday) => {
-    if (!sb || !memberId) return;
-    const now   = new Date();
-    const today = localDate(); // YYYY-MM-DD en hora local
-    const month = now.getMonth() + 1;
-    const day   = now.getDate();
+  // FB.6.3 — delega en la RPC grant_special_day_bonus (atomica,
+  // delta server-side). Reemplaza la logica legacy que reseteaba
+  // points e insertaba un activity_type invalido ('evento_especial').
+  const checkSpecialDayBonus = async (memberId) => {
+    if (!memberId) return;
 
-    // Verificar si ya recibió bonus hoy
-    const { data: memberRow } = await sb.from('members').select('last_special_bonus').eq('id', memberId).single();
-    if (memberRow?.last_special_bonus === today) return; // ya recibió hoy
+    const result = await grantSpecialDayBonus(memberId);
 
-    // Cargar días festivos activos
-    const { data: specialDays } = await sb.from('special_days').select('*').eq('active', true);
-    if (!specialDays?.length) return;
-
-    let totalBonus = 0;
-    const bonusNames = [];
-
-    for (const sd of specialDays) {
-      // Cumpleaños del miembro (month=0, day=0 = especial)
-      if (sd.month === 0) {
-        if (!memberBday) continue;
-        // bday guardado como MM-DD
-        const [bMonth, bDay] = (memberBday || '').split('-').map(Number);
-        if (bMonth === month && bDay === day) {
-          totalBonus += sd.points;
-          bonusNames.push(`${sd.icon} ${sd.name}`);
-        }
-      } else {
-        // Fecha fija
-        if (sd.month === month && sd.day === day) {
-          totalBonus += sd.points;
-          bonusNames.push(`${sd.icon} ${sd.name}`);
-        }
-      }
+    if (!result.ok) {
+      console.error('[FB] checkSpecialDayBonus error:', result.error?.message);
+      return;
     }
 
-    if (totalBonus === 0) return;
+    // data es la respuesta de la RPC: { ok, bonus?, events?, member_name?, reason? }
+    const data = result.data;
 
-    // Otorgar puntos
-    await sb.from('members').update({
-      points: (memberRow?.points || 0) + totalBonus,
+    if (!data?.ok) {
+      // ok:false con reason (member_not_found, already_granted,
+      // no_bonus_today) -> silencioso.
+      return;
+    }
+
+    // ok:true: aplicar bonus en state local + toast
+    const { bonus, events } = data;
+    const today = localDate();
+
+    setMe(prev => prev ? {
+      ...prev,
+      points: (prev.points || 0) + bonus,
       last_special_bonus: today,
-    }).eq('id', memberId);
+    } : prev);
 
-    // Actualizar estado local
-    setMe(p => p ? { ...p, points: (p.points || 0) + totalBonus } : p);
+    setCusts(prev => prev.map(c =>
+      c.id === memberId
+        ? {
+            ...c,
+            points: (c.points || 0) + bonus,
+            last_special_bonus: today,
+          }
+        : c
+    ));
 
-    // Registrar en activity_log
-    for (const name of bonusNames) {
-      await sb.from('activity_log').insert({
-        member_id: memberId,
-        activity_type: 'evento_especial',
-        description: `¡${name}! Bonus especial`,
-        points_change: totalBonus / bonusNames.length,
-      });
-    }
-
-    const msg = bonusNames.join(' · ');
-    fire(`🎉 +${totalBonus} pts · ${msg}`);
-    console.log('[Special] Bonus otorgado:', totalBonus, 'pts -', msg);
+    // Toast con descripcion de los eventos
+    const eventNames = events.map(e => `${e.icon} ${e.name}`).join(' + ');
+    fire(`🎉 ¡+${bonus} pts! · ${eventNames}`);
   };
 
   // ===== SUPABASE DATA LOADING =====
