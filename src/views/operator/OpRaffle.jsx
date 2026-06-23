@@ -1,5 +1,7 @@
 // src/views/operator/OpRaffle.jsx
 // Operator view — sell raffle tickets to clients via card scan
+import { sb } from '../../lib/supabaseClient';
+import { buyRaffleTickets } from '../../services';
 import { sMono, inputStyle } from '../../constants/styles';
 import Badge from '../../components/ui/Badge';
 import { Back } from '../../components/ui/Icons';
@@ -12,7 +14,7 @@ export default function OpRaffle(ctx) {
     opRafScan, setOpRafScan,
     opRafQty, setOpRafQty,
     opSearch, setOpSearch,
-    cards, syncMember, logActivity,
+    cards,
   } = ctx;
 
   const rm = raffleCal[curMonth];
@@ -41,31 +43,58 @@ export default function OpRaffle(ctx) {
     ? (rd.participants.find(p => p.cid === cl.id) || { tickets: 0 }).tickets
     : 0;
 
-  // Buy tickets
-  const doBuy = (n) => {
+  // Buy tickets — delega en la RPC buy_raffle_tickets (FB.6.4).
+  // La RPC valida puntos, descuenta, inserta en raffle_tickets y
+  // registra activity_log 'rifa' server-side (atomico). Antes este
+  // flujo escribia members.points directo via syncMember (bypass) y
+  // NO persistia raffle_tickets.
+  const doBuy = async (n) => {
     if (!cl) return;
-    const cost = n * cfg.ticketPts;
-    if (cl.points >= cost) {
-      setCusts(p => p.map(c => c.id === cl.id
-        ? { ...c, points: c.points - cost, tickets: c.tickets + n }
-        : c
-      ));
-      if (me?.id === cl.id) setMe(p => ({ ...p, points: p.points - cost, tickets: p.tickets + n }));
-      setRafData(p => p.map((r, i) => {
-        if (i !== curMonth) return r;
-        const ps = [...r.participants];
-        const ex = ps.findIndex(p2 => p2.cid === cl.id);
-        if (ex >= 0) ps[ex] = { ...ps[ex], tickets: ps[ex].tickets + n };
-        else ps.push({ cid: cl.id, name: cl.name, tickets: n });
-        return { ...r, participants: ps };
-      }));
-      setOpRafClient({ ...cl, points: cl.points - cost, tickets: cl.tickets + n });
-      fire(`🎟️ ${cl.name} compró ${n} boleto${n > 1 ? 's' : ''} · -${cost} pts`);
-      syncMember(cl.id, { points: cl.points - cost, tickets: cl.tickets + n, updated_at: new Date().toISOString() });
-      logActivity(cl.id, 'rifa', `Compró ${n} boletos de rifa (operador)`, -cost);
-    } else {
-      fire('❌ Puntos insuficientes');
+    if (!n || n < 1) { fire('Cantidad inválida'); return; }
+    if (!sb) { fire('Sin conexión'); return; }
+
+    // Obtener ID de la rifa del mes actual (igual que buyTickets en App)
+    const { data: rafRow, error: rafErr } = await sb
+      .from('raffle_calendar')
+      .select('id')
+      .eq('month', curMonth + 1)
+      .maybeSingle();
+
+    if (rafErr || !rafRow?.id) {
+      fire('Rifa no disponible para este mes');
+      return;
     }
+
+    const { data, error } = await buyRaffleTickets({
+      memberId: cl.id,
+      raffleId: rafRow.id,
+      quantity: n,
+    });
+
+    if (error) {
+      fire('❌ ' + (error.message || 'Error al comprar boletos'));
+      return;
+    }
+
+    const { tickets, cost, remaining_points, new_ticket_total } = data;
+
+    // Actualizar estado local con los valores de retorno de la RPC
+    setCusts(p => p.map(c => c.id === cl.id
+      ? { ...c, points: remaining_points, tickets: new_ticket_total }
+      : c
+    ));
+    if (me?.id === cl.id) setMe(p => p ? { ...p, points: remaining_points, tickets: new_ticket_total } : p);
+    setOpRafClient({ ...cl, points: remaining_points, tickets: new_ticket_total });
+    setRafData(p => p.map((r, i) => {
+      if (i !== curMonth) return r;
+      const ps = [...r.participants];
+      const ex = ps.findIndex(p2 => p2.cid === cl.id);
+      if (ex >= 0) ps[ex] = { ...ps[ex], tickets: ps[ex].tickets + tickets };
+      else ps.push({ cid: cl.id, name: cl.name, tickets });
+      return { ...r, participants: ps };
+    }));
+
+    fire(`🎟️ ${cl.name} compró ${tickets} boleto${tickets > 1 ? 's' : ''} · -${cost} pts`);
   };
 
   const hdr = { padding: '14px 20px', borderBottom: '1px solid #E0E0E0', background: 'linear-gradient(135deg,#FBBC04 0%,#FFF8E1 60%,#FAFAFA 100%)' };

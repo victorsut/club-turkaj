@@ -200,13 +200,6 @@ export default function App() {
   const isLoggedIn = (isC && authScreen === 'logged') || (isO && authOp === 'logged') || (isA && authAdmin === 'logged');
 
   // ===== SUPABASE WRITE HELPERS =====
-  const syncMember = useCallback((memberId, data) => {
-    if (!sb || !sbConnected) return;
-    sb.from('members').update(data).eq('id', memberId).then(r => {
-      if (r.error) console.error('[Sync]', r.error);
-    });
-  }, [sbConnected]);
-
   const logActivity = useCallback((memberId, type, desc, ptsChange, amount) => {
     // Actualizar estado local SIEMPRE (independiente de Supabase)
     setActivityLog(prev => {
@@ -1157,7 +1150,7 @@ export default function App() {
     // Helpers
     gT, cTier, TH, curMonth, fire,
     sbConnected, sbLoading,
-    syncMember, logActivity,
+    logActivity,
     // Actions
     addPurchase, redeem, buyTickets, doSurvey, logout,
     // Navigation
