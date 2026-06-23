@@ -366,3 +366,59 @@ export async function modifyMemberPoints(memberId, audit, change) {
   //                  delta_applied, action_type }
   return { ok: true, data };
 }
+
+// ====================================================================
+// 10. MIEMBROS — grant_special_day_bonus (FB.6.2a)
+// ====================================================================
+
+/**
+ * Otorga el bonus de dias especiales (cumpleaños + festivos) de
+ * forma atomica con auditoria via activity_log.
+ *
+ * Reemplaza la logica cliente checkSpecialDayBonus (App.jsx) que
+ * tenia un bug critico: reseteaba points en lugar de sumar el
+ * bonus. La RPC server-side usa delta (points = points + bonus)
+ * en una transaccion atomica.
+ *
+ * Dedup diaria: si ya recibio bonus hoy (last_special_bonus =
+ * CURRENT_DATE), retorna already_granted.
+ *
+ * @param {string} memberId - UUID del miembro.
+ * @returns {Promise<{ ok: boolean, data?: Object, error?: Object }>}
+ *   En exito: { ok: true, data: { ok: true, bonus, events[],
+ *     member_name } }.
+ *   En no-aplica: { ok: true, data: { ok: false, reason } }
+ *     donde reason puede ser:
+ *     - 'member_not_found'
+ *     - 'already_granted' (ya recibio hoy)
+ *     - 'no_bonus_today' (no hay cumpleaños ni festivo hoy)
+ *   En error: { ok: false, error }.
+ *
+ * El cliente debe distinguir:
+ * - data.ok === true: mostrar modal flotante con events[] y
+ *   member_name.
+ * - data.ok === false: silencioso (no mostrar nada).
+ * - !response.ok: error de red/server (log).
+ */
+export async function grantSpecialDayBonus(memberId) {
+  // Validaciones cliente-side defensivas
+  if (!sb) {
+    return { ok: false, error: { message: 'Sin conexión al servidor' } };
+  }
+  if (!memberId) {
+    return { ok: false, error: { message: 'memberId obligatorio' } };
+  }
+
+  // Llamar RPC con patron crudo (sin callRpc)
+  const { data, error } = await sb.rpc('grant_special_day_bonus', {
+    p_member_id: memberId,
+  });
+
+  if (error) {
+    console.error('[FB] grantSpecialDayBonus error:', error.message);
+    return { ok: false, error };
+  }
+
+  // data es jsonb: { ok, bonus, events, member_name } o { ok: false, reason }
+  return { ok: true, data };
+}
