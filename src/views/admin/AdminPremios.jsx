@@ -631,7 +631,7 @@ export default function AdminPremios(ctx) {
 
                 <div style={{ marginBottom: 14 }}>
                   <label style={sLbl}>Nombre del dia festivo *</label>
-                  <input value={festForm.name} onChange={e => setFestForm(p => ({ ...p, name: e.target.value }))} placeholder="Ej: Dia del Trabajador" style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A' }} />
+                  <input value={festForm.name} onChange={e => setFestForm(p => ({ ...p, name: e.target.value }))} placeholder="Ej: Día del Trabajador" style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A' }} />
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
