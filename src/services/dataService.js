@@ -56,16 +56,6 @@ export async function createMember(memberData) {
   return { data: data?.[0], error };
 }
 
-export async function updateMember(id, updates) {
-  const { data, error } = await sb
-    .from('members')
-    .update({ ...updates, updated_at: new Date().toISOString() })
-    .eq('id', id)
-    .select();
-  if (error) console.error('[Data:updateMember]', error.message);
-  return { data: data?.[0], error };
-}
-
 // ──────────────────────────────────────────────
 // OPERADORES (operators)
 // ──────────────────────────────────────────────
