@@ -36,6 +36,7 @@ import useToast from '../hooks/useToast';
 import BottomNav from '../components/ui/BottomNav';
 import QRCode from '../components/ui/QRCode';
 import TierDeco from '../components/ui/TierDeco';
+import SpecialDayBonusModal from '../components/SpecialDayBonusModal';
 import { Check, Fuel, Users, Gift, Ticket, Clock, Gear, Megaphone, Menu } from '../components/ui/Icons';
 
 // Auth Views
@@ -181,6 +182,7 @@ export default function App() {
   const [purchaseConfirm, setPurchaseConfirm] = useState(null); // { client, amt, fuel, onConfirm }
   const [redeemConfirm, setRedeemConfirm]   = useState(null); // { reward, cost }
   const [showSurveys, setShowSurveys] = useState(false);
+  const [specialBonusModal, setSpecialBonusModal] = useState({ open: false, events: [], bonus: 0, memberName: '' });
   const [sortDir, setSortDir] = useState('desc');
   const [memSort, setMemSort] = useState('all');
   const [stationFilter, setStationFilter] = useState(null);
@@ -259,8 +261,8 @@ export default function App() {
       return;
     }
 
-    // ok:true: aplicar bonus en state local + toast
-    const { bonus, events } = data;
+    // ok:true: aplicar bonus en state local + modal celebrativo
+    const { bonus, events, member_name } = data;
     const today = localDate();
 
     setMe(prev => prev ? {
@@ -279,9 +281,13 @@ export default function App() {
         : c
     ));
 
-    // Toast con descripcion de los eventos
-    const eventNames = events.map(e => `${e.icon} ${e.name}`).join(' + ');
-    fire(`🎉 ¡+${bonus} pts! · ${eventNames}`);
+    // Modal celebrativo personalizado por tier (FB.6.2c) — reemplaza el toast
+    setSpecialBonusModal({
+      open: true,
+      events,
+      bonus,
+      memberName: member_name,
+    });
   };
 
   // ===== SUPABASE DATA LOADING =====
@@ -1568,6 +1574,15 @@ export default function App() {
         </div>
       )}
 
+      {/* ── Modal celebrativo de bono por día especial (FB.6.2c) ── */}
+      <SpecialDayBonusModal
+        open={specialBonusModal.open}
+        events={specialBonusModal.events}
+        bonus={specialBonusModal.bonus}
+        memberName={specialBonusModal.memberName}
+        tier={me ? cTier : null}
+        onClose={() => setSpecialBonusModal(prev => ({ ...prev, open: false }))}
+      />
 
     </>
   );
