@@ -1,7 +1,7 @@
 // public/sw.js — Club Turkaj Service Worker
 // Push Notifications + Cache Offline
 
-const CACHE_NAME = 'club-turkaj-v2';
+const CACHE_NAME = 'club-turkaj-__BUILD_HASH__';
 const OFFLINE_URLS = [
   '/',
   '/index.html',
@@ -11,19 +11,37 @@ const OFFLINE_URLS = [
 
 // ── Instalacion: pre-cachear recursos esenciales ──────────
 self.addEventListener('install', (event) => {
+  console.log('[SW] Install: cache name =', CACHE_NAME);
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(OFFLINE_URLS))
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(OFFLINE_URLS))
   );
-  self.skipWaiting();
+  // No se llama skipWaiting() aqui: el SW nuevo queda en espera
+  // hasta que el usuario pulse "Recargar" (mensaje SKIP_WAITING).
 });
 
 // ── Activacion: limpiar caches viejas ────────────────────
 self.addEventListener('activate', (event) => {
+  console.log('[SW] Activate: claiming clients');
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    ).then(() => clients.claim())
+    caches.keys().then(keys => {
+      console.log('[SW] Existing caches:', keys);
+      return Promise.all(
+        keys.filter(k => k !== CACHE_NAME).map(k => {
+          console.log('[SW] Deleting old cache:', k);
+          return caches.delete(k);
+        })
+      );
+    }).then(() => self.clients.claim())
   );
+});
+
+// ── Mensaje desde el cliente: forzar activacion del SW en espera ──
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('[SW] Skip waiting requested from client');
+    self.skipWaiting();
+  }
 });
 
 // ── Fetch: Cache First para assets, Network First para API ─

@@ -37,6 +37,7 @@ import BottomNav from '../components/ui/BottomNav';
 import QRCode from '../components/ui/QRCode';
 import TierDeco from '../components/ui/TierDeco';
 import SpecialDayBonusModal from '../components/SpecialDayBonusModal';
+import UpdateAvailable from '../components/UpdateAvailable';
 import { Check, Fuel, Users, Gift, Ticket, Clock, Gear, Megaphone, Menu } from '../components/ui/Icons';
 
 // Auth Views
@@ -1583,6 +1584,9 @@ export default function App() {
         tier={me ? cTier : null}
         onClose={() => setSpecialBonusModal(prev => ({ ...prev, open: false }))}
       />
+
+      {/* Aviso de nueva version disponible (Service Worker) */}
+      <UpdateAvailable />
 
     </>
   );
