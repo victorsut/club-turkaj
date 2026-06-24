@@ -49,7 +49,7 @@ export default function AdminPremios(ctx) {
   const [loadingFest, setLoadingFest] = useState(false);
   const [showFestForm, setShowFestForm] = useState(false);
   const [editFest, setEditFest]       = useState(null);
-  const [festForm, setFestForm]       = useState({ name: '', month: '', day: '', points: '70', icon: 'F', active: true });
+  const [festForm, setFestForm]       = useState({ name: '', month: '', day: '', points: '70', icon: 'F', active: true, message: '' });
   const [savingFest, setSavingFest]   = useState(false);
 
   // Cargar festivos al abrir esa pestana
@@ -59,7 +59,7 @@ export default function AdminPremios(ctx) {
     if (!sb) { fire('Sin conexion a base de datos'); return; }
     setLoadingFest(true);
     setFestList([]); // resetear para forzar recarga
-    sb.from('special_days').select('id, name, month, day, points, icon, active, system').order('created_at', { ascending: true })
+    sb.from('special_days').select('id, name, month, day, points, icon, active, system, message').order('created_at', { ascending: true })
       .then(({ data, error }) => {
         setLoadingFest(false);
         console.log('[Festivos] resultado:', error?.message || (data?.length + ' registros'), data);
@@ -177,12 +177,21 @@ export default function AdminPremios(ctx) {
   };
   const openEditFest = (f) => {
     setEditFest(f);
-    setFestForm({ name: f.name || '', month: String(f.month || ''), day: String(f.day || ''), points: String(f.points || '70'), icon: f.icon || 'F', active: f.active !== false });
+    setFestForm({ name: f.name || '', month: String(f.month || ''), day: String(f.day || ''), points: String(f.points || '70'), icon: f.icon || 'F', active: f.active !== false, message: f.message || '' });
     setShowFestForm(true);
   };
 
   const saveFest = async () => {
     if (!festForm.name.trim() || !festForm.month) { fire('Nombre y mes son obligatorios'); return; }
+    const messageTrimmed = festForm.message.trim();
+    if (!messageTrimmed) {
+      fire('Frase motivacional es obligatoria');
+      return;
+    }
+    if (messageTrimmed.length > 300) {
+      fire('Frase motivacional excede 300 caracteres');
+      return;
+    }
     const data = {
       name: festForm.name.trim(),
       month: parseInt(festForm.month),
@@ -190,6 +199,7 @@ export default function AdminPremios(ctx) {
       points: parseInt(festForm.points) || 70,
       icon: festForm.icon || 'F',
       active: festForm.active,
+      message: messageTrimmed,
     };
 
     // EDITAR: auditar via ReasonModal.
@@ -207,6 +217,7 @@ export default function AdminPremios(ctx) {
           points: editFest.points,
           icon: editFest.icon,
           active: editFest.active,
+          message: editFest.message,
         },
       });
       setShowFestForm(false);
@@ -656,6 +667,36 @@ export default function AdminPremios(ctx) {
                   <div>
                     <label style={sLbl}>Icono (emoji)</label>
                     <input value={festForm.icon} onChange={e => setFestForm(p => ({ ...p, icon: e.target.value }))} placeholder="Emoji" style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A', fontSize: 20, textAlign: 'center' }} />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 14 }}>
+                  <label style={sLbl}>Frase motivacional *</label>
+                  <textarea
+                    value={festForm.message}
+                    onChange={e => setFestForm(p => ({ ...p, message: e.target.value }))}
+                    placeholder="Ej: ¡Gracias por ser parte del Club!"
+                    maxLength={300}
+                    rows={3}
+                    style={{
+                      ...inputStyle,
+                      background: '#2A2A2A',
+                      color: '#fff',
+                      border: '1px solid #3A3A3A',
+                      resize: 'vertical',
+                      minHeight: 72,
+                      fontFamily: "'DM Sans'",
+                      width: '100%',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  <div style={{
+                    fontSize: 11,
+                    color: festForm.message.length > 280 ? '#FFA500' : '#757575',
+                    textAlign: 'right',
+                    marginTop: 4,
+                  }}>
+                    {festForm.message.length}/300
                   </div>
                 </div>
 
