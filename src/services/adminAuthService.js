@@ -7,6 +7,7 @@
 // Patrón espejo de operatorAuthService.js para mantener consistencia.
 
 import { sb } from '../lib/supabaseClient';
+import { setAdminToken, clearAdminToken } from './sessionTokens';
 
 const STORAGE_KEY = 'ct_admin';
 
@@ -52,6 +53,13 @@ export async function loginAdmin({ dpi, gafete, email, password }) {
       gafete: r.gafete,
       email: r.email,
     };
+
+    // SEC.B.4: persistir el token de sesión emitido por la RPC
+    // (authenticate_admin, SEC.B.3) en su clave de rol. Se guarda
+    // por separado del objeto admin para que cerrar la sesión de un
+    // rol no toque la de otro. La inyección del token en las RPCs
+    // sensibles es SEC.B.5.
+    setAdminToken({ token: r.session_token, expiresAt: r.session_expires_at });
 
     saveSession(admin);
     return { ok: true, admin };
@@ -104,6 +112,8 @@ export function logoutAdmin() {
   } catch (err) {
     console.error('[adminAuth] clear fail:', err);
   }
+  // SEC.B.4: limpiar el token de admin (solo su clave de rol).
+  clearAdminToken();
 }
 
 /**

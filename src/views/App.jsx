@@ -5,6 +5,7 @@ import { sb } from '../lib/supabaseClient';
 import { makeTier, daysInactive } from '../lib/tierSystem';
 import { CFG_INIT, FUEL_LABELS } from '../constants/config';
 import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey, grantSpecialDayBonus } from '../services';
+import { logoutOperator, logoutAdmin } from '../services'; // SEC.B.4: logout delega el subconjunto de localStorage (ct_op/ct_admin + token de rol)
 
 // Guatemala es UTC-6 — usar siempre fecha/hora local, nunca UTC
 function localDate() {
@@ -1111,8 +1112,8 @@ export default function App() {
     if (sb) sb.auth.signOut({ scope: 'local' });
     setMe(null); setGoogleStep('welcome'); setMySurveyCount(0); setLoggedOp(null);
     if (isC) { localStorage.removeItem('ct_me'); setAuthScreen('login'); setCScr('home'); setLoginPhone(''); setLoginPass(''); setMe(null); }
-    else if (isO) { localStorage.removeItem('ct_op'); setAuthOp('login'); setLoggedOp(null); setOScr('ohome'); }
-    else if (isA) { localStorage.removeItem('ct_admin'); setAuthAdmin('login'); setLoggedAdmin(null); setScr('dash'); }
+    else if (isO) { logoutOperator(); setAuthOp('login'); setLoggedOp(null); setOScr('ohome'); }
+    else if (isA) { logoutAdmin(); setAuthAdmin('login'); setLoggedAdmin(null); setScr('dash'); }
     setAuthError(''); fire('👋 Sesión cerrada');
   }, [view, fire]);
 

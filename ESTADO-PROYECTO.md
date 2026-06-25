@@ -1,5 +1,73 @@
 # Club Turkaj v2 — Estado Actual del Proyecto
-## Última actualización: Marzo 2026
+## Última actualización: Junio 2026
+
+---
+
+## Seguridad — Bloque SEC.B (sesiones de operador/admin)
+
+Cierre del agujero de permisos `anon` en las RPCs sensibles vía tokens de
+sesión. **Estado global: B.3 ✅ · B.4 ✅ · faltan B.5, B.6, B.7, B.8, B.9.**
+
+### SEC.B.4 — Persistencia de token de sesión en el cliente ✅
+
+**Qué entró:**
+- **`src/services/sessionTokens.js`** (nuevo): módulo único que encapsula las
+  claves de `localStorage`. Claves **separadas por rol** (`ct_operator_token`,
+  `ct_admin_token`); **sin token de cliente**. Expone `setX/getX/clearX` para
+  operador y admin. `getXToken()` aplica **chequeo local de expiración con
+  política estricta**: `expiresAt` ausente o no parseable se trata como
+  inválido (guard explícito `Number.isFinite(Date.parse(...))`, no se apoya en
+  la semántica de `NaN`); compara por instante absoluto (`Date.now()` vs
+  `timestamptz` ISO), sin conversión a hora de Guatemala. Auto-limpia en
+  corrupción/sin-token/expirado.
+- **Persistencia en login:** `loginOperator` y `loginAdmin` ahora leen
+  `session_token`/`session_expires_at` que la RPC B.3 ya devolvía (antes se
+  descartaban por el cherry-picking de campos) y los guardan con
+  `setOperatorToken`/`setAdminToken`. El token va a su clave de rol, **no**
+  dentro del objeto de sesión (`ct_op`/`ct_admin` sin cambios → no rompe
+  `loggedOp`/`loggedAdmin`).
+- **Limpieza en logout:** `logoutOperator`/`logoutAdmin` agregan `clearXToken()`.
+  En el handler central `logout` de `App.jsx` (Opción B acotada) se reemplazó
+  `localStorage.removeItem('ct_op'|'ct_admin')` por
+  `logoutOperator()`/`logoutAdmin()` — el service es el único dueño del
+  subconjunto de localStorage del logout; el estado React y la navegación
+  quedan inline.
+
+**3 decisiones tomadas (razón en una línea):**
+1. **Sin `ct_client_token`** — el cliente va sobre Supabase Auth nativo; su JWT
+   viaja solo en el header `Authorization` de cada `sb.rpc`, no hay token custom
+   que guardar.
+2. **Sin revocación server-side en logout (deuda acotada, NO resuelta)** — al
+   cerrar sesión se borra el token del `localStorage`, pero la fila en
+   `operator_sessions`/`admin_sessions` **queda viva y vigente hasta que expire
+   (hasta 18h)**: el logout **no la invalida**. Solo queda *inalcanzable desde
+   el cliente* (`anon` no puede leer esas tablas: `REVOKE ALL` + grants solo a
+   `service_role`). Es un riesgo **acotado y aceptable** por la ventana corta de
+   18h **+** el dispositivo fijo por estación, **no** porque la sesión se
+   invalide. La revocación real (poblar `revoked_at` en el logout) se construye
+   en **B.6** junto con la validación server-side.
+3. **Chequeo local de expiración estricto** — cortesía de UX para evitar
+   round-trips con token vencido; la autoridad real de validez es el server en
+   B.6.
+
+**Pendiente / deuda para fases siguientes:**
+- **B.5:** inyección del token en los call sites sensibles (`register_purchase`,
+  `buy_raffle_tickets` vector operador, `update_member_with_audit`,
+  `modify_member_points`); las RPCs de admin usan patrón crudo (no `callRpc`),
+  así que la inyección no se centraliza 100% en un solo punto.
+- **B.6:** RPC de validación + revocación server-side (poblar `revoked_at`).
+- **Semántica de `isOperatorLoggedIn`/`isAdminLoggedIn`:** sin cambios hasta
+  B.5/B.6 — siguen mirando el objeto de sesión (`ct_op`/`ct_admin`), no el token.
+- **Redundancias preexistentes del handler `logout`** (`setLoggedOp(null)` /
+  `setMe(null)` duplicados): ortogonales a SEC.B, no tocadas.
+
+**Supuesto del que depende la Decisión 2:** la tolerancia a no revocar en
+logout se sostiene en que **el dispositivo es fijo por operador en cada estación
+y no sale de ella**. Si ese modelo cambia (operadores con dispositivo propio, o
+equipos que salen de la estación), la revocación server-side inmediata **deja de
+ser deuda diferible y sube a prioridad**: el vector "token vigente en un
+dispositivo fuera de control físico" se vuelve plausible. **Reabrir esta
+decisión si el modelo de dispositivos cambia.**
 
 ---
 

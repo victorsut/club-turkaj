@@ -5,6 +5,7 @@
 // La contraseña en texto plano nunca se guarda en el cliente.
 
 import { sb } from '../lib/supabaseClient';
+import { setOperatorToken, clearOperatorToken } from './sessionTokens';
 
 const STORAGE_KEY = 'ct_op';
 
@@ -56,6 +57,13 @@ export async function loginOperator({ gafete, dpi, username, password }) {
       active: true,
     };
 
+    // SEC.B.4: persistir el token de sesión emitido por la RPC
+    // (authenticate_operator, SEC.B.3) en su clave de rol. Se guarda
+    // por separado del objeto operator para que cerrar la sesión de un
+    // rol no toque la de otro. La inyección del token en las RPCs
+    // sensibles es SEC.B.5.
+    setOperatorToken({ token: r.session_token, expiresAt: r.session_expires_at });
+
     saveSession(operator);
     return { ok: true, operator };
   } catch (err) {
@@ -98,6 +106,8 @@ export function logoutOperator() {
   } catch (err) {
     console.error('[operatorAuth] clear fail:', err);
   }
+  // SEC.B.4: limpiar el token de operador (solo su clave de rol).
+  clearOperatorToken();
 }
 
 /**
