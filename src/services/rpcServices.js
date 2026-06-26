@@ -10,7 +10,7 @@
 // ============================================================
 
 import { sb } from '../lib/supabaseClient';
-import { getOperatorToken } from './sessionTokens';
+import { getOperatorToken, getAdminToken } from './sessionTokens';
 
 // ──────────────────────────────────────────────
 // Helper genérico para llamadas RPC
@@ -283,6 +283,7 @@ export async function updateMemberWithAudit(memberId, audit = {}, changes = {}) 
     p_admin_email: audit.adminEmail,
     p_reason_text: audit.reasonText,
     p_changes: changes,
+    p_session_token: getAdminToken()?.token ?? null, // SEC.B.5.3 (ignorado server-side hasta B.6)
   });
 
   if (error) {
@@ -369,6 +370,7 @@ export async function modifyMemberPoints(memberId, audit, change) {
     p_delta: hasDelta ? change.delta : null,
     p_set_to: hasSetTo ? change.setTo : null,
     p_action_type: change.actionType,
+    p_session_token: getAdminToken()?.token ?? null, // SEC.B.5.3 (ignorado server-side hasta B.6)
   };
 
   const { data, error } = await sb.rpc('modify_member_points', params);
