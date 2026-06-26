@@ -6,7 +6,7 @@
 ## Seguridad — Bloque SEC.B (sesiones de operador/admin)
 
 Cierre del agujero de permisos `anon` en las RPCs sensibles vía tokens de
-sesión. **Estado global: B.3 ✅ · B.4 ✅ · B.5 ✅ · B.6.1 en curso · faltan B.6.2, B.6.3, B.7, B.8, B.9.**
+sesión. **Estado global: B.3 ✅ · B.4 ✅ · B.5 ✅ · B.6.1 ✅ · B.6.2 ✅ · falta B.6.3 (logout cliente) para cerrar B.6, después B.7, B.8, B.9.**
 
 ### SEC.B.4 — Persistencia de token de sesión en el cliente ✅
 
@@ -106,8 +106,40 @@ más fuerte) y **no mira `auth.uid()`**.
 - Raffle de cliente (token NULL) **no** genera fila — probado con OAuth y con
   teléfono.
 
-**Pendiente:** B.6.2 (RPCs `revoke_operator_session`/`revoke_admin_session`) +
-B.6.3 (logout cliente → `async` + revoke best-effort).
+**Pendiente:** B.6.3 (logout cliente → `async` + revoke best-effort).
+
+---
+
+### SEC.B.6.2 — Revocación de sesión server-side ✅
+
+**Qué entró:** 2 RPCs **nuevas, puramente aditivas** (no recrean nada, no tocan
+las RPCs de FB ni el helper de B.6.1):
+- **`revoke_operator_session(p_token text)` / `revoke_admin_session(p_token text)`**
+  — `UPDATE <tabla> SET revoked_at = now() WHERE token = p_token AND revoked_at
+  IS NULL`. El `AND revoked_at IS NULL` hace la revocación **idempotente**
+  (preserva el instante de la primera). `RETURNS void` (no filtra datos de la
+  sesión). **No-op silencioso** si el token no existe (UPDATE sin match, sin
+  error → no filtra existencia). **No validan quién llama:** el token es el
+  secreto, poseerlo = poder revocarlo (un UUID random solo vive en el
+  `localStorage` de su propia sesión). `SECURITY DEFINER` + `SET search_path TO
+  'public'` (escriben tablas con `REVOKE ALL FROM PUBLIC`). Grants `EXECUTE` a
+  `anon`/`authenticated`/`service_role` (el logout puede ocurrir con apikey
+  `anon`).
+
+**Cierre del loop con B.6.1:** el helper `validate_session_token` ya tenía la
+rama `revoked_token` (chequea `revoked_at IS NOT NULL` **antes** que
+expiración). B.6.2 la **habilita** poblando `revoked_at` → reusar un token
+revocado en una RPC sensible genera `reason='revoked_token'` (modo warn, sigue
+sin bloquear; el corte es B.8).
+
+**Smoke verificado en producción:** revocación pobló `revoked_at`; segunda
+revocación devolvió el **mismo** instante (idempotencia); token inexistente sin
+error (no-op); token revocado reusado → 1 fila `register_purchase |
+revoked_token` (params sin token) y la compra **pasó igual** (warn).
+
+**Pendiente:** B.6.3 conecta estas RPCs al logout (`logoutOperator`/
+`logoutAdmin` → `async`, leer token → revoke best-effort → borrar local
+SIEMPRE).
 
 ---
 
