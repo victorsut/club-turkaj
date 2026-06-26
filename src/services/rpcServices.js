@@ -10,11 +10,19 @@
 // ============================================================
 
 import { sb } from '../lib/supabaseClient';
+import { getOperatorToken } from './sessionTokens';
 
 // ──────────────────────────────────────────────
 // Helper genérico para llamadas RPC
 // ──────────────────────────────────────────────
-async function callRpc(fnName, params) {
+async function callRpc(fnName, params, { sessionToken } = {}) {
+  // SEC.B.5.2: si el caller pasa un sessionToken (truthy), lo inyectamos
+  // como p_session_token. callRpc NO adivina rol — el caller decide qué
+  // token pasar (o ninguno). Si no viene, la RPC lo recibe como DEFAULT
+  // NULL server-side (B.5.1) y por ahora lo ignora (validación real en B.6).
+  if (sessionToken) {
+    params = { ...params, p_session_token: sessionToken };
+  }
   const { data, error } = await sb.rpc(fnName, params);
   if (error) {
     console.error(`[RPC:${fnName}]`, error.message);
@@ -55,6 +63,9 @@ export async function registerPurchase({
   fuelType,
   invoiceNo = null,
 }) {
+  // SEC.B.5.2: register_purchase es vector ÚNICO de operador. El wrapper
+  // resuelve el token de operador y lo pasa a callRpc. Si está
+  // expirado/ausente → null (el server lo ignora hasta B.6).
   return callRpc('register_purchase', {
     p_member_id: memberId,
     p_operator_id: operatorId,
@@ -62,7 +73,7 @@ export async function registerPurchase({
     p_amount: amount,
     p_fuel_type: fuelType,
     p_invoice_no: invoiceNo,
-  });
+  }, { sessionToken: getOperatorToken()?.token ?? null });
 }
 
 // ──────────────────────────────────────────────
@@ -105,12 +116,17 @@ export async function buyRaffleTickets({
   memberId,
   raffleId,
   quantity,
+  sessionToken = null,
 }) {
+  // SEC.B.5.2: vector DOBLE (operador + cliente). El wrapper NO resuelve
+  // rol — solo reenvía el sessionToken que le pase el call site. El call
+  // site operador (OpRaffle.jsx) pasa getOperatorToken()?.token; el call
+  // site cliente (App.jsx, vector SEC.C) no pasa nada → null.
   return callRpc('buy_raffle_tickets', {
     p_member_id: memberId,
     p_raffle_id: raffleId,
     p_quantity: quantity,
-  });
+  }, { sessionToken });
 }
 
 // ──────────────────────────────────────────────

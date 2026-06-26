@@ -2,6 +2,7 @@
 // Operator view — sell raffle tickets to clients via card scan
 import { sb } from '../../lib/supabaseClient';
 import { buyRaffleTickets } from '../../services';
+import { getOperatorToken } from '../../services/sessionTokens';
 import { sMono, inputStyle } from '../../constants/styles';
 import Badge from '../../components/ui/Badge';
 import { Back } from '../../components/ui/Icons';
@@ -65,10 +66,13 @@ export default function OpRaffle(ctx) {
       return;
     }
 
+    // SEC.B.5.2: call site OPERADOR — adjuntamos el token de operador.
+    // Si está expirado/ausente → null (el server lo ignora hasta B.6).
     const { data, error } = await buyRaffleTickets({
       memberId: cl.id,
       raffleId: rafRow.id,
       quantity: n,
+      sessionToken: getOperatorToken()?.token ?? null,
     });
 
     if (error) {
