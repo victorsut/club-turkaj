@@ -6,7 +6,7 @@
 ## Seguridad — Bloque SEC.B (sesiones de operador/admin)
 
 Cierre del agujero de permisos `anon` en las RPCs sensibles vía tokens de
-sesión. **Estado global: B.3 ✅ · B.4 ✅ · faltan B.5, B.6, B.7, B.8, B.9.**
+sesión. **Estado global: B.3 ✅ · B.4 ✅ · B.5 ✅ · B.6.1 en curso · faltan B.6.2, B.6.3, B.7, B.8, B.9.**
 
 ### SEC.B.4 — Persistencia de token de sesión en el cliente ✅
 
@@ -68,6 +68,46 @@ equipos que salen de la estación), la revocación server-side inmediata **deja 
 ser deuda diferible y sube a prioridad**: el vector "token vigente en un
 dispositivo fuera de control físico" se vuelve plausible. **Reabrir esta
 decisión si el modelo de dispositivos cambia.**
+
+---
+
+### SEC.B.6.1 — Validación de sesión server-side (modo WARN) 🚧
+
+**Qué entra:** helper `validate_session_token(p_token, p_role, p_rpc_name,
+p_allow_null, p_params)` + las 4 RPCs sensibles recreadas (`CREATE OR REPLACE`
+sin `DROP`, firma sin cambios) llamándolo como primera sentencia. En modo
+**warn**: registra `no_token`/`invalid_token`/`revoked_token`/`expired_token`
+en `session_violations` y **devuelve NULL sin bloquear** (nunca `RAISE`). El
+corte a strict (`RAISE`) es **B.8**, un único `IF` en el helper. El helper
+chequea `revoked_at` **antes** que `expires_at` (un logout deliberado es señal
+más fuerte) y **no mira `auth.uid()`**.
+
+> ### ⚠️ FRONTERA CRÍTICA — B.6 NO PROTEGE EL VECTOR CLIENTE DEL RAFFLE
+> `buy_raffle_tickets` tiene **doble vector**: operador (manda token) y cliente
+> (`App.jsx`, **NO** manda token). B.6 valida **solo** el vector operador; con
+> `p_session_token` NULL hace **skip silencioso** (`p_allow_null => true`): no
+> registra violación y no inspecciona `auth.uid()`.
+>
+> **Consecuencia explícita:** con token NULL, **cualquiera con la apikey `anon`
+> puede llamar `buy_raffle_tickets` y gastar puntos de CUALQUIER `member`.**
+> Esto **ya era así antes de SEC.B**; B.6 lo deja igual **a propósito**, porque
+> policiarlo exige resolver el login-por-teléfono (los clientes-teléfono no
+> tienen `auth.uid()`). **Su cierre es SEC.C.**
+>
+> **TRAS B.8 STRICT, EL RAFFLE DEL CLIENTE SIGUE SIN PROTECCIÓN.** Nadie debe
+> creer que B.8 cierra ese vector — es **SEC.C**.
+
+**Verificación (gate de aprobación):**
+- **CRÍTICO:** `points_write_violations = 0` tras las 4 operaciones legítimas
+  (B.6.1 recrea los cuerpos de FB → si el `set_config` se perdió, el canario lo
+  detecta; sin cero, se aborta).
+- Token basura en `localStorage` → compra de operador **pasa igual** Y aparece
+  fila `invalid_token`.
+- Raffle de cliente (token NULL) **no** genera fila — probado con OAuth y con
+  teléfono.
+
+**Pendiente:** B.6.2 (RPCs `revoke_operator_session`/`revoke_admin_session`) +
+B.6.3 (logout cliente → `async` + revoke best-effort).
 
 ---
 
