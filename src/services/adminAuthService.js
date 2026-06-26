@@ -7,7 +7,7 @@
 // Patrón espejo de operatorAuthService.js para mantener consistencia.
 
 import { sb } from '../lib/supabaseClient';
-import { setAdminToken, clearAdminToken } from './sessionTokens';
+import { setAdminToken, getAdminToken, clearAdminToken } from './sessionTokens';
 
 const STORAGE_KEY = 'ct_admin';
 
@@ -104,9 +104,28 @@ export function getAdminSession() {
 }
 
 /**
- * Cierra la sesión del admin (limpia localStorage).
+ * Cierra la sesión del admin.
+ * SEC.B.6.3: revoca el token de sesión server-side (best-effort) ANTES de
+ * borrar el localStorage. El borrado local va SIEMPRE (fuera del try/catch):
+ * si la revocación falla (sin red, server caído), se traga el error y el
+ * logout local NO se bloquea. Un token huérfano no-revocado expira en ≤18h y
+ * la validación de B.6 corre en modo warn (no bloquea).
  */
-export function logoutAdmin() {
+export async function logoutAdmin() {
+  // 1. Leer el token ANTES de borrarlo (clearAdminToken lo elimina abajo).
+  const token = getAdminToken()?.token;
+
+  // 2. Revocar server-side (best-effort). if (sb && token) evita el round-trip
+  //    si el token está ausente o ya venció (getAdminToken auto-limpia).
+  if (sb && token) {
+    try {
+      await sb.rpc('revoke_admin_session', { p_token: token });
+    } catch (err) {
+      console.error('[adminAuth] revoke fail:', err);
+    }
+  }
+
+  // 3. Borrado local SIEMPRE (fuera del try/catch de la revocación).
   try {
     localStorage.removeItem(STORAGE_KEY);
   } catch (err) {

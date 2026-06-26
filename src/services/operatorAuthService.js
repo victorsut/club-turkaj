@@ -5,7 +5,7 @@
 // La contraseña en texto plano nunca se guarda en el cliente.
 
 import { sb } from '../lib/supabaseClient';
-import { setOperatorToken, clearOperatorToken } from './sessionTokens';
+import { setOperatorToken, getOperatorToken, clearOperatorToken } from './sessionTokens';
 
 const STORAGE_KEY = 'ct_op';
 
@@ -98,9 +98,28 @@ export function getOperatorSession() {
 }
 
 /**
- * Cierra la sesión del operador (limpia localStorage).
+ * Cierra la sesión del operador.
+ * SEC.B.6.3: revoca el token de sesión server-side (best-effort) ANTES de
+ * borrar el localStorage. El borrado local va SIEMPRE (fuera del try/catch):
+ * si la revocación falla (sin red, server caído), se traga el error y el
+ * logout local NO se bloquea. Un token huérfano no-revocado expira en ≤18h y
+ * la validación de B.6 corre en modo warn (no bloquea).
  */
-export function logoutOperator() {
+export async function logoutOperator() {
+  // 1. Leer el token ANTES de borrarlo (clearOperatorToken lo elimina abajo).
+  const token = getOperatorToken()?.token;
+
+  // 2. Revocar server-side (best-effort). if (sb && token) evita el round-trip
+  //    si el token está ausente o ya venció (getOperatorToken auto-limpia).
+  if (sb && token) {
+    try {
+      await sb.rpc('revoke_operator_session', { p_token: token });
+    } catch (err) {
+      console.error('[operatorAuth] revoke fail:', err);
+    }
+  }
+
+  // 3. Borrado local SIEMPRE (fuera del try/catch de la revocación).
   try {
     localStorage.removeItem(STORAGE_KEY);
   } catch (err) {

@@ -6,7 +6,7 @@
 ## Seguridad — Bloque SEC.B (sesiones de operador/admin)
 
 Cierre del agujero de permisos `anon` en las RPCs sensibles vía tokens de
-sesión. **Estado global: B.3 ✅ · B.4 ✅ · B.5 ✅ · B.6.1 ✅ · B.6.2 ✅ · falta B.6.3 (logout cliente) para cerrar B.6, después B.7, B.8, B.9.**
+sesión. **Estado global: B.3 ✅ · B.4 ✅ · B.5 ✅ · B.6 ✅ (B.6.1 ✅ · B.6.2 ✅ · B.6.3 ✅) · faltan B.7, B.8, B.9.**
 
 ### SEC.B.4 — Persistencia de token de sesión en el cliente ✅
 
@@ -137,9 +137,43 @@ revocación devolvió el **mismo** instante (idempotencia); token inexistente si
 error (no-op); token revocado reusado → 1 fila `register_purchase |
 revoked_token` (params sin token) y la compra **pasó igual** (warn).
 
-**Pendiente:** B.6.3 conecta estas RPCs al logout (`logoutOperator`/
-`logoutAdmin` → `async`, leer token → revoke best-effort → borrar local
-SIEMPRE).
+**Conectada al logout en:** B.6.3 (abajo).
+
+---
+
+### SEC.B.6.3 — Revocación de sesión en logout (cliente) ✅ — cierra B.6
+
+**Qué entró:** `logoutOperator` (operatorAuthService.js) y `logoutAdmin`
+(adminAuthService.js) pasan a **`async`** y revocan el token server-side antes
+de borrar el `localStorage`. Orden: **leer token → revoke best-effort → borrar
+local SIEMPRE**:
+1. `const token = getOperatorToken()?.token` (leído **antes** de borrarlo;
+   `getX/getAdminToken` sumado al import existente de `./sessionTokens`).
+2. `if (sb && token) { try { await sb.rpc('revoke_operator_session',
+   { p_token: token }); } catch { ... } }` — `sb.rpc` directo (no `callRpc`;
+   la RPC es `void`). El `if (sb && token)` evita el round-trip si el token
+   está ausente o ya venció (`getXToken` auto-limpia los vencidos).
+3. Borrado local (`removeItem` + `clearXToken`) **fuera del try/catch**, SIEMPRE.
+
+**Principio innegociable:** el logout local **nunca** queda bloqueado por la
+red. Si la revocación falla (sin red, server caído), se traga el error y se
+borra local igual. Un token huérfano no-revocado expira en ≤18h y la validación
+de B.6 corre en modo **warn** (no bloquea).
+
+**Espejo exacto** entre operador y admin. **No toca** `App.jsx` (el call site
+`logout` ya era fire-and-forget, compatible con `async`), ni las RPCs de
+revocación (B.6.2), ni nada server-side.
+
+**Cierre de B.6:** la revocación que B.6.2 dejó disponible ahora **se dispara
+automáticamente en cada logout** → el `revoked_at` se puebla solo, y un token
+revocado reusado genera `revoked_token` en `session_violations` (warn).
+
+> **Recordatorio de la deuda de B.4 saldada:** la Decisión 2 de B.4 ("sin
+> revocación server-side en logout") queda **cerrada** por B.6.3. El token ya
+> no queda vivo hasta expirar: el logout lo invalida server-side.
+
+**Pendiente del bloque:** B.7 (observación de `session_violations`), B.8 (modo
+strict — flip del helper a `RAISE`), B.9 (`REVOKE EXECUTE FROM anon`).
 
 ---
 
