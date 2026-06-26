@@ -114,6 +114,11 @@ export default function App() {
   const [loggedOp, setLoggedOp] = useState(savedOp);           // operator data after login
   const [opScanMode, setOpScanMode] = useState(false);      // open QR scanner on OpClients
   const [opRedeemScan, setOpRedeemScan] = useState(false);  // open QR scanner on OpRedeem
+  // OpRaffle (rifa operador): estado de la pantalla de compra de boletos
+  const [opRafClient, setOpRafClient] = useState(null);     // cliente seleccionado
+  const [opRafScan, setOpRafScan] = useState(null);         // estado del escaneo / tarjeta
+  const [opRafQty, setOpRafQty] = useState(1);              // cantidad de boletos
+  const [opSearch, setOpSearch] = useState('');             // busqueda por nombre
   const [stations, setStations] = useState([]);               // gas stations from Supabase
   const [authAdmin, setAuthAdmin]   = useState(savedAdmin ? 'logged' : 'login');
   const [loggedAdmin, setLoggedAdmin] = useState(savedAdmin); // admin data after login
@@ -1145,6 +1150,7 @@ export default function App() {
     stationFilter, setStationFilter, stationMode, setStationMode,
     // Auth
     authScreen, setAuthScreen, authOp, setAuthOp, loggedOp, setLoggedOp, opScanMode, setOpScanMode, opRedeemScan, setOpRedeemScan, stations, authAdmin, setAuthAdmin, loggedAdmin, setLoggedAdmin,
+    opRafClient, setOpRafClient, opRafScan, setOpRafScan, opRafQty, setOpRafQty, opSearch, setOpSearch,
     authError, setAuthError, clearAuthErr,
     loginPhone, setLoginPhone, loginPass, setLoginPass,
     regPhone, setRegPhone, regPass, setRegPass, regPass2, setRegPass2,
