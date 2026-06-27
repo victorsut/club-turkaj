@@ -6,7 +6,15 @@
 ## Seguridad — Bloque SEC.B (sesiones de operador/admin)
 
 Cierre del agujero de permisos `anon` en las RPCs sensibles vía tokens de
-sesión. **Estado global: B.3 ✅ · B.4 ✅ · B.5 ✅ · B.6 ✅ (B.6.1 ✅ · B.6.2 ✅ · B.6.3 ✅ · B.6.4 ✅) · B.8 ✅ (B.8.1 ✅ · B.8.2 ✅) · falta solo B.9.** (B.7, observación pasiva, se absorbió como observación activa corta en B.8.1.)
+sesión. **SEC.B CERRADA en B.8. Estado: B.3 ✅ · B.4 ✅ · B.5 ✅ · B.6 ✅ (B.6.1 ✅ · B.6.2 ✅ · B.6.3 ✅ · B.6.4 ✅) · B.8 ✅ (B.8.1 ✅ · B.8.2 ✅).** (B.7, observación pasiva, se absorbió como observación activa corta en B.8.1. B.9 — REVOKE anon — reclasificado como **deuda dependiente de SEC.C**, ver abajo.)
+
+**Control de acceso final (modelo anon+token):** las 4 RPCs sensibles
+(`register_purchase`, `buy_raffle_tickets`, `update_member_with_audit`,
+`modify_member_points`) están protegidas por la **validación strict del token de
+sesión** (B.8.1: rechazo con ERRCODE 28000 ante token ausente/inválido/
+revocado/expirado) + la **UX del rechazo** (B.8.2: logout + login + aviso). Eso
+es lo máximo alcanzable sin auth real para operador/admin — ver el hallazgo de
+arquitectura y B.9 al final del bloque.
 
 ### SEC.B.4 — Persistencia de token de sesión en el cliente ✅
 
@@ -313,9 +321,66 @@ puros):**
 en vez del toast crudo. `expireSession` queda como **pieza compartida** entre el
 cierre proactivo (B.6.4) y el reactivo (B.8.2).
 
-**Pendiente del bloque:** **B.9** (`REVOKE EXECUTE FROM anon` en las 4 RPCs) para
-cerrar SEC.B. El vector cliente del raffle sigue sin protección de token (rama
-1a, deliberado → **SEC.C**).
+**Cierre del bloque:** con B.8.2, **SEC.B queda CERRADA**. El control de acceso
+de las 4 RPCs sensibles es la validación strict del token (B.8.1) + la UX del
+rechazo (B.8.2). B.9 (`REVOKE EXECUTE FROM anon`) NO se ejecuta — ver abajo por
+qué pasa a depender de SEC.C.
+
+---
+
+### Hallazgo de arquitectura — operador/admin viajan como rol `anon`
+
+**Raíz de por qué B.9 depende de SEC.C.** Hay un solo cliente Supabase
+(`supabaseClient.js`) creado con la apikey `anon`. El rol PostgREST de cada
+llamada lo determina el JWT del header `Authorization`: con sesión de Supabase
+Auth viaja `authenticated`; sin ella, la apikey anon actúa como JWT → rol `anon`.
+
+- **Operador / Admin:** login vía RPC `authenticate_operator` /
+  `authenticate_admin` → guardan un **token custom** (`operator_sessions` /
+  `admin_sessions`, SEC.B.3). **No** llaman `sb.auth.signIn*` → **viajan como
+  `anon`**, con el token custom como parámetro `p_session_token`.
+- **Cliente Google/Apple:** `sb.auth.signInWithOAuth` → sesión real → rol
+  `authenticated`.
+- **Cliente teléfono:** `signInWithPhone` solo hace `SELECT` a `members` (sin
+  Supabase Auth; TODO migrar a RPC `authenticate_member`) → **viaja como `anon`**.
+
+Consecuencia: **operador, admin y cliente-teléfono — los tres son `anon`** a
+nivel PostgREST. Por eso el sistema de token custom de SEC.B existe: es el único
+control de acceso posible mientras esos actores no tengan identidad autenticada.
+(Evidencia empírica: la observación de B.8.1 mostró al operador —rol anon—
+registrando compras con token válido y bloqueado con token inválido vía 28000.)
+
+---
+
+### SEC.B.9 — REVOKE EXECUTE FROM anon — DEUDA DEPENDIENTE DE SEC.C (no ejecutado)
+
+**Estado:** investigado, **NO ejecutado** (no hay REVOKE seguro que aplicar hoy).
+Reclasificado de "paso pendiente de SEC.B" a **deuda dependiente de SEC.C**.
+
+**Por qué no es viable ahora:** query `has_function_privilege` confirmó que las 4
+RPCs tienen `EXECUTE` para `anon`. Como operador, admin y cliente-teléfono viajan
+como `anon` (hallazgo de arquitectura ↑), `REVOKE EXECUTE FROM anon` sobre
+**cualquiera** de las 4 **bloquearía a actores legítimos**. No hay variante de
+REVOKE parcial que funcione: las 4 son alcanzadas por anon (las 3 de
+operador/admin + `buy_raffle_tickets`, que además sirve al cliente-teléfono y al
+vector cliente de la rama 1a → SEC.C).
+
+**Precondición para aplicarlo:** REVOKE anon recién es aplicable cuando
+operador/admin/cliente-teléfono tengan **identidad autenticada con rol ≠ anon**
+(migración de auth = SEC.C). Recién ahí se podría revocar anon en las 3 de
+operador/admin (y, cuando el cliente-teléfono migre, también acotar
+`buy_raffle_tickets`).
+
+**Qué aportaría (defensa en profundidad, NO la única protección):** el control de
+acceso real **ya está cubierto** por la validación strict del token (B.8.1) — un
+anónimo sin credencial recibe 28000 antes de cualquier mutación. El REVOKE sería
+una segunda capa (ni siquiera poder ejecutar la función sin el rol), no la única
+barrera.
+
+**Nota técnica para cuando se encare:** para bloquear `anon` de verdad NO basta
+`REVOKE FROM anon` — las 4 RPCs tienen `EXECUTE` otorgado a `PUBLIC` por defecto
+(confirmado por query: `anon` es miembro de `PUBLIC`). Haría falta
+`REVOKE EXECUTE ... FROM PUBLIC` además de `FROM anon`.
 
 ---
 
