@@ -6,7 +6,7 @@
 ## Seguridad — Bloque SEC.B (sesiones de operador/admin)
 
 Cierre del agujero de permisos `anon` en las RPCs sensibles vía tokens de
-sesión. **Estado global: B.3 ✅ · B.4 ✅ · B.5 ✅ · B.6 ✅ (B.6.1 ✅ · B.6.2 ✅ · B.6.3 ✅ · B.6.4 ✅) · faltan B.8, B.9.** (B.7, observación pasiva, queda integrado como observación activa corta en B.8.1.)
+sesión. **Estado global: B.3 ✅ · B.4 ✅ · B.5 ✅ · B.6 ✅ (B.6.1 ✅ · B.6.2 ✅ · B.6.3 ✅ · B.6.4 ✅) · B.8.1 ✅ · faltan B.8.2, B.9.** (B.7, observación pasiva, se absorbió como observación activa corta en B.8.1.)
 
 ### SEC.B.4 — Persistencia de token de sesión en el cliente ✅
 
@@ -220,6 +220,53 @@ el reactivo.
 **Pendiente del bloque:** B.8 (modo strict — flip del helper a `RAISE`, con
 observación activa corta absorbiendo el rol de B.7; reutiliza `expireSession`
 para el rechazo reactivo), B.9 (`REVOKE EXECUTE FROM anon`).
+
+---
+
+### SEC.B.8.1 — Validación de sesión en modo STRICT (flip warn→strict) ✅
+
+**Qué entró:** `supabase/migrations/20260627_sec_b8_1_session_strict.sql`. Flip
+del helper `validate_session_token` de **warn** (registra sin bloquear, B.6.1) a
+**strict** (`RAISE EXCEPTION`). Las 4 RPCs sensibles (`register_purchase`,
+`buy_raffle_tickets`, `update_member_with_audit`, `modify_member_points`) ahora
+**rechazan** tokens ausentes/inválidos/revocados/expirados en vez de solo
+registrarlos.
+
+**Cambios (solo el helper):** `CREATE OR REPLACE` **sin DROP** (firma sin
+cambios → grants de B.6.1 preservados, sin re-emitir REVOKE/GRANT; NO toca las 4
+RPCs). Ramas **1b/2/3/4/5** → `RAISE EXCEPTION` con **ERRCODE 28000**
+(`invalid_authorization_specification`) + subtipo en `DETAIL`
+(`no_token`/`invalid_token`/`invalid_token`/`revoked_token`/`expired_token`).
+Se **eliminó el INSERT a `session_violations`** de esas ramas: el `RAISE`
+revierte la tx, así que el INSERT era código muerto. `COMMENT` actualizado a
+modo STRICT.
+
+**Decisiones:**
+1. **ERRCODE 28000 ≠ 42501** (guard de puntos FB): el cliente distingue "sesión
+   inválida → mandar a login" de "escritura de puntos no autorizada → bug".
+2. **En strict `session_violations` no se puebla** para estas ramas (consecuencia
+   del rollback). El histórico de la fase warn queda intacto; el rastro
+   post-strict es el error PostgREST en logs.
+3. **Rama 1a INTACTA** (`p_token NULL AND p_allow_null → RETURN NULL`): primer
+   chequeo, antes de cualquier `RAISE`. Vector cliente del raffle sigue sin
+   protección de token — **frontera de B.6, su cierre es SEC.C**.
+4. **Revert documentado** copy-paste-listo en el header de la migración (un solo
+   `CREATE OR REPLACE` al cuerpo warm de B.6.1, sin tocar las 4 RPCs).
+
+**Validación:** drift cero pre-flight (`pg_get_functiondef` prod = B.6.1
+byte-idéntico). Catálogo post-aplicación confirmado (RAISE 28000 en 1b/2/3/4/5,
+1a sigue `RETURN NULL`). **Observación activa 5/5:** compra de operador, boleto
+de operador y edición de admin (tokens válidos) sin 28000; boleto de cliente con
+token NULL sin 28000 (rama 1a, no bloqueado); token inválido (`BASURA-123`,
+expiry futuro) **bloqueado con code 28000**.
+
+> **Recordatorio — B.8.1 NO cierra el vector cliente del raffle.** La rama 1a es
+> deliberada; cualquiera con la apikey `anon` y token NULL puede gastar puntos de
+> cualquier `member_id` en `buy_raffle_tickets`. Su cierre es **SEC.C**.
+
+**Pendiente del bloque:** **B.8.2** (UX del rechazo 28000 en el cliente —
+interceptar y llamar `expireSession(role, {reason:'expirada'})`, cliente puro,
+ver SEC.B.6.4), **B.9** (`REVOKE EXECUTE FROM anon` en las 4 RPCs).
 
 ---
 
