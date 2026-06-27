@@ -6,7 +6,7 @@
 ## Seguridad — Bloque SEC.B (sesiones de operador/admin)
 
 Cierre del agujero de permisos `anon` en las RPCs sensibles vía tokens de
-sesión. **Estado global: B.3 ✅ · B.4 ✅ · B.5 ✅ · B.6 ✅ (B.6.1 ✅ · B.6.2 ✅ · B.6.3 ✅) · faltan B.7, B.8, B.9.**
+sesión. **Estado global: B.3 ✅ · B.4 ✅ · B.5 ✅ · B.6 ✅ (B.6.1 ✅ · B.6.2 ✅ · B.6.3 ✅ · B.6.4 ✅) · faltan B.8, B.9.** (B.7, observación pasiva, queda integrado como observación activa corta en B.8.1.)
 
 ### SEC.B.4 — Persistencia de token de sesión en el cliente ✅
 
@@ -172,8 +172,54 @@ revocado reusado genera `revoked_token` en `session_violations` (warn).
 > revocación server-side en logout") queda **cerrada** por B.6.3. El token ya
 > no queda vivo hasta expirar: el logout lo invalida server-side.
 
-**Pendiente del bloque:** B.7 (observación de `session_violations`), B.8 (modo
-strict — flip del helper a `RAISE`), B.9 (`REVOKE EXECUTE FROM anon`).
+---
+
+### SEC.B.6.4 — Cierre proactivo de sesión expirada (cliente) ✅
+
+**Problema que resuelve:** dispositivo exclusivo por operador. El operador olvida
+cerrar sesión, vuelve **al día siguiente** al mismo dispositivo y la app lo
+muestra logueado aunque el token ya venció (TTL 18h superado) → **sesión zombi**.
+Sin esto, lo descubriría recién al fallar una compra real (con cliente
+enfrente), y peor aún tras B.8 strict (rechazo server-side). B.6.4 lo detecta en
+el cliente y lo manda al login limpio **antes** de que el server tenga que
+rechazar. **Cliente puro, hermano de B.6.3.** No es idle-timeout por
+inactividad: es chequeo de expiración del token dirigido por **eventos**.
+
+**Qué entró (todo en `App.jsx`):**
+- **`expireSession(role, {reason})`** — helper reutilizable: termina la sesión de
+  operador/admin (`logoutOperator`/`logoutAdmin` → revocación B.6.3 + reset de
+  estado React + `fire` con el aviso). `reason` `'cerrada'` → "Sesión cerrada";
+  `'expirada'` → "Tu sesión expiró, iniciá sesión de nuevo". El `logout` manual
+  se **refactoriza para delegar** en él (ramas operador/admin), preservando
+  comportamiento **exacto** (mismas 6 llamadas en el mismo orden, revocación
+  B.6.3 intacta, mismo borrado/navegación, redundancias preexistentes sin tocar,
+  rama cliente `isC` intacta).
+- **`checkSessionAlive()`** — detecta la zombi por **condición conjunta**:
+  `loggedOp`/`loggedAdmin` presente **Y** `getOperatorToken()`/`getAdminToken()`
+  === `null` (token vencido; `getXToken` auto-limpia). Solo ese caso mixto
+  dispara el cierre. Lee `viewRef.current` (no `view`). **Cliente protegido por
+  doble barrera independiente:** `viewRef.current === 'client'` → no-op, y aunque
+  no lo fuera, nunca tiene `loggedOp`/`loggedAdmin` truthy (su sesión vive en
+  Supabase Auth / `ct_me`, no en `ct_op`/`ct_admin`).
+- **Dos enganches:** `useEffect([])` al montar (operador vuelve al día siguiente
+  y abre/recarga la app) + listener `visibilitychange` (patrón de
+  `ClientHome.jsx`) con dep **`[checkSessionAlive]`** que **resuelve el stale
+  closure** de `loggedOp`/`loggedAdmin`: al cambiar esos valores (login después
+  del arranque), `checkSessionAlive` se recrea y el listener se re-registra con
+  el closure fresco — sin esto, una sesión iniciada tras el mount no se
+  detectaría al volver de reposo.
+
+**Fuera de alcance:** el cliente (su sesión la maneja Supabase Auth nativo).
+
+**Reutilización futura:** `expireSession` es la **misma** acción que **B.8.2**
+necesitará para el rechazo reactivo (cuando strict responda `error.code 28000`,
+interceptar y llamar `expireSession(role, {reason:'expirada'})`). B.6.4 deja esa
+pieza construida y probada en el camino proactivo antes de que strict la use en
+el reactivo.
+
+**Pendiente del bloque:** B.8 (modo strict — flip del helper a `RAISE`, con
+observación activa corta absorbiendo el rol de B.7; reutiliza `expireSession`
+para el rechazo reactivo), B.9 (`REVOKE EXECUTE FROM anon`).
 
 ---
 

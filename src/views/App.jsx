@@ -6,6 +6,7 @@ import { makeTier, daysInactive } from '../lib/tierSystem';
 import { CFG_INIT, FUEL_LABELS } from '../constants/config';
 import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey, grantSpecialDayBonus } from '../services';
 import { logoutOperator, logoutAdmin } from '../services'; // SEC.B.4: logout delega el subconjunto de localStorage (ct_op/ct_admin + token de rol)
+import { getOperatorToken, getAdminToken } from '../services/sessionTokens'; // SEC.B.6.4: chequeo de token vivo para el cierre proactivo de sesión expirada
 
 // Guatemala es UTC-6 — usar siempre fecha/hora local, nunca UTC
 function localDate() {
@@ -1113,14 +1114,92 @@ export default function App() {
     }
   }, [me, fire, sbConnected]);
 
+  // SEC.B.6.4: helper reutilizable para terminar una sesión de operador/admin.
+  // Encapsula la revocación server-side (logoutOperator/logoutAdmin, B.6.3) +
+  // el reset del estado React + el aviso. Lo invocan: (1) el logout manual con
+  // reason 'cerrada', (2) el cierre proactivo de sesión expirada
+  // (checkSessionAlive) con reason 'expirada', y (3) — a futuro — B.8.2 cuando
+  // el server rechace con error.code 28000, también con 'expirada'.
+  // El toast es un overlay fijo en el root de App (fuera del subárbol de cada
+  // pantalla), así que persiste visible tras el cambio a la pantalla de login.
+  // El CLIENTE no usa este helper (su sesión la maneja Supabase Auth nativo):
+  // se queda en la rama isC de logout, intacta.
+  const expireSession = useCallback((role, { reason } = {}) => {
+    const msg = reason === 'expirada'
+      ? '⏱️ Tu sesión expiró, iniciá sesión de nuevo'
+      : '👋 Sesión cerrada';
+    if (role === 'operator') {
+      logoutOperator(); setAuthOp('login'); setLoggedOp(null); setOScr('ohome');
+    } else if (role === 'admin') {
+      logoutAdmin(); setAuthAdmin('login'); setLoggedAdmin(null); setScr('dash');
+    }
+    setAuthError(''); fire(msg);
+  }, [fire]);
+
   const logout = useCallback(() => {
     if (sb) sb.auth.signOut({ scope: 'local' });
     setMe(null); setGoogleStep('welcome'); setMySurveyCount(0); setLoggedOp(null);
-    if (isC) { localStorage.removeItem('ct_me'); setAuthScreen('login'); setCScr('home'); setLoginPhone(''); setLoginPass(''); setMe(null); }
-    else if (isO) { logoutOperator(); setAuthOp('login'); setLoggedOp(null); setOScr('ohome'); }
-    else if (isA) { logoutAdmin(); setAuthAdmin('login'); setLoggedAdmin(null); setScr('dash'); }
-    setAuthError(''); fire('👋 Sesión cerrada');
-  }, [view, fire]);
+    if (isC) {
+      localStorage.removeItem('ct_me'); setAuthScreen('login'); setCScr('home');
+      setLoginPhone(''); setLoginPass(''); setMe(null);
+      setAuthError(''); fire('👋 Sesión cerrada');
+    }
+    else if (isO) expireSession('operator', { reason: 'cerrada' });
+    else if (isA) expireSession('admin', { reason: 'cerrada' });
+  }, [view, fire, expireSession]);
+
+  // SEC.B.6.4: detecta la "sesión zombi" (objeto de sesión presente pero token
+  // vencido) y dispara el cierre proactivo. La invocan los dos enganches de la
+  // Parte 3: el arranque de la app y el evento visibilitychange.
+  //
+  // Lee viewRef.current (NO `view`): el listener de visibilidad se registra una
+  // vez y capturaría un `view` stale; viewRef.current siempre tiene el rol
+  // vigente (el codebase ya usa este patrón en el efecto de auth).
+  //
+  // CONDICIÓN CONJUNTA por rol — "objeto de sesión presente Y token vivo null":
+  //   - getOperatorToken()/getAdminToken() devuelven null si el token venció
+  //     (y de paso auto-limpian su clave, sessionTokens.js).
+  //   - Solo el caso MIXTO (loggedOp/loggedAdmin truthy + token null) = zombi.
+  //   - Ambos presentes = sesión sana → no tocar.
+  //   - Ninguno presente = ya deslogueado → no tocar.
+  const checkSessionAlive = useCallback(() => {
+    const role = viewRef.current;
+    if (role === 'operator') {
+      if (loggedOp && getOperatorToken() === null) {
+        expireSession('operator', { reason: 'expirada' });
+      }
+    } else if (role === 'admin') {
+      if (loggedAdmin && getAdminToken() === null) {
+        expireSession('admin', { reason: 'expirada' });
+      }
+    }
+    // role === 'client' (o cualquier otro valor): no-op deliberado.
+  }, [loggedOp, loggedAdmin, expireSession]);
+
+  // SEC.B.6.4 — Enganche 1: chequeo al MONTAR (corre una vez). Cubre el caso
+  // "el operador vuelve al día siguiente y abre/recarga la app": al arrancar,
+  // loggedOp/loggedAdmin se siembran de localStorage y, si el token venció,
+  // checkSessionAlive lo manda al login limpio en vez de dejar la sesión zombi.
+  useEffect(() => { checkSessionAlive(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // SEC.B.6.4 — Enganche 2: listener de visibilitychange (patrón idéntico al de
+  // ClientHome.jsx). Cubre el caso "la app quedó abierta, el dispositivo entró
+  // en reposo, el operador enciende la pantalla al día siguiente".
+  //
+  // El efecto DEPENDE de checkSessionAlive: cuando loggedOp/loggedAdmin cambian
+  // (p.ej. el operador inicia sesión DESPUÉS del arranque), checkSessionAlive se
+  // recrea, el cleanup quita el handler viejo (que cerraba sobre loggedOp stale)
+  // y se registra uno nuevo con los valores frescos. Sin esta dependencia, un
+  // listener registrado una sola vez con [] capturaría el loggedOp=null del
+  // primer render y nunca detectaría la zombi de una sesión iniciada después.
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState !== 'visible') return;
+      checkSessionAlive();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [checkSessionAlive]);
 
   // ===== SHARED PROPS OBJECT =====
   // This bundles all state + actions needed by child views
