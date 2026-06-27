@@ -7,6 +7,7 @@ import { CFG_INIT, FUEL_LABELS } from '../constants/config';
 import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey, grantSpecialDayBonus } from '../services';
 import { logoutOperator, logoutAdmin } from '../services'; // SEC.B.4: logout delega el subconjunto de localStorage (ct_op/ct_admin + token de rol)
 import { getOperatorToken, getAdminToken } from '../services/sessionTokens'; // SEC.B.6.4: chequeo de token vivo para el cierre proactivo de sesión expirada
+import { setSessionExpiredHandler } from '../services/sessionExpiry'; // SEC.B.8.2: registro del handler que dispara expireSession ante rechazo 28000 del server
 
 // Guatemala es UTC-6 — usar siempre fecha/hora local, nunca UTC
 function localDate() {
@@ -927,7 +928,7 @@ export default function App() {
     const stationName = loggedOp?.station || '';
 
     // Llamada al RPC
-    const { data, error } = await registerPurchase({
+    const { data, error, sessionExpired } = await registerPurchase({
       memberId: cid,
       operatorId: loggedOp?.id || null,
       stationId: loggedOp?.stationId || null,
@@ -937,6 +938,7 @@ export default function App() {
 
     if (error) {
       console.error('[Purchase] RPC error:', error.message);
+      if (sessionExpired) return; // SEC.B.8.2: expireSession ya manejó el rechazo; no pisar el toast con el crudo.
       fire('Error: ' + error.message);
       return;
     }
@@ -1200,6 +1202,33 @@ export default function App() {
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [checkSessionAlive]);
+
+  // SEC.B.8.2: handler del rechazo reactivo de sesión. Lo dispara la capa de
+  // servicios (notifySessionExpired) cuando una RPC sensible rechaza con
+  // ERRCODE 28000 (B.8.1). Reutiliza expireSession de B.6.4 (logout + redirect
+  // al login + aviso "Tu sesión expiró"). El rol sale de viewRef.current (no de
+  // un closure ni de un parámetro): resuelve el doble vector de
+  // buy_raffle_tickets sin tocar firmas. Cliente = no-op redundante (nunca
+  // recibe 28000: su único flujo que toca el helper es la rama 1a, sin RAISE).
+  const handleSessionExpired = useCallback(() => {
+    const role = viewRef.current;
+    if (role === 'operator') {
+      expireSession('operator', { reason: 'expirada' });
+    } else if (role === 'admin') {
+      expireSession('admin', { reason: 'expirada' });
+    }
+    // role === 'client' (o cualquier otro): no-op deliberado.
+  }, [expireSession]);
+
+  // SEC.B.8.2: registra el handler en el singleton sessionExpiry al montar y lo
+  // limpia en el cleanup. Dep [handleSessionExpired]: si su identidad cambia
+  // (cambiaría si expireSession cambiara, que depende de fire), se re-registra
+  // la versión fresca — mismo razonamiento de stale closure que B.6.4. En la
+  // práctica fire/expireSession son estables, así que registra una vez.
+  useEffect(() => {
+    setSessionExpiredHandler(handleSessionExpired);
+    return () => setSessionExpiredHandler(null);
+  }, [handleSessionExpired]);
 
   // ===== SHARED PROPS OBJECT =====
   // This bundles all state + actions needed by child views

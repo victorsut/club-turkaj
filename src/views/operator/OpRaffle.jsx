@@ -68,7 +68,7 @@ export default function OpRaffle(ctx) {
 
     // SEC.B.5.2: call site OPERADOR — adjuntamos el token de operador.
     // Si está expirado/ausente → null (el server lo ignora hasta B.6).
-    const { data, error } = await buyRaffleTickets({
+    const { data, error, sessionExpired } = await buyRaffleTickets({
       memberId: cl.id,
       raffleId: rafRow.id,
       quantity: n,
@@ -76,6 +76,7 @@ export default function OpRaffle(ctx) {
     });
 
     if (error) {
+      if (sessionExpired) return; // SEC.B.8.2: expireSession ya manejó el rechazo; no pisar el toast con el crudo.
       fire('❌ ' + (error.message || 'Error al comprar boletos'));
       return;
     }

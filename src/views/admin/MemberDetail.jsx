@@ -213,6 +213,10 @@ export default function MemberDetail(ctx) {
     );
 
     if (!result.ok) {
+      // SEC.B.8.2: si la sesión expiró (28000), expireSession ya hizo logout +
+      // redirect al login + aviso. Salimos sin reabrir el form ni pisar el toast
+      // con el crudo. Va ANTES de la ramificación por code (22023/23505).
+      if (result.sessionExpired) return;
       setShowReasonModal(false);
       const errMsg = result.error?.message || 'Error desconocido';
       fire('Error: ' + errMsg);

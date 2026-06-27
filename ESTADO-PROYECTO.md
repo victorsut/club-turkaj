@@ -6,7 +6,7 @@
 ## Seguridad — Bloque SEC.B (sesiones de operador/admin)
 
 Cierre del agujero de permisos `anon` en las RPCs sensibles vía tokens de
-sesión. **Estado global: B.3 ✅ · B.4 ✅ · B.5 ✅ · B.6 ✅ (B.6.1 ✅ · B.6.2 ✅ · B.6.3 ✅ · B.6.4 ✅) · B.8.1 ✅ · faltan B.8.2, B.9.** (B.7, observación pasiva, se absorbió como observación activa corta en B.8.1.)
+sesión. **Estado global: B.3 ✅ · B.4 ✅ · B.5 ✅ · B.6 ✅ (B.6.1 ✅ · B.6.2 ✅ · B.6.3 ✅ · B.6.4 ✅) · B.8 ✅ (B.8.1 ✅ · B.8.2 ✅) · falta solo B.9.** (B.7, observación pasiva, se absorbió como observación activa corta en B.8.1.)
 
 ### SEC.B.4 — Persistencia de token de sesión en el cliente ✅
 
@@ -267,6 +267,55 @@ expiry futuro) **bloqueado con code 28000**.
 **Pendiente del bloque:** **B.8.2** (UX del rechazo 28000 en el cliente —
 interceptar y llamar `expireSession(role, {reason:'expirada'})`, cliente puro,
 ver SEC.B.6.4), **B.9** (`REVOKE EXECUTE FROM anon` en las 4 RPCs).
+
+---
+
+### SEC.B.8.2 — UX del rechazo de sesión (intercepción 28000 → expireSession) ✅
+
+**Qué entró (cliente puro, no toca producción):** cierra la cara cliente de B.8.
+Con B.8.1 el server rechaza tokens inválidos con ERRCODE 28000, pero el cliente
+mostraba el toast crudo del RAISE ("Error: Sesión inválida"). B.8.2 lo reemplaza
+por **logout + redirect al login + aviso "Tu sesión expiró"**, reutilizando
+`expireSession` (B.6.4).
+
+**Arquitectura (no había patrón previo de servicio→UI; los servicios eran
+puros):**
+- **`src/services/sessionExpiry.js`** (nuevo singleton, ~10 líneas, sin deps):
+  `setSessionExpiredHandler(fn)` / `notifySessionExpired()`. Invierte la
+  dependencia: la capa de servicios solo "avisa", la capa React decide.
+- **Detección centralizada** en `rpcServices.js`: `error.code === '28000'` en
+  `callRpc` (cubre `register_purchase` + `buy_raffle_tickets`) y en los 2
+  wrappers crudos (`updateMemberWithAudit`, `modifyMemberPoints`) →
+  `notifySessionExpired()` + flag `sessionExpired: true` en el shape de retorno.
+- **Handler en App.jsx** (`handleSessionExpired`): lee `viewRef.current` y mapea
+  a `expireSession('operator'|'admin', {reason:'expirada'})`. Registrado en el
+  singleton vía `useEffect` con cleanup (dep `[handleSessionExpired]`, mismo
+  razonamiento de stale closure que B.6.4).
+- **Guarda de 1 línea** (`if (sessionExpired) return;`) en 3 call sites
+  (App.jsx `register_purchase`, OpRaffle.jsx `buy_raffle_tickets` operador,
+  MemberDetail.jsx `update_member_with_audit` — esta **antes** de la
+  ramificación 22023/23505) para no pisar el toast lindo con el crudo. **Cero
+  lógica de decisión en los call sites:** solo el bail.
+
+**Decisiones:**
+1. **Intercepción centralizada** (servicios + handler), no por call site.
+2. **Por `error.code`** (no por mensaje — frágil).
+3. **Rol vía `viewRef.current`** en el handler — resuelve el doble vector de
+   `buy_raffle_tickets` (operador/cliente) sin tocar firmas.
+4. **Singleton en módulo propio** (responsabilidad única, no en `sessionTokens`).
+5. **Cliente excluido por diseño** — la rama 1a (token NULL + allow_null) no
+   produce 28000, así que el interceptor nunca se dispara para el cliente; su
+   call site (App.jsx `buy_raffle_tickets` cliente) no se tocó.
+6. **`modify_member_points`** con detección a prueba de futuro (sin call site en
+   UI hoy).
+
+**Deuda resuelta:** el rechazo de sesión ahora tiene UX limpia (login + aviso)
+en vez del toast crudo. `expireSession` queda como **pieza compartida** entre el
+cierre proactivo (B.6.4) y el reactivo (B.8.2).
+
+**Pendiente del bloque:** **B.9** (`REVOKE EXECUTE FROM anon` en las 4 RPCs) para
+cerrar SEC.B. El vector cliente del raffle sigue sin protección de token (rama
+1a, deliberado → **SEC.C**).
 
 ---
 

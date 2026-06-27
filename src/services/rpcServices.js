@@ -11,6 +11,7 @@
 
 import { sb } from '../lib/supabaseClient';
 import { getOperatorToken, getAdminToken } from './sessionTokens';
+import { notifySessionExpired } from './sessionExpiry'; // SEC.B.8.2: rechazo reactivo de sesión (28000)
 
 // ──────────────────────────────────────────────
 // Helper genérico para llamadas RPC
@@ -26,6 +27,13 @@ async function callRpc(fnName, params, { sessionToken } = {}) {
   const { data, error } = await sb.rpc(fnName, params);
   if (error) {
     console.error(`[RPC:${fnName}]`, error.message);
+    // SEC.B.8.2: rechazo de sesión strict (B.8.1). Detección centralizada:
+    // avisa a la capa React (expireSession via singleton) y marca el flag para
+    // que el call site se haga a un lado (no pise el toast lindo con el crudo).
+    if (error.code === '28000') {
+      notifySessionExpired();
+      return { data: null, error, sessionExpired: true };
+    }
     return { data: null, error };
   }
   // Las funciones RPC retornan JSONB; puede venir como string o ya parseado
@@ -288,6 +296,11 @@ export async function updateMemberWithAudit(memberId, audit = {}, changes = {}) 
 
   if (error) {
     console.error('[F0.3.8] updateMemberWithAudit error:', error.message);
+    // SEC.B.8.2: rechazo de sesión strict (28000) — wrapper crudo de admin.
+    if (error.code === '28000') {
+      notifySessionExpired();
+      return { ok: false, error, sessionExpired: true };
+    }
     return { ok: false, error };
   }
   // data es jsonb: { ok, logs_created, categories_updated }
@@ -377,6 +390,12 @@ export async function modifyMemberPoints(memberId, audit, change) {
 
   if (error) {
     console.error('[FB] modifyMemberPoints error:', error.message);
+    // SEC.B.8.2: rechazo de sesión strict (28000) — wrapper crudo de admin.
+    // (Sin call site en UI hoy; la detección queda a prueba de futuro.)
+    if (error.code === '28000') {
+      notifySessionExpired();
+      return { ok: false, error, sessionExpired: true };
+    }
     return { ok: false, error };
   }
 
