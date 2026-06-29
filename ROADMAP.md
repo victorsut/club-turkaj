@@ -1,6 +1,6 @@
 # Puntos+ — Roadmap de Producto
 
-> **Versión:** 2.4
+> **Versión:** 2.5
 > **Fecha de creación:** 17 de mayo de 2026
 > **Última actualización:** 29 de junio de 2026
 > **Estado:** Vivo (este documento evoluciona con el proyecto)
@@ -351,20 +351,18 @@ Mover el `useState(checkingPhone)` al tope del componente con los otros useState
 ### 4.2 Diagrama de dependencias
 
 ```
-P0 (Bug-fix) ✅ ──► F0 (Auditoría) ──► FB (Integridad Puntos) ──► FA (Impresión POS) ──► F1 (Empresa) ──► F2 (Lealtad) ──► F3 (Visual + Rebrand)
+P0 (Bug-fix) ✅ ──► F0 (Auditoría) ──► FB (Integridad Puntos) ──► FA (Impresión POS) ──► F1 (Empresa) ──► F2 (Lealtad) ──► F3 (Visual + Rebrand) ──► F5 (Features) ──► F6 (Vehículos) ──► F8 (Spike) ──► F9 (Reportería)
                                                                                                        │
-                                                                                                       ├──► F4 (Tarjeta) ──► F7 (API/PROPER)
-                                                                                                       │
-                                                                                                       └──► F5 (Features) ──► F6 (Vehículos)
-                                                                                                                                  │
-                                                                                                                                  └──► F8 (Spike) ──► F9 (Reportería)
+                                                                                                       └──► F4 (Tarjeta) ──► F7 (API/PROPER)
 ```
 
 **Lectura del diagrama:**
 - FB (integridad de puntos) va **inmediatamente después de F0** y antes que FA: sin trazabilidad de `members.points`, la auditoría Nivel 2 queda incompleta y el programa pierde confianza del cliente.
 - FA (impresión) es ahora **prerequisito crítico** porque sin impresión estable, el producto no es completamente útil.
 - F3 (visual + rebranding) absorbe la transformación completa de identidad a Puntos+.
-- Todo lo demás mantiene dependencias previas.
+- **F4 (tarjeta física) cuelga de F2, NO de F3** (corregido en v2.5): reusa el canje/QR-universal/localizaciones (D17/D18/D20) que construye F2; no tiene dependencia técnica sobre F3 (solo consistencia visual cosmética). El `F3 → F4` anterior era un remanente del F4 grande de v2.1 (incluía impresión) que no se actualizó al separar FA en v2.2.
+- **F7 (API/PROPER) cuelga de F4** (F2 → F4 → F7): la API expone endpoints `/physical-members/*` que necesitan la infra de `physical_card_members` que construye F4.
+- F5 (features) sigue dependiendo de F3 (§5.5.4). Todo lo demás mantiene dependencias previas.
 
 ### 4.3 Gestiones paralelas
 
@@ -848,14 +846,121 @@ F3 + gestiones Twilio/WhatsApp completadas.
 
 ---
 
-### Fases F6, F7, F8, F9
+### Fases F6, F8, F9
 
 Sin cambios respecto a v2.1. Ver versiones anteriores del documento para detalle si hace falta consultarlas.
 
 - **F6 — Vehículos como entidad + alertas push:** 72-93 hs.
-- **F7 — API REST + integración PROPER:** 55-74 hs.
 - **F8 — Spike Club Business:** 1 semana.
 - **F9 — Reportería enriquecida (opcional):** 40-55 hs.
+
+---
+
+### Fase F7 — API REST pública + integración PROPER
+
+> **Detalle recuperado de v2.1** (`8332707`) e integrado en v2.5 — F7 conserva su
+> posición en la cadena (F2 → F4 → F7), NO se adelanta. El cuerpo recuperado no
+> contenía referencias de marca ni de calendario que armonizar (la mención de
+> marca vivía en D9 §2, ya como "Puntos+"; el calendario de PROPER vive en §3.5/
+> §4.3/§7.2 como "Semana ~22"). Estimación preservada (55-74 hs).
+
+#### 5.7.1 Objetivo
+
+Exponer endpoints REST autenticados que PROPER puede consumir.
+
+#### 5.7.2 Alcance
+
+**Entra:**
+- Endpoints REST (Edge Functions):
+  - `POST /api/v1/auth/token`
+  - `POST /api/v1/purchases`
+  - `GET /api/v1/members/{card_code}`
+  - `POST /api/v1/redemptions/validate`
+  - `POST /api/v1/redemptions/consume`
+  - `GET /api/v1/physical-members/{card_number}`
+  - `POST /api/v1/physical-members/redemptions`
+- API keys por integración.
+- Rate limiting.
+- Logging.
+- Documentación OpenAPI/Swagger.
+- Validación de NIT.
+
+**NO entra:**
+- API para clientes finales.
+- WebSocket / SSE.
+- GraphQL.
+- Webhooks salientes.
+
+#### 5.7.3 Cambios de BD
+
+```sql
+CREATE TABLE public.api_clients (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  api_key_hash text NOT NULL,
+  active boolean DEFAULT true,
+  rate_limit_per_minute int DEFAULT 60,
+  created_at timestamptz DEFAULT now(),
+  last_used_at timestamptz
+);
+
+CREATE TABLE public.api_request_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  api_client_id uuid REFERENCES api_clients(id),
+  endpoint text NOT NULL,
+  method text NOT NULL,
+  status_code int,
+  request_body jsonb,
+  response_body jsonb,
+  duration_ms int,
+  created_at timestamptz DEFAULT now()
+);
+```
+
+#### 5.7.4 Cambios de cliente
+
+**Vistas admin nuevas:**
+- `ApiClients.jsx`, `ApiLogs.jsx`.
+
+#### 5.7.5 Sub-fases para Claude Code
+
+1. **F7.1** Diseñar contrato de API (OpenAPI).
+2. **F7.2** Edge Function de auth.
+3. **F7.3** Edge Function de purchases.
+4. **F7.4** Edge Functions de members + redemptions.
+5. **F7.5** Edge Functions de physical-members.
+6. **F7.6** Implementar rate limiting.
+7. **F7.7** `ApiClients.jsx` admin.
+8. **F7.8** `ApiLogs.jsx` admin.
+9. **F7.9** Generar documentación Swagger.
+10. **F7.10** Coordinación con PROPER + testing integrado.
+11. **F7.11** Build + deploy + go-live.
+
+#### 5.7.6 Estimación de esfuerzo
+
+**Total: 55-74 horas. A 15-25 hs/sem = 3-5 semanas.**
+
+#### 5.7.7 Riesgos
+
+| Riesgo | Probabilidad | Impacto | Mitigación |
+|---|---|---|---|
+| PROPER demora en su integración | Alta | Medio | API lista, espera del lado de ellos |
+| Spec de API no cubre caso real | Media | Alto | Iteración con PROPER antes de freeze |
+| API key expuesta | Baja | Alto | Logs de uso anómalo + rotación |
+| Performance bajo carga | Baja | Medio | Load testing antes de go-live |
+
+#### 5.7.8 Criterios de "listo"
+
+- API documentada con Swagger.
+- PROPER consume `/purchases` y funciona.
+- Admin puede crear/revocar API keys.
+- Logs visibles en admin.
+- Rate limiting protege contra abuso.
+
+#### 5.7.9 Dependencias
+
+- F4 completada.
+- Confirmación de PROPER que están listos.
 
 ---
 
@@ -1459,6 +1564,30 @@ Cambios mayores van en commits separados con mensaje `docs: actualizar ROADMAP �
 ---
 
 ## Changelog
+
+### Versión 2.5 — 29 de junio de 2026
+
+Completar F7 + corregir la inconsistencia de dependencias de F4. **NO se cambió
+el orden** (FB→FA→F1 sigue; F7 sigue en su cadena F2→F4→F7, no se adelantó).
+
+- **DETALLE DE F7 RECUPERADO E INTEGRADO:** §5.F7 dejó de ser la elipsis "sin
+  cambios respecto a v2.1" y ahora tiene el detalle completo recuperado de v2.1
+  (`8332707`): objetivo, alcance (7 endpoints REST), 2 tablas (`api_clients`,
+  `api_request_log`), 11 sub-fases (F7.1–F7.11), riesgos, criterios de "listo" y
+  dependencias (F4 + confirmación PROPER). Estimación preservada (55-74 hs). El
+  cuerpo recuperado no tenía strings de marca ni fechas a armonizar (la marca
+  vivía en D9 §2, ya "Puntos+"; el calendario PROPER vive en §3.5/§4.3/§7.2 como
+  "Semana ~22").
+- **INCONSISTENCIA F4 CORREGIDA → F4 ← F2 (no F3):** el diagrama §4.2 ahora pone
+  `F2 → F4 → F7`. El `F3 → F4` anterior era un **remanente del F4 grande de v2.1**
+  (que incluía la optimización de impresión); al separarse **FA** en v2.2, F4 se
+  redujo a tarjeta física + extensiones operador, que reutiliza el
+  canje/QR-universal/localizaciones (D17/D18/D20) de **F2** — sin dependencia
+  técnica sobre F3 (solo cosmética). §5.4.4 ya decía F4 ← F2; ahora el diagrama
+  coincide. F7 sigue colgando de F4 (expone endpoints `/physical-members/*` que
+  necesitan la infra de F4). F5 sigue dependiendo de F3.
+- **Intacto:** el resto del orden (FB→FA→F1→F2…), §0–§3, §4.3, §5.FA/F1–F6/F8/F9,
+  Track de Seguridad, apéndices.
 
 ### Versión 2.4 — 29 de junio de 2026
 
