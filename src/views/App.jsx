@@ -88,8 +88,6 @@ export default function App() {
   const [view, setView] = useState(getInitialView);       // admin | operator | client
   const viewRef = useRef(view);
   useEffect(() => { viewRef.current = view; }, [view]);
-  const lastVisitsRef = useRef(0);
-  const realtimeReadyRef = useRef(false); // prevents false rating trigger on initial Realtime handshake
   const [scr, setScr] = useState('dash');            // admin screen
   const [cScr, setCScr] = useState('home');           // client screen
   const [oScr, setOScr] = useState('ohome');          // operator screen
@@ -677,15 +675,6 @@ export default function App() {
 
   // ===== CARGAR ENCUESTAS DEL DIA AL CAMBIAR DE USUARIO =====
   useEffect(() => {
-    if (me?.visits != null) {
-      lastVisitsRef.current = me.visits;
-      // Mark Realtime as ready only after visits ref is set
-      // Small delay ensures Realtime subscription is already up before we accept updates
-      setTimeout(() => { realtimeReadyRef.current = true; }, 800);
-    }
-    return () => { realtimeReadyRef.current = false; };
-  }, [me?.id]);
-  useEffect(() => {
     if (me?.id && !me.id.startsWith('temp-') && sb && sbConnected) loadTodaySurveys(me.id);
   }, [me?.id, sbConnected, loadTodaySurveys]);
 
@@ -755,7 +744,7 @@ export default function App() {
       }, (payload) => {
         const m = payload.new;
         const prev = payload.old;
-        console.log('[Realtime] Member updated:', m.name, 'pts:', m.points, 'visits:', m.visits, 'prevVisits(ref):', lastVisitsRef.current, 'op_id:', m.last_operator_id);
+        console.log('[Realtime] Member updated:', m.name, 'pts:', m.points, 'visits:', m.visits, 'op_id:', m.last_operator_id);
         setMe(p => ({
           ...p,
           points: m.points ?? p.points,
@@ -779,14 +768,14 @@ export default function App() {
           station: m.last_station || c.station,
         } : c));
 
-        // Trigger operator rating if a new purchase was detected (visits increased)
-        const newVisits = m.visits ?? 0;
-        const prevVisits = lastVisitsRef.current;
-        lastVisitsRef.current = newVisits;
-        if (newVisits > prevVisits && realtimeReadyRef.current && viewRef.current === 'client') {
+        // FIX-MODAL (Parte C): la recarga de historial se DESACOPLA del delta de
+        // visits. Antes estaba gateada por (newVisits > prevVisits): no recargaba
+        // cuando el ref estaba stale (tras combustible), ni cuando la acción del
+        // propio cliente (rifa/canje/encuesta) no cambia visits. Ahora recarga en
+        // CADA UPDATE de members → cubre combustible cross-device Y refresca el
+        // historial del cliente para sus propias acciones. El mapeo no cambia.
+        if (viewRef.current === 'client') {
           // ── Recargar historial desde Supabase en el dispositivo del miembro ──
-          // El operador registró la compra en su dispositivo — el activityLog local
-          // del miembro nunca se actualizó. Lo recargamos acá.
           sb.from('activity_log')
             .select('*')
             .eq('member_id', m.id)
@@ -809,25 +798,11 @@ export default function App() {
               }
             });
         }
-        if (m.last_operator_id && newVisits > prevVisits && realtimeReadyRef.current && viewRef.current === 'client') {
-          const op = operators.find(o => o.id === m.last_operator_id);
-          console.log('[Realtime] New purchase detected, operator:', op?.name || m.last_operator_id);
-          if (op) {
-            setPendingOpRating({
-              operatorId: m.last_operator_id,
-              operatorName: op.name,
-              stationName: m.last_station || '',
-            });
-          } else {
-            sb.from('operators').select('name').eq('id', m.last_operator_id).single().then(r => {
-              setPendingOpRating({
-                operatorId: m.last_operator_id,
-                operatorName: r.data?.name || 'Operador',
-                stationName: m.last_station || '',
-              });
-            });
-          }
-        }
+
+        // FIX-MODAL (Parte D): el modal de calificación se eliminó de acá.
+        // Antes se disparaba por delta de visits + last_operator_id pegajoso
+        // (frágil). Ahora lo dispara el canal purchases-${me.id} (INSERT de
+        // purchases = combustible real, con operator_id/station_id directos).
       })
       .subscribe((status) => {
         console.log('[Realtime] Subscription:', status);
@@ -869,6 +844,55 @@ export default function App() {
       });
     return () => sb.removeChannel(ch);
   }, [me?.id, sbConnected, rewards]);
+
+  // ===== REALTIME: Modal de calificación de operador tras COMBUSTIBLE =====
+  // FIX-MODAL: señal correcta para abrir el modal de estrellas. Antes lo
+  // disparaba el handler de members por delta de visits (newVisits > prevVisits)
+  // contra una línea base (lastVisitsRef) que se desincronizaba → falsos
+  // positivos en rifa/canje. Acá escuchamos INSERT de `purchases`: una fila se
+  // crea SOLO por register_purchase (combustible), trae operator_id/station_id
+  // directos y NO depende del last_operator_id pegajoso. Rifa/canje/encuesta no
+  // insertan en purchases → no pueden abrir el modal. Espejo del patrón de
+  // redemption-confirm-${me.id}. No necesita realtimeReadyRef: un INSERT no
+  // reproduce estado al suscribir, así que el primer evento es una compra real.
+  useEffect(() => {
+    if (!sb || !sbConnected || !me?.id) return;
+    const ch = sb.channel(`purchases-${me.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'purchases',
+        filter: `member_id=eq.${me.id}`,
+      }, (payload) => {
+        const p = payload.new;
+        const opId = p.operator_id;
+        const stId = p.station_id;
+        console.log('[Realtime] purchase insert:', p.id, 'op_id:', opId, 'station_id:', stId);
+        // Sin operador no hay a quién calificar; el modal es solo de la vista cliente.
+        if (!opId || viewRef.current !== 'client') return;
+        const stationName = stations.find(s => s.id === stId)?.name || '';
+        const op = operators.find(o => o.id === opId);
+        if (op) {
+          setPendingOpRating({
+            operatorId: opId,
+            operatorName: op.name,
+            stationName,
+          });
+        } else {
+          sb.from('operators').select('name').eq('id', opId).single().then(r => {
+            setPendingOpRating({
+              operatorId: opId,
+              operatorName: r.data?.name || 'Operador',
+              stationName,
+            });
+          });
+        }
+      })
+      .subscribe((status) => {
+        console.log('[Realtime] purchases subscription:', status);
+      });
+    return () => sb.removeChannel(ch);
+  }, [me?.id, sbConnected, operators, stations]);
 
   // ===== REALTIME: Actualizar rating del operador en tiempo real =====
   useEffect(() => {

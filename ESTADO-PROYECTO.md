@@ -3,6 +3,43 @@
 
 ---
 
+## FIX-MODAL — Modal de calificación por INSERT de purchases ✅ CERRADO
+
+El modal de calificación de operador (estrellas) se disparaba mal tras
+rifa/canje/encuesta. **Causa raíz (confirmada con log de prod):** el handler
+Realtime de `members` infería "hubo combustible" por el delta
+`newVisits > prevVisits` contra `lastVisitsRef`, una línea base que quedaba
+stale-baja (eventos perdidos por socket suspendido / seed desde caché vieja) y
+se combinaba con el `last_operator_id` pegajoso → modal con el operador
+equivocado. La rifa no sube `visits`; solo entregaba el `visits` real a un ref
+viejo (log: `visits: 45 prevVisits(ref): 43`).
+
+**Fix de fondo (señal directa, no proxy):**
+- Migración `20260629_fix_modal_purchases_realtime.sql`: `ALTER PUBLICATION
+  supabase_realtime ADD TABLE purchases` (idempotente).
+- Modal: nuevo canal `purchases-${me.id}` que escucha **INSERT en `purchases`**
+  (filtro `member_id`), tomando `operator_id`/`station_id` de la fila. Una fila
+  de `purchases` se crea SOLO por `register_purchase` (combustible) →
+  rifa/canje/encuesta **estructuralmente no pueden** abrir el modal. Reemplaza
+  el disparo C/D inferido.
+- Historial: la recarga de `activity_log` se **desacopla del delta de visits** —
+  ahora recarga en cada UPDATE de `members` (arregla un bug latente: las
+  acciones del propio cliente —rifa/canje/encuesta— no refrescaban su historial
+  local).
+- Borrado: `lastVisitsRef`, `realtimeReadyRef`, el efecto seed, el cálculo del
+  delta y el bloque del modal C/D viejo.
+
+**Caminos vivos del modal:** A (push click, SW), B (URL `?rate=`), y el canal
+`purchases` (foreground / in-app, señal correcta). El operador calificado sale
+siempre de la compra real; `stationName` se resuelve desde `purchases.station_id`
+vía el array `stations` (`last_station` no se mantenía; no se tocó).
+
+**Deuda abierta (anotada, no en este fix):** RLS de `purchases` demasiado
+abierta (revisar con SEC.C); `sw.js` no filtra el esquema `chrome-extension` al
+cachear (error benigno en consola).
+
+---
+
 ## Seguridad — Bloque SEC.B (sesiones de operador/admin)
 
 Cierre del agujero de permisos `anon` en las RPCs sensibles vía tokens de
@@ -489,6 +526,8 @@ club-turkaj/
 ### Realtime habilitado en:
 - `members` (REPLICA IDENTITY FULL)
 - `operator_ratings`
+- `redemptions`
+- `purchases` (FIX-MODAL — INSERT dispara el modal de calificación)
 
 ---
 
