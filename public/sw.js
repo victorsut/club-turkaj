@@ -48,6 +48,13 @@ self.addEventListener('message', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
+  // Solo cacheamos http(s). La Cache API rechaza put() para esquemas no-http,
+  // y las extensiones del navegador inyectan requests chrome-extension:// que
+  // entran a la rama de assets por su `destination` y rompen en el cache.put
+  // ("Request scheme 'chrome-extension' is unsupported"). Allowlist http/https
+  // cubre de paso moz-extension:, data:, blob:, etc. sin enumerarlos.
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
+
   // No interceptar llamadas a Supabase ni a APIs externas
   if (
     url.hostname.includes('supabase.co') ||
