@@ -1,9 +1,10 @@
 # Puntos+ — Roadmap de Producto
 
-> **Versión:** 2.3
+> **Versión:** 2.4
 > **Fecha de creación:** 17 de mayo de 2026
-> **Última actualización:** 13 de junio de 2026
+> **Última actualización:** 29 de junio de 2026
 > **Estado:** Vivo (este documento evoluciona con el proyecto)
+> **Alcance v2.4:** este documento es ahora el **PLAN MAESTRO ÚNICO** — incluye el track de producto (F0–F9, FA, FB) Y el **Track de Seguridad (SEC)**. El detalle de seguridad se absorbió desde `ESTADO-PROYECTO.md` (que quedó recortado a referencia técnica). v2.4 es una **reconciliación** (reflejar la realidad con evidencia de commits/migraciones), NO una re-planificación: no se reordenó nada ni se slotteó seguridad en el flujo de producto.
 
 ---
 
@@ -311,8 +312,8 @@ Mover el `useState(checkingPhone)` al tope del componente con los otros useState
 | Fase | Bloque | Esfuerzo | Calendario | Prioridad | Estado |
 |---|---|---|---|---|---|
 | P0 | Bug-fix pantalla blanca | 1-3 hs | Antes de F0 | Crítica | ✅ Completado |
-| F0 | Setup de auditoría Nivel 2 | 23-31 hs | 1-2 sem | Crítica | ⏳ En curso (F0.1 ✅) |
-| **FB** | **Integridad y trazabilidad de puntos** | **16-26 hs** | **3-5 sem** | **Crítica** | 🔜 Próxima |
+| F0 | Setup de auditoría Nivel 2 | 23-31 hs | 1-2 sem | Crítica | ⏳ Casi completo — F0.1–F0.3 ✅ (incl. F0.3.5–F0.3.9); falta F0.4 (`AuditLog.jsx`, no existe) · F0.5 🔶 · F0.7 ✅ |
+| **FB** | **Integridad y trazabilidad de puntos** | **16-26 hs** | **3-5 sem** | **Crítica** | ✅ **Construido** (migraciones + refactor cliente) — decisiones FB.5/FB.6 (caso ángel) ABIERTAS · ver §5.FB |
 | **FA** | **Optimización impresión POS Sunmi** | **42-59 hs** | **2-3 sem** | **Crítica** | ⏳ Pendiente |
 | F1 | Configurabilidad empresa + estaciones + precios + KPIs | 61-78 hs | 3-5 sem | Crítica | Pendiente |
 | F2 | Mejoras programa de lealtad | 75-97 hs | 4-6 sem | Crítica | Pendiente |
@@ -325,6 +326,27 @@ Mover el `useState(checkingPhone)` al tope del componente con los otros useState
 | F9 | Reportería enriquecida (opcional) | 40-55 hs | 2-3 sem | Opcional | Pendiente |
 
 **Total estimado:** 33-49 semanas calendario (≈8-11 meses).
+
+> **Nota de reconciliación v2.4 (estados):** los estados de F0 y FB de la tabla
+> reflejan la realidad del repo (commits + migraciones aplicadas), no el plan
+> original. FB pasó de "🔜 Próxima" a "✅ Construido" (evidencia en §5.FB). F0
+> avanzó hasta F0.3.9. Esto es reconciliación, no avance de planificación.
+
+### 4.1-bis Track de Seguridad (paralelo — SIN posición en el flujo F0→F9)
+
+> El **Track de Seguridad (SEC)** se gestiona en su propia sección (ver
+> **"Track de Seguridad (SEC)"** más abajo, antes del Apéndice A). **NO** está
+> slotteado en el diagrama de dependencias §4.2: su orden relativo al track de
+> producto es una decisión de **re-planificación (Nivel 2)**, fuera del alcance
+> de esta reconciliación.
+
+| Bloque | Qué | Estado | Posición en el flujo |
+|---|---|---|---|
+| SEC.A | Login cliente-teléfono server-side (`authenticate_member`) | ⛔ No iniciado, **sin scope formal** | Sin slottear |
+| SEC.B | Sesiones operador/admin (tokens de sesión) | ✅ **CERRADO** (B.3–B.8) | — |
+| SEC.B.9 | `REVOKE EXECUTE FROM anon` en las 4 RPCs | 🔒 **Deuda dependiente de SEC.C** | Sin slottear |
+| SEC.C | Auth real (rol ≠ anon para los 3 roles) | 📋 **Pendiente** — documentado solo como dependencia, sin sección de scope | Sin slottear |
+| FIX-MODAL | Modal de calificación por INSERT de `purchases` | ✅ **CERRADO** | — |
 
 ### 4.2 Diagrama de dependencias
 
@@ -378,19 +400,27 @@ Implementar el sistema de auditoría que va a registrar todas las acciones de ad
 
 #### 5.0.3 Sub-fases
 
-1. **F0.1** ✅ Schema `admin_audit_log` + migration. Completado, commit `557e173`.
-2. **F0.2** ⏳ RPC `log_admin_action` con SECURITY DEFINER y validación de reason_text para acciones sensibles.
-3. **F0.3** Modificar RPCs existentes para registrar en el log. ⏳ En curso.
-   - **F0.3.1** ✅ Completada — `update_fuel_prices` con auditoría atómica (commit `b2320a4`).
-   - **F0.3.1.5** ✅ Completada — validación server-side de longitud de `reason_text` (commit `3359bdc`).
-   - **F0.3.2** ✅ Completada — `ReasonModal` genérico reusable (commit `261128f`).
-   - **F0.3.3** ✅ Completada — integración Settings ↔ ReasonModal ↔ RPC precios (commit `ed6c920`).
-   - **F0.3.4** ✅ Completada — RPCs de operadores con auditoría (commit `30d710a`).
-   - **F0.3.5–F0.3.8** Pendiente — integración cliente (OpManagement, AdminPremios, AdminPromos, MemberDetail) + client-first logging para mutaciones directas.
-4. **F0.4** Crear `AuditLog.jsx` con tabla paginada + filtros.
-5. **F0.5** Agregar modal de "motivo del cambio" a operaciones de edición.
-6. **F0.6** Build + commits + push.
-7. **F0.7** Testing en producción.
+> **Reconciliación v2.4:** estados actualizados con evidencia de commits. El plan
+> original marcaba F0.3.5–F0.3.8 pendientes; en realidad están completas, más una
+> F0.3.9 ejecutada que no estaba planificada.
+
+1. **F0.1** ✅ Schema `admin_audit_log` + migration. Commit `557e173` (mig `20260530_admin_audit_log`).
+2. **F0.2** ✅ RPC `log_admin_action` con SECURITY DEFINER y validación de reason_text. Commit `21fc585` (mig `20260530_log_admin_action_rpc`).
+3. **F0.3** Modificar RPCs existentes para registrar en el log. ✅ Completa.
+   - **F0.3.1** ✅ `update_fuel_prices` con auditoría atómica (commit `b2320a4`, mig `20260612_update_fuel_prices_with_audit`).
+   - **F0.3.1.5** ✅ validación server-side de longitud de `reason_text` (commit `3359bdc`, mig `20260612_log_admin_action_length_validation`).
+   - **F0.3.2** ✅ `ReasonModal` genérico reusable (commit `261128f`).
+   - **F0.3.3** ✅ integración Settings ↔ ReasonModal ↔ RPC precios (commit `ed6c920`).
+   - **F0.3.4** ✅ RPCs de operadores con auditoría (commit `30d710a`, mig `20260612_operator_rpcs_with_audit`).
+   - **F0.3.5** ✅ `toggle_operator_active` RPC con auditoría + wrappers + OpManagement (commits `7d1b394`/`c8fb171`/`0e3da46`, mig `20260613_toggle_operator_active_rpc`).
+   - **F0.3.6** ✅ auditoría de premios/festivos/rifas en AdminPremios (commits `f058f38`/`c3ceaad`/`c5ab18a`).
+   - **F0.3.7** ✅ visibilidad + auditoría en AdminPromos (commits `6209d1f`/`1c4268e`).
+   - **F0.3.8** ✅ `update_member_with_audit` (RPC + wrapper) + MemberDetail con diff Opción B + validaciones (commits `0dff54f`/`a3e2212`/`b2936b9`/`5149c20`/`008b392`, mig `20260617_update_member_with_audit`).
+   - **F0.3.9** ✅ (no planificada) fixes de focus en AdminPromos + DatePickerSheet preventivo en GoogleProfile (commits `b7b2f5e`/`a9dda49`).
+4. **F0.4** ⛔ **Pendiente** — `AuditLog.jsx` con tabla paginada + filtros NO existe (`src/views/admin/` no lo tiene).
+5. **F0.5** 🔶 **A confirmar** — modal de "motivo del cambio" cubierto por `ReasonModal` (commit `261128f`, F0.3.2) integrado en varios flujos; queda confirmar contra el detalle original de qué exigía F0.5. No marcado ni cerrado ni pendiente.
+6. **F0.6** Build + commits + push. (continuo a lo largo de F0)
+7. **F0.7** ✅ Testing en producción — hubo etapa de observación y testing exhaustivo en prod.
 
 #### 5.0.4 Acciones sensibles (requieren reason_text obligatorio)
 
@@ -428,9 +458,15 @@ P0 completado.
 
 ### Fase FB — Integridad y Trazabilidad de Puntos
 
-**Estado:** Pendiente
+**Estado:** ✅ **CONSTRUIDO** (infraestructura aplicada vía migraciones + refactor cliente, jun-2026) — **decisiones FB.5/FB.6 (caso ángel macario) siguen ABIERTAS** (ver "Decisiones pendientes" abajo).
 **Estimación:** 16-26 horas (3-5 sesiones)
 **Posición:** Entre F0 y FA
+
+> **⚠️ Reconciliación v2.4 — RE-NUMERACIÓN del plan FB.** Las sub-fases se
+> ejecutaron con una numeración distinta a la planificada en v2.3. Por decisión
+> de reconciliación, el plan se **re-numera para coincidir con los commits**
+> (historia git inmutable; lo que se ajusta es este documento). Ver la **NOTA DE
+> EQUIVALENCIA** debajo de la tabla para mapear plan-viejo → plan-nuevo.
 
 **Contexto y Evidencia:**
 
@@ -470,24 +506,43 @@ de "bajaron puntos" es percepción del cliente sin sustento técnico.
 4. Política formal documentada: solo RPCs auditados modifican
    members.points.
 
-**Sub-fases:**
+**Sub-fases (NUMERACIÓN RE-ALINEADA a los commits — estado real):**
 
-| Sub-fase | Descripción | Estimación |
-|----------|-------------|------------|
-| FB.1 | Inventario exhaustivo de modificadores de members.points | 1-2 hs |
-| FB.2 | RPC universal modify_member_points con SECURITY DEFINER | 4-6 hs |
-| FB.3 | Refactor del cliente: MemberDetail, OpRedeem y otros | 3-5 hs |
-| FB.4 | Trigger BEFORE UPDATE protector con session variable | 3-5 hs |
-| FB.5 | Reconstrucción del caso ángel macario | 1 hs |
-| FB.6 | Migración de datos potencialmente afectados (otros clientes) | 2-4 hs |
-| FB.7 | Testing exhaustivo + documentación | 2-3 hs |
+| Sub-fase | Descripción | Estado | Evidencia |
+|----------|-------------|--------|-----------|
+| FB.1.5a | Versionar las 4 RPCs core de negocio (docs) | ✅ | `334f4a0`, mig `20260622_existing_rpcs_core` |
+| FB.3 | `modify_member_points` (RPC universal, atomicidad gamma + whitelist) | ✅ | `0de6990`, mig `20260623_modify_member_points` |
+| FB.4 | Wrapper cliente `modifyMemberPoints` | ✅ | `d4620b2` |
+| FB.5 | 5 RPCs writers de points → SECURITY DEFINER + `set_config` flag | ✅ | `2e7dd40`, mig `20260624_fb5_core_rpcs_definer` |
+| FB.6.2a | `grant_special_day_bonus` RPC + wrapper cliente | ✅ | `2d0ea58`, mig `20260624_grant_special_day_bonus` |
+| FB.6.2b | `special_days.message` + corrección ortográfica | ✅ | `3267240`, mig `20260624_special_days_message` |
+| FB.6.2c | Modal `SpecialDayBonusModal` personalizado por tier | ✅ | `8fa5328` |
+| FB.6.2d | Edición de `message` en AdminPremios | ✅ | `2b4c244` |
+| FB.6.3 | Migrar `checkSpecialDayBonus` a RPC `grant_special_day_bonus` | ✅ | `2b5b551` |
+| FB.6.4 | Migrar `OpRaffle.doBuy` a `buyRaffleTickets` + eliminar `syncMember` | ✅ | `6086f47` |
+| FB.7 | Trigger BEFORE UPDATE column-aware en `members.points` | ✅ | `f888968`, mig `20260624_fb7_points_guard_trigger` |
+| FB.9 | Activar modo strict en `members_guard_points_write` | ✅ | `d6667f1`, mig `20260624_fb9_strict_mode` |
 
-**Dependencias:**
+> **NOTA DE EQUIVALENCIA (plan v2.3 → numeración real v2.4)** — para que commits
+> o docs que referencien la numeración vieja sigan siendo legibles:
+> - Plan viejo **FB.1** (Inventario de modificadores) → aproximado por **FB.1.5a** (`334f4a0`, versionado de las 4 RPCs core).
+> - Plan viejo **FB.2** (RPC universal `modify_member_points`) → ejecutado como **FB.3** (`0de6990`).
+> - Plan viejo **FB.3** (Refactor del cliente) → ejecutado como **FB.4** (wrapper, `d4620b2`) + **FB.6.3**/**FB.6.4** (migración de call sites).
+> - Plan viejo **FB.4** (Trigger BEFORE UPDATE) → ejecutado como **FB.7** (`f888968`).
+> - Plan viejo **FB.5** (Reconstrucción caso ángel) → **NO ejecutado** → decisión ABIERTA (abajo).
+> - Plan viejo **FB.6** (Migración de datos afectados) → **NO ejecutado** → decisión ABIERTA (abajo).
+> - Plan viejo **FB.7** (Testing + doc) → parcialmente vía **FB.9** (strict) + observación; testing formal de FB 🔶 a confirmar.
+> - Sin equivalente en el plan viejo (nuevos): **FB.5** (writers a DEFINER), **FB.6.2a–d** (special day bonus), **FB.9** (modo strict).
+>
+> Hay **huecos** en la numeración real (FB.1, FB.2, FB.6 base, FB.6.1, FB.8 no
+> aparecen como commits): es la historia tal cual, no se inventan.
 
-- F0.3.5 a F0.3.8 (cliente integrado con ReasonModal) DEBEN
-  completarse antes para tener el patrón ReasonModal usable en FB.5.
-- F0.3.8 específicamente (MemberDetail con diff Opción B) prepara
-  el terreno para que FB.3 reemplace mutaciones directas.
+**Dependencias (ya satisfechas):**
+
+- F0.3.5 a F0.3.8 (cliente integrado con ReasonModal) DEBían completarse antes
+  para tener el patrón ReasonModal usable. **Ya están ✅** (ver §5.0.3).
+- F0.3.8 (MemberDetail con diff Opción B) preparó el terreno para reemplazar
+  mutaciones directas. **Ya está ✅.**
 
 **Decisiones pendientes para arranque:**
 
@@ -804,6 +859,441 @@ Sin cambios respecto a v2.1. Ver versiones anteriores del documento para detalle
 
 ---
 
+## Track de Seguridad (SEC)
+
+> **Sección paralela** al track de producto (F0–F9, FA, FB), con nomenclatura
+> propia (SEC.A / SEC.B / SEC.C, B.9). **NO está slotteada** en el diagrama de
+> dependencias §4.2 — su orden relativo al producto es decisión de
+> re-planificación (Nivel 2). Contenido **absorbido íntegro** desde
+> `ESTADO-PROYECTO.md` en la reconciliación v2.4 (sin resumir). Cierre del
+> agujero de permisos `anon` en las RPCs sensibles vía tokens de sesión.
+
+### SEC.A — Login cliente-teléfono server-side (`authenticate_member`) ⛔ NO INICIADO
+
+**Estado:** no iniciado, **sin scope formal**. Hoy es solo un TODO inline (ver el
+"Hallazgo de arquitectura" abajo): el **cliente-teléfono** hace `signInWithPhone`
+= solo un `SELECT` a `members` (sin Supabase Auth) → **viaja como `anon`**. La
+migración a una RPC `authenticate_member` server-side está pendiente de definir
+alcance. Es lógicamente un sub-paso de la migración de auth (SEC.C). **No se
+escribe scope acá** (sería re-planificación, Nivel 2).
+
+### SEC.B — Sesiones de operador/admin (tokens de sesión) ✅ CERRADO
+
+**SEC.B CERRADA en B.8. Estado: B.3 ✅ · B.4 ✅ · B.5 ✅ · B.6 ✅ (B.6.1 ✅ · B.6.2 ✅ · B.6.3 ✅ · B.6.4 ✅) · B.8 ✅ (B.8.1 ✅ · B.8.2 ✅).** (B.7, observación pasiva, se absorbió como observación activa corta en B.8.1. B.9 — REVOKE anon — reclasificado como **deuda dependiente de SEC.C**, ver abajo.)
+
+**Commits del bloque:** B.3 `e650e8f` (mig `20260625_sec_b3_session_tokens`) · B.4 `09ca228` · B.5.1 `27a6a33` · B.5.2 `54505b8` · B.5.3 `32f9348` (mig `20260625_sec_b5_token_param`) · B.6.1 `95161fe` (mig `20260626_sec_b6_1_session_validation`) · B.6.2 `52d9d37` (mig `20260626_sec_b6_2_revoke_session`) · B.6.3 `418d030` · B.6.4 `82d03bc` · B.8.1 `1545904` (mig `20260627_sec_b8_1_session_strict`) · B.8.2 `df133f1` · cierre docs `443ab8f`.
+
+**Control de acceso final (modelo anon+token):** las 4 RPCs sensibles
+(`register_purchase`, `buy_raffle_tickets`, `update_member_with_audit`,
+`modify_member_points`) están protegidas por la **validación strict del token de
+sesión** (B.8.1: rechazo con ERRCODE 28000 ante token ausente/inválido/
+revocado/expirado) + la **UX del rechazo** (B.8.2: logout + login + aviso). Eso
+es lo máximo alcanzable sin auth real para operador/admin — ver el hallazgo de
+arquitectura y B.9 al final del bloque.
+
+#### SEC.B.4 — Persistencia de token de sesión en el cliente ✅
+
+**Qué entró:**
+- **`src/services/sessionTokens.js`** (nuevo): módulo único que encapsula las
+  claves de `localStorage`. Claves **separadas por rol** (`ct_operator_token`,
+  `ct_admin_token`); **sin token de cliente**. Expone `setX/getX/clearX` para
+  operador y admin. `getXToken()` aplica **chequeo local de expiración con
+  política estricta**: `expiresAt` ausente o no parseable se trata como
+  inválido (guard explícito `Number.isFinite(Date.parse(...))`, no se apoya en
+  la semántica de `NaN`); compara por instante absoluto (`Date.now()` vs
+  `timestamptz` ISO), sin conversión a hora de Guatemala. Auto-limpia en
+  corrupción/sin-token/expirado.
+- **Persistencia en login:** `loginOperator` y `loginAdmin` ahora leen
+  `session_token`/`session_expires_at` que la RPC B.3 ya devolvía (antes se
+  descartaban por el cherry-picking de campos) y los guardan con
+  `setOperatorToken`/`setAdminToken`. El token va a su clave de rol, **no**
+  dentro del objeto de sesión (`ct_op`/`ct_admin` sin cambios → no rompe
+  `loggedOp`/`loggedAdmin`).
+- **Limpieza en logout:** `logoutOperator`/`logoutAdmin` agregan `clearXToken()`.
+  En el handler central `logout` de `App.jsx` (Opción B acotada) se reemplazó
+  `localStorage.removeItem('ct_op'|'ct_admin')` por
+  `logoutOperator()`/`logoutAdmin()` — el service es el único dueño del
+  subconjunto de localStorage del logout; el estado React y la navegación
+  quedan inline.
+
+**3 decisiones tomadas (razón en una línea):**
+1. **Sin `ct_client_token`** — el cliente va sobre Supabase Auth nativo; su JWT
+   viaja solo en el header `Authorization` de cada `sb.rpc`, no hay token custom
+   que guardar.
+2. **Sin revocación server-side en logout (deuda acotada, NO resuelta)** — al
+   cerrar sesión se borra el token del `localStorage`, pero la fila en
+   `operator_sessions`/`admin_sessions` **queda viva y vigente hasta que expire
+   (hasta 18h)**: el logout **no la invalida**. Solo queda *inalcanzable desde
+   el cliente* (`anon` no puede leer esas tablas: `REVOKE ALL` + grants solo a
+   `service_role`). Es un riesgo **acotado y aceptable** por la ventana corta de
+   18h **+** el dispositivo fijo por estación, **no** porque la sesión se
+   invalide. La revocación real (poblar `revoked_at` en el logout) se construye
+   en **B.6** junto con la validación server-side.
+3. **Chequeo local de expiración estricto** — cortesía de UX para evitar
+   round-trips con token vencido; la autoridad real de validez es el server en
+   B.6.
+
+**Pendiente / deuda para fases siguientes:**
+- **B.5:** inyección del token en los call sites sensibles (`register_purchase`,
+  `buy_raffle_tickets` vector operador, `update_member_with_audit`,
+  `modify_member_points`); las RPCs de admin usan patrón crudo (no `callRpc`),
+  así que la inyección no se centraliza 100% en un solo punto.
+- **B.6:** RPC de validación + revocación server-side (poblar `revoked_at`).
+- **Semántica de `isOperatorLoggedIn`/`isAdminLoggedIn`:** sin cambios hasta
+  B.5/B.6 — siguen mirando el objeto de sesión (`ct_op`/`ct_admin`), no el token.
+- **Redundancias preexistentes del handler `logout`** (`setLoggedOp(null)` /
+  `setMe(null)` duplicados): ortogonales a SEC.B, no tocadas.
+
+**Supuesto del que depende la Decisión 2:** la tolerancia a no revocar en
+logout se sostiene en que **el dispositivo es fijo por operador en cada estación
+y no sale de ella**. Si ese modelo cambia (operadores con dispositivo propio, o
+equipos que salen de la estación), la revocación server-side inmediata **deja de
+ser deuda diferible y sube a prioridad**: el vector "token vigente en un
+dispositivo fuera de control físico" se vuelve plausible. **Reabrir esta
+decisión si el modelo de dispositivos cambia.**
+
+#### SEC.B.6.1 — Validación de sesión server-side (modo WARN) 🚧
+
+**Qué entra:** helper `validate_session_token(p_token, p_role, p_rpc_name,
+p_allow_null, p_params)` + las 4 RPCs sensibles recreadas (`CREATE OR REPLACE`
+sin `DROP`, firma sin cambios) llamándolo como primera sentencia. En modo
+**warn**: registra `no_token`/`invalid_token`/`revoked_token`/`expired_token`
+en `session_violations` y **devuelve NULL sin bloquear** (nunca `RAISE`). El
+corte a strict (`RAISE`) es **B.8**, un único `IF` en el helper. El helper
+chequea `revoked_at` **antes** que `expires_at` (un logout deliberado es señal
+más fuerte) y **no mira `auth.uid()`**.
+
+> ### ⚠️ FRONTERA CRÍTICA — B.6 NO PROTEGE EL VECTOR CLIENTE DEL RAFFLE
+> `buy_raffle_tickets` tiene **doble vector**: operador (manda token) y cliente
+> (`App.jsx`, **NO** manda token). B.6 valida **solo** el vector operador; con
+> `p_session_token` NULL hace **skip silencioso** (`p_allow_null => true`): no
+> registra violación y no inspecciona `auth.uid()`.
+>
+> **Consecuencia explícita:** con token NULL, **cualquiera con la apikey `anon`
+> puede llamar `buy_raffle_tickets` y gastar puntos de CUALQUIER `member`.**
+> Esto **ya era así antes de SEC.B**; B.6 lo deja igual **a propósito**, porque
+> policiarlo exige resolver el login-por-teléfono (los clientes-teléfono no
+> tienen `auth.uid()`). **Su cierre es SEC.C.**
+>
+> **TRAS B.8 STRICT, EL RAFFLE DEL CLIENTE SIGUE SIN PROTECCIÓN.** Nadie debe
+> creer que B.8 cierra ese vector — es **SEC.C**.
+
+**Verificación (gate de aprobación):**
+- **CRÍTICO:** `points_write_violations = 0` tras las 4 operaciones legítimas
+  (B.6.1 recrea los cuerpos de FB → si el `set_config` se perdió, el canario lo
+  detecta; sin cero, se aborta).
+- Token basura en `localStorage` → compra de operador **pasa igual** Y aparece
+  fila `invalid_token`.
+- Raffle de cliente (token NULL) **no** genera fila — probado con OAuth y con
+  teléfono.
+
+**Pendiente:** B.6.3 (logout cliente → `async` + revoke best-effort).
+
+#### SEC.B.6.2 — Revocación de sesión server-side ✅
+
+**Qué entró:** 2 RPCs **nuevas, puramente aditivas** (no recrean nada, no tocan
+las RPCs de FB ni el helper de B.6.1):
+- **`revoke_operator_session(p_token text)` / `revoke_admin_session(p_token text)`**
+  — `UPDATE <tabla> SET revoked_at = now() WHERE token = p_token AND revoked_at
+  IS NULL`. El `AND revoked_at IS NULL` hace la revocación **idempotente**
+  (preserva el instante de la primera). `RETURNS void` (no filtra datos de la
+  sesión). **No-op silencioso** si el token no existe (UPDATE sin match, sin
+  error → no filtra existencia). **No validan quién llama:** el token es el
+  secreto, poseerlo = poder revocarlo (un UUID random solo vive en el
+  `localStorage` de su propia sesión). `SECURITY DEFINER` + `SET search_path TO
+  'public'` (escriben tablas con `REVOKE ALL FROM PUBLIC`). Grants `EXECUTE` a
+  `anon`/`authenticated`/`service_role` (el logout puede ocurrir con apikey
+  `anon`).
+
+**Cierre del loop con B.6.1:** el helper `validate_session_token` ya tenía la
+rama `revoked_token` (chequea `revoked_at IS NOT NULL` **antes** que
+expiración). B.6.2 la **habilita** poblando `revoked_at` → reusar un token
+revocado en una RPC sensible genera `reason='revoked_token'` (modo warn, sigue
+sin bloquear; el corte es B.8).
+
+**Smoke verificado en producción:** revocación pobló `revoked_at`; segunda
+revocación devolvió el **mismo** instante (idempotencia); token inexistente sin
+error (no-op); token revocado reusado → 1 fila `register_purchase |
+revoked_token` (params sin token) y la compra **pasó igual** (warn).
+
+**Conectada al logout en:** B.6.3 (abajo).
+
+#### SEC.B.6.3 — Revocación de sesión en logout (cliente) ✅ — cierra B.6
+
+**Qué entró:** `logoutOperator` (operatorAuthService.js) y `logoutAdmin`
+(adminAuthService.js) pasan a **`async`** y revocan el token server-side antes
+de borrar el `localStorage`. Orden: **leer token → revoke best-effort → borrar
+local SIEMPRE**:
+1. `const token = getOperatorToken()?.token` (leído **antes** de borrarlo;
+   `getX/getAdminToken` sumado al import existente de `./sessionTokens`).
+2. `if (sb && token) { try { await sb.rpc('revoke_operator_session',
+   { p_token: token }); } catch { ... } }` — `sb.rpc` directo (no `callRpc`;
+   la RPC es `void`). El `if (sb && token)` evita el round-trip si el token
+   está ausente o ya venció (`getXToken` auto-limpia los vencidos).
+3. Borrado local (`removeItem` + `clearXToken`) **fuera del try/catch**, SIEMPRE.
+
+**Principio innegociable:** el logout local **nunca** queda bloqueado por la
+red. Si la revocación falla (sin red, server caído), se traga el error y se
+borra local igual. Un token huérfano no-revocado expira en ≤18h y la validación
+de B.6 corre en modo **warn** (no bloquea).
+
+**Espejo exacto** entre operador y admin. **No toca** `App.jsx` (el call site
+`logout` ya era fire-and-forget, compatible con `async`), ni las RPCs de
+revocación (B.6.2), ni nada server-side.
+
+**Cierre de B.6:** la revocación que B.6.2 dejó disponible ahora **se dispara
+automáticamente en cada logout** → el `revoked_at` se puebla solo, y un token
+revocado reusado genera `revoked_token` en `session_violations` (warn).
+
+> **Recordatorio de la deuda de B.4 saldada:** la Decisión 2 de B.4 ("sin
+> revocación server-side en logout") queda **cerrada** por B.6.3. El token ya
+> no queda vivo hasta expirar: el logout lo invalida server-side.
+
+#### SEC.B.6.4 — Cierre proactivo de sesión expirada (cliente) ✅
+
+**Problema que resuelve:** dispositivo exclusivo por operador. El operador olvida
+cerrar sesión, vuelve **al día siguiente** al mismo dispositivo y la app lo
+muestra logueado aunque el token ya venció (TTL 18h superado) → **sesión zombi**.
+Sin esto, lo descubriría recién al fallar una compra real (con cliente
+enfrente), y peor aún tras B.8 strict (rechazo server-side). B.6.4 lo detecta en
+el cliente y lo manda al login limpio **antes** de que el server tenga que
+rechazar. **Cliente puro, hermano de B.6.3.** No es idle-timeout por
+inactividad: es chequeo de expiración del token dirigido por **eventos**.
+
+**Qué entró (todo en `App.jsx`):**
+- **`expireSession(role, {reason})`** — helper reutilizable: termina la sesión de
+  operador/admin (`logoutOperator`/`logoutAdmin` → revocación B.6.3 + reset de
+  estado React + `fire` con el aviso). `reason` `'cerrada'` → "Sesión cerrada";
+  `'expirada'` → "Tu sesión expiró, iniciá sesión de nuevo". El `logout` manual
+  se **refactoriza para delegar** en él (ramas operador/admin), preservando
+  comportamiento **exacto** (mismas 6 llamadas en el mismo orden, revocación
+  B.6.3 intacta, mismo borrado/navegación, redundancias preexistentes sin tocar,
+  rama cliente `isC` intacta).
+- **`checkSessionAlive()`** — detecta la zombi por **condición conjunta**:
+  `loggedOp`/`loggedAdmin` presente **Y** `getOperatorToken()`/`getAdminToken()`
+  === `null` (token vencido; `getXToken` auto-limpia). Solo ese caso mixto
+  dispara el cierre. Lee `viewRef.current` (no `view`). **Cliente protegido por
+  doble barrera independiente:** `viewRef.current === 'client'` → no-op, y aunque
+  no lo fuera, nunca tiene `loggedOp`/`loggedAdmin` truthy (su sesión vive en
+  Supabase Auth / `ct_me`, no en `ct_op`/`ct_admin`).
+- **Dos enganches:** `useEffect([])` al montar (operador vuelve al día siguiente
+  y abre/recarga la app) + listener `visibilitychange` (patrón de
+  `ClientHome.jsx`) con dep **`[checkSessionAlive]`** que **resuelve el stale
+  closure** de `loggedOp`/`loggedAdmin`: al cambiar esos valores (login después
+  del arranque), `checkSessionAlive` se recrea y el listener se re-registra con
+  el closure fresco — sin esto, una sesión iniciada tras el mount no se
+  detectaría al volver de reposo.
+
+**Fuera de alcance:** el cliente (su sesión la maneja Supabase Auth nativo).
+
+**Reutilización futura:** `expireSession` es la **misma** acción que **B.8.2**
+necesitará para el rechazo reactivo (cuando strict responda `error.code 28000`,
+interceptar y llamar `expireSession(role, {reason:'expirada'})`). B.6.4 deja esa
+pieza construida y probada en el camino proactivo antes de que strict la use en
+el reactivo.
+
+**Pendiente del bloque:** B.8 (modo strict — flip del helper a `RAISE`, con
+observación activa corta absorbiendo el rol de B.7; reutiliza `expireSession`
+para el rechazo reactivo), B.9 (`REVOKE EXECUTE FROM anon`).
+
+#### SEC.B.8.1 — Validación de sesión en modo STRICT (flip warn→strict) ✅
+
+**Qué entró:** `supabase/migrations/20260627_sec_b8_1_session_strict.sql`. Flip
+del helper `validate_session_token` de **warn** (registra sin bloquear, B.6.1) a
+**strict** (`RAISE EXCEPTION`). Las 4 RPCs sensibles (`register_purchase`,
+`buy_raffle_tickets`, `update_member_with_audit`, `modify_member_points`) ahora
+**rechazan** tokens ausentes/inválidos/revocados/expirados en vez de solo
+registrarlos.
+
+**Cambios (solo el helper):** `CREATE OR REPLACE` **sin DROP** (firma sin
+cambios → grants de B.6.1 preservados, sin re-emitir REVOKE/GRANT; NO toca las 4
+RPCs). Ramas **1b/2/3/4/5** → `RAISE EXCEPTION` con **ERRCODE 28000**
+(`invalid_authorization_specification`) + subtipo en `DETAIL`
+(`no_token`/`invalid_token`/`invalid_token`/`revoked_token`/`expired_token`).
+Se **eliminó el INSERT a `session_violations`** de esas ramas: el `RAISE`
+revierte la tx, así que el INSERT era código muerto. `COMMENT` actualizado a
+modo STRICT.
+
+**Decisiones:**
+1. **ERRCODE 28000 ≠ 42501** (guard de puntos FB): el cliente distingue "sesión
+   inválida → mandar a login" de "escritura de puntos no autorizada → bug".
+2. **En strict `session_violations` no se puebla** para estas ramas (consecuencia
+   del rollback). El histórico de la fase warn queda intacto; el rastro
+   post-strict es el error PostgREST en logs.
+3. **Rama 1a INTACTA** (`p_token NULL AND p_allow_null → RETURN NULL`): primer
+   chequeo, antes de cualquier `RAISE`. Vector cliente del raffle sigue sin
+   protección de token — **frontera de B.6, su cierre es SEC.C**.
+4. **Revert documentado** copy-paste-listo en el header de la migración (un solo
+   `CREATE OR REPLACE` al cuerpo warm de B.6.1, sin tocar las 4 RPCs).
+
+**Validación:** drift cero pre-flight (`pg_get_functiondef` prod = B.6.1
+byte-idéntico). Catálogo post-aplicación confirmado (RAISE 28000 en 1b/2/3/4/5,
+1a sigue `RETURN NULL`). **Observación activa 5/5:** compra de operador, boleto
+de operador y edición de admin (tokens válidos) sin 28000; boleto de cliente con
+token NULL sin 28000 (rama 1a, no bloqueado); token inválido (`BASURA-123`,
+expiry futuro) **bloqueado con code 28000**.
+
+> **Recordatorio — B.8.1 NO cierra el vector cliente del raffle.** La rama 1a es
+> deliberada; cualquiera con la apikey `anon` y token NULL puede gastar puntos de
+> cualquier `member_id` en `buy_raffle_tickets`. Su cierre es **SEC.C**.
+
+**Pendiente del bloque:** **B.8.2** (UX del rechazo 28000 en el cliente —
+interceptar y llamar `expireSession(role, {reason:'expirada'})`, cliente puro,
+ver SEC.B.6.4), **B.9** (`REVOKE EXECUTE FROM anon` en las 4 RPCs).
+
+#### SEC.B.8.2 — UX del rechazo de sesión (intercepción 28000 → expireSession) ✅
+
+**Qué entró (cliente puro, no toca producción):** cierra la cara cliente de B.8.
+Con B.8.1 el server rechaza tokens inválidos con ERRCODE 28000, pero el cliente
+mostraba el toast crudo del RAISE ("Error: Sesión inválida"). B.8.2 lo reemplaza
+por **logout + redirect al login + aviso "Tu sesión expiró"**, reutilizando
+`expireSession` (B.6.4).
+
+**Arquitectura (no había patrón previo de servicio→UI; los servicios eran
+puros):**
+- **`src/services/sessionExpiry.js`** (nuevo singleton, ~10 líneas, sin deps):
+  `setSessionExpiredHandler(fn)` / `notifySessionExpired()`. Invierte la
+  dependencia: la capa de servicios solo "avisa", la capa React decide.
+- **Detección centralizada** en `rpcServices.js`: `error.code === '28000'` en
+  `callRpc` (cubre `register_purchase` + `buy_raffle_tickets`) y en los 2
+  wrappers crudos (`updateMemberWithAudit`, `modifyMemberPoints`) →
+  `notifySessionExpired()` + flag `sessionExpired: true` en el shape de retorno.
+- **Handler en App.jsx** (`handleSessionExpired`): lee `viewRef.current` y mapea
+  a `expireSession('operator'|'admin', {reason:'expirada'})`. Registrado en el
+  singleton vía `useEffect` con cleanup (dep `[handleSessionExpired]`, mismo
+  razonamiento de stale closure que B.6.4).
+- **Guarda de 1 línea** (`if (sessionExpired) return;`) en 3 call sites
+  (App.jsx `register_purchase`, OpRaffle.jsx `buy_raffle_tickets` operador,
+  MemberDetail.jsx `update_member_with_audit` — esta **antes** de la
+  ramificación 22023/23505) para no pisar el toast lindo con el crudo. **Cero
+  lógica de decisión en los call sites:** solo el bail.
+
+**Decisiones:**
+1. **Intercepción centralizada** (servicios + handler), no por call site.
+2. **Por `error.code`** (no por mensaje — frágil).
+3. **Rol vía `viewRef.current`** en el handler — resuelve el doble vector de
+   `buy_raffle_tickets` (operador/cliente) sin tocar firmas.
+4. **Singleton en módulo propio** (responsabilidad única, no en `sessionTokens`).
+5. **Cliente excluido por diseño** — la rama 1a (token NULL + allow_null) no
+   produce 28000, así que el interceptor nunca se dispara para el cliente; su
+   call site (App.jsx `buy_raffle_tickets` cliente) no se tocó.
+6. **`modify_member_points`** con detección a prueba de futuro (sin call site en
+   UI hoy).
+
+**Deuda resuelta:** el rechazo de sesión ahora tiene UX limpia (login + aviso)
+en vez del toast crudo. `expireSession` queda como **pieza compartida** entre el
+cierre proactivo (B.6.4) y el reactivo (B.8.2).
+
+**Cierre del bloque:** con B.8.2, **SEC.B queda CERRADA**. El control de acceso
+de las 4 RPCs sensibles es la validación strict del token (B.8.1) + la UX del
+rechazo (B.8.2). B.9 (`REVOKE EXECUTE FROM anon`) NO se ejecuta — ver abajo por
+qué pasa a depender de SEC.C.
+
+### Hallazgo de arquitectura — operador/admin viajan como rol `anon`
+
+**Raíz de por qué B.9 depende de SEC.C.** Hay un solo cliente Supabase
+(`supabaseClient.js`) creado con la apikey `anon`. El rol PostgREST de cada
+llamada lo determina el JWT del header `Authorization`: con sesión de Supabase
+Auth viaja `authenticated`; sin ella, la apikey anon actúa como JWT → rol `anon`.
+
+- **Operador / Admin:** login vía RPC `authenticate_operator` /
+  `authenticate_admin` → guardan un **token custom** (`operator_sessions` /
+  `admin_sessions`, SEC.B.3). **No** llaman `sb.auth.signIn*` → **viajan como
+  `anon`**, con el token custom como parámetro `p_session_token`.
+- **Cliente Google/Apple:** `sb.auth.signInWithOAuth` → sesión real → rol
+  `authenticated`.
+- **Cliente teléfono:** `signInWithPhone` solo hace `SELECT` a `members` (sin
+  Supabase Auth; TODO migrar a RPC `authenticate_member`) → **viaja como `anon`**.
+
+Consecuencia: **operador, admin y cliente-teléfono — los tres son `anon`** a
+nivel PostgREST. Por eso el sistema de token custom de SEC.B existe: es el único
+control de acceso posible mientras esos actores no tengan identidad autenticada.
+(Evidencia empírica: la observación de B.8.1 mostró al operador —rol anon—
+registrando compras con token válido y bloqueado con token inválido vía 28000.)
+
+### SEC.B.9 — REVOKE EXECUTE FROM anon — DEUDA DEPENDIENTE DE SEC.C (no ejecutado)
+
+**Estado:** investigado, **NO ejecutado** (no hay REVOKE seguro que aplicar hoy).
+Reclasificado de "paso pendiente de SEC.B" a **deuda dependiente de SEC.C**.
+
+**Por qué no es viable ahora:** query `has_function_privilege` confirmó que las 4
+RPCs tienen `EXECUTE` para `anon`. Como operador, admin y cliente-teléfono viajan
+como `anon` (hallazgo de arquitectura ↑), `REVOKE EXECUTE FROM anon` sobre
+**cualquiera** de las 4 **bloquearía a actores legítimos**. No hay variante de
+REVOKE parcial que funcione: las 4 son alcanzadas por anon (las 3 de
+operador/admin + `buy_raffle_tickets`, que además sirve al cliente-teléfono y al
+vector cliente de la rama 1a → SEC.C).
+
+**Precondición para aplicarlo:** REVOKE anon recién es aplicable cuando
+operador/admin/cliente-teléfono tengan **identidad autenticada con rol ≠ anon**
+(migración de auth = SEC.C). Recién ahí se podría revocar anon en las 3 de
+operador/admin (y, cuando el cliente-teléfono migre, también acotar
+`buy_raffle_tickets`).
+
+**Qué aportaría (defensa en profundidad, NO la única protección):** el control de
+acceso real **ya está cubierto** por la validación strict del token (B.8.1) — un
+anónimo sin credencial recibe 28000 antes de cualquier mutación. El REVOKE sería
+una segunda capa (ni siquiera poder ejecutar la función sin el rol), no la única
+barrera.
+
+**Nota técnica para cuando se encare:** para bloquear `anon` de verdad NO basta
+`REVOKE FROM anon` — las 4 RPCs tienen `EXECUTE` otorgado a `PUBLIC` por defecto
+(confirmado por query: `anon` es miembro de `PUBLIC`). Haría falta
+`REVOKE EXECUTE ... FROM PUBLIC` además de `FROM anon`.
+
+### SEC.C — Auth real (rol ≠ anon para los 3 roles) 📋 PENDIENTE
+
+**Estado:** pendiente, **documentado solo como dependencia** (no tiene sección de
+scope; escribirlo es re-planificación, Nivel 2). Definición implícita: migrar
+operador/admin/cliente-teléfono a **identidad autenticada con rol ≠ `anon`** (hoy
+los tres viajan como `anon`, ver hallazgo de arquitectura).
+
+**Qué cierra SEC.C (referencias hacia adelante que dependen de él):**
+- El **vector cliente del raffle** (`buy_raffle_tickets` con token NULL legítimo,
+  rama 1a): cualquiera con apikey `anon` puede gastar puntos de cualquier
+  `member_id`. B.6/B.8 lo dejan abierto a propósito.
+- **SEC.B.9** (`REVOKE EXECUTE FROM anon` + `FROM PUBLIC`): solo aplicable cuando
+  los 3 roles tengan identidad ≠ anon.
+- La **RLS abierta de `purchases`** (anotada en FIX-MODAL: 2 policies `using=true`).
+- **SEC.A** (login cliente-teléfono server-side) es lógicamente un sub-paso.
+
+### FIX-MODAL — Modal de calificación por INSERT de `purchases` ✅ CERRADO
+
+El modal de calificación de operador (estrellas) se disparaba mal tras
+rifa/canje/encuesta. **Causa raíz (confirmada con log de prod):** el handler
+Realtime de `members` infería "hubo combustible" por el delta
+`newVisits > prevVisits` contra `lastVisitsRef`, una línea base que quedaba
+stale-baja (eventos perdidos por socket suspendido / seed desde caché vieja) y
+se combinaba con el `last_operator_id` pegajoso → modal con el operador
+equivocado. La rifa no sube `visits`; solo entregaba el `visits` real a un ref
+viejo (log: `visits: 45 prevVisits(ref): 43`).
+
+**Fix de fondo (señal directa, no proxy):** commit `5b630a4`.
+- Migración `20260629_fix_modal_purchases_realtime.sql`: `ALTER PUBLICATION
+  supabase_realtime ADD TABLE purchases` (idempotente).
+- Modal: nuevo canal `purchases-${me.id}` que escucha **INSERT en `purchases`**
+  (filtro `member_id`), tomando `operator_id`/`station_id` de la fila. Una fila
+  de `purchases` se crea SOLO por `register_purchase` (combustible) →
+  rifa/canje/encuesta **estructuralmente no pueden** abrir el modal. Reemplaza
+  el disparo C/D inferido.
+- Historial: la recarga de `activity_log` se **desacopla del delta de visits** —
+  ahora recarga en cada UPDATE de `members` (arregla un bug latente: las
+  acciones del propio cliente —rifa/canje/encuesta— no refrescaban su historial
+  local).
+- Borrado: `lastVisitsRef`, `realtimeReadyRef`, el efecto seed, el cálculo del
+  delta y el bloque del modal C/D viejo.
+
+**Caminos vivos del modal:** A (push click, SW), B (URL `?rate=`), y el canal
+`purchases` (foreground / in-app, señal correcta). El operador calificado sale
+siempre de la compra real; `stationName` se resuelve desde `purchases.station_id`
+vía el array `stations` (`last_station` no se mantenía; no se tocó).
+
+**Deuda abierta (anotada, no en este fix):** RLS de `purchases` demasiado
+abierta (revisar con SEC.C); el error de `sw.js` con esquema `chrome-extension`
+quedó **RESUELTO** aparte (commit `5270f98`).
+
+---
+
 ## 6. Apéndice A: Spike de Club Business (detalle)
 
 ### 6.1 Preguntas que el spike debe responder
@@ -831,7 +1321,7 @@ Sin cambios respecto a v2.1. Ver versiones anteriores del documento para detalle
 | `OpRedeem.jsx` sin cablear al nuevo flujo de QR | Alta | F2 |
 | `updateConfig` en `dataService.js` como código zombie | Baja | F7 |
 | Warning de chunk size >500KB | Baja | Cuando bundle pase 1MB |
-| Service Worker error con chrome-extension scheme | Cosmético | Ignorable |
+| ~~Service Worker error con chrome-extension scheme~~ | Cosmético | ✅ **RESUELTO** (`5270f98`) — guard `url.protocol` http/https al tope del handler fetch |
 | Sistema de push notifications con delivery inconsistente | Media | F5/F6 |
 | Tests automatizados inexistentes | Alta | Después de F5 |
 | **Botón "Compra" en MemberDetail.jsx:182 setea `modal='buy'` pero ningún componente lo renderiza (código zombie)** | Media | F2 o F4 |
@@ -846,6 +1336,15 @@ Sin cambios respecto a v2.1. Ver versiones anteriores del documento para detalle
 | **`update_operator` (editar operador) es mutación directa (`OpManagement.jsx:77`)** — no auditable server-side | Media | F0.3.5 (client-first logging) |
 | **`reset_operator_password` no existe como RPC separado; entrada huérfana en lista sensible de `log_admin_action`** | Baja | Diferida (revisar en F2+) |
 | **`members.points` modificable sin auditoría — caso ángel macario +21 pts (diagnóstico 19 queries)** | Alta | FB completa |
+
+### 7.1-bis Deudas resueltas (reconciliación v2.4)
+
+| Item | Evidencia |
+|---|---|
+| Service Worker error con esquema `chrome-extension` al cachear | ✅ `5270f98` — guard `url.protocol` (allowlist http/https) al tope del handler `fetch` |
+| Service Worker sin versionado de cache | ✅ `f47c257` — `CACHE_NAME` con `__BUILD_HASH__` + registro eager + flujo de update + `activate` que limpia caches viejas |
+| `OpRaffle` con estado huérfano (`opRafClient`/`Scan`/`Qty`, `opSearch`) sin cablear al ctx | ✅ `9b4c6b3` |
+| Modal de calificación disparándose en rifa/canje (delta de visits + `last_operator_id` pegajoso) | ✅ `5b630a4` (FIX-MODAL) — ver Track de Seguridad |
 
 ### 7.2 Deuda operacional
 
@@ -960,6 +1459,35 @@ Cambios mayores van en commits separados con mensaje `docs: actualizar ROADMAP �
 ---
 
 ## Changelog
+
+### Versión 2.4 — 29 de junio de 2026
+
+**Reconciliación (Nivel 1) + fusión de documentos. NO re-planificación:** no se
+reordenó nada ni se slotteó seguridad en el flujo F0→F9.
+
+- **FUSIÓN:** ROADMAP.md pasa a ser el **plan maestro único** (producto +
+  seguridad). El **Track de Seguridad** se absorbió íntegro (sin resumir) desde
+  `ESTADO-PROYECTO.md`, que quedó **recortado a referencia técnica** + puntero al
+  ROADMAP.
+- **NUEVA sección "Track de Seguridad (SEC)"** — paralela, sin posición en §4.2:
+  SEC.A (no iniciado, sin scope), SEC.B (✅ CERRADO, B.3–B.8 con commits/migraciones),
+  hallazgo de arquitectura anon+token, SEC.B.9 (deuda dependiente de SEC.C, con
+  la nota `REVOKE … FROM PUBLIC`), SEC.C (pendiente, solo dependencia), FIX-MODAL
+  (✅ CERRADO).
+- **RECONCILIADO F0:** estado real F0.1–F0.3 ✅ (incl. F0.3.5–F0.3.9, con commits);
+  F0.4 pendiente (`AuditLog.jsx` no existe), F0.5 🔶 (cubierto por ReasonModal, a
+  confirmar), F0.7 ✅.
+- **RECONCILIADO + RE-NUMERADO FB:** de "🔜 Próxima" a "✅ Construido" (migraciones
+  `fb5`/`fb7`/`fb9`, `existing_rpcs_core`, `modify_member_points`,
+  `grant_special_day_bonus` + refactor cliente). Sub-fases re-numeradas para
+  coincidir con los commits, con **NOTA DE EQUIVALENCIA** plan-viejo → plan-nuevo.
+  Decisiones **FB.5/FB.6 (caso ángel macario) siguen ABIERTAS**.
+- **Deudas resueltas marcadas** (§7.1-bis): sw chrome-extension (`5270f98`),
+  versionado de cache (`f47c257`), `OpRaffle` estado huérfano (`9b4c6b3`),
+  FIX-MODAL (`5b630a4`).
+- **Huecos preservados como abiertos** (no resueltos ni priorizados): caso ángel,
+  SEC.A sin scope, credenciales admin no migradas, RLS de purchases (→ SEC.C).
+- **Intacto:** §0–§3, §4.2, §4.3, §5.FA–§5.F9, Apéndices A/C/D/E, §7.2, §9.
 
 ### Versión 2.3 — 13 de junio de 2026
 
