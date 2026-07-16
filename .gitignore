@@ -21,7 +21,9 @@ build/
 .vercel/
 
 # Claude Code (cache local del agente)
-.claude/
+.claude/*
+!.claude/settings.json
+commit-msg.txt
 
 # Logs
 logs/
