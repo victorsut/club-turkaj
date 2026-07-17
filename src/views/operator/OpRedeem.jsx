@@ -5,6 +5,9 @@ import { sMono, btnYellow } from '../../constants/styles';
 import Badge from '../../components/ui/Badge';
 import QRScanner from '../../components/ui/QRScanner';
 import { Back } from '../../components/ui/Icons';
+import { buildRedemptionReceipt } from '../../lib/receiptModel';
+import { printReceipt } from '../../lib/receiptPrinter';
+import { logPrint } from '../../services/rpcServices';
 
 function utcToLocal(isoString) {
   if (!isoString) return '';
@@ -13,83 +16,6 @@ function utcToLocal(isoString) {
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
-}
-
-// Funcion de impresion - siempre llamada desde click directo
-function buildAndPrint(item, clientName, opName) {
-  var now     = new Date();
-  var dateStr = now.toLocaleDateString('es-GT', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  var timeStr = now.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' });
-
-  // Construir partes del HTML por separado para evitar problemas de escaping
-  var head = [
-    '<!DOCTYPE html><html>',
-    '<head>',
-    '<meta charset="UTF-8">',
-    '<meta name="viewport" content="width=device-width,initial-scale=1">',
-    '<title>Comprobante Puntos Plus</title>',
-    '<style>',
-    '@page{margin:0;size:auto;}',
-    '*{margin:0;padding:0;box-sizing:border-box;}',
-    'body{font-family:Courier New,monospace;font-size:15px;color:#000;padding:10px;}',
-    '.rc{text-align:center;}',
-    '.rs{border-top:1px dashed #000;margin:8px 0;}',
-    '.rr{display:flex;justify-content:space-between;margin:5px 0;}',
-    '.rk{font-size:20px;font-weight:bold;letter-spacing:3px;border:2px solid #000;padding:6px 14px;display:inline-block;margin:6px 0;}',
-    '#pb{display:block;width:90%;margin:16px auto;padding:20px;background:#1976D2;color:#fff;border:none;border-radius:12px;font-size:22px;font-weight:bold;cursor:pointer;font-family:sans-serif;}',
-    '@media print{#pb{display:none!important;}}',
-    '</style>',
-    '</head>',
-  ].join('');
-
-  var body = [
-    '<body>',
-    '<button id="pb">IMPRIMIR COMPROBANTE</button>',
-    '<div class="rc"><b style="font-size:26px;letter-spacing:4px">PUNTOS PLUS</b><br>',
-    '<span style="font-size:12px">Programa de Lealtad</span></div>',
-    '<div class="rs"></div>',
-    '<div class="rc" style="font-size:17px;font-weight:bold">COMPROBANTE DE CANJE</div>',
-    '<div class="rs"></div>',
-    '<div class="rr"><span>Fecha:</span><span>' + dateStr + '</span></div>',
-    '<div class="rr"><span>Hora:</span><span>' + timeStr + '</span></div>',
-    '<div class="rr"><span>Cliente:</span><span>' + (clientName || '-') + '</span></div>',
-    '<div class="rr"><span>Operador:</span><span>' + (opName || '-') + '</span></div>',
-    '<div class="rs"></div>',
-    '<div class="rc"><div style="font-size:11px;margin-bottom:3px">PREMIO CANJEADO</div>',
-    '<div style="font-size:20px;font-weight:bold">' + item.reward.name + '</div>',
-    '<div style="font-size:12px;margin-top:3px">Puntos: ' + item.cost + ' pts</div></div>',
-    '<div class="rs"></div>',
-    '<div class="rc"><div style="font-size:11px;margin-bottom:3px">CODIGO DE VERIFICACION</div>',
-    '<div class="rk">' + item.code + '</div></div>',
-    '<div class="rs"></div>',
-    '<div class="rc" style="font-size:11px">Gracias por su preferencia<br>',
-    'Gasolineras Turkaj - Chichicastenango</div>',
-    '</body></html>',
-  ].join('');
-
-  // Script separado - sin escaping de comillas
-  var script = '<scr' + 'ipt>'
-    + 'document.getElementById("pb").addEventListener("click",function(){'
-    + '  this.style.display="none";'
-    + '  window.print();'
-    + '  var btn=this;'
-    + '  setTimeout(function(){btn.style.display="block";},3000);'
-    + '});'
-    + '</scr' + 'ipt>';
-
-  var receiptHtml = head + body.replace('</body>', script + '</body>');
-
-  if (window.Blob && window.URL && window.URL.createObjectURL) {
-    var blob = new Blob([receiptHtml], { type: 'text/html;charset=utf-8' });
-    var url  = URL.createObjectURL(blob);
-    var win  = window.open(url, '_blank');
-    if (win) {
-      setTimeout(function() { URL.revokeObjectURL(url); }, 15000);
-      return;
-    }
-    URL.revokeObjectURL(url);
-  }
-  window.print();
 }
 
 export default function OpRedeem(ctx) {
@@ -111,6 +37,30 @@ export default function OpRedeem(ctx) {
   const [confirmResult, setConfirmResult]   = useState(null);
   const [todayHistory, setTodayHistory] = useState([]);
   const [loadingToday, setLoadingToday] = useState(false);
+
+  // FA-lite: auto-print por dispositivo (el POS es fijo por estación,
+  // así que el toggle local equivale a configuración por estación).
+  const [autoPrint, setAutoPrint] = useState(() => {
+    try { return localStorage.getItem('pp_auto_print') !== '0'; } catch { return true; }
+  });
+  const toggleAutoPrint = () => setAutoPrint(prev => {
+    const next = !prev;
+    try { localStorage.setItem('pp_auto_print', next ? '1' : '0'); } catch { /* sin storage */ }
+    return next;
+  });
+
+  // FA-lite: construye el modelo neutro, imprime (iframe, sin pestaña)
+  // y registra en print_logs (fire-and-forget: nunca bloquea el papel).
+  const doPrint = useCallback((item, clientName, copyType) => {
+    const receipt = buildRedemptionReceipt({
+      rewardName: item.reward.name, cost: item.cost, code: item.code,
+      clientName, operatorName: loggedOp?.name, stationName: loggedOp?.station,
+    });
+    const ok = printReceipt(receipt, { allowTabFallback: copyType !== 'auto' });
+    logPrint({ redemptionId: item.id, copyType, printerHint: (navigator.userAgent || '').slice(0, 180) });
+    if (!ok) fire('No se pudo abrir la impresión — usá Reimprimir');
+    return ok;
+  }, [loggedOp, fire]);
 
   // Cargar historial de canjes del dia actual
   useEffect(() => {
@@ -200,7 +150,9 @@ export default function OpRedeem(ctx) {
         setConfirmResult('confirmed');
         fire('Confirmado: ' + item.reward.name + ' entregado');
         logActivity(item.memberId, 'entrega', 'Premio entregado: ' + item.reward.name, 0);
-        setReadyToPrint({ item, clientName: client?.name, opName: loggedOp?.name });
+        setReadyToPrint({ item, clientName: client?.name, opName: loggedOp?.name, auto: autoPrint });
+        // FA-lite: auto-print al confirmar (iframe, sin gesto del operador).
+        if (autoPrint) doPrint(item, client?.name, 'auto');
         // Agregar al historial del dia
         setTodayHistory(p => [{
           id: item.id, memberName: client?.name || '-',
@@ -222,7 +174,7 @@ export default function OpRedeem(ctx) {
         fire('Tiempo de espera agotado');
       }
     }, 2000);
-  }, [sbConnected, fire, logActivity, setRedeemedList, client, loggedOp, setReadyToPrint]);
+  }, [sbConnected, fire, logActivity, setRedeemedList, client, loggedOp, setReadyToPrint, autoPrint, doPrint]);
 
   const tier = client ? gT(client.gallons) : null;
 
@@ -318,12 +270,14 @@ export default function OpRedeem(ctx) {
               <div style={{ fontSize: 52, marginBottom: 12 }}>OK</div>
               <div style={{ fontSize: 18, fontWeight: 900, color: '#1B5E20', marginBottom: 6 }}>Canje confirmado</div>
               <div style={{ fontSize: 14, color: '#555', marginBottom: 4 }}>{readyToPrint.item.reward.name}</div>
-              <div style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>Cliente confirmo desde su dispositivo</div>
-              <button onClick={() => buildAndPrint(readyToPrint.item, readyToPrint.clientName, readyToPrint.opName)} style={{ width: '100%', padding: 16, borderRadius: 14, border: 'none', background: '#1976D2', color: '#fff', fontFamily: "'DM Sans'", fontSize: 16, fontWeight: 900, cursor: 'pointer', marginBottom: 10 }}>
-                Imprimir comprobante
+              <div style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>
+                {readyToPrint.auto ? 'Comprobante enviado a impresión automáticamente' : 'Cliente confirmo desde su dispositivo'}
+              </div>
+              <button onClick={() => doPrint(readyToPrint.item, readyToPrint.clientName, readyToPrint.auto ? 'reprint' : 'manual')} style={{ width: '100%', padding: 16, borderRadius: 14, border: 'none', background: '#1976D2', color: '#fff', fontFamily: "'DM Sans'", fontSize: 16, fontWeight: 900, cursor: 'pointer', marginBottom: 10 }}>
+                {readyToPrint.auto ? 'Reimprimir comprobante' : 'Imprimir comprobante'}
               </button>
               <button onClick={() => setReadyToPrint(null)} style={{ width: '100%', padding: 12, borderRadius: 14, border: '1px solid #ddd', background: '#f5f5f5', fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700, cursor: 'pointer', color: '#555' }}>
-                Omitir impresion
+                Cerrar
               </button>
             </div>
           </div>
@@ -359,9 +313,20 @@ export default function OpRedeem(ctx) {
       <div style={{ padding: '0 20px' }}>
 
         {/* Boton escanear QR */}
-        <button onClick={() => setScanning(true)} style={{ ...btnYellow, marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontSize: 16 }}>
+        <button onClick={() => setScanning(true)} style={{ ...btnYellow, marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontSize: 16 }}>
           Escanear codigo QR del cliente
         </button>
+
+        {/* FA-lite: toggle de impresión automática (por dispositivo) */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: '#fff', borderRadius: 14, border: '1px solid #eee', marginBottom: 24 }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#0D0D0D' }}>🖨️ Impresión automática</div>
+            <div style={{ fontSize: 11, color: '#9E9E9E', marginTop: 1 }}>Imprime al confirmar el canje</div>
+          </div>
+          <button onClick={toggleAutoPrint} style={{ padding: '8px 16px', borderRadius: 20, border: 'none', background: autoPrint ? '#E8F5E9' : '#EEE', color: autoPrint ? '#2E7D32' : '#9E9E9E', fontFamily: "'DM Sans'", fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>
+            {autoPrint ? 'ACTIVADA' : 'APAGADA'}
+          </button>
+        </div>
 
         {/* Historial de canjes del dia */}
         <div style={{ fontSize: 11, fontWeight: 800, color: '#BDBDBD', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>
@@ -388,10 +353,10 @@ export default function OpRedeem(ctx) {
                 <div style={{ fontSize: 10, color: '#BDBDBD', fontFamily: 'monospace', marginTop: 1 }}>{h.code}</div>
               </div>
               <button
-                onClick={() => buildAndPrint(
-                  { reward: h.reward, cost: h.cost, code: h.code },
+                onClick={() => doPrint(
+                  { id: h.id, reward: h.reward, cost: h.cost, code: h.code },
                   h.memberName,
-                  loggedOp?.name
+                  'reprint'
                 )}
                 style={{ padding: '8px 12px', borderRadius: 10, border: '1px solid #1976D2', background: '#E3F2FD', color: '#1976D2', fontFamily: "'DM Sans'", fontWeight: 800, fontSize: 11, cursor: 'pointer', flexShrink: 0 }}>
                 Reimprimir

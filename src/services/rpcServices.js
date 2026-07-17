@@ -485,3 +485,23 @@ export async function getAdminAuditLog({
     p_date_from: dateFrom, p_date_to: dateTo,
   }, { sessionToken: getAdminToken()?.token ?? null });
 }
+
+// ──────────────────────────────────────────────
+// 12. IMPRESIÓN — log_print (FA-lite / D37)
+// ──────────────────────────────────────────────
+// Registra en print_logs cada impresión de comprobante disparada
+// (best-effort: desde el navegador no se puede confirmar la salida
+// física del papel). El server valida el token de OPERADOR en modo
+// STRICT (28000 → intercepción centralizada) y deriva operador,
+// miembro y estación server-side. Llamada fire-and-forget desde
+// OpRedeem: nunca bloquea la impresión.
+//
+// @returns {{ data: { log_id }|null, error, sessionExpired? }}
+export async function logPrint({ redemptionId, copyType, printerHint = null }) {
+  if (!sb) return { data: null, error: { message: 'Sin conexión al servidor' } };
+  return callRpc('log_print', {
+    p_redemption_id: redemptionId,
+    p_copy_type: copyType,
+    p_printer_hint: printerHint,
+  }, { sessionToken: getOperatorToken()?.token ?? null });
+}
