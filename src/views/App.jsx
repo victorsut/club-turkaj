@@ -73,6 +73,7 @@ import AdminPremios from './admin/AdminPremios';
 import Settings from './admin/Settings';
 import AdminPromos from './admin/AdminPromos';
 import OpManagement from './admin/OpManagement';
+import AuditLog from './admin/AuditLog';
 import { isPushSupported, subscribePush, sendPushToMember } from '../lib/pushNotifications';
 
 export default function App() {
@@ -1350,6 +1351,7 @@ export default function App() {
       if (scr === 'premios') return <AdminPremios {...ctx} />;
       if (scr === 'cfg') return <Settings {...ctx} />;
       if (scr === 'ops') return <OpManagement {...ctx} />;
+      if (scr === 'audit') return <AuditLog {...ctx} />;
       if (scr === 'rules') return <Rules {...ctx} />;
       if (scr === 'promos') return <AdminPromos {...ctx} />;
       return <AdminDash {...ctx} />;

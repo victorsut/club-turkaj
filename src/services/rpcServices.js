@@ -459,3 +459,29 @@ export async function grantSpecialDayBonus(memberId) {
   // data es jsonb: { ok, bonus, events, member_name } o { ok: false, reason }
   return { ok: true, data };
 }
+
+// ──────────────────────────────────────────────
+// 11. AUDITORÍA — get_admin_audit_log (B0/F0.4)
+// ──────────────────────────────────────────────
+// Lectura paginada del admin_audit_log (RLS deny-all: esta RPC es
+// la única vía de lectura). El server valida el token de admin en
+// modo STRICT y rechaza con 28000 — callRpc ya intercepta ese
+// código (logout + aviso), así que el call site solo debe hacer
+// bail cuando sessionExpired venga true.
+//
+// Fechas: strings 'YYYY-MM-DD' interpretadas server-side como días
+// calendario de Guatemala (America/Guatemala).
+//
+// @returns {{ data: { total, rows: Array }|null, error, sessionExpired? }}
+export async function getAdminAuditLog({
+  limit = 20, offset = 0,
+  action = null, entityType = null,
+  dateFrom = null, dateTo = null,
+} = {}) {
+  if (!sb) return { data: null, error: { message: 'Sin conexión al servidor' } };
+  return callRpc('get_admin_audit_log', {
+    p_limit: limit, p_offset: offset,
+    p_action: action, p_entity_type: entityType,
+    p_date_from: dateFrom, p_date_to: dateTo,
+  }, { sessionToken: getAdminToken()?.token ?? null });
+}

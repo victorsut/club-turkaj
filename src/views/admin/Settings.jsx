@@ -138,6 +138,7 @@ export default function Settings(ctx) {
       <div style={{ display: 'flex', gap: 10, padding: '12px 20px' }}>
         <button onClick={() => setScr('rules')} style={{ flex: 1, padding: 14, borderRadius: 14, background: AT.card, border: `1px solid ${AT.border}`, fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#FBBC04' }}>📋 Ver Reglas</button>
         <button onClick={() => setScr('ops')} style={{ flex: 1, padding: 14, borderRadius: 14, background: AT.card, border: `1px solid ${AT.border}`, fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#64B5F6' }}>👷 Operadores</button>
+        <button onClick={() => setScr('audit')} style={{ flex: 1, padding: 14, borderRadius: 14, background: AT.card, border: `1px solid ${AT.border}`, fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#CE93D8' }}>📜 Auditoría</button>
       </div>
 
       {/* Conversión */}
