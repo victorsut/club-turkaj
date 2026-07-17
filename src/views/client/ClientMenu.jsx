@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { inputStyle } from '../../constants/styles';
 import TierCard from '../../components/ui/TierCard';
+import LegalFooter from '../../components/ui/LegalFooter';
 import { makeTier } from '../../lib/tierSystem';
 
 const VEHICLE_TYPES = [
@@ -90,6 +91,7 @@ export default function ClientMenu(ctx) {
     { id: 'niveles',     icon: '🏆', label: 'Niveles y Beneficios',    desc: 'ORO, PLATINO y BLACK' },
     { id: 'inactividad', icon: '⚠️', label: 'Reglas de Inactividad',   desc: 'Condiciones de degradación' },
     { id: 'terminos',    icon: '📜', label: 'Términos y Condiciones',  desc: 'Condiciones de uso del programa' },
+    { id: 'acerca',      icon: 'ℹ️', label: 'Acerca de Puntos Plus',   desc: 'Aviso legal e información' },
   ];
 
   // ── Render ───────────────────────────────────────────────
@@ -311,24 +313,58 @@ export default function ClientMenu(ctx) {
     );
   }
 
+  // ── ACERCA DE PUNTOS PLUS (R1a / D28) ─────────────────────
+  if (section === 'acerca') {
+    return (
+      <div style={{ paddingBottom: 100, minHeight: '100vh', background: TH.bg, padding: '20px 20px 100px' }}>
+        <Back />
+        <div style={{ fontSize: 20, fontWeight: 900, color: TH.header, marginBottom: 4 }}>ℹ️ Acerca de Puntos Plus</div>
+        <div style={{ fontSize: 12, color: TH.sub, marginBottom: 24 }}>Información de la plataforma</div>
+
+        <div style={{ padding: '16px 18px', borderRadius: 16, background: TH.cardBg, border: TH.cardBorder, marginBottom: 14 }}>
+          <div style={{ fontSize: 14, color: TH.text, lineHeight: 1.7 }}>
+            <strong style={{ color: TH.header }}>Puntos Plus</strong> es una plataforma digital de fidelización independiente. Permite acumular puntos por consumo, canjear premios, participar en rifas mensuales y acceder a beneficios según tu nivel.
+          </div>
+        </div>
+
+        <div style={{ padding: '16px 18px', borderRadius: 16, background: TH.warnBg, border: TH.cardBorder, marginBottom: 14 }}>
+          <div style={{ fontSize: 13, color: TH.text, lineHeight: 1.7 }}>
+            ⚖️ <strong style={{ color: TH.header }}>Aviso legal:</strong> Puntos Plus es una app ajena a Shell Guatemala y aplica únicamente a gasolineras Turkaj en Chichicastenango.
+          </div>
+        </div>
+
+        <div style={{ padding: '16px 18px', borderRadius: 16, background: TH.cardBg, border: TH.cardBorder }}>
+          <div style={{ fontSize: 12, color: TH.sub, lineHeight: 1.8 }}>
+            Comercio afiliado: Gasolineras Turkaj I, II y III · Chichicastenango, El Quiché, Guatemala.<br />
+            Contacto: gasolineraturkaj2@hotmail.com o en cualquier estación afiliada.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ── TÉRMINOS Y CONDICIONES ────────────────────────────────
   if (section === 'terminos') {
     const secs = [
       {
         title: 'OBJETO',
-        body: 'Los presentes Términos y Condiciones regulan la relación entre Gasolineras Turkaj ("Turkaj") y el usuario del programa de fidelización Club Turkaj ("el Programa"), disponible a través de la aplicación web progresiva accesible en club-turkaj.vercel.app. Al acceder y utilizar el Programa, el usuario acepta expresamente haber leído, comprendido y adherirse a los presentes términos, así como a las leyes vigentes de la República de Guatemala.',
+        body: 'Los presentes Términos y Condiciones regulan el uso del programa de fidelización Puntos Plus ("el Programa"), disponible a través de la aplicación web progresiva accesible en club-turkaj.vercel.app, y la relación entre el operador del Programa y el usuario. Puntos Plus es una plataforma de fidelización independiente en la que Gasolineras Turkaj I, II y III de Chichicastenango participan como comercio afiliado. Al acceder y utilizar el Programa, el usuario acepta expresamente haber leído, comprendido y adherirse a los presentes términos, así como a las leyes vigentes de la República de Guatemala.',
       },
       {
         title: 'DESCRIPCIÓN DEL PROGRAMA',
-        body: 'Club Turkaj es un programa de lealtad que permite a los clientes de Gasolineras Turkaj I, II y III en Chichicastenango, Guatemala, acumular puntos por compras de combustible y canjearlos por premios, descuentos y beneficios exclusivos. La participación en el Programa es voluntaria y gratuita.',
+        body: 'Puntos Plus es un programa de lealtad que permite a los clientes de las estaciones afiliadas (Gasolineras Turkaj I, II y III en Chichicastenango, Guatemala) acumular puntos por compras de combustible y canjearlos por premios, descuentos y beneficios exclusivos. La participación en el Programa es voluntaria y gratuita.',
+      },
+      {
+        title: 'INDEPENDENCIA DE MARCA',
+        body: 'Puntos Plus es una aplicación y plataforma ajena a Shell Guatemala. El Programa no es operado, patrocinado ni avalado por Shell Guatemala ni por sus franquiciantes, y aplica únicamente en las gasolineras Turkaj de Chichicastenango. Las marcas de terceros visibles en las estaciones pertenecen a sus respectivos titulares.',
       },
       {
         title: 'REGISTRO Y MEMBRESÍA',
-        body: 'Para participar en el Programa, el usuario debe registrarse proporcionando su nombre completo, Documento Personal de Identificación (DPI), número de teléfono y fecha de nacimiento. El usuario garantiza que la información proporcionada es verídica y exacta. Cada persona física puede tener una única cuenta activa. Turkaj se reserva el derecho de suspender cuentas con información incorrecta o duplicadas.',
+        body: 'Para participar en el Programa, el usuario debe registrarse proporcionando su nombre completo, Documento Personal de Identificación (DPI), número de teléfono y fecha de nacimiento. El usuario garantiza que la información proporcionada es verídica y exacta. Cada persona física puede tener una única cuenta activa. El Programa se reserva el derecho de suspender cuentas con información incorrecta o duplicadas.',
       },
       {
         title: 'ACUMULACIÓN DE PUNTOS',
-        body: 'Los puntos se acumulan a razón de 1 punto por cada Q10.00 de combustible comprado en las estaciones Turkaj I, II y III. Los puntos se asignan al momento de registrar la compra mediante el código QR personal del miembro. Turkaj puede otorgar puntos adicionales en eventos especiales, días festivos o aniversarios, según lo determine el programa en cada momento. Los puntos no tienen valor monetario y no son transferibles entre miembros.',
+        body: 'Los puntos se acumulan a razón de 1 punto por cada Q10.00 de combustible comprado en las estaciones afiliadas Turkaj I, II y III. Los puntos se asignan al momento de registrar la compra mediante el código QR personal del miembro. El Programa puede otorgar puntos adicionales en eventos especiales, días festivos o aniversarios, según lo determine en cada momento. Los puntos no tienen valor monetario y no son transferibles entre miembros.',
       },
       {
         title: 'NIVELES DE MEMBRESÍA',
@@ -344,23 +380,23 @@ export default function ClientMenu(ctx) {
       },
       {
         title: 'INACTIVIDAD Y DEGRADACIÓN',
-        body: 'Turkaj monitorea la actividad de los miembros. La inactividad prolongada puede resultar en la degradación del nivel del miembro o la pérdida de puntos acumulados, según las reglas de inactividad vigentes disponibles en la sección correspondiente de la aplicación. Las reglas de inactividad pueden modificarse con previo aviso al miembro a través de la aplicación.',
+        body: 'El Programa monitorea la actividad de los miembros. La inactividad prolongada puede resultar en la degradación del nivel del miembro o la pérdida de puntos acumulados, según las reglas de inactividad vigentes disponibles en la sección correspondiente de la aplicación. Las reglas de inactividad pueden modificarse con previo aviso al miembro a través de la aplicación.',
       },
       {
         title: 'PRIVACIDAD Y PROTECCIÓN DE DATOS',
-        body: 'Turkaj recopila y procesa los datos personales del usuario con el único fin de operar el Programa de fidelización. Los datos no serán vendidos, cedidos ni compartidos con terceros sin consentimiento del usuario, salvo obligación legal. El usuario puede solicitar la eliminación de su cuenta y datos en cualquier momento contactando a Turkaj directamente.',
+        body: 'Puntos Plus recopila y procesa los datos personales del usuario con el único fin de operar el Programa de fidelización. Los datos no serán vendidos, cedidos ni compartidos con terceros sin consentimiento del usuario, salvo obligación legal. El usuario puede solicitar la eliminación de su cuenta y datos en cualquier momento a través de los canales de contacto del Programa.',
       },
       {
         title: 'MODIFICACIONES AL PROGRAMA',
-        body: 'Turkaj se reserva el derecho de modificar, suspender o cancelar el Programa, sus beneficios, reglas o catálogo de premios en cualquier momento. Los cambios serán notificados a través de la aplicación. El uso continuado del Programa después de la notificación de cambios implica la aceptación de los mismos por parte del usuario.',
+        body: 'El Programa se reserva el derecho de modificar, suspender o cancelar sus beneficios, reglas o catálogo de premios en cualquier momento. Los cambios serán notificados a través de la aplicación. El uso continuado del Programa después de la notificación de cambios implica la aceptación de los mismos por parte del usuario.',
       },
       {
         title: 'PROPIEDAD INTELECTUAL',
-        body: 'La aplicación Club Turkaj, su diseño, marca, logotipos, contenidos y código fuente son propiedad exclusiva de Gasolineras Turkaj. El usuario no podrá reproducir, copiar, distribuir ni modificar ningún elemento de la aplicación sin autorización expresa y por escrito de Turkaj.',
+        body: 'La aplicación Puntos Plus, su diseño, marca, logotipos, contenidos y código fuente son propiedad exclusiva de la plataforma Puntos Plus. Las marcas y nombres comerciales de las estaciones afiliadas (Gasolineras Turkaj) y de terceros pertenecen a sus respectivos titulares. El usuario no podrá reproducir, copiar, distribuir ni modificar ningún elemento de la aplicación sin autorización expresa y por escrito.',
       },
       {
         title: 'LIMITACIÓN DE RESPONSABILIDAD',
-        body: 'Turkaj no será responsable por fallas técnicas de la aplicación, interrupciones del servicio, pérdida de datos por causas de fuerza mayor o cualquier perjuicio indirecto derivado del uso del Programa. La responsabilidad máxima de Turkaj frente al usuario se limita al valor en puntos de los beneficios directamente afectados.',
+        body: 'El Programa no será responsable por fallas técnicas de la aplicación, interrupciones del servicio, pérdida de datos por causas de fuerza mayor o cualquier perjuicio indirecto derivado del uso del Programa. La responsabilidad máxima del Programa frente al usuario se limita al valor en puntos de los beneficios directamente afectados.',
       },
       {
         title: 'JURISDICCIÓN',
@@ -368,7 +404,7 @@ export default function ClientMenu(ctx) {
       },
       {
         title: 'CONTACTO',
-        body: 'Para consultas, reclamos o solicitudes relacionadas con el Programa, el usuario puede comunicarse con Gasolineras Turkaj directamente en cualquiera de las tres estaciones ubicadas en Chichicastenango, Guatemala, o a través de los canales de contacto habilitados en la aplicación.',
+        body: 'Para consultas, reclamos o solicitudes relacionadas con el Programa, el usuario puede comunicarse en cualquiera de las tres estaciones afiliadas ubicadas en Chichicastenango, Guatemala, o a través de los canales de contacto habilitados en la aplicación.',
       },
     ];
 
@@ -376,7 +412,7 @@ export default function ClientMenu(ctx) {
       <div style={{ paddingBottom: 100, minHeight: '100vh', background: TH.bg, padding: '20px 20px 100px' }}>
         <Back />
         <div style={{ fontSize: 20, fontWeight: 900, color: TH.header, marginBottom: 4 }}>📜 Términos y Condiciones</div>
-        <div style={{ fontSize: 12, color: TH.sub, marginBottom: 24 }}>Club Turkaj — Gasolineras Turkaj, Chichicastenango, Guatemala</div>
+        <div style={{ fontSize: 12, color: TH.sub, marginBottom: 24 }}>Puntos Plus — aplica en Gasolineras Turkaj, Chichicastenango, Guatemala</div>
 
         {secs.map((s, i) => (
           <div key={i} style={{ marginBottom: 20 }}>
@@ -391,8 +427,8 @@ export default function ClientMenu(ctx) {
 
         <div style={{ marginTop: 24, padding: '14px 16px', borderRadius: 14, background: isDark ? 'rgba(255,255,255,.04)' : '#F5F5F5', border: TH.cardBorder }}>
           <div style={{ fontSize: 11, color: TH.sub, textAlign: 'center', lineHeight: 1.6 }}>
-            Al utilizar Club Turkaj aceptás estos términos y condiciones.<br />
-            Última actualización: Mayo 2026
+            Al utilizar Puntos Plus aceptás estos términos y condiciones.<br />
+            Última actualización: Julio 2026
           </div>
         </div>
       </div>
@@ -458,9 +494,12 @@ export default function ClientMenu(ctx) {
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: '#E53935' }}>Cerrar sesión</div>
-            <div style={{ fontSize: 12, color: TH.sub, marginTop: 2 }}>Salir de Club Turkaj</div>
+            <div style={{ fontSize: 12, color: TH.sub, marginTop: 2 }}>Salir de Puntos Plus</div>
           </div>
         </button>
+
+        {/* Disclaimer legal D28 */}
+        <LegalFooter color={TH.sub} />
       </div>
     </div>
   );

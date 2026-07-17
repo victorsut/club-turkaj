@@ -6,6 +6,7 @@ import { sMono, GAL3, clientTheme } from '../../constants/styles';
 import { CARD_PREFIX } from '../../constants/config';
 import { tierProgress } from '../../lib/tierSystem';
 import Badge from '../../components/ui/Badge';
+import LegalFooter from '../../components/ui/LegalFooter';
 import TierDeco from '../../components/ui/TierDeco';
 import GalaxyDust from '../../components/ui/GalaxyDust';
 import InactivityWarning from '../../components/ui/InactivityWarning';
@@ -856,6 +857,8 @@ export default function ClientHome(ctx) {
         </div>
       )}
 
+      {/* Disclaimer legal D28 */}
+      <LegalFooter />
     </div>
   );
 }

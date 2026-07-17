@@ -2,6 +2,8 @@
 import { sb } from '../../lib/supabaseClient';
 import { inputStyle, btnStyle } from '../../constants/styles';
 import { Back, GoogleLogo } from '../../components/ui/Icons';
+import Wordmark from '../../components/ui/Wordmark';
+import LegalFooter from '../../components/ui/LegalFooter';
 
 export default function ClientLogin(ctx) {
   const { loginPhone, setLoginPhone, loginPass, setLoginPass, authError, setAuthError,
@@ -24,11 +26,8 @@ export default function ClientLogin(ctx) {
     <div style={{ padding: '40px 24px 120px', position: 'relative', zIndex: 1 }}>
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
-        <div style={{ fontSize: 40, marginBottom: 8 }}>⛽</div>
-        <div style={{ fontSize: 24, fontWeight: 900, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D' }}>
-          Club Turkaj
-        </div>
-        <div style={{ fontSize: 13, color: '#9E9E9E', marginTop: 4 }}>
+        <Wordmark size={28} color={cTier.name === 'BLACK' ? '#fff' : '#0D0D0D'} />
+        <div style={{ fontSize: 13, color: '#9E9E9E', marginTop: 8 }}>
           Inicia sesión para continuar
         </div>
       </div>
@@ -79,6 +78,9 @@ export default function ClientLogin(ctx) {
           Regístrate
         </button>
       </div>
+
+      {/* Disclaimer legal D28 */}
+      <LegalFooter />
     </div>
   );
 }

@@ -3,7 +3,7 @@
   "private": true,
   "version": "2.0.0",
   "type": "module",
-  "description": "Club Turkaj — Programa de Lealtad para Gasolineras Turkaj I, II y III",
+  "description": "Puntos Plus — plataforma de lealtad digital (primer cliente: Gasolineras Turkaj I, II y III)",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

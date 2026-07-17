@@ -7,7 +7,7 @@ import ReasonModal from '../../components/ui/ReasonModal';
 import { logAdminAction } from '../../services/rpcServices';
 
 const CAT_LABELS = {
-  combustible: 'Combustible', servicio: 'Servicio', merch: 'Club Turkaj',
+  combustible: 'Combustible', servicio: 'Servicio', merch: 'Puntos Plus',
   cultural: 'Chichi', shell: 'Shell', premium: 'Premium', apple: 'Apple',
 };
 const CAT_COLORS = {

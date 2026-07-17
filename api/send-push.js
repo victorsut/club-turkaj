@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     if (!subs?.length) return res.status(200).json({ sent: 0, message: 'No subscriptions' });
 
     const payload = JSON.stringify({
-      title: title || '⛽ Club Turkaj',
+      title: title || 'Puntos Plus',
       body: body || 'Tenés una notificación',
       icon: '/favicon.svg',
       tag: 'purchase-' + Date.now(),

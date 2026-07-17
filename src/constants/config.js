@@ -61,7 +61,7 @@ export const DEFAULT_CONFIG = {
 export const REWARD_CATEGORIES = {
   combustible: { bg: '#FFF3E0', color: '#E65100', label: 'Combustible' },
   servicio:    { bg: '#E8F5E9', color: '#2E7D32', label: 'Servicio' },
-  merch:       { bg: '#E3F2FD', color: '#1565C0', label: 'Club Turkaj' },
+  merch:       { bg: '#E3F2FD', color: '#1565C0', label: 'Puntos Plus' },
   cultural:    { bg: '#F3E5F5', color: '#7B1FA2', label: 'Chichi' },
   shell:       { bg: '#FFEBEE', color: '#C62828', label: 'Shell' },
   premium:     { bg: '#FFF8E1', color: '#F57F17', label: 'Premium' },

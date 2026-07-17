@@ -39,7 +39,7 @@ export default function ClientRegister(ctx) {
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
         <div style={{ fontSize: 52, marginBottom: 12 }}>⛽</div>
-        <div style={{ fontSize: 26, fontWeight: 900, color: textColor }}>Únete a Club Turkaj</div>
+        <div style={{ fontSize: 26, fontWeight: 900, color: textColor }}>Únete a Puntos Plus</div>
         <div style={{ fontSize: 14, color: '#9E9E9E', marginTop: 6 }}>Acumulá puntos en cada compra de combustible</div>
       </div>
 

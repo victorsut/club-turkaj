@@ -292,7 +292,7 @@ export default function GoogleProfile(ctx) {
       setCusts(p => [...p, updated]);
       setAuthScreen('logged');
       setGoogleStep('welcome');
-      fire('Bienvenido a Club Turkaj! +' + totalPts + ' pts de registro');
+      fire('Bienvenido a Puntos Plus! +' + totalPts + ' pts de registro');
 
       if (sb && sbConnected) {
         const provider   = me?.authProvider || 'manual';
@@ -342,7 +342,7 @@ export default function GoogleProfile(ctx) {
         if (vehicles.length > 0) {
           await sb.from('activity_log').insert({ member_id: dbId, activity_type: 'registro_vehiculos', description: vehicles.length + ' vehiculo(s) - +' + vehiclePts + ' pts', points_change: vehiclePts, metadata: { vehicles } });
         }
-        logActivity(dbId, 'registro', 'Bienvenido a Club Turkaj - +' + totalPts + ' pts', totalPts);
+        logActivity(dbId, 'registro', 'Bienvenido a Puntos Plus - +' + totalPts + ' pts', totalPts);
         console.log('[Reg] Registro completado exitosamente');
       } else {
         console.warn('[Reg] Sin conexion a Supabase — registro solo en memoria');

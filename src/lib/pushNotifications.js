@@ -56,7 +56,7 @@ export async function sendPushToMember(memberId, notification) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         member_id: memberId,
-        title: notification.title || '⛽ Club Turkaj',
+        title: notification.title || 'Puntos Plus',
         body: notification.body || 'Tenés una notificación',
         data: {
           type: 'purchase',

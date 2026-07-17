@@ -126,7 +126,7 @@ export default function AdminLogin(ctx) {
       </div>
 
       <div style={{ textAlign: 'center', fontSize: 12, color: '#555' }}>
-        Acceso solo autorizado · Club Turkaj
+        Acceso solo autorizado · Puntos Plus
       </div>
     </div>
   );

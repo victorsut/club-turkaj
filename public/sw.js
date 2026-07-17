@@ -105,7 +105,7 @@ self.addEventListener('fetch', (event) => {
 
 // ── Push Notifications ────────────────────────────────────
 self.addEventListener('push', (event) => {
-  let data = { title: 'Club Turkaj', body: 'Tenes una notificacion', icon: '/favicon.svg' };
+  let data = { title: 'Puntos Plus', body: 'Tenes una notificacion', icon: '/favicon.svg' };
   try {
     if (event.data) data = { ...data, ...event.data.json() };
   } catch (e) {

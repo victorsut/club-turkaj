@@ -43,6 +43,9 @@ export const adminTheme = {
   sub: '#9E9E9E',
 };
 
+// Rojo de marca Puntos Plus (D30 — wordmark de la referencia visual).
+export const BRAND_RED = '#E02020';
+
 // Galaxy gradients for BLACK tier
 export const GAL = 'radial-gradient(ellipse at 20% 30%, #0d0d1a 0%, #050508 40%, #000 100%)';
 export const GAL3 = 'radial-gradient(ellipse at 30% 40%, #0a0a15 0%, #04040a 50%, #000 100%)';
@@ -84,6 +87,6 @@ export const CAT_STYLES = {
 };
 
 export const CAT_LABELS = {
-  combustible: 'Combustible', servicio: 'Servicio', merch: 'Club Turkaj',
+  combustible: 'Combustible', servicio: 'Servicio', merch: 'Puntos Plus',
   cultural: 'Chichi', shell: 'Shell', premium: 'Premium', apple: 'Apple',
 };
