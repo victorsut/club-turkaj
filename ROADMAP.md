@@ -344,7 +344,7 @@ Mover el `useState(checkingPhone)` al tope del componente con los otros useState
 | — | P0 | Bug-fix pantalla blanca | 1-3 hs | Crítica | ✅ Completado |
 | — | FB | Integridad y trazabilidad de puntos | 16-26 hs | Crítica | ✅ **CERRADA** — caso ángel resuelto sin ajuste (D36) |
 | 0 | B0 | Flecos: F0.4 `AuditLog.jsx` (cierra F0) + confirmar F0.5 | 6-10 hs | Crítica | ✅ **COMPLETADO** (`c01e086`+`8b55c44`, smoke prod OK 17-jul) — **F0 CERRADA** |
-| 1 | R1a | Rebrand exprés a "Puntos Plus" (strings, manifest, splash, push, legales, disclaimer D28) | 10-16 hs | Crítica | Pendiente |
+| 1 | R1a | Rebrand exprés a "Puntos Plus" (strings, manifest, splash, push, legales, disclaimer D28) | 10-16 hs | Crítica | ✅ **Construido** (`6e195e4`+`faab783`) — pendiente smoke del dueño |
 | 2 | FA | Optimización impresión POS Sunmi | 42-59 hs | Crítica | Pendiente |
 | 3 | PROMO-1 | Motor de promociones v1 (dobles puntos / bonus por día-producto-monto) | 25-35 hs | Crítica | Pendiente |
 | 4 | SEC-lite | `authenticate_member` + cierre del vector cliente del raffle | 12-20 hs | Alta | Pendiente |
@@ -612,6 +612,8 @@ confianza del cliente.
 ---
 
 ### Fase R1a — Rebrand exprés a "Puntos Plus"
+
+**Estado:** ✅ **Construido** (17-jul-2026, commits `6e195e4` feat + `faab783` chore) — incluye `Wordmark.jsx` (logo tipográfico provisional, D30 del dueño: "usaremos el texto de la referencia, más adelante puede actualizarse"), `LegalFooter.jsx` (D28), T&C reescritos con sección INDEPENDENCIA DE MARCA, sección "Acerca de Puntos Plus" en el menú, y limpieza interna de comentarios/logs. `REFERENCIAS INTERFAZ/` versionada. Pendiente: smoke del dueño en prod.
 
 **Objetivo:** eliminar la marca "Club Turkaj" de todo lo visible al usuario YA, sin esperar el rediseño visual. Elimina la exposición legal frente a Shell Guatemala (D28/D30).
 
