@@ -41,7 +41,7 @@ import QRCode from '../components/ui/QRCode';
 import TierDeco from '../components/ui/TierDeco';
 import SpecialDayBonusModal from '../components/SpecialDayBonusModal';
 import UpdateAvailable from '../components/UpdateAvailable';
-import { Check, Fuel, Users, Gift, Ticket, Clock, Gear, Megaphone, Menu } from '../components/ui/Icons';
+import { Check, Fuel, Users, Gift, Ticket, Clock, Gear, Megaphone, Menu, Car } from '../components/ui/Icons';
 
 // Auth Views
 import ClientLogin from './client/ClientLogin';
@@ -74,6 +74,7 @@ import Settings from './admin/Settings';
 import AdminPromos from './admin/AdminPromos';
 import OpManagement from './admin/OpManagement';
 import AuditLog from './admin/AuditLog';
+import VehiclesSoon from './client/VehiclesSoon';
 import { isPushSupported, subscribePush, sendPushToMember } from '../lib/pushNotifications';
 
 export default function App() {
@@ -1324,7 +1325,7 @@ export default function App() {
     { id: 'cat', label: 'Canjear', icon: <Gift /> },
     { id: 'qr', label: '', icon: null, isQR: true },
     { id: 'raf', label: 'Rifa', icon: <Ticket /> },
-    { id: 'menu', label: 'Menú', icon: <Menu /> },
+    { id: 'veh', label: 'Vehículos', icon: <Car /> },
   ];
 
   const nav = isA ? adminNav : isO ? operatorNav : clientNav;
@@ -1370,6 +1371,7 @@ export default function App() {
     if (cScr === 'raf') return <ClientRaffle {...ctx} />;
     if (cScr === 'rules') return <Rules {...ctx} />;
     if (cScr === 'menu') return <ClientMenu {...ctx} />;
+    if (cScr === 'veh') return <VehiclesSoon {...ctx} />;
     return <ClientHome {...ctx} />;
   }
 
@@ -1420,8 +1422,10 @@ export default function App() {
           </div>
         )}
 
-        {/* Active screen */}
-        {renderScreen()}
+        {/* Active screen — el cliente entra con animación de pestaña (D35) */}
+        {isC && authScreen === 'logged'
+          ? <div key={cScr} className="pp-screen">{renderScreen()}</div>
+          : renderScreen()}
 
         {/* Bottom navigation */}
         {isLoggedIn && (

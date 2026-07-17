@@ -8,6 +8,12 @@
   "theme_color": "#FBBC04",
   "icons": [
     {
+      "src": "/logo.png",
+      "sizes": "813x819",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
       "src": "/favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml",

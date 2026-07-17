@@ -2,15 +2,15 @@
 // Main client dashboard: tier card, stats, survey, QR, promo carousel, history
 import { useState, useEffect, useCallback } from 'react';
 import { sb } from '../../lib/supabaseClient';
-import { sMono, GAL3, clientTheme } from '../../constants/styles';
+import { sMono, bento, BRAND_RED } from '../../constants/styles';
 import { CARD_PREFIX } from '../../constants/config';
-import { tierProgress } from '../../lib/tierSystem';
-import Badge from '../../components/ui/Badge';
+import Wordmark from '../../components/ui/Wordmark';
 import LegalFooter from '../../components/ui/LegalFooter';
-import TierDeco from '../../components/ui/TierDeco';
-import GalaxyDust from '../../components/ui/GalaxyDust';
+import BentoTile from '../../components/ui/BentoTile';
+import TierCardBento from '../../components/ui/TierCardBento';
 import InactivityWarning from '../../components/ui/InactivityWarning';
-import { Clock } from '../../components/ui/Icons';
+import HistorySheet from './HistorySheet';
+import { Menu } from '../../components/ui/Icons';
 
 export default function ClientHome(ctx) {
   const { me, gT, cfg, cTier, TH, activePromos, promoIdx, setPromoIdx,
@@ -20,7 +20,7 @@ export default function ClientHome(ctx) {
     showSurveys, setShowSurveys, fire,
     pendingOpRating, setPendingOpRating, sbConnected,
     activityLog, custs, redeemedList, logout,
-    rafData, curMonth } = ctx;
+    rafData, curMonth, setCScr } = ctx;
 
   if (!me) return null;
 
@@ -104,443 +104,298 @@ export default function ClientHome(ctx) {
     return tierPrefix + '-' + digits.slice(-5).padStart(5, '0');
   })();
 
-  const cStatY = {
-    background: cTier.name === 'BLACK' ? GAL3
-      : cTier.name === 'PLATINO' ? 'linear-gradient(135deg,#E0E0E0,#EEEEEE,#E0E0E0)' : '#F5F5F5',
-    borderRadius: 14, padding: 14, textAlign: 'center',
-    border: cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.08)'
-      : cTier.name === 'PLATINO' ? '1px solid #BDBDBD' : '1px solid #eee',
-    position: 'relative', overflow: 'hidden',
-  };
-
-  const cSec = {
-    padding: '12px 20px 6px', fontSize: 11, fontWeight: 800,
-    color: cTier.name === 'BLACK' ? 'rgba(255,255,255,.4)' : '#BDBDBD',
-    textTransform: 'uppercase', letterSpacing: 1.5,
-  };
-
-  // QR styles by tier
-  const qrStyles = {
-    ORO: { bg: 'linear-gradient(135deg,#FBBC04,#FFD540,#FBBC04)', border: '2px solid #E6A800', shadow: '0 8px 32px rgba(251,188,4,.3)', txtCol: 'rgba(0,0,0,.4)' },
-    PLATINO: { bg: 'linear-gradient(135deg,#9E9E9E,#BDBDBD,#CFD8DC,#BDBDBD)', border: '2px solid #1565C0', shadow: '0 6px 24px rgba(21,101,192,.25)', txtCol: 'rgba(255,255,255,.7)' },
-    BLACK: { bg: 'radial-gradient(ellipse at 20% 30%, #0d0d1a 0%, #050508 40%, #000 100%)', border: 'none', shadow: '0 16px 56px rgba(0,0,0,.7)', txtCol: 'rgba(255,255,255,.35)', isBlack: true },
-  };
-  const qrS = qrStyles[cTier.name];
-
-  // Activity history
+  // Activity history (alimenta las ventanas de historial)
   const myActs = activityLog?.[me.id] || [];
   const myRedeemed = (redeemedList || []).filter(rd => rd.memberId === me.id);
-  const cols = {
-    compra: cTier.name === 'BLACK' ? '#81C784' : '#2E7D32',
-    canje: cTier.name === 'BLACK' ? '#64B5F6' : '#1565C0',
-    evento: cTier.name === 'BLACK' ? '#FBBC04' : TH.pri,
-    rifa: cTier.name === 'BLACK' ? '#CE93D8' : '#7B1FA2',
-    encuesta: cTier.name === 'BLACK' ? '#FBBC04' : TH.pri,
-    registro: cTier.name === 'BLACK' ? '#FBBC04' : TH.pri,
-  };
+
+  // ── R1b: estado del home bento ────────────────────────────
+  const isBlack = cTier.name === 'BLACK';
+  const headerTxt = isBlack ? '#fff' : '#0D0D0D';
+  const subTxt = isBlack ? 'rgba(255,255,255,.55)' : '#6E6E73';
+  const firstName = (me.name || '').trim().split(' ')[0] || 'cliente';
+  const [showTierDetail, setShowTierDetail] = useState(false);
+  const [histSheet, setHistSheet] = useState(null); // 'compras' | 'canjes' | null
+
+  // Beneficios del nivel (detalle al tocar la tarjeta)
+  const bens = [
+    { i: '⛽', t: `1 pt por cada Q${cfg.qPerPt}` },
+    ...(cTier.discount > 0 ? [{ i: '💰', t: `Descuento Q${cTier.discount.toFixed(2)}/galón` }] : []),
+    ...(cTier.redeemDisc > 0 ? [{ i: '🏷️', t: `-${Math.round(cTier.redeemDisc * 100)}% en canje de premios` }] : []),
+    { i: '📶', t: cTier.name === 'ORO' ? 'WiFi — desde nivel PLATINO' : 'WiFi ilimitado' },
+    ...(cTier.bath ? [{ i: '🚻', t: 'Acceso a baños' }] : []),
+    { i: '🎂', t: `${cTier.evtPts} pts en eventos especiales` },
+    { i: '🎟️', t: `Rifa mensual (${cfg.ticketPts} pts = 1 boleto)` },
+  ];
+
+  // Saludo festivo (D34): special_days de hoy (hora de Guatemala) o cumpleaños.
+  const [festivo, setFestivo] = useState(null);
+  useEffect(() => {
+    if (!sb || !sbConnected) return;
+    const todayGT = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Guatemala' }); // YYYY-MM-DD
+    const mm = parseInt(todayGT.slice(5, 7), 10);
+    const dd = parseInt(todayGT.slice(8, 10), 10);
+    sb.from('special_days').select('name, month, day, icon, active').eq('active', true)
+      .then(({ data }) => {
+        if (!data) return;
+        const hit = data.find(s => s.month === mm && s.day === dd);
+        if (hit) { setFestivo({ name: hit.name, icon: hit.icon || '🎉' }); return; }
+        // month=0 = cumpleaños del miembro (regla del sistema)
+        if (data.some(s => s.month === 0) && me.bday === todayGT.slice(5)) {
+          setFestivo({ bday: true, icon: '🎂' });
+        }
+      });
+  }, [sbConnected, me.bday]);
 
   return (
-    <div style={{ paddingBottom: 90 }}>
+    <div style={{ paddingBottom: 100, minHeight: '100vh', background: isBlack ? 'transparent' : bento.pageBg }}>
       {/* Inactivity warning */}
       <InactivityWarning lastBuy={me.lastBuy} />
 
-      {/* Header: Welcome + Points */}
-      <div style={{ padding: '16px 20px 12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {me.avatar ? (
-            <img src={me.avatar} style={{ width: 44, height: 44, borderRadius: 14, border: `2px solid ${TH.pri}` }} alt="" />
-          ) : (
-            <div style={{
-              width: 44, height: 44, borderRadius: 14, background: cTier.bg, color: cTier.color,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 18,
-            }}>
-              {me.name?.charAt(0)}
-            </div>
-          )}
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D' }}>
-              {me.name}
-            </div>
-            <Badge t={cTier} />
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ ...sMono, fontSize: 24, fontWeight: 800, color: cTier.name === 'BLACK' ? '#FFD54F' : TH.pri }}>
-              {me.points}
-            </div>
-            <div style={{ fontSize: 10, color: cTier.name === 'BLACK' ? 'rgba(255,255,255,.4)' : '#9E9E9E', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
-              puntos
-            </div>
-          </div>
-        </div>
+      {/* Header: logo + menú (D34: la campana se sustituye por el menú) */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '18px 20px 4px' }}>
+        <img src="/logo.png" alt="Puntos Plus" style={{ width: 42, height: 42, borderRadius: 12, background: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,.08)' }} />
+        <div style={{ flex: 1 }} />
+        <button onClick={() => setCScr('menu')} aria-label="Menú" style={{
+          width: 42, height: 42, borderRadius: 12, border: 'none', cursor: 'pointer',
+          background: isBlack ? 'rgba(255,255,255,.08)' : '#fff',
+          color: headerTxt,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: isBlack ? 'none' : '0 2px 8px rgba(0,0,0,.08)',
+        }}>
+          <Menu />
+        </button>
       </div>
 
-      {/* Tier Card */}
-      {(() => {
-        const pg = tierProgress(me.gallons, cTier);
-        const tierBg = cTier.name === 'BLACK'
-          ? 'radial-gradient(ellipse at 20% 30%, #0d0d1a 0%, #050508 40%, #000 100%)'
-          : cTier.name === 'PLATINO'
-          ? 'linear-gradient(135deg,#9E9E9E 0%,#BDBDBD 30%,#CFD8DC 60%,#BDBDBD 100%)'
-          : 'linear-gradient(135deg,#FBBC04 0%,#FFD540 50%,#FBBC04 100%)';
-        const tierShadow = cTier.name === 'BLACK'
-          ? '0 12px 40px rgba(0,0,0,.6)'
-          : cTier.name === 'PLATINO'
-          ? '0 6px 24px rgba(21,101,192,.2)'
-          : '0 8px 32px rgba(251,188,4,.25)';
-        const tierBorder = cTier.name === 'BLACK'
-          ? 'none'
-          : cTier.name === 'PLATINO'
-          ? '2px solid #1565C0'
-          : '2px solid #E6A800';
-        const txtCol = cTier.color;
-        const barBg = cTier.name === 'BLACK' ? 'rgba(255,255,255,.15)' : cTier.name === 'PLATINO' ? 'rgba(0,0,0,.15)' : 'rgba(0,0,0,.08)';
-        const barFill = cTier.name === 'BLACK' ? '#fff' : cTier.name === 'PLATINO' ? '#1565C0' : '#000';
-        const sepCol = cTier.name === 'BLACK' ? 'rgba(255,255,255,.08)' : cTier.name === 'PLATINO' ? 'rgba(255,255,255,.15)' : 'rgba(0,0,0,.06)';
+      {/* Saludo personalizado (festivo vía special_days — D34) */}
+      <div style={{ padding: '6px 20px 2px' }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: subTxt }}>¡Hola, {firstName}!</div>
+        <div style={{ fontSize: 25, fontWeight: 900, color: headerTxt, lineHeight: 1.2 }}>
+          Bienvenido a <Wordmark size={25} color={headerTxt} />
+        </div>
+        {festivo && (
+          <div style={{ marginTop: 6, fontSize: 13, fontWeight: 800, color: BRAND_RED }}>
+            {festivo.icon} {festivo.bday ? `¡Feliz cumpleaños, ${firstName}!` : `¡Feliz ${festivo.name}!`}
+          </div>
+        )}
+      </div>
 
-        const bens = [
-          { i: '⛽', t: `1 pt por cada Q${cfg.qPerPt}` },
-          ...(cTier.discount > 0 ? [{ i: '💰', t: `Descuento Q${cTier.discount.toFixed(2)}/galón` }] : []),
-          ...(cTier.redeemDisc > 0 ? [{ i: '🏷️', t: `-${Math.round(cTier.redeemDisc * 100)}% en canje de premios` }] : []),
-          { i: '📶', t: 'WiFi ilimitado' },
-          ...(cTier.bath ? [{ i: '🚻', t: 'Acceso a baños' }] : []),
-          { i: '🎂', t: `${cTier.evtPts} pts en eventos especiales` },
-          { i: '🎟️', t: `Rifa mensual (${cfg.ticketPts} pts = 1 boleto)` },
-        ];
+      {/* Tarjeta de nivel (D34: doble zona táctil — general → detalle, puntos → Canjes) */}
+      <TierCardBento
+        me={me}
+        cTier={cTier}
+        onOpenDetail={() => setShowTierDetail(true)}
+        onPointsTap={() => setCScr('cat')}
+      />
 
-        return (
-          <div style={{
-            borderRadius: 20, padding: 20, margin: '10px 20px',
-            background: tierBg, color: txtCol,
-            position: 'relative', overflow: 'hidden',
-            boxShadow: tierShadow, border: tierBorder,
-          }}>
-            <TierDeco name={cTier.name} />
-            <div style={{ position: 'relative', zIndex: 2 }}>
-              {/* Tier name + base gallons */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: 2 }}>{cTier.icon} {cTier.name}</div>
-                {cTier.base > 0 && <div style={{ fontSize: 11, opacity: .6, fontWeight: 700 }}>{cTier.base}+ gls</div>}
+      {/* ── Bento grid (referencia visual R1b) ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '14px 16px 0' }}>
+
+        {/* 1 · Promociones: el carrusel real ocupa el slot del cuadro rojo (D33) */}
+        <div
+          className="pp-tile"
+          onClick={() => activePromos.length > 1 && setPromoIdx((promoIdx + 1) % activePromos.length)}
+          style={{
+            background: bento.red, borderRadius: bento.radius, minHeight: 128,
+            position: 'relative', overflow: 'hidden', boxShadow: bento.shadow,
+            cursor: activePromos.length > 1 ? 'pointer' : 'default',
+            color: '#fff', padding: '16px 16px 14px',
+            display: 'flex', flexDirection: 'column', animationDelay: '0ms',
+          }}
+        >
+          {activePromos.length === 0 ? (
+            <>
+              <div style={{ fontSize: 30, lineHeight: 1 }}>🎁</div>
+              <div style={{ marginTop: 'auto', paddingTop: 10 }}>
+                <div style={{ fontSize: 13, fontWeight: 900, textTransform: 'uppercase', letterSpacing: 0.8 }}>Promociones</div>
+                <div style={{ fontSize: 11, opacity: 0.85, marginTop: 3, fontWeight: 600 }}>Descubre ofertas exclusivas</div>
               </div>
-
-              {/* Benefits */}
-              {bens.map((b, i) => (
-                <div key={i} style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '9px 0', borderBottom: `1px solid ${sepCol}`,
-                  fontSize: 13, fontWeight: 600,
+            </>
+          ) : (
+            <>
+              {activePromos.map((p, i) => (
+                <div key={p.id} style={{
+                  position: 'absolute', inset: 0, padding: '14px 14px 20px',
+                  background: p.bg || bento.red,
+                  display: 'flex', flexDirection: 'column',
+                  opacity: i === promoIdx ? 1 : 0, transition: 'opacity .5s ease',
                 }}>
-                  <span style={{ width: 28, textAlign: 'center' }}>{b.i}</span>
-                  <span>{b.t}</span>
+                  {p.icon && <div style={{ fontSize: 26, lineHeight: 1 }}>{p.icon}</div>}
+                  <div style={{ marginTop: 'auto' }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 900, color: p.color || '#fff', lineHeight: 1.25 }}>{p.title}</div>
+                    {p.desc && (
+                      <div style={{ fontSize: 10, color: p.color || '#fff', opacity: 0.8, marginTop: 2, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                        {p.desc}
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
+              {activePromos.length > 1 && (
+                <div style={{ position: 'absolute', bottom: 7, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 4 }}>
+                  {activePromos.map((_, i) => (
+                    <div key={i} style={{ width: i === promoIdx ? 14 : 5, height: 5, borderRadius: 3, background: '#fff', opacity: i === promoIdx ? 0.95 : 0.45, transition: 'all .3s' }} />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
 
-              {/* Progress bar */}
-              {cTier.next && (
-                <div style={{ marginTop: 12 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, opacity: .6, marginBottom: 6, fontWeight: 700 }}>
-                    <span>Siguiente: {cTier.next}</span>
-                    <span style={sMono}>{me.gallons.toFixed(0)}/{cTier.target} gal</span>
-                  </div>
-                  <div style={{ position: 'relative' }}>
-                    <div style={{ height: 6, borderRadius: 3, overflow: 'hidden', background: barBg }}>
-                      <div style={{
-                        height: '100%', borderRadius: 3,
-                        width: `${pg}%`,
-                        background: barFill,
-                        transition: 'width 1s ease',
-                      }} />
-                    </div>
-                  </div>
-                  <div style={{ fontSize: 10, opacity: .5, marginTop: 6, fontWeight: 600, textAlign: 'center' }}>
-                    Faltan {cTier.rem} galones para {cTier.next}
-                  </div>
-                </div>
-              )}
-              {!cTier.next && (
-                <div style={{ marginTop: 12, textAlign: 'center', fontSize: 11, fontWeight: 700, opacity: .6 }}>
-                  ⭐ ¡Nivel máximo alcanzado! · {me.gallons.toFixed(0)} galones
-                </div>
-              )}
+        {/* 2 · Vehículo (placeholder hasta F6 — D34) */}
+        <BentoTile
+          index={1} color={bento.green} icon="🚗" title="Vehículo"
+          sub="Administra y consulta tus vehículos" badge="PRÓXIMAMENTE"
+          onClick={() => setCScr('veh')}
+        />
+
+        {/* 3 · WiFi (beneficio PLATINO/BLACK — D34) */}
+        <BentoTile
+          index={2} color={bento.blue} icon="📶" title="WiFi"
+          sub={cTier.name === 'ORO' ? 'Disponible desde nivel PLATINO' : 'Conéctate a nuestro WiFi gratis'}
+          dimmed={cTier.name === 'ORO'}
+          onClick={() => {
+            if (cTier.name === 'ORO') { fire('📶 El WiFi gratis se desbloquea en nivel PLATINO'); return; }
+            setShowWifi(true);
+          }}
+        />
+
+        {/* 4 · Encuesta de Satisfacción (sustituye a "Encuentra Shell" — D34) */}
+        <BentoTile
+          index={3} color={bento.amber} icon="📋" title="Encuesta"
+          sub={mySurveyCount >= cfg.surveyDaily
+            ? '✅ Completaste las de hoy'
+            : `${mySurveyCount}/${cfg.surveyDaily} hoy · +${cfg.surveyPts} pts c/u`}
+          onClick={() => {
+            if (mySurveyCount >= cfg.surveyDaily) { fire('✅ Ya completaste tus encuestas de hoy'); return; }
+            setShowSurveys(true);
+          }}
+        />
+
+        {/* 5 · Ubicación */}
+        <BentoTile
+          index={4} color={bento.purple} icon="📍" title="Ubicación"
+          sub="Ubica nuestras estaciones"
+          onClick={() => setShowMap(true)}
+        />
+
+        {/* 6 · Historial de canjes */}
+        <BentoTile
+          index={5} color={bento.teal} icon="🎁" title="Historial de Canjes"
+          sub={`${myRedeemed.length} canje${myRedeemed.length === 1 ? '' : 's'} realizados`}
+          onClick={() => setHistSheet('canjes')}
+        />
+
+        {/* 7 · Historial de compras (ancho completo) */}
+        <BentoTile
+          index={6} span={2} color={bento.orange} icon="🛍️" title="Historial de Compras"
+          sub="Consulta tus compras y puntos acumulados"
+          onClick={() => setHistSheet('compras')}
+        />
+      </div>
+
+
+
+      {/* Disclaimer legal D28 (arriba de las ventanas/modales) */}
+      <LegalFooter color={isBlack ? 'rgba(255,255,255,.4)' : '#9E9E9E'} />
+
+      {/* Detalle del nivel (tocar la tarjeta — D34) */}
+      {showTierDetail && (
+        <div onClick={() => setShowTierDetail(false)} style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)',
+          zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 20, animation: 'fadeUp .25s ease',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: isBlack ? '#1A1A2E' : '#fff',
+            borderRadius: 24, maxWidth: 380, width: '100%', padding: '24px 20px',
+            border: isBlack ? '1px solid rgba(255,255,255,.1)' : '1px solid #eee',
+            boxShadow: '0 20px 60px rgba(0,0,0,.3)',
+            maxHeight: '85vh', overflowY: 'auto',
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: 14 }}>
+              <div style={{ fontSize: 34, marginBottom: 6 }}>{cTier.icon}</div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: isBlack ? '#fff' : '#0D0D0D' }}>Nivel {cTier.name}</div>
+              {cTier.base > 0 && <div style={{ fontSize: 11, color: '#9E9E9E', fontWeight: 700, marginTop: 2 }}>{cTier.base}+ galones</div>}
             </div>
-          </div>
-        );
-      })()}
-
-      {/* ── Carrusel de promociones ── */}
-      {activePromos.length > 0 && (
-        <div style={{ padding: '4px 12px 8px', position: 'relative' }}>
-          <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', height: 110 }}>
-            {activePromos.map((p, i) => (
-              <div key={p.id} style={{
-                position: 'absolute', inset: 0,
-                background: p.bg || (cTier.name === 'BLACK' ? 'linear-gradient(135deg,#1a1a3e,#0d0d1a)' : 'linear-gradient(135deg,#FBBC04,#FFD540)'),
-                display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px',
-                opacity: i === promoIdx ? 1 : 0,
-                transition: 'opacity .5s ease',
-                pointerEvents: i === promoIdx ? 'auto' : 'none',
+            {bens.map((b, i) => (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0',
+                borderBottom: i < bens.length - 1 ? `1px solid ${isBlack ? 'rgba(255,255,255,.08)' : '#F0F0F0'}` : 'none',
+                fontSize: 13, fontWeight: 600, color: isBlack ? '#E0E0E0' : '#424242',
               }}>
-                {p.icon && <div style={{ fontSize: 40, flexShrink: 0 }}>{p.icon}</div>}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 900, color: p.color || '#fff', marginBottom: 4, lineHeight: 1.2 }}>{p.title}</div>
-                  {p.desc && <div style={{ fontSize: 11, color: p.color || '#fff', opacity: .8, lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{p.desc}</div>}
-                </div>
+                <span style={{ width: 28, textAlign: 'center' }}>{b.i}</span>
+                <span>{b.t}</span>
               </div>
             ))}
-          </div>
-          {activePromos.length > 1 && (
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 8 }}>
-              {activePromos.map((_, i) => (
-                <div key={i} onClick={() => setPromoIdx(i)} style={{
-                  width: i === promoIdx ? 18 : 6, height: 6, borderRadius: 3,
-                  background: i === promoIdx
-                    ? (cTier.name === 'BLACK' ? '#FFD54F' : cTier.name === 'PLATINO' ? '#1565C0' : '#FBBC04')
-                    : (cTier.name === 'BLACK' ? 'rgba(255,255,255,.2)' : '#E0E0E0'),
-                  transition: 'all .3s', cursor: 'pointer',
-                }} />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Stats row: Visits, Invite, Raffle Tickets */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, padding: '0 12px', margin: '12px 0' }}>
-        <div style={cStatY}>
-          {cTier.name === 'BLACK' && <GalaxyDust n={10} />}
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ ...sMono, fontSize: 22, color: cTier.name === 'BLACK' ? '#fff' : cTier.name === 'PLATINO' ? '#0D0D0D' : '#0D0D0D' }}>{me.visits}</div>
-            <div style={{ fontSize: 10, opacity: .6, textTransform: 'uppercase', letterSpacing: 1, marginTop: 4, fontWeight: 700, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D' }}>Visitas</div>
-          </div>
-        </div>
-
-        <div onClick={() => setShowInvite(true)} style={{
-          ...cStatY, cursor: 'pointer',
-          background: cTier.name === 'BLACK' ? GAL3 : cTier.name === 'PLATINO' ? 'linear-gradient(135deg,#C8E6C9,#E8F5E9,#C8E6C9)' : '#E8F5E9',
-          border: cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.08)' : '1px solid #C8E6C9',
-        }}>
-          {cTier.name === 'BLACK' && <GalaxyDust n={8} />}
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ fontSize: 22 }}>👥</div>
-            <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: .5, fontWeight: 800, color: cTier.name === 'BLACK' ? '#81C784' : '#2E7D32' }}>Invitar amigo</div>
-            <div style={{ fontSize: 8, fontWeight: 700, color: cTier.name === 'BLACK' ? '#66BB6A' : '#43A047' }}>+{cfg.referralPts}pts</div>
-          </div>
-        </div>
-
-        <div style={{
-          ...cStatY,
-          background: cTier.name === 'BLACK' ? GAL3 : cTier.name === 'PLATINO' ? 'linear-gradient(135deg,#E1BEE7,#F3E5F5,#E1BEE7)' : '#F3E5F5',
-          border: cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.08)' : '1px solid #E1BEE7',
-        }}>
-          {cTier.name === 'BLACK' && <GalaxyDust n={8} />}
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ ...sMono, fontSize: 22, color: cTier.name === 'BLACK' ? '#CE93D8' : '#7B1FA2' }}>{currentMonthTickets}</div>
-            <div style={{ fontSize: 10, color: cTier.name === 'BLACK' ? '#BA68C8' : '#7B1FA2', textTransform: 'uppercase', letterSpacing: 1, marginTop: 4, fontWeight: 700 }}>Boletos Rifa</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick action row: WiFi, Baños, Estaciones */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, padding: '0 12px', margin: '6px 0 12px' }}>
-        <div onClick={() => setShowWifi(true)} style={{
-          ...cStatY, cursor: 'pointer',
-          background: cTier.name === 'BLACK' ? GAL3 : cTier.name === 'PLATINO' ? 'linear-gradient(135deg,#BBDEFB,#E3F2FD,#BBDEFB)' : '#E3F2FD',
-          border: cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.08)' : '1px solid #BBDEFB',
-        }}>
-          {cTier.name === 'BLACK' && <GalaxyDust n={8} />}
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ fontSize: 22 }}>📶</div>
-            <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: .5, fontWeight: 800, color: cTier.name === 'BLACK' ? '#64B5F6' : '#1565C0', marginTop: 4 }}>Código WiFi</div>
-          </div>
-        </div>
-
-        <div style={{
-          ...cStatY, opacity: cTier.bath ? 1 : .5,
-          background: cTier.name === 'BLACK' ? GAL3 : cTier.bath ? '#FFF8E1' : '#F5F5F5',
-          border: cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.08)' : cTier.bath ? '1px solid #FFE082' : '1px solid #E0E0E0',
-        }}>
-          {cTier.name === 'BLACK' && <GalaxyDust n={8} />}
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ fontSize: 22 }}>🚻</div>
-            <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: .5, fontWeight: 800, color: cTier.bath ? (cTier.name === 'BLACK' ? '#FFD54F' : '#F57F17') : '#BDBDBD', marginTop: 4 }}>
-              {cTier.bath ? 'Acceso baños' : 'PLATINO+'}
-            </div>
-          </div>
-        </div>
-
-        <div onClick={() => setShowMap(true)} style={{
-          ...cStatY, cursor: 'pointer',
-          background: cTier.name === 'BLACK' ? GAL3 : cTier.name === 'PLATINO' ? 'linear-gradient(135deg,#FFCDD2,#FFEBEE,#FFCDD2)' : '#FFEBEE',
-          border: cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.08)' : '1px solid #FFCDD2',
-        }}>
-          {cTier.name === 'BLACK' && <GalaxyDust n={8} />}
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ fontSize: 22 }}>📍</div>
-            <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: .5, fontWeight: 800, color: cTier.name === 'BLACK' ? '#EF5350' : '#C62828', marginTop: 4 }}>Estaciones</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Survey button */}
-      <div onClick={() => {
-        if (mySurveyCount >= cfg.surveyDaily) return;
-        setShowSurveys(true);
-      }} style={{
-        margin: '8px 12px 12px', padding: 16,
-        background: cTier.name === 'BLACK' ? GAL3 : cTier.name === 'PLATINO' ? 'linear-gradient(135deg,#BBDEFB,#E3F2FD)' : '#E3F2FD',
-        borderRadius: 16,
-        border: cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.08)' : '1px solid #BBDEFB',
-        cursor: mySurveyCount >= cfg.surveyDaily ? 'default' : 'pointer',
-        opacity: mySurveyCount >= cfg.surveyDaily ? .5 : 1,
-        position: 'relative', overflow: 'hidden',
-      }}>
-        {cTier.name === 'BLACK' && <GalaxyDust n={8} />}
-        <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ fontSize: 28 }}>📋</div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D' }}>
-              Encuesta de satisfacción Shell
-            </div>
-            <div style={{ fontSize: 11, color: cTier.name === 'BLACK' ? 'rgba(255,255,255,.6)' : '#757575', marginTop: 2 }}>
-              {mySurveyCount >= cfg.surveyDaily
-                ? '✅ ¡Completaste todas! Boleto bonus ganado'
-                : `${mySurveyCount}/${cfg.surveyDaily} hoy · +${cfg.surveyPts} pts c/u`}
-            </div>
-            <div style={{ height: 4, borderRadius: 2, overflow: 'hidden', background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.08)', marginTop: 6 }}>
-              <div style={{
-                height: '100%', borderRadius: 2, width: `${(mySurveyCount / cfg.surveyDaily) * 100}%`,
-                background: mySurveyCount >= cfg.surveyDaily ? '#FFD54F' : (cTier.name === 'BLACK' ? '#64B5F6' : '#1565C0'),
-                transition: 'width .3s ease',
-              }} />
-            </div>
-          </div>
-          <div style={{ textAlign: 'right', flexShrink: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: cTier.name === 'BLACK' ? '#64B5F6' : '#1565C0', ...sMono }}>
-              +{cfg.surveyPts} pts
-            </div>
-            {mySurveyCount >= cfg.surveyDaily && (
-              <div style={{ fontSize: 10, fontWeight: 800, color: '#FFD54F', marginTop: 2 }}>🎟️ +1</div>
-            )}
-          </div>
-        </div>
-      </div>
-
-
-
-      {/* History toggle */}
-      <div style={{ padding: '0 20px 16px' }}>
-        <button onClick={() => setShowHist(!showHist)} style={{
-          width: '100%', background: cTier.name !== 'ORO' ? TH.cardBg : '#FAFAFA',
-          border: cTier.name !== 'ORO' ? TH.cardBorder : '1px solid #eee',
-          borderRadius: 14, padding: 14, fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700,
-          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          color: cTier.name === 'BLACK' ? '#ccc' : '#424242',
-        }}>
-          <Clock /> Historial {showHist ? '▲' : '▼'}
-        </button>
-      </div>
-
-      {/* Activity history */}
-      {showHist && (
-        <div style={{ animation: 'fadeUp .3s ease', background: cTier.name !== 'ORO' ? TH.histBg : undefined }}>
-          {myActs.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 32, color: '#9E9E9E', fontSize: 13 }}>
-              Sin actividad registrada aún
-            </div>
-          ) : (
-            myActs.slice(0, 20).map((a, i) => {
-              const dt = a.date || '';
-              const dd = dt.length >= 10 ? `${dt.substring(8, 10)}/${dt.substring(5, 7)}` : dt;
-              const pts = typeof a.pts === 'string' ? parseInt(a.pts, 10) : (a.pts || 0);
-              const col = cols[a.type] || cols.evento;
-              return (
-                <div key={i} style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '10px 20px',
-                  borderBottom: `1px solid ${cTier.name === 'BLACK' ? 'rgba(255,255,255,.04)' : '#F0F0F0'}`,
-                  animation: `slideIn .3s ${i * 0.03}s both`,
-                }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: 10,
-                    background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.05)' : `${col}15`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
-                  }}>
-                    {a.type === 'registro' ? '🎉' : a.type === 'compra' ? '⛽' : a.type === 'canje' ? '🎁' : a.type === 'rifa' ? '🎟️' : a.type === 'encuesta' ? '📋' : '⭐'}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: cTier.name === 'BLACK' ? '#E0E0E0' : '#424242', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {a.desc}
-                    </div>
-                    <div style={{ fontSize: 10, color: '#9E9E9E', ...sMono, marginTop: 2 }}>{dd}</div>
-                  </div>
-                  {pts !== 0 && (
-                    <div style={{ ...sMono, fontSize: 13, fontWeight: 800, color: pts > 0 ? col : '#C62828', flexShrink: 0 }}>
-                      {pts > 0 ? '+' : ''}{pts}
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
-      )}
-
-      {/* My Redemptions toggle */}
-      <div style={{ padding: '0 20px 16px' }}>
-        <button onClick={() => setShowRedeemed(!showRedeemed)} style={{
-          width: '100%', background: cTier.name !== 'ORO' ? TH.cardBg : '#FAFAFA',
-          border: cTier.name !== 'ORO' ? TH.cardBorder : '1px solid #eee',
-          borderRadius: 14, padding: 14, fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700,
-          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          color: cTier.name === 'BLACK' ? '#ccc' : '#424242',
-        }}>
-          🎁 Mis Canjes ({myRedeemed.length}) {showRedeemed ? '▲' : '▼'}
-        </button>
-      </div>
-
-      {/* Redeemed list */}
-      {showRedeemed && (
-        <div style={{ animation: 'fadeUp .3s ease', padding: '0 20px 16px' }}>
-          {myRedeemed.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 24, color: '#9E9E9E', fontSize: 13 }}>
-              Aún no has canjeado premios
-            </div>
-          ) : (
-            myRedeemed.map((rd, i) => (
-              <div key={rd.id} style={{
-                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0',
-                borderBottom: i < myRedeemed.length - 1 ? `1px solid ${cTier.name === 'BLACK' ? 'rgba(255,255,255,.04)' : '#F0F0F0'}` : 'none',
-                animation: `slideIn .3s ${i * 0.03}s both`,
-              }}>
-                <div style={{
-                  width: 40, height: 40, borderRadius: 12,
-                  background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.05)' : '#E3F2FD',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
-                }}>
-                  {rd.reward?.icon || '🎁'}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: cTier.name === 'BLACK' ? '#E0E0E0' : '#424242' }}>
-                    {rd.reward?.name || 'Premio'}
-                  </div>
-                  <div style={{ fontSize: 10, color: '#9E9E9E', ...sMono, marginTop: 2 }}>
-                    {rd.date} · Código: {rd.code}
-                  </div>
-                </div>
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ ...sMono, fontSize: 13, fontWeight: 800, color: '#C62828' }}>
-                    -{rd.cost} pts
-                  </div>
-                  <div style={{
-                    fontSize: 9, fontWeight: 700, marginTop: 2,
-                    color: rd.collected ? '#2E7D32' : '#FF8F00',
-                  }}>
-                    {rd.collected ? '✅ Recogido' : '⏳ Pendiente'}
-                  </div>
-                </div>
+            {cTier.next && (
+              <div style={{ marginTop: 12, fontSize: 11, fontWeight: 700, color: '#9E9E9E', textAlign: 'center' }}>
+                Faltan {cTier.rem} galones para {cTier.next}
               </div>
-            ))
-          )}
+            )}
+            <button onClick={() => setShowTierDetail(false)} style={{
+              width: '100%', marginTop: 14, padding: 14, borderRadius: 14,
+              background: isBlack ? 'rgba(255,255,255,.08)' : '#F5F5F5',
+              border: isBlack ? '1px solid rgba(255,255,255,.1)' : '1px solid #eee',
+              fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700,
+              color: isBlack ? '#ccc' : '#424242', cursor: 'pointer',
+            }}>
+              Cerrar
+            </button>
+          </div>
         </div>
+      )}
+
+      {/* WiFi (pase de acceso — la clave la entrega el operador) */}
+      {showWifi && (
+        <div onClick={() => setShowWifi(false)} style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)',
+          zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 20, animation: 'fadeUp .25s ease',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: isBlack ? '#1A1A2E' : '#fff',
+            borderRadius: 24, maxWidth: 340, width: '100%', padding: '26px 22px', textAlign: 'center',
+            border: isBlack ? '1px solid rgba(255,255,255,.1)' : '1px solid #eee',
+            boxShadow: '0 20px 60px rgba(0,0,0,.3)',
+          }}>
+            <div style={{ fontSize: 38, marginBottom: 8 }}>📶</div>
+            <div style={{ fontSize: 19, fontWeight: 900, color: isBlack ? '#fff' : '#0D0D0D' }}>WiFi Puntos Plus</div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#1565C0', marginTop: 2, textTransform: 'uppercase', letterSpacing: 1 }}>
+              Beneficio {cTier.name}
+            </div>
+            <div style={{ fontSize: 13, color: '#9E9E9E', lineHeight: 1.6, margin: '14px 0' }}>
+              Mostrá esta pantalla al operador de la estación para recibir la clave WiFi.
+            </div>
+            <div style={{
+              ...sMono, fontSize: 18, fontWeight: 800, letterSpacing: 2,
+              padding: '12px 0', borderRadius: 14,
+              background: isBlack ? 'rgba(21,101,192,.2)' : '#E3F2FD',
+              color: isBlack ? '#64B5F6' : '#1565C0',
+            }}>
+              {displayCode}
+            </div>
+            <button onClick={() => setShowWifi(false)} style={{
+              width: '100%', marginTop: 14, padding: 14, borderRadius: 14,
+              background: isBlack ? 'rgba(255,255,255,.08)' : '#F5F5F5',
+              border: isBlack ? '1px solid rgba(255,255,255,.1)' : '1px solid #eee',
+              fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700,
+              color: isBlack ? '#ccc' : '#424242', cursor: 'pointer',
+            }}>
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Historiales full-screen: Hoy · Mes · Año · Todo (D34) */}
+      {histSheet && (
+        <HistorySheet
+          type={histSheet}
+          onClose={() => setHistSheet(null)}
+          acts={myActs}
+          redeemed={myRedeemed}
+          tierName={cTier.name}
+        />
       )}
       {/* Stations modal */}
       {showMap && (
@@ -857,8 +712,6 @@ export default function ClientHome(ctx) {
         </div>
       )}
 
-      {/* Disclaimer legal D28 */}
-      <LegalFooter />
     </div>
   );
 }

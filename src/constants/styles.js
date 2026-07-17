@@ -46,6 +46,21 @@ export const adminTheme = {
 // Rojo de marca Puntos Plus (D30 — wordmark de la referencia visual).
 export const BRAND_RED = '#E02020';
 
+// R1b — Tokens del sistema bento (derivados de la referencia visual y
+// consolidando la paleta que ya existía en los gradientes de AdminPromos).
+export const bento = {
+  pageBg: '#F5F5F7',
+  radius: 20,
+  shadow: '0 4px 10px rgba(0,0,0,.10)',
+  red:    '#E53935',
+  green:  '#2E7D32',
+  blue:   '#1565C0',
+  amber:  '#E8A33D',
+  purple: '#6A1B9A',
+  teal:   '#00838F',
+  orange: '#E65100',
+};
+
 // Galaxy gradients for BLACK tier
 export const GAL = 'radial-gradient(ellipse at 20% 30%, #0d0d1a 0%, #050508 40%, #000 100%)';
 export const GAL3 = 'radial-gradient(ellipse at 30% 40%, #0a0a15 0%, #04040a 50%, #000 100%)';

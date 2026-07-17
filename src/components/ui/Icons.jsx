@@ -153,5 +153,15 @@ export const Menu = () => (
   </svg>
 );
 
-const IC = { Fuel, Users, Gift, Ticket, Star, Plus, Search, Back, Check, Chev, Pin, Clock, Warn, QR, Gear, Logout, GoogleLogo, FacebookLogo, Megaphone, Menu };
+export const Car = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5 11l1.5-4.2A2 2 0 0 1 8.4 5.5h7.2a2 2 0 0 1 1.9 1.3L19 11"/>
+    <path d="M4 11h16a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-1M4 11a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h1"/>
+    <circle cx="7.5" cy="16.5" r="1.6"/>
+    <circle cx="16.5" cy="16.5" r="1.6"/>
+    <path d="M9.1 16.5h5.8"/>
+  </svg>
+);
+
+const IC = { Fuel, Users, Gift, Ticket, Star, Plus, Search, Back, Check, Chev, Pin, Clock, Warn, QR, Gear, Logout, GoogleLogo, FacebookLogo, Megaphone, Menu, Car };
 export default IC;

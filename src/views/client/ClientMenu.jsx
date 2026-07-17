@@ -20,7 +20,7 @@ const VEHICLE_TYPES = [
 const typeInfo = k => VEHICLE_TYPES.find(t => t.k === k) || VEHICLE_TYPES[4];
 
 export default function ClientMenu(ctx) {
-  const { me, setMe, cfg, cTier, fire, sbConnected, logout } = ctx;
+  const { me, setMe, cfg, cTier, fire, sbConnected, logout, setCScr } = ctx;
 
   const [section, setSection] = useState(null);
   const [form, setForm]       = useState(null);
@@ -438,9 +438,12 @@ export default function ClientMenu(ctx) {
   // ── MENÚ PRINCIPAL ───────────────────────────────────────
   return (
     <div style={{ paddingBottom: 100, minHeight: '100vh', background: TH.bg }}>
-      {/* Header */}
+      {/* Header (R1b: se llega desde el botón del home, con vuelta) */}
       <div style={{ padding: '24px 20px 20px' }}>
-        <div style={{ fontSize: 22, fontWeight: 900, color: TH.header }}>☰ Menú</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button onClick={() => setCScr && setCScr('home')} aria-label="Volver" style={{ background: 'none', border: 'none', color: TH.accent, cursor: 'pointer', fontSize: 22, fontWeight: 700, padding: '0 4px 0 0', lineHeight: 1 }}>←</button>
+          <div style={{ fontSize: 22, fontWeight: 900, color: TH.header }}>Menú</div>
+        </div>
         {me && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 16, padding: '14px 18px', borderRadius: 18, background: TH.cardBg, border: TH.cardBorder }}>
             <div style={{ width: 48, height: 48, borderRadius: 16, background: isDark ? 'rgba(255,213,79,.15)' : '#FFF8E1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 900, color: TH.accent, flexShrink: 0 }}>
