@@ -114,9 +114,19 @@ body {
 .pp-grow-out { animation: ppGrowOut .22s ease-in forwards; }
 .pp-screen   { animation: ppGrowTab .3s cubic-bezier(.32, .72, .33, 1) backwards; }
 
+/* Tinte de continuidad (feedback del dueño): la ventana NACE del color
+   del cuadro presionado y se aclara al ocupar la pantalla; al cerrar,
+   se vuelve a teñir mientras se guarda en el cuadro. */
+@keyframes ppTintOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes ppTintIn  { from { opacity: 0; } to { opacity: 1; } }
+.pp-tint    { animation: ppTintOut .45s ease-out forwards; pointer-events: none; }
+.pp-tint-in { animation: ppTintIn .18s ease-in forwards; pointer-events: none; }
+
 @media (prefers-reduced-motion: reduce) {
   .pp-tile, .pp-grow, .pp-screen { animation: ppFade .15s ease backwards; }
   .pp-grow-out { animation: ppFadeOut .15s ease forwards; }
+  .pp-tint { animation-duration: .15s; }
+  .pp-tint-in { animation-duration: .1s; }
   .pp-tile:active { transform: none; }
 }
 

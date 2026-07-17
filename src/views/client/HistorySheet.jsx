@@ -30,7 +30,7 @@ const itemDay = (raw) => {
   } catch { return s.slice(0, 10); }
 };
 
-export default function HistorySheet({ type, origin, onClose, acts, redeemed, tierName }) {
+export default function HistorySheet({ type, origin, tint, onClose, acts, redeemed, tierName }) {
   const isBlack = tierName === 'BLACK';
   const isCompras = type === 'compras';
   const todayGT = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Guatemala' });
@@ -110,6 +110,11 @@ export default function HistorySheet({ type, origin, onClose, acts, redeemed, ti
       background: TH.bg, overflowY: 'auto', paddingBottom: 40,
       transformOrigin: origin ? `${origin.x}px ${origin.y}px` : '50% 80%',
     }}>
+      {/* Tinte de continuidad: nace del color del tile y se aclara; al
+          cerrar se vuelve a teñir mientras se guarda (D35). */}
+      {tint && (
+        <div className={closing ? 'pp-tint-in' : 'pp-tint'} style={{ position: 'absolute', inset: 0, background: tint, zIndex: 5 }} />
+      )}
       {/* Header */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 2, background: TH.bg,

@@ -121,8 +121,20 @@ export default function ClientHome(ctx) {
   // de ahí (transform-origin relativo al centro del viewport).
   const [modalOrigin, setModalOrigin] = useState(null);
   const mOrigin = modalOrigin
-    ? `calc(50% + ${modalOrigin.dx}px) calc(50% + ${modalOrigin.dy}px)`
+    ? `calc(50% + ${modalOrigin.dx || 0}px) calc(50% + ${modalOrigin.dy || 0}px)`
     : '50% 50%';
+  const mTint = modalOrigin?.tint || null;
+  // Origen + tinte del cuadro presionado (continuidad de color).
+  const withTint = (e, tint) => {
+    const d = centerDeltaFromEvent(e);
+    return d ? { ...d, tint } : { dx: 0, dy: 0, tint };
+  };
+  // Tinte de la tarjeta de nivel (mismo tema del tier).
+  const tierTint = isBlack
+    ? 'radial-gradient(ellipse at 20% 30%, #0d0d1a 0%, #050508 40%, #000 100%)'
+    : cTier.name === 'PLATINO'
+    ? 'linear-gradient(135deg,#9E9E9E,#BDBDBD,#CFD8DC)'
+    : 'linear-gradient(135deg,#FBBC04,#FFD540,#FBBC04)';
 
   // Beneficios del nivel (detalle al tocar la tarjeta)
   const bens = [
@@ -194,7 +206,7 @@ export default function ClientHome(ctx) {
       <TierCardBento
         me={me}
         cTier={cTier}
-        onOpenDetail={(e) => { setModalOrigin(centerDeltaFromEvent(e)); setShowTierDetail(true); }}
+        onOpenDetail={(e) => { setModalOrigin(withTint(e, tierTint)); setShowTierDetail(true); }}
         onPointsTap={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('cat'); }}
       />
 
@@ -267,7 +279,7 @@ export default function ClientHome(ctx) {
           dimmed={cTier.name === 'ORO'}
           onClick={(e) => {
             if (cTier.name === 'ORO') { fire('📶 El WiFi gratis se desbloquea en nivel PLATINO'); return; }
-            setModalOrigin(centerDeltaFromEvent(e));
+            setModalOrigin(withTint(e, bento.blue));
             setShowWifi(true);
           }}
         />
@@ -280,7 +292,7 @@ export default function ClientHome(ctx) {
             : `${mySurveyCount}/${cfg.surveyDaily} hoy · +${cfg.surveyPts} pts c/u`}
           onClick={(e) => {
             if (mySurveyCount >= cfg.surveyDaily) { fire('✅ Ya completaste tus encuestas de hoy'); return; }
-            setModalOrigin(centerDeltaFromEvent(e));
+            setModalOrigin(withTint(e, bento.amber));
             setShowSurveys(true);
           }}
         />
@@ -289,21 +301,21 @@ export default function ClientHome(ctx) {
         <BentoTile
           index={4} color={bento.purple} icon={<PinIcon />} title="Ubicación"
           sub="Ubica nuestras estaciones"
-          onClick={(e) => { setModalOrigin(centerDeltaFromEvent(e)); setShowMap(true); }}
+          onClick={(e) => { setModalOrigin(withTint(e, bento.purple)); setShowMap(true); }}
         />
 
         {/* 6 · Historial de canjes */}
         <BentoTile
           index={5} color={bento.teal} icon={<TicketStarIcon />} title="Historial de Canjes"
           sub={`${myRedeemed.length} canje${myRedeemed.length === 1 ? '' : 's'} realizados`}
-          onClick={(e) => setHistSheet({ type: 'canjes', origin: originFromEvent(e) })}
+          onClick={(e) => setHistSheet({ type: 'canjes', origin: originFromEvent(e), tint: bento.teal })}
         />
 
         {/* 7 · Historial de compras (ancho completo) */}
         <BentoTile
           index={6} span={2} color={bento.orange} icon={<BagIcon size={24} />} title="Historial de Compras"
           sub="Compras y todos tus movimientos de puntos"
-          onClick={(e) => setHistSheet({ type: 'compras', origin: originFromEvent(e) })}
+          onClick={(e) => setHistSheet({ type: 'compras', origin: originFromEvent(e), tint: bento.orange })}
         />
       </div>
 
@@ -328,8 +340,9 @@ export default function ClientHome(ctx) {
             border: isBlack ? '1px solid rgba(255,255,255,.1)' : '1px solid #eee',
             boxShadow: '0 20px 60px rgba(0,0,0,.3)',
             maxHeight: '85vh', overflowY: 'auto',
-            transformOrigin: mOrigin,
+            transformOrigin: mOrigin, position: 'relative',
           }}>
+            {mTint && <div className="pp-tint" style={{ position: 'absolute', inset: 0, background: mTint, borderRadius: 24, zIndex: 5 }} />}
             <div style={{ textAlign: 'center', marginBottom: 14 }}>
               <div style={{ fontSize: 34, marginBottom: 6 }}>{cTier.icon}</div>
               <div style={{ fontSize: 20, fontWeight: 900, color: isBlack ? '#fff' : '#0D0D0D' }}>Nivel {cTier.name}</div>
@@ -375,8 +388,9 @@ export default function ClientHome(ctx) {
             borderRadius: 24, maxWidth: 340, width: '100%', padding: '26px 22px', textAlign: 'center',
             border: isBlack ? '1px solid rgba(255,255,255,.1)' : '1px solid #eee',
             boxShadow: '0 20px 60px rgba(0,0,0,.3)',
-            transformOrigin: mOrigin,
+            transformOrigin: mOrigin, position: 'relative',
           }}>
+            {mTint && <div className="pp-tint" style={{ position: 'absolute', inset: 0, background: mTint, borderRadius: 24, zIndex: 5 }} />}
             <div style={{ fontSize: 38, marginBottom: 8 }}>📶</div>
             <div style={{ fontSize: 19, fontWeight: 900, color: isBlack ? '#fff' : '#0D0D0D' }}>WiFi Puntos Plus</div>
             <div style={{ fontSize: 11, fontWeight: 800, color: '#1565C0', marginTop: 2, textTransform: 'uppercase', letterSpacing: 1 }}>
@@ -411,6 +425,7 @@ export default function ClientHome(ctx) {
         <HistorySheet
           type={histSheet.type}
           origin={histSheet.origin}
+          tint={histSheet.tint}
           onClose={() => setHistSheet(null)}
           acts={myActs}
           redeemed={myRedeemed}
@@ -430,8 +445,9 @@ export default function ClientHome(ctx) {
             border: cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.1)' : '1px solid #eee',
             boxShadow: '0 20px 60px rgba(0,0,0,.3)',
             maxHeight: '86vh', overflowY: 'auto',
-            transformOrigin: mOrigin,
+            transformOrigin: mOrigin, position: 'relative',
           }}>
+            {mTint && <div className="pp-tint" style={{ position: 'absolute', inset: 0, background: mTint, borderRadius: 24, zIndex: 5 }} />}
             <div style={{ textAlign: 'center', marginBottom: 20 }}>
               <div style={{ fontSize: 36, marginBottom: 8 }}>⛽</div>
               <div style={{ fontSize: 20, fontWeight: 900, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D' }}>
@@ -526,8 +542,9 @@ export default function ClientHome(ctx) {
             border: cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.1)' : '1px solid #eee',
             boxShadow: '0 20px 60px rgba(0,0,0,.3)',
             maxHeight: '88vh', overflowY: 'auto',
-            transformOrigin: mOrigin,
+            transformOrigin: mOrigin, position: 'relative',
           }}>
+            {mTint && <div className="pp-tint" style={{ position: 'absolute', inset: 0, background: mTint, borderRadius: 24, zIndex: 5 }} />}
             <div style={{ textAlign: 'center', marginBottom: 16 }}>
               <div style={{ fontSize: 36, marginBottom: 8 }}>📋</div>
               <div style={{ fontSize: 20, fontWeight: 900, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D' }}>
