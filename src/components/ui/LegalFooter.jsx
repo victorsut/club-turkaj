@@ -3,7 +3,7 @@
 // de producto; no parametrizar el contenido.
 export default function LegalFooter({ color = '#9E9E9E' }) {
   return (
-    <div style={{ padding: '18px 28px 10px', textAlign: 'center', fontSize: 10, color, lineHeight: 1.6, opacity: .85 }}>
+    <div style={{ padding: '10px 26px 6px', textAlign: 'center', fontSize: 9.5, color, lineHeight: 1.5, opacity: .85 }}>
       Puntos Plus es una app ajena a Shell Guatemala y aplica únicamente a gasolineras Turkaj en Chichicastenango.
     </div>
   );

@@ -6,6 +6,8 @@ import { useState } from 'react';
 import { sMono } from '../../constants/styles';
 import { Back } from '../../components/ui/Icons';
 
+const CLOSE_MS = 200; // duración de ppGrowOut (+ margen) antes de desmontar
+
 const PERIODS = [
   { id: 'hoy', label: 'Hoy' },
   { id: 'mes', label: 'Este mes' },
@@ -23,9 +25,18 @@ const itemDay = (raw) => {
   } catch { return s.slice(0, 10); }
 };
 
-export default function HistorySheet({ type, onClose, acts, redeemed, tierName }) {
+export default function HistorySheet({ type, origin, onClose, acts, redeemed, tierName }) {
   const [period, setPeriod] = useState('hoy');
+  const [closing, setClosing] = useState(false);
   const isBlack = tierName === 'BLACK';
+
+  // D35: al cerrar, la ventana "se guarda" en el cuadro de origen
+  // (ppGrowOut hacia el transform-origin) y recién ahí se desmonta.
+  const close = () => {
+    if (closing) return;
+    setClosing(true);
+    setTimeout(onClose, CLOSE_MS);
+  };
 
   const todayGT = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Guatemala' });
   const inPeriod = (day) => {
@@ -56,10 +67,14 @@ export default function HistorySheet({ type, onClose, acts, redeemed, tierName }
   };
 
   return (
-    <div className="pp-sheet" style={{
-      position: 'fixed', top: 0, bottom: 0, left: '50%', transform: 'translateX(-50%)',
-      width: '100%', maxWidth: 480, zIndex: 180,
+    <div className={closing ? 'pp-grow-out' : 'pp-grow'} style={{
+      // inset:0 + margin auto centra SIN transform propio: el transform
+      // queda libre para el container-transform (bug IMG2: la animación
+      // anterior pisaba el translateX(-50%) y corría la ventana).
+      position: 'fixed', inset: 0, margin: '0 auto',
+      width: '100%', maxWidth: 480, zIndex: 200,
       background: TH.bg, overflowY: 'auto', paddingBottom: 40,
+      transformOrigin: origin ? `${origin.x}px ${origin.y}px` : '50% 80%',
     }}>
       {/* Header */}
       <div style={{
@@ -67,7 +82,7 @@ export default function HistorySheet({ type, onClose, acts, redeemed, tierName }
         padding: '16px 20px 10px', display: 'flex', alignItems: 'center', gap: 10,
         borderBottom: `1px solid ${TH.border}`,
       }}>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', color: TH.sub, cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 4 }}>
+        <button onClick={close} style={{ background: 'none', border: 'none', color: TH.sub, cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 4 }}>
           <Back />
         </button>
         <div style={{ flex: 1 }}>

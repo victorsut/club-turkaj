@@ -42,7 +42,7 @@ export default function BottomNav({ items, current, onSelect, view, tierName }) 
         // ── Botón QR central ──────────────────────────────
         if (n.isQR && isC) {
           return (
-            <button key="qr" onClick={() => onSelect('qr')} style={{
+            <button key="qr" onClick={(e) => onSelect('qr', e)} style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               background: 'none', border: 'none', cursor: 'pointer',
               padding: 0, marginTop: -28, // sube el botón por encima de la barra
@@ -70,7 +70,7 @@ export default function BottomNav({ items, current, onSelect, view, tierName }) 
 
         // ── Botones normales ──────────────────────────────
         return (
-          <button key={n.id} onClick={() => onSelect(n.id)} style={{
+          <button key={n.id} onClick={(e) => onSelect(n.id, e)} style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
             padding: '4px 8px', background: 'none', border: 'none',
             color: current === n.id ? activeColor : inactiveColor,

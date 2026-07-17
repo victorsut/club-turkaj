@@ -52,13 +52,15 @@ export const bento = {
   pageBg: '#F5F5F7',
   radius: 20,
   shadow: '0 4px 10px rgba(0,0,0,.10)',
-  red:    '#E53935',
-  green:  '#2E7D32',
-  blue:   '#1565C0',
-  amber:  '#E8A33D',
-  purple: '#6A1B9A',
-  teal:   '#00838F',
-  orange: '#E65100',
+  // Degradados por tile (feedback del dueño: la referencia no usa
+  // colores sólidos — cada cuadro lleva un patrón degradado sutil).
+  red:    'linear-gradient(145deg,#EF5350 0%,#C62828 100%)',
+  green:  'linear-gradient(145deg,#43A047 0%,#1B5E20 100%)',
+  blue:   'linear-gradient(145deg,#1E88E5 0%,#0D47A1 100%)',
+  amber:  'linear-gradient(145deg,#F2B33D 0%,#D98E04 100%)',
+  purple: 'linear-gradient(145deg,#8E24AA 0%,#4A148C 100%)',
+  teal:   'linear-gradient(145deg,#00ACC1 0%,#00695C 100%)',
+  orange: 'linear-gradient(145deg,#FB8C00 0%,#D84315 100%)',
 };
 
 // Galaxy gradients for BLACK tier

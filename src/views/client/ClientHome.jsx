@@ -11,6 +11,8 @@ import TierCardBento from '../../components/ui/TierCardBento';
 import InactivityWarning from '../../components/ui/InactivityWarning';
 import HistorySheet from './HistorySheet';
 import { Menu } from '../../components/ui/Icons';
+import { GiftIcon, CarIcon, WifiIcon, SurveyIcon, PinIcon, TicketStarIcon, BagIcon } from '../../components/ui/BentoIcons';
+import { originFromEvent, centerDeltaFromEvent } from '../../lib/motionOrigin';
 
 export default function ClientHome(ctx) {
   const { me, gT, cfg, cTier, TH, activePromos, promoIdx, setPromoIdx,
@@ -20,7 +22,7 @@ export default function ClientHome(ctx) {
     showSurveys, setShowSurveys, fire,
     pendingOpRating, setPendingOpRating, sbConnected,
     activityLog, custs, redeemedList, logout,
-    rafData, curMonth, setCScr } = ctx;
+    rafData, curMonth, setCScr, setNavOrigin } = ctx;
 
   if (!me) return null;
 
@@ -114,7 +116,13 @@ export default function ClientHome(ctx) {
   const subTxt = isBlack ? 'rgba(255,255,255,.55)' : '#6E6E73';
   const firstName = (me.name || '').trim().split(' ')[0] || 'cliente';
   const [showTierDetail, setShowTierDetail] = useState(false);
-  const [histSheet, setHistSheet] = useState(null); // 'compras' | 'canjes' | null
+  const [histSheet, setHistSheet] = useState(null); // { type: 'compras'|'canjes', origin } | null
+  // D35: punto del último cuadro presionado → el modal centrado "sale"
+  // de ahí (transform-origin relativo al centro del viewport).
+  const [modalOrigin, setModalOrigin] = useState(null);
+  const mOrigin = modalOrigin
+    ? `calc(50% + ${modalOrigin.dx}px) calc(50% + ${modalOrigin.dy}px)`
+    : '50% 50%';
 
   // Beneficios del nivel (detalle al tocar la tarjeta)
   const bens = [
@@ -147,67 +155,66 @@ export default function ClientHome(ctx) {
   }, [sbConnected, me.bday]);
 
   return (
-    <div style={{ paddingBottom: 100, minHeight: '100vh', background: isBlack ? 'transparent' : bento.pageBg }}>
+    <div style={{ paddingBottom: 88, minHeight: '100vh', background: isBlack ? 'transparent' : bento.pageBg }}>
       {/* Inactivity warning */}
       <InactivityWarning lastBuy={me.lastBuy} />
 
-      {/* Header: logo + menú (D34: la campana se sustituye por el menú) */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '18px 20px 4px' }}>
-        <img src="/logo.png" alt="Puntos Plus" style={{ width: 42, height: 42, borderRadius: 12, background: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,.08)' }} />
-        <div style={{ flex: 1 }} />
-        <button onClick={() => setCScr('menu')} aria-label="Menú" style={{
-          width: 42, height: 42, borderRadius: 12, border: 'none', cursor: 'pointer',
+      {/* Header compacto: logo + saludo + menú (D34) — todo en una fila
+          para que el grid completo quepa sin scroll */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px 0' }}>
+        <img src="/logo.png" alt="Puntos Plus" style={{ width: 36, height: 36, borderRadius: 11, background: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,.08)', flexShrink: 0 }} />
+        <div style={{ flex: 1, minWidth: 0, padding: '0 2px' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: subTxt, lineHeight: 1.2 }}>¡Hola, {firstName}!</div>
+          <div style={{ fontSize: 17, fontWeight: 900, color: headerTxt, lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            Bienvenido a <Wordmark size={17} color={headerTxt} />
+          </div>
+          {festivo && (
+            <div style={{ fontSize: 11, fontWeight: 800, color: BRAND_RED, lineHeight: 1.3 }}>
+              {festivo.icon} {festivo.bday ? `¡Feliz cumpleaños, ${firstName}!` : `¡Feliz ${festivo.name}!`}
+            </div>
+          )}
+        </div>
+        <button onClick={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('menu'); }} aria-label="Menú" style={{
+          width: 38, height: 38, borderRadius: 11, border: 'none', cursor: 'pointer',
           background: isBlack ? 'rgba(255,255,255,.08)' : '#fff',
           color: headerTxt,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: isBlack ? 'none' : '0 2px 8px rgba(0,0,0,.08)',
+          boxShadow: isBlack ? 'none' : '0 2px 8px rgba(0,0,0,.08)', flexShrink: 0,
         }}>
           <Menu />
         </button>
-      </div>
-
-      {/* Saludo personalizado (festivo vía special_days — D34) */}
-      <div style={{ padding: '6px 20px 2px' }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: subTxt }}>¡Hola, {firstName}!</div>
-        <div style={{ fontSize: 25, fontWeight: 900, color: headerTxt, lineHeight: 1.2 }}>
-          Bienvenido a <Wordmark size={25} color={headerTxt} />
-        </div>
-        {festivo && (
-          <div style={{ marginTop: 6, fontSize: 13, fontWeight: 800, color: BRAND_RED }}>
-            {festivo.icon} {festivo.bday ? `¡Feliz cumpleaños, ${firstName}!` : `¡Feliz ${festivo.name}!`}
-          </div>
-        )}
       </div>
 
       {/* Tarjeta de nivel (D34: doble zona táctil — general → detalle, puntos → Canjes) */}
       <TierCardBento
         me={me}
         cTier={cTier}
-        onOpenDetail={() => setShowTierDetail(true)}
-        onPointsTap={() => setCScr('cat')}
+        onOpenDetail={(e) => { setModalOrigin(centerDeltaFromEvent(e)); setShowTierDetail(true); }}
+        onPointsTap={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('cat'); }}
       />
 
       {/* ── Bento grid (referencia visual R1b) ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '14px 16px 0' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '10px 14px 0' }}>
 
         {/* 1 · Promociones: el carrusel real ocupa el slot del cuadro rojo (D33) */}
         <div
           className="pp-tile"
           onClick={() => activePromos.length > 1 && setPromoIdx((promoIdx + 1) % activePromos.length)}
           style={{
-            background: bento.red, borderRadius: bento.radius, minHeight: 128,
+            background: bento.red, borderRadius: bento.radius, minHeight: 106,
             position: 'relative', overflow: 'hidden', boxShadow: bento.shadow,
             cursor: activePromos.length > 1 ? 'pointer' : 'default',
-            color: '#fff', padding: '16px 16px 14px',
+            color: '#fff', padding: '13px 14px 12px',
             display: 'flex', flexDirection: 'column', animationDelay: '0ms',
           }}
         >
+          <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 18% 12%, rgba(255,255,255,.22), transparent 55%)', pointerEvents: 'none' }} />
           {activePromos.length === 0 ? (
             <>
-              <div style={{ fontSize: 30, lineHeight: 1 }}>🎁</div>
-              <div style={{ marginTop: 'auto', paddingTop: 10 }}>
-                <div style={{ fontSize: 13, fontWeight: 900, textTransform: 'uppercase', letterSpacing: 0.8 }}>Promociones</div>
-                <div style={{ fontSize: 11, opacity: 0.85, marginTop: 3, fontWeight: 600 }}>Descubre ofertas exclusivas</div>
+              <GiftIcon size={26} />
+              <div style={{ marginTop: 'auto', paddingTop: 8 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 900, textTransform: 'uppercase', letterSpacing: 0.7 }}>Promociones</div>
+                <div style={{ fontSize: 10.5, opacity: 0.85, marginTop: 2, fontWeight: 600 }}>Descubre ofertas exclusivas</div>
               </div>
             </>
           ) : (
@@ -243,53 +250,55 @@ export default function ClientHome(ctx) {
 
         {/* 2 · Vehículo (placeholder hasta F6 — D34) */}
         <BentoTile
-          index={1} color={bento.green} icon="🚗" title="Vehículo"
+          index={1} color={bento.green} icon={<CarIcon />} title="Vehículo"
           sub="Administra y consulta tus vehículos" badge="PRÓXIMAMENTE"
-          onClick={() => setCScr('veh')}
+          onClick={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('veh'); }}
         />
 
         {/* 3 · WiFi (beneficio PLATINO/BLACK — D34) */}
         <BentoTile
-          index={2} color={bento.blue} icon="📶" title="WiFi"
+          index={2} color={bento.blue} icon={<WifiIcon />} title="WiFi"
           sub={cTier.name === 'ORO' ? 'Disponible desde nivel PLATINO' : 'Conéctate a nuestro WiFi gratis'}
           dimmed={cTier.name === 'ORO'}
-          onClick={() => {
+          onClick={(e) => {
             if (cTier.name === 'ORO') { fire('📶 El WiFi gratis se desbloquea en nivel PLATINO'); return; }
+            setModalOrigin(centerDeltaFromEvent(e));
             setShowWifi(true);
           }}
         />
 
         {/* 4 · Encuesta de Satisfacción (sustituye a "Encuentra Shell" — D34) */}
         <BentoTile
-          index={3} color={bento.amber} icon="📋" title="Encuesta"
+          index={3} color={bento.amber} icon={<SurveyIcon />} title="Encuesta"
           sub={mySurveyCount >= cfg.surveyDaily
             ? '✅ Completaste las de hoy'
             : `${mySurveyCount}/${cfg.surveyDaily} hoy · +${cfg.surveyPts} pts c/u`}
-          onClick={() => {
+          onClick={(e) => {
             if (mySurveyCount >= cfg.surveyDaily) { fire('✅ Ya completaste tus encuestas de hoy'); return; }
+            setModalOrigin(centerDeltaFromEvent(e));
             setShowSurveys(true);
           }}
         />
 
         {/* 5 · Ubicación */}
         <BentoTile
-          index={4} color={bento.purple} icon="📍" title="Ubicación"
+          index={4} color={bento.purple} icon={<PinIcon />} title="Ubicación"
           sub="Ubica nuestras estaciones"
-          onClick={() => setShowMap(true)}
+          onClick={(e) => { setModalOrigin(centerDeltaFromEvent(e)); setShowMap(true); }}
         />
 
         {/* 6 · Historial de canjes */}
         <BentoTile
-          index={5} color={bento.teal} icon="🎁" title="Historial de Canjes"
+          index={5} color={bento.teal} icon={<TicketStarIcon />} title="Historial de Canjes"
           sub={`${myRedeemed.length} canje${myRedeemed.length === 1 ? '' : 's'} realizados`}
-          onClick={() => setHistSheet('canjes')}
+          onClick={(e) => setHistSheet({ type: 'canjes', origin: originFromEvent(e) })}
         />
 
         {/* 7 · Historial de compras (ancho completo) */}
         <BentoTile
-          index={6} span={2} color={bento.orange} icon="🛍️" title="Historial de Compras"
+          index={6} span={2} color={bento.orange} icon={<BagIcon size={24} />} title="Historial de Compras"
           sub="Consulta tus compras y puntos acumulados"
-          onClick={() => setHistSheet('compras')}
+          onClick={(e) => setHistSheet({ type: 'compras', origin: originFromEvent(e) })}
         />
       </div>
 
@@ -303,14 +312,15 @@ export default function ClientHome(ctx) {
         <div onClick={() => setShowTierDetail(false)} style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)',
           zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: 20, animation: 'fadeUp .25s ease',
+          padding: 20, animation: 'ppFade .2s ease',
         }}>
-          <div onClick={e => e.stopPropagation()} style={{
+          <div onClick={e => e.stopPropagation()} className="pp-grow" style={{
             background: isBlack ? '#1A1A2E' : '#fff',
             borderRadius: 24, maxWidth: 380, width: '100%', padding: '24px 20px',
             border: isBlack ? '1px solid rgba(255,255,255,.1)' : '1px solid #eee',
             boxShadow: '0 20px 60px rgba(0,0,0,.3)',
             maxHeight: '85vh', overflowY: 'auto',
+            transformOrigin: mOrigin,
           }}>
             <div style={{ textAlign: 'center', marginBottom: 14 }}>
               <div style={{ fontSize: 34, marginBottom: 6 }}>{cTier.icon}</div>
@@ -350,13 +360,14 @@ export default function ClientHome(ctx) {
         <div onClick={() => setShowWifi(false)} style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)',
           zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: 20, animation: 'fadeUp .25s ease',
+          padding: 20, animation: 'ppFade .2s ease',
         }}>
-          <div onClick={e => e.stopPropagation()} style={{
+          <div onClick={e => e.stopPropagation()} className="pp-grow" style={{
             background: isBlack ? '#1A1A2E' : '#fff',
             borderRadius: 24, maxWidth: 340, width: '100%', padding: '26px 22px', textAlign: 'center',
             border: isBlack ? '1px solid rgba(255,255,255,.1)' : '1px solid #eee',
             boxShadow: '0 20px 60px rgba(0,0,0,.3)',
+            transformOrigin: mOrigin,
           }}>
             <div style={{ fontSize: 38, marginBottom: 8 }}>📶</div>
             <div style={{ fontSize: 19, fontWeight: 900, color: isBlack ? '#fff' : '#0D0D0D' }}>WiFi Puntos Plus</div>
@@ -390,7 +401,8 @@ export default function ClientHome(ctx) {
       {/* Historiales full-screen: Hoy · Mes · Año · Todo (D34) */}
       {histSheet && (
         <HistorySheet
-          type={histSheet}
+          type={histSheet.type}
+          origin={histSheet.origin}
           onClose={() => setHistSheet(null)}
           acts={myActs}
           redeemed={myRedeemed}
@@ -402,13 +414,15 @@ export default function ClientHome(ctx) {
         <div onClick={() => setShowMap(false)} style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)',
           zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: 20, animation: 'fadeUp .25s ease',
+          padding: 20, animation: 'ppFade .2s ease',
         }}>
-          <div onClick={e => e.stopPropagation()} style={{
+          <div onClick={e => e.stopPropagation()} className="pp-grow" style={{
             background: cTier.name === 'BLACK' ? '#1A1A2E' : '#fff',
             borderRadius: 24, maxWidth: 380, width: '100%', padding: '24px 20px',
             border: cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.1)' : '1px solid #eee',
             boxShadow: '0 20px 60px rgba(0,0,0,.3)',
+            maxHeight: '86vh', overflowY: 'auto',
+            transformOrigin: mOrigin,
           }}>
             <div style={{ textAlign: 'center', marginBottom: 20 }}>
               <div style={{ fontSize: 36, marginBottom: 8 }}>⛽</div>
@@ -496,13 +510,15 @@ export default function ClientHome(ctx) {
         <div onClick={() => setShowSurveys(false)} style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)',
           zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: 20, animation: 'fadeUp .25s ease',
+          padding: 20, animation: 'ppFade .2s ease',
         }}>
-          <div onClick={e => e.stopPropagation()} style={{
+          <div onClick={e => e.stopPropagation()} className="pp-grow" style={{
             background: cTier.name === 'BLACK' ? '#1A1A2E' : '#fff',
             borderRadius: 24, maxWidth: 380, width: '100%', padding: '24px 20px',
             border: cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.1)' : '1px solid #eee',
             boxShadow: '0 20px 60px rgba(0,0,0,.3)',
+            maxHeight: '88vh', overflowY: 'auto',
+            transformOrigin: mOrigin,
           }}>
             <div style={{ textAlign: 'center', marginBottom: 16 }}>
               <div style={{ fontSize: 36, marginBottom: 8 }}>📋</div>

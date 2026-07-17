@@ -31,47 +31,45 @@ export default function TierCardBento({ me, cTier, onOpenDetail, onPointsTap }) 
       onClick={onOpenDetail}
       className="pp-tile"
       style={{
-        borderRadius: 20, padding: '18px 20px', margin: '12px 16px',
+        borderRadius: 20, padding: '13px 16px', margin: '10px 16px 0',
         background: bg, color: txt, border, boxShadow: shadow,
         position: 'relative', overflow: 'hidden', cursor: 'pointer',
       }}
     >
       <TierDeco name={cTier.name} />
       {isBlack && <GalaxyDust n={12} />}
-      <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'stretch', gap: 14 }}>
+      <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'stretch', gap: 12 }}>
         {/* Zona izquierda: nivel + progreso de galones → detalle */}
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: 1 }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <div style={{ fontSize: 14.5, fontWeight: 800, letterSpacing: 1 }}>
             Nivel <span style={{ letterSpacing: 2 }}>{cTier.icon} {cTier.name}</span>
+            <span style={{ opacity: 0.55, marginLeft: 6, fontWeight: 900 }}>›</span>
           </div>
           {cTier.next ? (
-            <div style={{ marginTop: 14 }}>
-              <div style={{ height: 6, borderRadius: 3, overflow: 'hidden', background: barBg }}>
+            <div style={{ marginTop: 10 }}>
+              <div style={{ height: 5, borderRadius: 3, overflow: 'hidden', background: barBg }}>
                 <div style={{ height: '100%', borderRadius: 3, width: `${pg}%`, background: barFill, transition: 'width 1s ease' }} />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, opacity: 0.7, fontWeight: 700, marginTop: 6 }}>
-                <span style={sMono}>{me.gallons.toFixed(0)} / {cTier.target} gal</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6, fontSize: 9.5, opacity: 0.7, fontWeight: 700, marginTop: 5 }}>
+                <span style={sMono}>{me.gallons.toFixed(0)}/{cTier.target} gal</span>
                 <span>Faltan {cTier.rem} gal → {cTier.next}</span>
               </div>
             </div>
           ) : (
-            <div style={{ marginTop: 14, fontSize: 11, fontWeight: 700, opacity: 0.7 }}>
+            <div style={{ marginTop: 10, fontSize: 10.5, fontWeight: 700, opacity: 0.7 }}>
               ⭐ Nivel máximo · {me.gallons.toFixed(0)} galones
             </div>
           )}
-          <div style={{ fontSize: 9.5, opacity: 0.55, fontWeight: 700, marginTop: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            Toca para ver tus beneficios
-          </div>
         </div>
 
         {/* Zona derecha: puntos grandes → Canjes (D34: doble zona táctil) */}
         <div
-          onClick={(e) => { e.stopPropagation(); onPointsTap(); }}
+          onClick={(e) => { e.stopPropagation(); onPointsTap(e); }}
           style={{ textAlign: 'right', flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingLeft: 12 }}
         >
-          <div style={{ ...sMono, fontSize: 40, fontWeight: 800, letterSpacing: -2, lineHeight: 1 }}>{points}</div>
-          <div style={{ fontSize: 11, fontWeight: 900, textTransform: 'uppercase', letterSpacing: 2, opacity: 0.8 }}>Puntos</div>
-          <div style={{ fontSize: 9.5, fontWeight: 800, marginTop: 4, opacity: 0.65 }}>Canjear →</div>
+          <div style={{ ...sMono, fontSize: 34, fontWeight: 800, letterSpacing: -1.5, lineHeight: 1 }}>{points}</div>
+          <div style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: 2, opacity: 0.8 }}>Puntos</div>
+          <div style={{ fontSize: 9, fontWeight: 800, marginTop: 3, opacity: 0.65 }}>Canjear →</div>
         </div>
       </div>
     </div>

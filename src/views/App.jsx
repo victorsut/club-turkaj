@@ -75,6 +75,7 @@ import AdminPromos from './admin/AdminPromos';
 import OpManagement from './admin/OpManagement';
 import AuditLog from './admin/AuditLog';
 import VehiclesSoon from './client/VehiclesSoon';
+import { originFromEvent } from '../lib/motionOrigin';
 import { isPushSupported, subscribePush, sendPushToMember } from '../lib/pushNotifications';
 
 export default function App() {
@@ -181,6 +182,9 @@ export default function App() {
   const [showInvite, setShowInvite] = useState(false);
   const [showRedeemed, setShowRedeemed] = useState(false);
   const [showWifi, setShowWifi] = useState(false);
+  // R1b/D35: origen (cuadro o pestaña presionada) del que "sale" la
+  // vista del cliente al cambiar de pantalla (container transform).
+  const [navOrigin, setNavOrigin] = useState(null);
   const [showMap, setShowMap] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [showRating, setShowRating] = useState(null);
@@ -1303,6 +1307,7 @@ export default function App() {
     addPurchase, redeem, buyTickets, doSurvey, logout,
     // Navigation
     view, setView, scr, setScr, cScr, setCScr, oScr, setOScr,
+    setNavOrigin,
     isA, isO, isC,
   };
 
@@ -1376,11 +1381,15 @@ export default function App() {
   }
 
   // ===== HANDLE NAV =====
-  function handleNav(id) {
+  function handleNav(id, e) {
     if (isA) { setScr(id); setSel(null); }
     else if (isO) { setOScr(id); }
     else if (id === 'qr') { setShowQR(true); }
-    else setCScr(id);
+    else {
+      // D35: la vista nueva "sale" de la pestaña presionada.
+      setNavOrigin(e ? originFromEvent(e) : null);
+      setCScr(id);
+    }
   }
 
   // ===== RENDER =====
@@ -1422,9 +1431,17 @@ export default function App() {
           </div>
         )}
 
-        {/* Active screen — el cliente entra con animación de pestaña (D35) */}
+        {/* Active screen — el cliente entra con animación desde el origen presionado (D35) */}
         {isC && authScreen === 'logged'
-          ? <div key={cScr} className="pp-screen">{renderScreen()}</div>
+          ? (
+            <div
+              key={cScr}
+              className="pp-screen"
+              style={{ transformOrigin: navOrigin ? `${navOrigin.x}px ${navOrigin.y}px` : '50% 85%' }}
+            >
+              {renderScreen()}
+            </div>
+          )
           : renderScreen()}
 
         {/* Bottom navigation */}
