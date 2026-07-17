@@ -343,7 +343,7 @@ Mover el `useState(checkingPhone)` al tope del componente con los otros useState
 |---|---|---|---|---|---|
 | — | P0 | Bug-fix pantalla blanca | 1-3 hs | Crítica | ✅ Completado |
 | — | FB | Integridad y trazabilidad de puntos | 16-26 hs | Crítica | ✅ **CERRADA** — caso ángel resuelto sin ajuste (D36) |
-| 0 | B0 | Flecos: F0.4 `AuditLog.jsx` (cierra F0) + confirmar F0.5 | 6-10 hs | Crítica | Pendiente |
+| 0 | B0 | Flecos: F0.4 `AuditLog.jsx` (cierra F0) + confirmar F0.5 | 6-10 hs | Crítica | ✅ **Construido** (`c01e086`) — falta ejecutar mig + smoke en prod |
 | 1 | R1a | Rebrand exprés a "Puntos Plus" (strings, manifest, splash, push, legales, disclaimer D28) | 10-16 hs | Crítica | Pendiente |
 | 2 | FA | Optimización impresión POS Sunmi | 42-59 hs | Crítica | Pendiente |
 | 3 | PROMO-1 | Motor de promociones v1 (dobles puntos / bonus por día-producto-monto) | 25-35 hs | Crítica | Pendiente |
@@ -451,8 +451,8 @@ Implementar el sistema de auditoría que va a registrar todas las acciones de ad
    - **F0.3.7** ✅ visibilidad + auditoría en AdminPromos (commits `6209d1f`/`1c4268e`).
    - **F0.3.8** ✅ `update_member_with_audit` (RPC + wrapper) + MemberDetail con diff Opción B + validaciones (commits `0dff54f`/`a3e2212`/`b2936b9`/`5149c20`/`008b392`, mig `20260617_update_member_with_audit`).
    - **F0.3.9** ✅ (no planificada) fixes de focus en AdminPromos + DatePickerSheet preventivo en GoogleProfile (commits `b7b2f5e`/`a9dda49`).
-4. **F0.4** ⛔ **Pendiente** — `AuditLog.jsx` con tabla paginada + filtros NO existe (`src/views/admin/` no lo tiene). **v3.0: programado en Bloque B0.**
-5. **F0.5** 🔶 **A confirmar** — modal de "motivo del cambio" cubierto por `ReasonModal` (commit `261128f`, F0.3.2) integrado en varios flujos; queda confirmar contra el detalle original de qué exigía F0.5. No marcado ni cerrado ni pendiente.
+4. **F0.4** ✅ **Construido** (B0, commit `c01e086`, mig `20260717_get_admin_audit_log`) — RPC de lectura con sesión admin STRICT + `AuditLog.jsx` (filtros acción/entidad/fechas GT, paginado 20/pág, diff expandible) + botón en Settings. Pendiente solo: ejecutar migración en prod + smoke.
+5. **F0.5** ✅ **Confirmado cubierto** (B0, 17-jul-2026) — auditoría de cobertura: `ReasonModal` integrado en las 5 vistas admin que mutan (Settings, OpManagement, AdminPremios, AdminPromos, MemberDetail); `AdminRaffle` verificado como presentación pura (cero llamadas a Supabase); las 6 acciones sensibles sin cobertura no tienen UI (preparadas para futuro según F0.2). Sin hueco real.
 6. **F0.6** Build + commits + push. (continuo a lo largo de F0)
 7. **F0.7** ✅ Testing en producción — hubo etapa de observación y testing exhaustivo en prod.
 
