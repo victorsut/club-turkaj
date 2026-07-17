@@ -361,7 +361,7 @@ Mover el `useState(checkingPhone)` al tope del componente con los otros useState
 | 11 | F6 | Vehículos como entidad + alertas push | 72-93 hs | Media | Pendiente |
 | 12 | F8 | Spike Club Business | 1 sem | Baja | Pendiente |
 | 13 | F9 | Reportería enriquecida (opcional) | 40-55 hs | Opcional | Pendiente |
-| ∥ | **R1b** | **Track paralelo: rediseño visual iterativo por vistas** (Home → Promociones → Historiales → Menú → Canjes/Rifa) | 75-110 hs | Alta | 🔛 **ACTIVO** — logo entregado (`REFERENCIAS INTERFAZ/logo.png`, 17-jul); sesión 1: Home. Orden intercalado: R1b.1 → PROMO-1 → R1b.2 |
+| ∥ | **R1b** | **Track paralelo: rediseño visual iterativo por vistas** (Home → Promociones → Historiales → Menú → Canjes/Rifa) | 75-110 hs | Alta | 🔛 ACTIVO — **R1b.1 Home construido** (`4972e1d`, incl. historiales Hoy/Mes/Año/Todo = Entrega B adelantada) — pendiente smoke del dueño. Siguiente: PROMO-1 → R1b.2 |
 
 **Total restante estimado:** ≈550-750 hs ≈ 24-48 semanas calendario (6-11 meses) a 15-25 hs/sem.
 
