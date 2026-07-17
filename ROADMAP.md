@@ -269,6 +269,10 @@ Esta sección documenta las decisiones tomadas durante las conversaciones de pla
 **Decisión:** dos animaciones firmadas: (a) **contenedor→ventana** — al abrir una ventana/modal desde un cuadro, el cuadro se expande hasta ocupar la vista (container transform) y al volver se contrae de regreso al cuadro de origen; (b) **pestañas** — al tocar una pestaña del bottom nav, la vista entra desde abajo, como saliendo de la pestaña. Complementos: press-scale en tarjetas, entrada escalonada del grid, count-up de puntos, barra de progreso animada. Todo con fallback bajo `prefers-reduced-motion`.
 **Motivo:** solicitud explícita del dueño para la nueva identidad.
 
+### D37 — Impresión de comprobantes desacoplada del POS (17-jul-2026)
+**Decisión:** los POS en producción (Sunmi P2) y los candidatos (PAX A920Pro) **no permiten instalar aplicaciones** (MDM del proveedor de terminales), lo que descarta SDKs nativos y apps puente. Por lo tanto: (a) **FA se re-scopea a "FA-lite"**: `window.print()` optimizado — plantilla térmica dedicada (CSS `@page` 58/80 mm), auto-disparo al confirmar el canje, botón de reimpresión y `print_logs` best-effort. (b) **La impresión definitiva se hará vía PROPER (F7a):** la respuesta del endpoint de consumo de canjes incluirá el payload del comprobante (modelo neutro de la PAL) para que PROPER lo imprima con su propio sistema — cero clics, sin hardware nuevo. (c) **Gestión paralela con el proveedor de las terminales** para whitelisting MDM: si prospera, la PAL gana un driver nativo sin refactor. (d) La alternativa de impresoras de red con cloud-printing (Star CloudPRNT / Epson SDP, ~US$150-250/estación) queda documentada como plan B sin inversión por ahora.
+**Motivo:** restricción MDM real verificada por el dueño con ambos dispositivos en mano + PROPER ya imprimirá en el flujo de facturación; se evita comprar hardware y desarrollar contra SDKs inaccesibles.
+
 ### D36 — Caso ángel macario: cerrado sin ajuste (17-jul-2026)
 **Decisión:** los 71 puntos quedan tal cual (no se ajustan a 50 ni se crea entrada retroactiva). El caso se habló directamente con el cliente y se da por concluido. No se investiga retroactivamente a otros miembros.
 **Motivo:** el trigger strict de FB.9 ya garantiza que ninguna mutación futura pase sin auditoría; el valor de la corrección retroactiva no justifica su costo relacional/operativo. Cierra las decisiones FB.5/FB.6 → **FB queda CERRADA**.
@@ -345,7 +349,7 @@ Mover el `useState(checkingPhone)` al tope del componente con los otros useState
 | — | FB | Integridad y trazabilidad de puntos | 16-26 hs | Crítica | ✅ **CERRADA** — caso ángel resuelto sin ajuste (D36) |
 | 0 | B0 | Flecos: F0.4 `AuditLog.jsx` (cierra F0) + confirmar F0.5 | 6-10 hs | Crítica | ✅ **COMPLETADO** (`c01e086`+`8b55c44`, smoke prod OK 17-jul) — **F0 CERRADA** |
 | 1 | R1a | Rebrand exprés a "Puntos Plus" (strings, manifest, splash, push, legales, disclaimer D28) | 10-16 hs | Crítica | ✅ **CERRADA** (`6e195e4`+`faab783`, smoke prod OK 17-jul) |
-| 2 | FA | Optimización impresión POS Sunmi | 42-59 hs | Crítica | Pendiente |
+| 2 | FA-lite | Impresión `window.print()` optimizada (D37) — plantilla térmica, auto-print, reimpresión, print_logs | 18-26 hs | Crítica | Pendiente |
 | 3 | PROMO-1 | Motor de promociones v1 (dobles puntos / bonus por día-producto-monto) | 25-35 hs | Crítica | Pendiente |
 | 4 | SEC-lite | `authenticate_member` + cierre del vector cliente del raffle | 12-20 hs | Alta | Pendiente |
 | 5 | F7a | API REST core para PROPER (sin physical-members) | 45-60 hs | Alta | Pendiente |
@@ -731,6 +735,15 @@ Historiales (si no cayeron en R1b.1) → Menú/Acerca de → Canjes/Rifa/QR (al 
 ---
 
 ### Fase FA — Optimización de impresión POS Sunmi P2
+
+> **⚠️ v3.0/D37 — RE-SCOPEADA A "FA-lite":** los POS no permiten instalar apps
+> (MDM), así que el SDK Sunmi, ESC/POS directo y apps puente quedan fuera. FA-lite
+> = `window.print()` optimizado (plantilla térmica `@page`, auto-disparo, doble
+> comprobante D29, reimpresión, `print_logs` best-effort) sobre una capa de
+> comprobante neutro (PAL) que en F7a se reutiliza como payload para que PROPER
+> imprima con su sistema. Estimación re-scopeada: **18-26 hs**. El detalle
+> original de esta sección (SDK Sunmi, ESC/POS) se conserva como referencia por
+> si el whitelisting MDM del proveedor prospera.
 
 #### 5.FA.1 Objetivo
 
