@@ -7,7 +7,7 @@ import { bento } from '../../constants/styles';
 
 export default function BentoTile({
   color, icon, title, sub, onClick,
-  dimmed = false, badge = null, span = 1, index = 0,
+  dimmed = false, badge = null, span = 1, square = false, index = 0,
   children,
 }) {
   const wide = span === 2;
@@ -20,7 +20,10 @@ export default function BentoTile({
         background: color,
         borderRadius: bento.radius,
         padding: wide ? '12px 16px' : '13px 14px 12px',
-        minHeight: wide ? 64 : 106,
+        // square: proporción 1:1 fija (Promos/Vehículo); el resto se
+        // estira con la fila del grid (adaptable a la resolución).
+        aspectRatio: square ? '1 / 1' : undefined,
+        minHeight: wide ? 60 : (square ? undefined : 84),
         color: '#fff',
         position: 'relative',
         overflow: 'hidden',

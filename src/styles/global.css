@@ -120,6 +120,10 @@ body {
   .pp-tile:active { transform: none; }
 }
 
+/* R1b — el home llena la resolución del dispositivo: el grid se estira
+   (filas fr) y el disclaimer queda bajo el fold (feedback IMG3). */
+.pp-home-fit { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+
 /* ===== Scrollbar ===== */
 ::-webkit-scrollbar       { width: 3px; }
 ::-webkit-scrollbar-thumb { background: #E0E0E0; border-radius: 2px; }

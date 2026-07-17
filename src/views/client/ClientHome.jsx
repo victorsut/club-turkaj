@@ -155,7 +155,10 @@ export default function ClientHome(ctx) {
   }, [sbConnected, me.bday]);
 
   return (
-    <div style={{ paddingBottom: 88, minHeight: '100vh', background: isBlack ? 'transparent' : bento.pageBg }}>
+    <div style={{ background: isBlack ? 'transparent' : bento.pageBg }}>
+      {/* Sección que llena la resolución del dispositivo; el disclaimer
+          queda bajo el fold y aparece al scrollear (feedback IMG3) */}
+      <div className="pp-home-fit" style={{ paddingBottom: 76 }}>
       {/* Inactivity warning */}
       <InactivityWarning lastBuy={me.lastBuy} />
 
@@ -194,14 +197,14 @@ export default function ClientHome(ctx) {
       />
 
       {/* ── Bento grid (referencia visual R1b) ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '10px 14px 0' }}>
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: 'auto 1fr 1fr auto', gap: 10, padding: '10px 14px 0' }}>
 
         {/* 1 · Promociones: el carrusel real ocupa el slot del cuadro rojo (D33) */}
         <div
           className="pp-tile"
           onClick={() => activePromos.length > 1 && setPromoIdx((promoIdx + 1) % activePromos.length)}
           style={{
-            background: bento.red, borderRadius: bento.radius, minHeight: 106,
+            background: bento.red, borderRadius: bento.radius, aspectRatio: '1 / 1',
             position: 'relative', overflow: 'hidden', boxShadow: bento.shadow,
             cursor: activePromos.length > 1 ? 'pointer' : 'default',
             color: '#fff', padding: '13px 14px 12px',
@@ -250,7 +253,7 @@ export default function ClientHome(ctx) {
 
         {/* 2 · Vehículo (placeholder hasta F6 — D34) */}
         <BentoTile
-          index={1} color={bento.green} icon={<CarIcon />} title="Vehículo"
+          index={1} square color={bento.green} icon={<CarIcon />} title="Vehículo"
           sub="Administra y consulta tus vehículos" badge="PRÓXIMAMENTE"
           onClick={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('veh'); }}
         />
@@ -304,8 +307,11 @@ export default function ClientHome(ctx) {
 
 
 
-      {/* Disclaimer legal D28 (arriba de las ventanas/modales) */}
+      </div>{/* /pp-home-fit */}
+
+      {/* Disclaimer legal D28 — bajo el fold: aparece al scrollear */}
       <LegalFooter color={isBlack ? 'rgba(255,255,255,.4)' : '#9E9E9E'} />
+      <div style={{ height: 72 }} />
 
       {/* Detalle del nivel (tocar la tarjeta — D34) */}
       {showTierDetail && (
