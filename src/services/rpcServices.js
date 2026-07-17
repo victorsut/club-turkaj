@@ -1,5 +1,5 @@
 // ============================================================
-// Club Turkaj — RPC Services (Funciones del Servidor)
+// Puntos Plus — RPC Services (Funciones del Servidor)
 // ============================================================
 // Todas las llamadas a funciones RPC de Supabase viven aquí.
 // Esto centraliza la lógica sensible que se ejecuta en PostgreSQL

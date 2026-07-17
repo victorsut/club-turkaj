@@ -1,5 +1,5 @@
 // ============================================================
-// Club Turkaj — Services (barrel export)
+// Puntos Plus — Services (barrel export)
 // ============================================================
 // Importa todo desde aquí:
 //   import { registerPurchase, fetchMembers, loginAdmin } from './services';

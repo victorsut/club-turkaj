@@ -1,5 +1,5 @@
 // ============================================================
-// Club Turkaj — Data Services (CRUD directo a tablas)
+// Puntos Plus — Data Services (CRUD directo a tablas)
 // ============================================================
 // Operaciones directas sobre las 18 tablas de Supabase.
 // Para lógica transaccional, usar rpcServices.js en su lugar.

@@ -1,6 +1,6 @@
 // src/components/SpecialDayBonusModal.jsx
 // ============================================================
-// Club Turkaj — Modal celebrativo de bonos por día especial
+// Puntos Plus — Modal celebrativo de bonos por día especial
 // ============================================================
 // Reemplaza el toast simple (FB.6.3) con un modal flotante
 // personalizado por tier (ORO / PLATINO / BLACK), reusando los

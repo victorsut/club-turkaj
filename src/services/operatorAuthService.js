@@ -1,5 +1,5 @@
 // src/services/operatorAuthService.js
-// Servicio de autenticación de operadores Club Turkaj.
+// Servicio de autenticación de operadores de Puntos Plus.
 // Usa la RPC `authenticate_operator` de Supabase, que valida contra
 // password_hash con bcrypt en el servidor (extensions.crypt).
 // La contraseña en texto plano nunca se guarda en el cliente.

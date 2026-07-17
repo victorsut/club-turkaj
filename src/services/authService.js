@@ -1,5 +1,5 @@
 // ============================================================
-// Club Turkaj — Auth Service
+// Puntos Plus — Auth Service
 // ============================================================
 // Maneja la autenticación de CLIENTES (miembros):
 //   - Login/Registro por teléfono + contraseña

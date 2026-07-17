@@ -1,5 +1,5 @@
 // ============================================================
-// Club Turkaj — useSupabaseData Hook
+// Puntos Plus — useSupabaseData Hook
 // ============================================================
 // Carga todos los datos iniciales desde Supabase en paralelo.
 // Reemplaza el bloque `loadFromSupabase()` del monolito.
@@ -124,7 +124,7 @@ function parseConfig(cfgMap) {
   if (cfgMap.fuel_prices) {
     fp = cfgMap.fuel_prices;
   } else {
-    console.warn('[Club Turkaj] program_config.fuel_prices no encontrado — usando fallback {0,0,0}. Configurar en admin/Settings.');
+    console.warn('[Puntos Plus] program_config.fuel_prices no encontrado — usando fallback {0,0,0}. Configurar en admin/Settings.');
     fp = { super: 0, regular: 0, diesel: 0 };
   }
   return {
@@ -197,11 +197,11 @@ export function useSupabaseData() {
         setIsConnected(true);
 
         console.log(
-          `[Club Turkaj] ✅ ${memRaw.length} miembros, ` +
+          `[Puntos Plus] ✅ ${memRaw.length} miembros, ` +
           `${rwRaw.length} premios, ${actRaw.length} actividades cargadas`
         );
       } catch (err) {
-        console.error('[Club Turkaj] ⚠️ Error cargando datos:', err);
+        console.error('[Puntos Plus] ⚠️ Error cargando datos:', err);
         if (mountedRef.current) setError(err);
       } finally {
         if (mountedRef.current) setIsLoading(false);

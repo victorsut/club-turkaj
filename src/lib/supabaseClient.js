@@ -1,5 +1,5 @@
 // ============================================================
-// Club Turkaj — Supabase Client (Singleton)
+// Puntos Plus — Supabase Client (Singleton)
 // ============================================================
 // Este archivo es el ÚNICO punto de conexión a Supabase.
 // Todas las vistas y servicios importan `sb` desde aquí.

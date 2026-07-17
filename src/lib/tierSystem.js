@@ -1,5 +1,5 @@
 // ============================================================
-// Club Turkaj — Tier System (Utilidades de Nivel)
+// Puntos Plus — Tier System (Utilidades de Nivel)
 // ============================================================
 // Lógica pura de cálculo de niveles. Sin dependencia de React.
 // ============================================================

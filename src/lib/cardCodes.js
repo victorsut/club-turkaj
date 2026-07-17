@@ -1,5 +1,5 @@
 // ============================================================
-// Club Turkaj — Helper de códigos de tarjeta digital
+// Puntos Plus — Helper de códigos de tarjeta digital
 // ============================================================
 // Fuente única de la regex /^CT[OPB]D-\d{5}$/.
 // Formato: CT{O|P|B}D-NNNNN

@@ -1,5 +1,5 @@
 // ============================================================
-// Club Turkaj / Puntos+ — Session Expiry Bridge (SEC.B.8.2)
+// Puntos Plus — Session Expiry Bridge (SEC.B.8.2)
 // ============================================================
 // Puente mínimo entre la capa de SERVICIOS (rpcServices.js, que
 // detecta el rechazo de sesión del server con ERRCODE 28000) y la

@@ -1,5 +1,5 @@
 // src/services/adminAuthService.js
-// Servicio de autenticación de administradores Club Turkaj.
+// Servicio de autenticación de administradores de Puntos Plus.
 // Usa la RPC `authenticate_admin` de Supabase, que valida contra
 // password_hash con bcrypt server-side (extensions.crypt + pgcrypto).
 // La contraseña en texto plano nunca se guarda en el cliente.

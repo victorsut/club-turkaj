@@ -368,7 +368,7 @@ export default function App() {
             id: s.id, name: s.name, address: s.address || '',
             lat: s.lat, lng: s.lng, active: s.active !== false,
           })));
-          console.log('[Club Turkaj] Estaciones cargadas:', stRes.data.length);
+          console.log('[Puntos Plus] Estaciones cargadas:', stRes.data.length);
         }
 
         if (cfgRes.data?.length > 0) {
@@ -384,7 +384,7 @@ export default function App() {
             if (cfgMap.fuel_prices) {
               fp = typeof cfgMap.fuel_prices === 'string' ? JSON.parse(cfgMap.fuel_prices) : cfgMap.fuel_prices;
             } else {
-              console.warn('[Club Turkaj] program_config.fuel_prices no encontrado — usando fallback {0,0,0}. Configurar en admin/Settings.');
+              console.warn('[Puntos Plus] program_config.fuel_prices no encontrado — usando fallback {0,0,0}. Configurar en admin/Settings.');
               fp = { super: 0, regular: 0, diesel: 0 };
             }
             setCfg({
@@ -409,11 +409,11 @@ export default function App() {
         // Load members (with fallback if join fails)
         let memRes = await sb.from('members').select('*,physical_cards!assigned_to(card_code)').order('created_at', { ascending: false });
         if (memRes.error) {
-          console.warn('[Club Turkaj] Members join query failed, trying without join:', memRes.error);
+          console.warn('[Puntos Plus] Members join query failed, trying without join:', memRes.error);
           memRes = await sb.from('members').select('*').order('created_at', { ascending: false });
         }
-        if (memRes.error) console.error('[Club Turkaj] Error cargando miembros:', memRes.error);
-        console.log('[Club Turkaj] Miembros encontrados:', memRes.data?.length || 0);
+        if (memRes.error) console.error('[Puntos Plus] Error cargando miembros:', memRes.error);
+        console.log('[Puntos Plus] Miembros encontrados:', memRes.data?.length || 0);
 
         function mapMember(m) {
           return {
@@ -447,7 +447,7 @@ export default function App() {
             station: o.stations?.name || o.station_id || '', stationId: o.station_id || null, bomba: o.bomba || '', turno: o.turno || '',
             active: o.active !== false,
           })));
-          console.log('[Club Turkaj] Operadores cargados:', opRes.data.length);
+          console.log('[Puntos Plus] Operadores cargados:', opRes.data.length);
         }
 
         // Load activity log
@@ -527,15 +527,15 @@ export default function App() {
             ratMap[r.operator_id].push({ stars: r.stars });
           });
           setOpRatings(ratMap);
-          console.log('[Club Turkaj] Calificaciones cargadas:', ratRes.data.length);
+          console.log('[Puntos Plus] Calificaciones cargadas:', ratRes.data.length);
         }
 
         setSbConnected(true);
-        console.log('[Club Turkaj] ✅ Datos cargados desde Supabase');
+        console.log('[Puntos Plus] ✅ Datos cargados desde Supabase');
 
 
       } catch (e) {
-        console.error('[Club Turkaj] ⚠️ Error cargando:', e);
+        console.error('[Puntos Plus] ⚠️ Error cargando:', e);
       } finally {
         if (mounted) setSbLoading(false);
       }
@@ -638,12 +638,12 @@ export default function App() {
   // ===== RECARGAR DATOS SI FALTAN AL ENTRAR COMO OPERADOR/ADMIN =====
   useEffect(() => {
     if ((authOp === 'logged' || authAdmin === 'logged') && custs.length === 0 && sb) {
-      console.log('[Club Turkaj] Operador/Admin logueado pero sin clientes, recargando...');
+      console.log('[Puntos Plus] Operador/Admin logueado pero sin clientes, recargando...');
       sb.from('members').select('*,physical_cards!assigned_to(card_code)')
         .order('created_at', { ascending: false })
         .then(res => {
           if (res.error) {
-            console.warn('[Club Turkaj] Retry con join falló, intentando sin join...');
+            console.warn('[Puntos Plus] Retry con join falló, intentando sin join...');
             return sb.from('members').select('*').order('created_at', { ascending: false });
           }
           return res;
@@ -666,9 +666,9 @@ export default function App() {
               supabaseUser: true, authProvider: m.auth_provider || 'google',
               authProviderId: m.auth_provider_id || '',
             })));
-            console.log('[Club Turkaj] ✅ Miembros recargados:', res.data.length);
+            console.log('[Puntos Plus] ✅ Miembros recargados:', res.data.length);
           } else {
-            console.warn('[Club Turkaj] No se encontraron miembros en recarga');
+            console.warn('[Puntos Plus] No se encontraron miembros en recarga');
           }
         });
     }

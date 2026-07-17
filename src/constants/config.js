@@ -1,5 +1,5 @@
 // ============================================================
-// Club Turkaj — Constantes y Configuración de Negocio
+// Puntos Plus — Constantes y Configuración de Negocio
 // ============================================================
 // Reglas de negocio INAMOVIBLES y valores por defecto.
 // Los valores editables vienen de Supabase (program_config).

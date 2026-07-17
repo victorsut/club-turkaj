@@ -1,5 +1,5 @@
 // ============================================================
-// Club Turkaj — useToast Hook
+// Puntos Plus — useToast Hook
 // ============================================================
 import { useState, useCallback } from 'react';
 

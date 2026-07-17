@@ -1,5 +1,5 @@
 // ============================================================
-// Club Turkaj / Puntos+ — Session Tokens (SEC.B.4)
+// Puntos Plus — Session Tokens (SEC.B.4)
 // ============================================================
 // Módulo ÚNICO que encapsula la persistencia de los tokens de
 // sesión de operador y admin en localStorage.
