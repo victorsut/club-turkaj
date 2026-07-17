@@ -1,10 +1,10 @@
-# Puntos+ — Roadmap de Producto
+# Puntos Plus — Roadmap de Producto
 
-> **Versión:** 2.5
+> **Versión:** 3.0
 > **Fecha de creación:** 17 de mayo de 2026
-> **Última actualización:** 29 de junio de 2026
+> **Última actualización:** 17 de julio de 2026
 > **Estado:** Vivo (este documento evoluciona con el proyecto)
-> **Alcance v2.4:** este documento es ahora el **PLAN MAESTRO ÚNICO** — incluye el track de producto (F0–F9, FA, FB) Y el **Track de Seguridad (SEC)**. El detalle de seguridad se absorbió desde `ESTADO-PROYECTO.md` (que quedó recortado a referencia técnica). v2.4 es una **reconciliación** (reflejar la realidad con evidencia de commits/migraciones), NO una re-planificación: no se reordenó nada ni se slotteó seguridad en el flujo de producto.
+> **Alcance v3.0:** **RE-PLANIFICACIÓN (Nivel 2)** sobre la reconciliación v2.4/v2.5. Cambios mayores: la marca pasa a **"Puntos Plus"** (D30); F3 se disuelve en **R1a** (rebrand exprés) + **track R1b** (rediseño iterativo por vistas); F7 se divide en **F7a** (API core PROPER, adelantada) y **F7b** (physical-members, tras F4); nueva fase **PROMO-1** (motor de promociones gestionables, D32/D33); el Track de Seguridad se slottea por primera vez (**SEC-lite** tras PROMO-1); FB queda **CERRADA** (caso ángel resuelto sin ajuste, D36). Este documento sigue siendo el PLAN MAESTRO ÚNICO (producto + seguridad).
 
 ---
 
@@ -12,7 +12,7 @@
 
 ### 0.1 Propósito
 
-Este documento es el plan maestro de evolución de Puntos+. Define qué se va a construir, en qué orden, con qué alcance, y por qué. No es un cronograma de plazos fijos sino un mapa de prioridades técnicas con estimaciones de esfuerzo razonables.
+Este documento es el plan maestro de evolución de Puntos Plus. Define qué se va a construir, en qué orden, con qué alcance, y por qué. No es un cronograma de plazos fijos sino un mapa de prioridades técnicas con estimaciones de esfuerzo razonables.
 
 ### 0.2 Cómo leerlo
 
@@ -37,24 +37,24 @@ La regla de oro: **si tomaste una decisión que afecta el roadmap, escribíla ac
 
 ### 1.1 Identidad del producto
 
-**Puntos+** es una plataforma de fidelización digital independiente. **No es propiedad de Turkaj ni de Shell Guatemala.** Es un producto que las empresas (en su primer cliente: Turkaj) contratan para gestionar sus programas de lealtad.
+**Puntos Plus** es una plataforma de fidelización digital independiente. **No es propiedad de Turkaj ni de Shell Guatemala.** Es un producto que las empresas (en su primer cliente: Turkaj) contratan para gestionar sus programas de lealtad.
 
 **Diferencia importante:**
-- **Puntos+** es la plataforma (producto).
-- **Turkaj** es un cliente de Puntos+ (gasolineras Turkaj I, II, III en Chichicastenango).
-- **Shell Guatemala** NO es parte de Puntos+ ni administra el programa.
+- **Puntos Plus** es la plataforma (producto).
+- **Turkaj** es un cliente de Puntos Plus (gasolineras Turkaj I, II, III en Chichicastenango).
+- **Shell Guatemala** NO es parte de Puntos Plus ni administra el programa.
 
 Esta separación tiene implicaciones legales, comerciales y arquitectónicas:
 
 | Aspecto | Implicación |
 |---|---|
-| Legal | Disclaimer obligatorio: "Puntos+ es una app ajena a Shell Guatemala y aplica únicamente a gasolineras Turkaj en Chichicastenango." |
-| Comercial | Si en el futuro otra empresa quiere usar Puntos+, es contrato independiente (no parte de Turkaj). |
+| Legal | Disclaimer obligatorio: "Puntos Plus es una app ajena a Shell Guatemala y aplica únicamente a gasolineras Turkaj en Chichicastenango." |
+| Comercial | Si en el futuro otra empresa quiere usar Puntos Plus, es contrato independiente (no parte de Turkaj). |
 | Arquitectura | Una instancia por empresa, pero el código del producto es independiente del cliente. No hay hardcoding de "Turkaj" en el branding visible. |
 
-### 1.2 Qué es Puntos+ hoy
+### 1.2 Qué es Puntos Plus hoy
 
-Puntos+ (anteriormente conocido como "Club Turkaj +") es una Progressive Web App (PWA) de programa de lealtad para gasolineras Turkaj I, II, III en Chichicastenango, Guatemala. Permite a clientes acumular puntos por consumo de combustible, canjear premios, participar en rifas mensuales y completar encuestas.
+Puntos Plus (anteriormente conocido como "Club Turkaj +") es una Progressive Web App (PWA) de programa de lealtad para gasolineras Turkaj I, II, III en Chichicastenango, Guatemala. Permite a clientes acumular puntos por consumo de combustible, canjear premios, participar en rifas mensuales y completar encuestas.
 
 **Stack técnico actual:**
 - Frontend: React 18.3.1 + Vite 6.4.2 (JSX, sin TypeScript)
@@ -76,12 +76,12 @@ Puntos+ (anteriormente conocido como "Club Turkaj +") es una Progressive Web App
 
 ### 1.3 Qué será al completar este roadmap
 
-Puntos+ será una plataforma de lealtad configurable que:
+Puntos Plus será una plataforma de lealtad configurable que:
 
 1. **Es configurable por empresa** (Turkaj hoy, otra empresa mañana sin tocar código).
 2. **Implementa la estrategia comercial completa** del documento estratégico: multiplicador de puntos por tier, lavados gratis, eventos especiales diferenciados.
 3. **Aplica QR único con control de fraude a TODO premio canjeable** incluyendo canjes regulares, lavados mensuales gratis, y premios de rifa.
-4. **Tiene rediseño visual** que prioriza claridad, vehículos del cliente, y acceso rápido a beneficios, con identidad de marca Puntos+ y disclaimer legal visible.
+4. **Tiene rediseño visual** que prioriza claridad, vehículos del cliente, y acceso rápido a beneficios, con identidad de marca Puntos Plus y disclaimer legal visible.
 5. **Soporta dos canales de identidad**: cuenta digital (app) y tarjeta física (operador-asistido).
 6. **Expone API REST** consumible por sistemas de facturación externos (PROPER) y otros canales futuros.
 7. **Trackea vehículos del cliente** como entidad de primera clase con telemetría manual y alertas push de servicios.
@@ -93,7 +93,7 @@ Puntos+ será una plataforma de lealtad configurable que:
 
 | Aspecto | Hoy | Al completar el roadmap |
 |---|---|---|
-| Identidad del producto | "Club Turkaj +" (mezcla producto/cliente) | "Puntos+" (producto independiente con Turkaj como cliente) |
+| Identidad del producto | "Club Turkaj +" (mezcla producto/cliente) | "Puntos Plus" (producto independiente con Turkaj como cliente) |
 | Empresa | Hardcoded "Turkaj" | Configurable desde admin |
 | Estaciones | 3 hardcoded | N estaciones gestionables |
 | Precios | Globales | Globales o por estación (toggle) |
@@ -117,12 +117,12 @@ Puntos+ será una plataforma de lealtad configurable que:
 Esta sección documenta las decisiones tomadas durante las conversaciones de planificación. Cada decisión incluye motivo para que se entienda por qué se eligió así.
 
 ### D1 — NO multi-tenant
-**Decisión:** una sola empresa por instancia de Puntos+. Si en el futuro aparece otra empresa interesada, sería deploy independiente (otro proyecto Supabase + otro Vercel).
+**Decisión:** una sola empresa por instancia de Puntos Plus. Si en el futuro aparece otra empresa interesada, sería deploy independiente (otro proyecto Supabase + otro Vercel).
 **Motivo:** simplifica enormemente arquitectura (schemas, auth, billing). Multi-tenant introduce complejidad significativa que no se justifica sin demanda confirmada.
 
-### D2 — Nombre fijo "Puntos+"
-**Decisión:** el nombre de la app es **"Puntos+"** (fijo, no dinámico). Reemplaza al nombre anterior "Club Turkaj +".
-**Motivo:** Puntos+ es la plataforma; Turkaj es el cliente. Mezclarlos en el branding ("Club Turkaj +") confundía la propiedad del producto. Con nombre fijo, Puntos+ tiene identidad propia y Turkaj es uno de sus clientes.
+### D2 — Nombre fijo "Puntos Plus"
+**Decisión:** el nombre de la app es **"Puntos Plus"** (fijo, no dinámico). Reemplaza al nombre anterior "Club Turkaj +". *(v3.0: renombrado desde "Puntos+" — ver D30.)*
+**Motivo:** Puntos Plus es la plataforma; Turkaj es el cliente. Mezclarlos en el branding ("Club Turkaj +") confundía la propiedad del producto. Con nombre fijo, Puntos Plus tiene identidad propia y Turkaj es uno de sus clientes.
 **Implementación:** rebranding completo se hace en F3 (rediseño visual). Hasta entonces, la app sigue mostrando "Club Turkaj +" en producción.
 
 ### D3 — N estaciones configurables
@@ -149,8 +149,8 @@ Esta sección documenta las decisiones tomadas durante las conversaciones de pla
 **Decisión:** clientes con tarjeta física consultan puntos y canjes presencialmente en estación. NO hay app/web/WhatsApp para ellos.
 **Motivo:** son clientes que eligieron no usar tecnología; respetar esa elección.
 
-### D9 — API REST expuesta por Puntos+
-**Decisión:** Puntos+ expone API, PROPER (sistema de facturación) la consume.
+### D9 — API REST expuesta por Puntos Plus
+**Decisión:** Puntos Plus expone API, PROPER (sistema de facturación) la consume.
 **Motivo:** PROPER ya confirmó interés. Nosotros controlamos el contrato.
 
 ### D10 — Asignación automática post-factura
@@ -166,8 +166,8 @@ Esta sección documenta las decisiones tomadas durante las conversaciones de pla
 **Motivo:** trazabilidad completa sin construir UI de rollback (que sería Nivel 3, más esfuerzo).
 
 ### D13 — Rediseño visual completo del cliente
-**Decisión:** rediseño basado en mockup de inspiración y wireframe ejemplo1. Mantiene la paleta de colores existente como base inspiracional. Absorbe el rebranding completo a Puntos+ (logo, eliminación de referencias a Turkaj en visuales del producto).
-**Motivo:** UI actual cumple pero no destaca. Nuevo diseño prioriza claridad y branding. Aprovecha la transformación visual para implementar identidad de Puntos+.
+**Decisión:** rediseño basado en mockup de inspiración y wireframe ejemplo1. Mantiene la paleta de colores existente como base inspiracional. Absorbe el rebranding completo a Puntos Plus (logo, eliminación de referencias a Turkaj en visuales del producto).
+**Motivo:** UI actual cumple pero no destaca. Nuevo diseño prioriza claridad y branding. Aprovecha la transformación visual para implementar identidad de Puntos Plus.
 
 ### D14 — Nueva bottom navigation
 **Decisión:** 4 pestañas + QR central: Inicio, Canjes, Rifa, Vehículos.
@@ -226,13 +226,13 @@ Esta sección documenta las decisiones tomadas durante las conversaciones de pla
 **Motivo:** WhatsApp tiene 80-90% penetración en Guatemala, mejor tasa de entrega, y costo 5-10x menor que SMS. Supabase como orquestador mantiene la arquitectura simple.
 **Costo estimado:** $2-5 USD/mes recurrente.
 
-### D28 — Disclaimer legal de Puntos+
+### D28 — Disclaimer legal de Puntos Plus
 **Decisión:** la app incluye un disclaimer legal en dos ubicaciones:
 - **Footer permanente:** visible en todas las pantallas de la app, en formato pequeño pero claro.
-- **Sección "Acerca de":** con el texto completo y contexto adicional sobre Puntos+.
+- **Sección "Acerca de":** con el texto completo y contexto adicional sobre Puntos Plus.
 **Texto del disclaimer:**
-> *"Puntos+ es una app ajena a Shell Guatemala y aplica únicamente a gasolineras Turkaj en Chichicastenango."*
-**Motivo:** protección legal contra reclamos de Shell Guatemala sobre uso indebido de marca. Aclara la independencia del producto Puntos+ respecto a la franquicia Shell. Implementación en F3 (rediseño visual) cuando se rehaga toda la identidad.
+> *"Puntos Plus es una app ajena a Shell Guatemala y aplica únicamente a gasolineras Turkaj en Chichicastenango."*
+**Motivo:** protección legal contra reclamos de Shell Guatemala sobre uso indebido de marca. Aclara la independencia del producto Puntos Plus respecto a la franquicia Shell. Implementación en F3 (rediseño visual) cuando se rehaga toda la identidad.
 
 ### D29 — Impresión de comprobante: doble copia al canjear
 **Decisión:** al canjear un premio (en gasolinera o tienda asociada), se imprimen automáticamente DOS comprobantes desde el POS Sunmi P2:
@@ -242,6 +242,36 @@ Esta sección documenta las decisiones tomadas durante las conversaciones de pla
 **Impresión solo al canjear**, NO al acumular puntos (la factura PROPER ya cubre la acumulación).
 **Si la impresión falla:** la app permite reimpresión bajo demanda desde el operador. No hay fallback digital (QR en pantalla).
 **Motivo:** doble copia es estándar en sistemas de fidelización serios. Operador conserva respaldo legal; cliente sale con confirmación tangible. Sin firmas porque la auditoría se hace vía `print_logs` + `redemption_qrs`. La reimpresión es más universal que QR digital (no asume smartphone con batería/conexión).
+
+---
+
+### D30 — Marca "Puntos Plus" (17-jul-2026)
+**Decisión:** la marca pasa de "Puntos+" a **"Puntos Plus"** (dos palabras). Wordmark con "Plus" destacado en rojo según la referencia visual. Slug técnico: `puntos-plus`.
+**Motivo:** decisión del dueño al definir la identidad visual final (carpeta `REFERENCIAS INTERFAZ/` en la raíz del repo). Actualiza D2; el resto de D2 (nombre fijo, no dinámico) sigue vigente.
+
+### D31 — Re-planificación v3.0: F3 disuelta, F7 dividida, nuevo orden (17-jul-2026)
+**Decisión:** (a) F3 deja de existir como fase monolítica: el rebranding se ejecuta como **R1a** (exprés, inmediato) y el rediseño visual como **track R1b** (iterativo, una vista por sesión, en paralelo a las fases funcionales). (b) F7 se divide en **F7a** (API core PROPER, adelantada a la posición 5 del flujo) y **F7b** (physical-members, tras F4). (c) FA mantiene su posición crítica. Orden completo en §4.1/§4.2.
+**Motivo:** prioridades del dueño (rebranding y API PROPER) + análisis de dependencias: el rebrand no tiene dependencia técnica dura sobre F1/F2; solo 2 de los 7 endpoints de F7 necesitan F4. Costo asumido: retocar vistas ya rediseñadas cuando F2 agregue features (~5-8 hs).
+
+### D32 — Motor de promociones gestionables (17-jul-2026)
+**Decisión:** promociones con lógica real gestionadas desde admin: tablas `promo_rules` (vigencia, condiciones, efecto, límites) y `promo_applications` (trazabilidad), aplicadas server-side dentro de `register_purchase`. Efectos v1: `points_multiplier` (dobles puntos) y `bonus_points` (fase PROMO-1). Efecto `grant_reward` (lavado/servicio gratis por consumo mínimo en fechas específicas) se habilita en F2 (PROMO-2), porque necesita el QR universal/vouchers de D20. **Sin stacking:** si matchean varias reglas, gana la de mayor beneficio para el cliente. Evaluación de fechas/días en zona **America/Guatemala**.
+**Motivo:** solicitud del negocio (dobles puntos en días/productos específicos, lavado gratis por consumo). Server-side para que el flujo del operador y el endpoint `/purchases` de PROPER compartan la misma lógica sin duplicación. El bono de `special_days` (cumpleaños/festivos) es independiente y no se toca.
+
+### D33 — Promociones visuales con imágenes reales (17-jul-2026)
+**Decisión:** las cards de promoción llevan imágenes reales y estilos llamativos (segunda referencia visual). `promotions` se extiende con `image_url`, `category` (combustible/tienda/servicios), `valid_until` y `promo_rule_id` opcional; imágenes en un bucket de Supabase Storage subidas desde admin. En el home, el cuadro rojo "PROMOCIONES" de la referencia se SUSTITUYE por las cards reales rotando automáticamente (comportamiento del carrusel actual). Cards sin regla = informativas; con regla vinculada = muestran datos reales y se apagan solas al vencer.
+**Motivo:** las promos actuales (gradiente + icono) se ven simples; el negocio pide imágenes reales. D19 sigue vigente: el ejemplo "20% de descuento en lubricantes" de la referencia NO se implementa como mecánica (a lo sumo card informativa).
+
+### D34 — Home: campana pospuesta, menú al header, Encuesta en vez de Shell (17-jul-2026)
+**Decisión:** spec del home cerrada cuadro por cuadro con el dueño (detalle en §5.R1b). Claves: la campana de notificaciones se OMITE (la fase de notificaciones pasa a Apéndice C) y en su lugar el header lleva el botón del menú de usuario (ventana full-screen con el menú actual + "Acerca de"/disclaimer D28); el cuadro "Encuentra Shell" de la referencia se reemplaza por "Encuesta de Satisfacción" (cero Shell); la tarjeta de nivel omite la equivalencia en quetzales y tiene doble zona táctil (área general → detalle del nivel; área de puntos → pestaña Canjes); WiFi restringido a PLATINO/BLACK (en ORO se muestra deshabilitado por nivel); Vehículos con badge "PRÓXIMAMENTE" hasta F6.
+**Motivo:** decisiones del dueño (17-jul-2026) sobre la referencia visual del home.
+
+### D35 — Animaciones de navegación (17-jul-2026)
+**Decisión:** dos animaciones firmadas: (a) **contenedor→ventana** — al abrir una ventana/modal desde un cuadro, el cuadro se expande hasta ocupar la vista (container transform) y al volver se contrae de regreso al cuadro de origen; (b) **pestañas** — al tocar una pestaña del bottom nav, la vista entra desde abajo, como saliendo de la pestaña. Complementos: press-scale en tarjetas, entrada escalonada del grid, count-up de puntos, barra de progreso animada. Todo con fallback bajo `prefers-reduced-motion`.
+**Motivo:** solicitud explícita del dueño para la nueva identidad.
+
+### D36 — Caso ángel macario: cerrado sin ajuste (17-jul-2026)
+**Decisión:** los 71 puntos quedan tal cual (no se ajustan a 50 ni se crea entrada retroactiva). El caso se habló directamente con el cliente y se da por concluido. No se investiga retroactivamente a otros miembros.
+**Motivo:** el trigger strict de FB.9 ya garantiza que ninguna mutación futura pase sin auditoría; el valor de la corrección retroactiva no justifica su costo relacional/operativo. Cierra las decisiones FB.5/FB.6 → **FB queda CERRADA**.
 
 ---
 
@@ -276,12 +306,12 @@ Algunas gestiones operacionales requieren tiempo de aprobación de terceros y de
 | Cuenta Twilio Business | Semana 1 | 1-2 días | F5 |
 | Aprobación WhatsApp Business via Twilio (Meta) | Semana 1 | 1-4 semanas | F5 |
 | Plantillas WhatsApp pre-aprobadas | Semana 2 (post-aprobación cuenta) | 2-7 días por plantilla | F5 |
-| Diseño de logo Puntos+ | Antes de F3 | A criterio del dueño | F3 |
-| Coordinación técnica con PROPER | Semana ~22 | 2-4 semanas | F7 |
+| Diseño de logo Puntos Plus | YA (bloquea el arranque de R1b) | A criterio del dueño | R1b |
+| Coordinación técnica con PROPER | YA (adelantada en v3.0) | 2-4 semanas | F7a |
 
 ### 3.6 Implicaciones para el roadmap
 
-A 15-25 horas semanales, el alcance total estimado es de **7 a 10 meses calendario**.
+A 15-25 horas semanales, el alcance restante estimado (v3.0) es de **6 a 11 meses calendario**.
 
 ---
 
@@ -307,70 +337,76 @@ Mover el `useState(checkingPhone)` al tope del componente con los otros useState
 
 ## 4. Mapa general de fases
 
-### 4.1 Tabla resumen
+### 4.1 Tabla resumen (orden de ejecución v3.0)
 
-| Fase | Bloque | Esfuerzo | Calendario | Prioridad | Estado |
+| # | Fase | Bloque | Esfuerzo | Prioridad | Estado |
 |---|---|---|---|---|---|
-| P0 | Bug-fix pantalla blanca | 1-3 hs | Antes de F0 | Crítica | ✅ Completado |
-| F0 | Setup de auditoría Nivel 2 | 23-31 hs | 1-2 sem | Crítica | ⏳ Casi completo — F0.1–F0.3 ✅ (incl. F0.3.5–F0.3.9); falta F0.4 (`AuditLog.jsx`, no existe) · F0.5 🔶 · F0.7 ✅ |
-| **FB** | **Integridad y trazabilidad de puntos** | **16-26 hs** | **3-5 sem** | **Crítica** | ✅ **Construido** (migraciones + refactor cliente) — decisiones FB.5/FB.6 (caso ángel) ABIERTAS · ver §5.FB |
-| **FA** | **Optimización impresión POS Sunmi** | **42-59 hs** | **2-3 sem** | **Crítica** | ⏳ Pendiente |
-| F1 | Configurabilidad empresa + estaciones + precios + KPIs | 61-78 hs | 3-5 sem | Crítica | Pendiente |
-| F2 | Mejoras programa de lealtad | 75-97 hs | 4-6 sem | Crítica | Pendiente |
-| F3 | Rediseño visual + rebranding completo Puntos+ | 95-120 hs | 5-7 sem | Alta | Pendiente |
-| F4 | Tarjeta física + extensiones operador | 50-70 hs | 3-4 sem | Alta | Pendiente |
-| F5 | Features faltantes (WhatsApp+SMS, password, dirección) | 56-73 hs | 2-3 sem | Media | Pendiente |
-| F6 | Vehículos como entidad + alertas push | 72-93 hs | 3-5 sem | Media | Pendiente |
-| F7 | API REST pública + integración PROPER | 55-74 hs | 3-5 sem | Media | Pendiente |
-| F8 | Spike Club Business | 1 sem | 1 sem | Baja | Pendiente |
-| F9 | Reportería enriquecida (opcional) | 40-55 hs | 2-3 sem | Opcional | Pendiente |
+| — | P0 | Bug-fix pantalla blanca | 1-3 hs | Crítica | ✅ Completado |
+| — | FB | Integridad y trazabilidad de puntos | 16-26 hs | Crítica | ✅ **CERRADA** — caso ángel resuelto sin ajuste (D36) |
+| 0 | B0 | Flecos: F0.4 `AuditLog.jsx` (cierra F0) + confirmar F0.5 | 6-10 hs | Crítica | Pendiente |
+| 1 | R1a | Rebrand exprés a "Puntos Plus" (strings, manifest, splash, push, legales, disclaimer D28) | 10-16 hs | Crítica | Pendiente |
+| 2 | FA | Optimización impresión POS Sunmi | 42-59 hs | Crítica | Pendiente |
+| 3 | PROMO-1 | Motor de promociones v1 (dobles puntos / bonus por día-producto-monto) | 25-35 hs | Crítica | Pendiente |
+| 4 | SEC-lite | `authenticate_member` + cierre del vector cliente del raffle | 12-20 hs | Alta | Pendiente |
+| 5 | F7a | API REST core para PROPER (sin physical-members) | 45-60 hs | Alta | Pendiente |
+| 6 | F1 | Configurabilidad empresa + estaciones + precios + KPIs | 61-78 hs | Alta | Pendiente |
+| 7 | F2 | Lealtad completa: QR universal, vouchers, lavados, multiplicador tier, localizaciones + **PROMO-2** | 85-115 hs | Alta | Pendiente |
+| 8 | F4 | Tarjeta física + extensiones operador | 50-70 hs | Media | Pendiente |
+| 9 | F7b | Endpoints `/physical-members` (completa contrato PROPER) | 8-12 hs | Media | Pendiente |
+| 10 | F5 | Features faltantes (WhatsApp+SMS, password, dirección) | 56-73 hs | Media | Pendiente |
+| 11 | F6 | Vehículos como entidad + alertas push | 72-93 hs | Media | Pendiente |
+| 12 | F8 | Spike Club Business | 1 sem | Baja | Pendiente |
+| 13 | F9 | Reportería enriquecida (opcional) | 40-55 hs | Opcional | Pendiente |
+| ∥ | **R1b** | **Track paralelo: rediseño visual iterativo por vistas** (Home → Promociones → Historiales → Menú → Canjes/Rifa) | 75-110 hs | Alta | Pendiente — arranca al tener logo |
 
-**Total estimado:** 33-49 semanas calendario (≈8-11 meses).
+**Total restante estimado:** ≈550-750 hs ≈ 24-48 semanas calendario (6-11 meses) a 15-25 hs/sem.
 
-> **Nota de reconciliación v2.4 (estados):** los estados de F0 y FB de la tabla
-> reflejan la realidad del repo (commits + migraciones aplicadas), no el plan
-> original. FB pasó de "🔜 Próxima" a "✅ Construido" (evidencia en §5.FB). F0
-> avanzó hasta F0.3.9. Esto es reconciliación, no avance de planificación.
+> **Nota v3.0:** este orden ES la re-planificación (Nivel 2) que v2.4/v2.5
+> difirieron. F3 ya no existe como fase monolítica: se disuelve en R1a + track
+> R1b (D31). F7 se divide en F7a/F7b (D31). El Track de Seguridad entra al
+> flujo por primera vez como SEC-lite (posición 4); SEC.C completo sigue sin
+> slot. Los estados de P0/FB reflejan la realidad del repo.
 
-### 4.1-bis Track de Seguridad (paralelo — SIN posición en el flujo F0→F9)
+### 4.1-bis Track de Seguridad (SEC)
 
-> El **Track de Seguridad (SEC)** se gestiona en su propia sección (ver
-> **"Track de Seguridad (SEC)"** más abajo, antes del Apéndice A). **NO** está
-> slotteado en el diagrama de dependencias §4.2: su orden relativo al track de
-> producto es una decisión de **re-planificación (Nivel 2)**, fuera del alcance
-> de esta reconciliación.
+> **v3.0:** el track deja de estar completamente sin slot. **SEC-lite** (= SEC.A
+> con scope formal + cierre del vector cliente del raffle) entra al flujo en la
+> posición 4 (§4.2), antes del go-live de la API pública. SEC.C completo (auth
+> real rol ≠ anon para los 3 actores) y SEC.B.9 siguen sin slot — se re-evalúan
+> al cerrar SEC-lite.
 
 | Bloque | Qué | Estado | Posición en el flujo |
 |---|---|---|---|
-| SEC.A | Login cliente-teléfono server-side (`authenticate_member`) | ⛔ No iniciado, **sin scope formal** | Sin slottear |
+| **SEC-lite** (SEC.A+) | `authenticate_member` server-side + cierre del vector cliente de `buy_raffle_tickets` (rama 1a) | 📋 **Scoped en v3.0** (ver §5.SEC-lite) | Posición 4 (tras PROMO-1, antes de F7a) |
 | SEC.B | Sesiones operador/admin (tokens de sesión) | ✅ **CERRADO** (B.3–B.8) | — |
 | SEC.B.9 | `REVOKE EXECUTE FROM anon` en las 4 RPCs | 🔒 **Deuda dependiente de SEC.C** | Sin slottear |
-| SEC.C | Auth real (rol ≠ anon para los 3 roles) | 📋 **Pendiente** — documentado solo como dependencia, sin sección de scope | Sin slottear |
+| SEC.C | Auth real (rol ≠ anon para los 3 roles) | 📋 **Pendiente** — documentado solo como dependencia | Sin slottear |
 | FIX-MODAL | Modal de calificación por INSERT de `purchases` | ✅ **CERRADO** | — |
 
-### 4.2 Diagrama de dependencias
+### 4.2 Diagrama de dependencias (v3.0)
 
 ```
-P0 (Bug-fix) ✅ ──► F0 (Auditoría) ──► FB (Integridad Puntos) ──► FA (Impresión POS) ──► F1 (Empresa) ──► F2 (Lealtad) ──► F3 (Visual + Rebrand) ──► F5 (Features) ──► F6 (Vehículos) ──► F8 (Spike) ──► F9 (Reportería)
-                                                                                                       │
-                                                                                                       └──► F4 (Tarjeta) ──► F7 (API/PROPER)
+B0 (Flecos) ──► R1a (Rebrand) ──► FA (Impresión POS) ──► PROMO-1 (Motor promos v1) ──► SEC-lite ──► F7a (API PROPER) ──► F1 (Empresa) ──► F2 (Lealtad + PROMO-2) ──► F4 (Tarjeta) ──► F7b (API física) ──► F5 (Features) ──► F6 (Vehículos) ──► F8 (Spike) ──► F9 (Reportería)
+
+Track paralelo continuo (no bloquea la cadena):
+R1b (Rediseño iterativo) — sesiones por vista intercaladas entre B0 y F2; requiere logo.
 ```
 
 **Lectura del diagrama:**
-- FB (integridad de puntos) va **inmediatamente después de F0** y antes que FA: sin trazabilidad de `members.points`, la auditoría Nivel 2 queda incompleta y el programa pierde confianza del cliente.
-- FA (impresión) es ahora **prerequisito crítico** porque sin impresión estable, el producto no es completamente útil.
-- F3 (visual + rebranding) absorbe la transformación completa de identidad a Puntos+.
-- **F4 (tarjeta física) cuelga de F2, NO de F3** (corregido en v2.5): reusa el canje/QR-universal/localizaciones (D17/D18/D20) que construye F2; no tiene dependencia técnica sobre F3 (solo consistencia visual cosmética). El `F3 → F4` anterior era un remanente del F4 grande de v2.1 (incluía impresión) que no se actualizó al separar FA en v2.2.
-- **F7 (API/PROPER) cuelga de F4** (F2 → F4 → F7): la API expone endpoints `/physical-members/*` que necesitan la infra de `physical_card_members` que construye F4.
-- F5 (features) sigue dependiendo de F3 (§5.5.4). Todo lo demás mantiene dependencias previas.
+- **FA mantiene su posición crítica** (decisión del dueño, jul-2026): sin impresión estable el producto no es completamente útil.
+- **PROMO-1 va antes que F7a a propósito:** el motor vive dentro de `register_purchase`, así el endpoint `/purchases` de PROPER hereda las promociones sin lógica duplicada, y el cálculo de puntos queda estable antes de congelar el contrato de la API.
+- **SEC-lite va antes del go-live de la API:** no se sube la visibilidad pública del producto con el vector cliente del raffle abierto.
+- **F2 requiere F1** (localizaciones y tiendas necesitan la tabla `stations`). **PROMO-2** (efecto `grant_reward`: lavado/servicio gratis por consumo) vive dentro de F2 porque necesita la infraestructura de QR universal/vouchers (D20).
+- **F4 ← F2** y **F7b ← F4** se mantienen de v2.5.
+- Las vistas que F2 modifica (canjes) se rediseñan **al final** del track R1b para no trabajarlas dos veces.
+- F5 depende de las vistas base del track R1b + gestiones Twilio (§5.5.4).
 
 ### 4.3 Gestiones paralelas
 
 ```
-Semana 1 ──► Iniciar cuenta Twilio + WhatsApp Business
-Semana 1-5 ──► Aprobación Meta (en background)
-Antes de F3 ──► Diseñar logo Puntos+ (en background)
-Semana ~22 ──► Coordinación técnica con PROPER (en background)
+YA (semana 1)      ──► Coordinación técnica con PROPER (adelantada desde la semana ~22; toma 2-4 semanas y F7a está en posición 5)
+YA (semana 1)      ──► Logo de Puntos Plus (bloquea el arranque del track R1b, NO bloquea R1a)
+~4 sem antes de F5 ──► Cuenta Twilio + WhatsApp Business + aprobación Meta + plantillas
 ```
 
 ---
@@ -415,7 +451,7 @@ Implementar el sistema de auditoría que va a registrar todas las acciones de ad
    - **F0.3.7** ✅ visibilidad + auditoría en AdminPromos (commits `6209d1f`/`1c4268e`).
    - **F0.3.8** ✅ `update_member_with_audit` (RPC + wrapper) + MemberDetail con diff Opción B + validaciones (commits `0dff54f`/`a3e2212`/`b2936b9`/`5149c20`/`008b392`, mig `20260617_update_member_with_audit`).
    - **F0.3.9** ✅ (no planificada) fixes de focus en AdminPromos + DatePickerSheet preventivo en GoogleProfile (commits `b7b2f5e`/`a9dda49`).
-4. **F0.4** ⛔ **Pendiente** — `AuditLog.jsx` con tabla paginada + filtros NO existe (`src/views/admin/` no lo tiene).
+4. **F0.4** ⛔ **Pendiente** — `AuditLog.jsx` con tabla paginada + filtros NO existe (`src/views/admin/` no lo tiene). **v3.0: programado en Bloque B0.**
 5. **F0.5** 🔶 **A confirmar** — modal de "motivo del cambio" cubierto por `ReasonModal` (commit `261128f`, F0.3.2) integrado en varios flujos; queda confirmar contra el detalle original de qué exigía F0.5. No marcado ni cerrado ni pendiente.
 6. **F0.6** Build + commits + push. (continuo a lo largo de F0)
 7. **F0.7** ✅ Testing en producción — hubo etapa de observación y testing exhaustivo en prod.
@@ -456,7 +492,7 @@ P0 completado.
 
 ### Fase FB — Integridad y Trazabilidad de Puntos
 
-**Estado:** ✅ **CONSTRUIDO** (infraestructura aplicada vía migraciones + refactor cliente, jun-2026) — **decisiones FB.5/FB.6 (caso ángel macario) siguen ABIERTAS** (ver "Decisiones pendientes" abajo).
+**Estado:** ✅ **CERRADA** (v3.0, 17-jul-2026) — infraestructura construida jun-2026; decisiones FB.5/FB.6 (caso ángel macario) **RESUELTAS sin ajuste** (D36).
 **Estimación:** 16-26 horas (3-5 sesiones)
 **Posición:** Entre F0 y FA
 
@@ -542,12 +578,14 @@ de "bajaron puntos" es percepción del cliente sin sustento técnico.
 - F0.3.8 (MemberDetail con diff Opción B) preparó el terreno para reemplazar
   mutaciones directas. **Ya está ✅.**
 
-**Decisiones pendientes para arranque:**
+**Decisiones (RESUELTAS en v3.0 — D36):**
 
-1. Tratamiento de Ángel: ajustar puntos a 50 o crear entrada
-   manual "+21 ajuste con motivo".
-2. Identificar otros clientes que pueda haber editado puntos
-   manualmente (la decisión se toma en FB.6).
+1. Tratamiento de Ángel: **los puntos quedan tal cual (71)**. El caso se habló
+   directamente con el cliente y se da por concluido. Sin ajuste ni entrada
+   retroactiva.
+2. **No se investiga retroactivamente** a otros clientes: el trigger strict de
+   FB.9 garantiza que ninguna mutación futura pase sin auditoría; la
+   arqueología no justifica su costo.
 
 **Justificación estratégica:**
 
@@ -556,6 +594,135 @@ F0 (auditoría Nivel 2) queda incompleta: auditamos acciones admin
 explícitas pero no la mutación directa que reveló este caso.
 FA (impresión POS) puede esperar; sin FB el programa pierde
 confianza del cliente.
+
+---
+
+### Bloque B0 — Flecos de cierre (v3.0)
+
+**Objetivo:** cerrar formalmente F0 antes de abrir frentes nuevos.
+
+**Entra:**
+- **F0.4** — `AuditLog.jsx`: vista admin con tabla paginada del `admin_audit_log` + filtros (acción, admin, fecha). Única sub-fase pendiente de F0.
+- **F0.5** — confirmación formal de que `ReasonModal` (F0.3.2) cubre el alcance original del "modal de motivo del cambio"; marcar F0 como CERRADA.
+
+**Estimación:** 6-10 hs.
+
+---
+
+### Fase R1a — Rebrand exprés a "Puntos Plus"
+
+**Objetivo:** eliminar la marca "Club Turkaj" de todo lo visible al usuario YA, sin esperar el rediseño visual. Elimina la exposición legal frente a Shell Guatemala (D28/D30).
+
+**Alcance medido (jul-2026):** "Turkaj" aparece 77 veces en 31 archivos de `src/` (mayoría comentarios/console.log, cosméticos) + ~15 puntos visibles al usuario.
+
+**Entra:**
+- `index.html` (title, apple-mobile-web-app-title, splash "Cargando…"), `manifest.json` (name/short_name), `sw.js` (título de push), `package.json`.
+- Strings visibles en vistas (headers, textos, comprobante de `OpRedeem.jsx`).
+- Páginas legales `privacidad.html` / `eliminacion.html`.
+- **Disclaimer legal D28** en footer permanente + sección "Acerca de" (texto: "Puntos Plus es una app ajena a Shell Guatemala y aplica únicamente a gasolineras Turkaj en Chichicastenango.").
+- Favicon provisional (el logo definitivo llega con R1b).
+
+**NO entra:**
+- Nombres de estación "Turkaj I/II/III" (datos del cliente, se quedan).
+- Comentarios de código y console.log (se migran oportunísticamente).
+- Cambio de URL/repo (post-R1b, Apéndice C).
+- Rediseño visual (track R1b).
+
+**Estimación:** 10-16 hs.
+
+---
+
+### Track R1b — Rediseño visual iterativo (absorbe el rediseño de F3)
+
+**Modalidad (D31):** NO es una fase monolítica. Es un track paralelo de sesiones de diseño+implementación, una vista por sesión, intercaladas entre las fases B0→F2. Referencias visuales en `REFERENCIAS INTERFAZ/` (raíz del repo). **Prerrequisito: logo de Puntos Plus.**
+
+**Lenguaje visual (de la referencia):** bento grid — fondo claro, tarjetas planas de color saturado, esquinas ~20px, icono blanco + título bold uppercase + subtítulo corto. La paleta ya existe en el código (gradientes de `AdminPromos.jsx`); se consolida como tokens en `styles.js`.
+
+#### R1b.1 — Home (spec cerrada con el dueño, 17-jul-2026)
+
+| Cuadro | Comportamiento acordado |
+|---|---|
+| Saludo | Sin acción. Personalizado en días festivos registrados (`special_days`, incl. cumpleaños `month=0`): "¡Feliz Navidad, Juan!". |
+| Tarjeta de nivel | Tema por tier (ORO dorado, PLATINO gris metálico, BLACK galaxia `GalaxyDust`). Número grande = puntos canjeables; barra = galones hacia el siguiente tier. SIN "equivale a Q…" (omitido, D34). **Doble zona táctil:** área general → detalle del nivel; área de puntos → pestaña CANJES. |
+| Promociones | El cuadro rojo estático de la referencia se SUSTITUYE por las cards de promoción reales rotando automáticamente (comportamiento del carrusel actual) en ese slot del grid. Tocar → vista Promociones full-screen (R1b.2). |
+| Vehículo | Badge "PRÓXIMAMENTE". Tocar → pestaña Vehículos (placeholder hasta F6). |
+| WiFi | Restringido a PLATINO/BLACK. En ORO se muestra deshabilitado indicando que es beneficio de nivel superior. |
+| Encuesta de Satisfacción | Sustituye al "Encuentra Shell" de la referencia (cero Shell). Mismo flujo actual (timer 90 s) + contador visible del límite 5/día. El modal muestra la estación del último consumo (última fila de `purchases` del miembro). |
+| Ubicación | Mapa/lista de estaciones con coordenadas (ya existen). |
+| Historial de Canjes | Ventana full-screen (como Promociones), agrupada por mes, año y todo el historial, desde `activity_log`. Materializa el objetivo "historial refinado". |
+| Historial de Compras | Ídem, filtrado por compras, mostrando puntos ganados (y promo aplicada cuando exista PROMO-1). |
+| Menú (en lugar de campana) | La campana de notificaciones se OMITE (fase de notificaciones → Apéndice C). En su lugar, botón de menú de usuario → ventana full-screen con el menú actual (Mi Cuenta, Niveles, Inactividad, Términos) + "Acerca de" con disclaimer D28. |
+| Bottom nav | Inicio, Canjes, **QR central**, Rifa, Vehículos (= D14). El QR central abre la tarjeta con código `CTOD/CTPD/CTBD` (generación SVG local existente). |
+
+> Nota técnica: la nueva navegación toca `App.jsx` (1,591 líneas) — la sesión
+> del Home incluye extraer la navegación a componente propio (paga parte de la
+> deuda de refactor del Apéndice B).
+
+#### R1b.2 — Vista Promociones (segunda referencia)
+
+- Full-screen con back + chips de filtro por categoría (Todas / Combustible / Tienda / Servicios).
+- Cards en 2 columnas: **imagen real** + color de fondo, título, condición ("Todos los miércoles", "Por compras de Q100 o más"), "Válido hasta DD/MM/AAAA", chevron a detalle.
+- Card final "Canjea tus puntos por increíbles premios → Ver catálogo" → pestaña Canjes.
+- **Cambios de datos (D33):** `promotions` + `image_url`, `category`, `valid_until`, `promo_rule_id` (opcional). Bucket de Supabase Storage para imágenes subidas desde admin.
+- **Admin:** AdminPromos se extiende para subir imagen, elegir categoría, vigencia y estilo. Card linkeada a `promo_rule` muestra datos reales y se apaga sola al vencer; card sin regla es informativa.
+- Nota D19: el "20% de descuento en lubricantes" de la referencia NO se implementa como mecánica; a lo sumo card informativa.
+
+#### R1b.3+ — Sesiones siguientes
+
+Historiales (si no cayeron en R1b.1) → Menú/Acerca de → Canjes/Rifa/QR (al final, post-F2, para no rediseñar dos veces lo que F2 modifica).
+
+#### Animaciones solicitadas (D35)
+
+- **Contenedor → ventana:** al tocar un cuadro que abre ventana/modal, el cuadro se expande hasta ocupar la vista (container transform); al volver, se contrae de regreso al cuadro de origen.
+- **Pestañas:** al tocar una pestaña del bottom nav, la vista entra desde abajo, como saliendo de la pestaña.
+- Base: press-scale ~0.97 en tarjetas, entrada escalonada del grid, count-up de puntos, barra de progreso animada, galaxia BLACK intacta.
+- Todo con fallback bajo `prefers-reduced-motion`.
+
+**Estimación del track:** 75-110 hs (Home 20-30 · Promociones 15-22 · Historiales 10-16 · Menú/Acerca 6-10 · Canjes/Rifa/QR 20-30).
+
+---
+
+### Fase PROMO-1 — Motor de promociones gestionables v1
+
+**Objetivo (D32):** promociones creadas desde admin que se aplican automáticamente al registrar compras: dobles puntos (o bonus fijo) por día de semana, fecha específica, producto (combustible), monto mínimo, estación o tier.
+
+**Punto de enganche:** `register_purchase` calcula los puntos en un único punto server-side (`v_points`, migración FB.5), protegido por FB.7 + SEC.B → las promos se aplican ahí y el endpoint `/purchases` de F7a las hereda sin duplicación.
+
+**Cambios de BD:**
+- Tabla `promo_rules`: vigencia (`starts_on`/`ends_on`, `weekdays[]`, `specific_dates[]`), condiciones (`fuel_types[]`, `min_amount`, `tiers[]`, `station_ids[]`), efecto (`points_multiplier` | `bonus_points` | `grant_reward` + `effect_value`/`reward_id`), límites (`max_uses_total`, `max_uses_per_member`), `active`.
+- Tabla `promo_applications`: trazabilidad total (regla, miembro, compra, puntos base/finales, efecto jsonb), `UNIQUE(purchase_id, promo_rule_id)`.
+- `grant_reward` queda DISEÑADO pero DESHABILITADO hasta F2/PROMO-2 (necesita QR universal/vouchers D20).
+
+**Reglas de aplicación:**
+- Evaluación de fechas/días en zona **America/Guatemala** (`now()` es UTC — sin conversión, una promo de sábado arrancaría viernes 6 pm).
+- **Sin stacking (v1):** si matchean varias, gana la de mayor beneficio. El bono de `special_days` es independiente y no se toca.
+- `activity_log` explícito: "Compra 5.2 gal súper · Q160 · 🎉 Dobles puntos (+16 extra)".
+- El jsonb de retorno incluye la promo aplicada → la UI del operador la muestra y el comprobante de FA puede imprimir "DOBLES PUNTOS".
+
+**Admin:** `PromoRules.jsx` con el patrón establecido (CRUD + ReasonModal + auditoría F0): crear regla, activar/desactivar, contador de usos, preview "¿aplicaría a una compra de Q150 de súper hoy en Turkaj II?".
+
+**NO entra:** la parte visual de las cards con imagen (es R1b.2/D33); efecto `grant_reward` operativo (F2/PROMO-2); descuentos porcentuales en tienda (D19).
+
+**Estimación:** 25-35 hs.
+
+**Dependencias:** F0 (patrón auditoría) + FB — ambas ✅.
+
+---
+
+### Fase SEC-lite — `authenticate_member` + cierre del vector cliente del raffle
+
+**Objetivo:** cerrar la vulnerabilidad activa documentada en SEC.B: cualquiera con la apikey `anon` puede llamar `buy_raffle_tickets` con token NULL (rama 1a) y gastar puntos de CUALQUIER miembro. Primer scope formal de SEC.A.
+
+**Entra:**
+- RPC `authenticate_member` (login por teléfono server-side, reemplaza el `SELECT` directo a `members` de `signInWithPhone`) que emite token de sesión de miembro (patrón SEC.B.3: tabla `member_sessions`, TTL, revocación en logout).
+- `buy_raffle_tickets`: eliminar el skip de la rama 1a para el vector cliente → exigir token de miembro válido O sesión Supabase Auth (`auth.uid()` para clientes OAuth).
+- UX de expiración reutilizando `expireSession`/`sessionExpiry` (SEC.B.6.4/B.8.2).
+
+**NO entra:** SEC.C completo (rol ≠ anon para operador/admin), SEC.B.9 (REVOKE), RLS de `purchases` — siguen como deuda dependiente de SEC.C.
+
+**Estimación:** 12-20 hs.
+
+**Dependencias:** SEC.B cerrado (✅). Debe completarse ANTES del go-live de F7a.
 
 ---
 
@@ -728,6 +895,7 @@ Implementar la estrategia comercial: multiplicador de puntos por tier, lavados g
 - Premio de rifa con plazo y estación configurables.
 - Localizaciones de canje configurables.
 - Tiendas asociadas gestionables.
+- **PROMO-2 (D32):** habilitar el efecto `grant_reward` del motor de promociones — lavado/servicio gratis por consumo mínimo en fechas específicas emite un voucher (canje costo 0 con QR único D20) notificado por push.
 
 **NO entra:**
 - Descuentos porcentuales en tienda.
@@ -739,15 +907,19 @@ Implementar la estrategia comercial: multiplicador de puntos por tier, lavados g
 
 #### 5.2.4 Dependencias
 
-F0, FA, F1 completadas.
+F1 completada (cadena v3.0: …F7a → F1 → F2). PROMO-1 construida (PROMO-2 extiende su motor).
 
 ---
 
-### Fase F3 — Rediseño visual del cliente + rebranding completo Puntos+
+### Fase F3 — Rediseño visual del cliente + rebranding completo Puntos Plus
+
+> **⚠️ v3.0 — FASE DISUELTA (D31):** el rebranding se ejecuta en **R1a** y el
+> rediseño visual en el **track R1b** (iterativo por vistas). Esta sección se
+> conserva como referencia del alcance original; NO se ejecuta como fase.
 
 #### 5.3.1 Objetivo
 
-Implementar el rediseño visual completo del cliente Y completar el rebranding a Puntos+.
+Implementar el rediseño visual completo del cliente Y completar el rebranding a Puntos Plus.
 
 #### 5.3.2 Alcance
 
@@ -763,8 +935,8 @@ Implementar el rediseño visual completo del cliente Y completar el rebranding a
 - Nueva bottom navigation con QR central.
 
 **Rebranding completo:**
-- Reemplazo de "Club Turkaj +" por "Puntos+" en TODOS los strings del código.
-- Nuevo logo de Puntos+ (será provisto antes del inicio de F3).
+- Reemplazo de "Club Turkaj +" por "Puntos Plus" en TODOS los strings del código.
+- Nuevo logo de Puntos Plus (será provisto antes del inicio de F3).
 - Title del documento HTML, manifest.json de PWA, splash screen.
 - **Disclaimer legal (D28)** en footer permanente + sección "Acerca de".
 - Eliminación de cualquier referencia visual a Turkaj del branding del producto.
@@ -777,7 +949,7 @@ Implementar el rediseño visual completo del cliente Y completar el rebranding a
 
 #### 5.3.3 Pre-requisitos
 
-- **Logo de Puntos+** diseñado y disponible antes de iniciar F3.
+- **Logo de Puntos Plus** diseñado y disponible antes de iniciar F3.
 
 #### 5.3.4 Estimación
 
@@ -785,7 +957,7 @@ Implementar el rediseño visual completo del cliente Y completar el rebranding a
 
 #### 5.3.5 Dependencias
 
-F2 completada + logo de Puntos+ listo.
+F2 completada + logo de Puntos Plus listo.
 
 ---
 
@@ -842,7 +1014,7 @@ Cerrar features que faltan: verificación de teléfono multicanal (WhatsApp + SM
 
 #### 5.5.4 Dependencias
 
-F3 + gestiones Twilio/WhatsApp completadas.
+Vistas base del track R1b rediseñadas + gestiones Twilio/WhatsApp completadas.
 
 ---
 
@@ -857,6 +1029,13 @@ Sin cambios respecto a v2.1. Ver versiones anteriores del documento para detalle
 ---
 
 ### Fase F7 — API REST pública + integración PROPER
+
+> **✂️ v3.0 — FASE DIVIDIDA (D31):** **F7a** (adelantada, posición 5 del flujo):
+> sub-fases F7.1–F7.4 + F7.6–F7.9 (todo menos physical-members) — 45-60 hs.
+> **F7b** (tras F4): F7.5 + su parte de F7.10/F7.11 — 8-12 hs. La coordinación
+> con PROPER se adelanta a la semana 1 (§4.3). Nota para el contrato: los puntos
+> otorgados los calcula Puntos Plus server-side (incl. promociones PROMO-1 y el
+> futuro multiplicador por tier de F2) — PROPER NO envía puntos calculados.
 
 > **Detalle recuperado de v2.1** (`8332707`) e integrado en v2.5 — F7 conserva su
 > posición en la cadena (F2 → F4 → F7), NO se adelanta. El cuerpo recuperado no
@@ -1460,8 +1639,8 @@ quedó **RESUELTO** aparte (commit `5270f98`).
 | Plantillas WhatsApp pre-aprobadas (mínimo 2) | Semana 2 | F5 |
 | Política de privacidad publicada | Semana 1 | F5 |
 | Logo de empresa para WhatsApp Business | Semana 1 | F5 |
-| **Logo de Puntos+ diseñado** | Antes de F3 | F3 |
-| Coordinación técnica con PROPER | Semana ~22 | F7 |
+| **Logo de Puntos Plus diseñado** | YA (bloquea R1b) | R1b |
+| Coordinación técnica con PROPER | YA (adelantada v3.0) | F7a |
 | Cuenta Apple Developer ($99/año) | Cuando se decida app nativa | Post-roadmap |
 | Cuenta Google Play ($25 una vez) | Cuando se decida app nativa | Post-roadmap |
 
@@ -1507,10 +1686,15 @@ quedó **RESUELTO** aparte (commit `5270f98`).
 - **Nota:** la BD ya tiene infraestructura parcial (`referral_count`, `referred_by`, `referral_bonus_paid`) sin lógica completa. Cuando se priorice, hay base existente.
 
 **Cambio de URL y nombre de repo**
-- `club-turkaj.vercel.app` → posible `puntos-plus.vercel.app` o similar.
+- `club-turkaj.vercel.app` → `puntos-plus.vercel.app` o similar (slug D30).
 - Renombrar repo de GitHub.
-- Cuándo: después de F3 (cuando el rebranding visual esté completo).
+- Cuándo: después del track R1b (rebranding visual completo). Requiere plan de transición: rompe redirect URIs de Google OAuth y PWAs instaladas → mantener redirect desde el dominio viejo.
 - Esfuerzo: 1-2 horas + actualización de referencias externas.
+
+**Fase de notificaciones (campana + inbox in-app)**
+- La campana del header de la referencia visual se pospuso (D34): en su lugar va el botón de menú de usuario.
+- Alcance futuro: centro de notificaciones in-app (inbox persistente) integrado con el push existente.
+- Cuándo: post-roadmap, o junto a F5/F6 si el uso lo justifica.
 
 ---
 
@@ -1564,6 +1748,38 @@ Cambios mayores van en commits separados con mensaje `docs: actualizar ROADMAP �
 ---
 
 ## Changelog
+
+### Versión 3.0 — 17 de julio de 2026
+
+**RE-PLANIFICACIÓN (Nivel 2)** — la primera desde v2.1; v2.4/v2.5 fueron
+reconciliaciones. Decisiones nuevas D30–D36.
+
+- **MARCA:** "Puntos+" → **"Puntos Plus"** (D30). Renombrada en todo el documento
+  (las entradas históricas de este changelog conservan "Puntos+"). Slug técnico:
+  `puntos-plus`.
+- **NUEVO ORDEN** (§4.1/§4.2): B0 → R1a → FA → PROMO-1 → SEC-lite → F7a → F1 →
+  F2(+PROMO-2) → F4 → F7b → F5 → F6 → F8/F9, con R1b como track paralelo
+  continuo. FA mantiene su posición crítica por decisión del dueño.
+- **F3 DISUELTA** (D31): R1a (rebrand exprés, §5.R1a) + track R1b (rediseño
+  iterativo por vistas, §5.R1b) con la spec del Home cerrada cuadro por cuadro
+  (D34), la vista Promociones (D33) y las animaciones firmadas (D35), basadas en
+  `REFERENCIAS INTERFAZ/`.
+- **F7 DIVIDIDA** (D31): F7a core PROPER adelantada a posición 5; F7b
+  physical-members tras F4. Coordinación PROPER adelantada a la semana 1.
+- **NUEVA FASE PROMO-1** (D32): motor de promociones gestionables server-side en
+  `register_purchase` (`promo_rules` + `promo_applications`, sin stacking,
+  timezone America/Guatemala). PROMO-2 (`grant_reward`: lavado por consumo)
+  dentro de F2.
+- **PROMOS VISUALES** (D33): `promotions` + image_url/category/valid_until +
+  Supabase Storage; en el home, el cuadro rojo se sustituye por el carrusel de
+  cards reales.
+- **SEC-LITE SLOTTEADO** (posición 4, §5.SEC-lite): primer scope formal de SEC.A
+  + cierre del vector cliente del raffle, antes del go-live de la API.
+- **FB CERRADA** (D36): caso ángel macario resuelto sin ajuste (hablado con el
+  cliente); sin investigación retroactiva de otros miembros.
+- **CAMPANA POSPUESTA** (D34): fase de notificaciones a Apéndice C; el botón del
+  header abre el menú de usuario.
+- Estimación restante actualizada: ≈550-750 hs (6-11 meses).
 
 ### Versión 2.5 — 29 de junio de 2026
 
@@ -1650,7 +1866,7 @@ reordenó nada ni se slotteó seguridad en el flujo F0→F9.
 - Falta ESLint con regla react-hooks/rules-of-hooks.
 
 **Otros cambios:**
-- Sección 1 reorganizada con identidad de Puntos+ como plataforma.
+- Sección 1 reorganizada con identidad de Puntos Plus como plataforma.
 - Sección 4.1 actualizada con estado de fases (P0 ✅, F0 ⏳, FA próxima).
 - Apéndice C agrega "Cambio de URL y nombre de repo" como candidato post-roadmap.
 - Estimación total actualizada: 30-44 semanas (era 29-43).
