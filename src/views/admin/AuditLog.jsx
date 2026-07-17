@@ -169,8 +169,24 @@ export default function AuditLog(ctx) {
               </div>
               <div style={{ fontSize: 12, color: AT.txt, fontWeight: 700 }}>
                 {r.admin_name || '—'}
-                {r.entity_type && <span style={{ color: AT.sub, fontWeight: 600 }}> · {r.entity_type}{r.entity_id ? ` #${String(r.entity_id).slice(0, 8)}` : ''}</span>}
+                {r.entity_type && <span style={{ color: AT.sub, fontWeight: 600 }}> · {r.entity_type}</span>}
               </div>
+              {(() => {
+                // Nombre de la entidad afectada: resuelto server-side; si la
+                // fila ya no existe (deletes), cae al snapshot del log; último
+                // recurso: id truncado.
+                const name = r.entity_name
+                  || r.old_value?.name || r.new_value?.name
+                  || r.old_value?.title || r.new_value?.title
+                  || (r.entity_id ? `#${String(r.entity_id).slice(0, 8)}` : null);
+                if (!name) return null;
+                return (
+                  <div style={{ fontSize: 12, color: '#64B5F6', fontWeight: 700, marginTop: 3 }}>
+                    {r.entity_type === 'member' ? '👤 ' : ''}{name}
+                    {r.entity_detail && <span style={{ color: AT.sub, fontWeight: 600 }}> · {r.entity_detail}</span>}
+                  </div>
+                );
+              })()}
               {r.reason_text && (
                 <div style={{ fontSize: 12, color: AT.sub, marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: isOpen ? 'normal' : 'nowrap' }}>
                   💬 {r.reason_text}
