@@ -72,12 +72,15 @@ export default function OpRedeem(ctx) {
     const todayGT = new Date(today.getTime() - gtOffset);
     todayGT.setUTCHours(0, 0, 0, 0);
     const todayUTC = new Date(todayGT.getTime() + gtOffset); // medianoche Guatemala en UTC
+    // FA-lite fix: filtrar por collected_at (fecha de ENTREGA), no por
+    // created_at (fecha en que el cliente creó el canje — puede ser de
+    // días antes y dejaba la entrega de hoy fuera del historial).
     sb.from('redemptions')
       .select('*, rewards(name, icon), members(name), collected_at')
       .eq('collected', true)
       .eq('operator_id', loggedOp.id)
-      .gte('created_at', todayUTC.toISOString())
-      .order('created_at', { ascending: false })
+      .gte('collected_at', todayUTC.toISOString())
+      .order('collected_at', { ascending: false, nullsFirst: false })
       .then(({ data }) => {
         setLoadingToday(false);
         if (data?.length) setTodayHistory(data.map(r => ({
