@@ -1,27 +1,24 @@
 // src/views/client/HistorySheet.jsx
-// R1b (D34) — Ventana full-screen de historiales (compras / canjes)
-// con agrupación por período: Hoy · Mes · Año · Todo (decisión del
-// dueño, 17-jul-2026). Entra desde su tile con animación de sheet.
+// R1b (D34) — Ventana full-screen de historiales (compras/puntos y
+// canjes). Períodos DERIVADOS de los datos (feedback del dueño):
+// "Hoy" solo aparece si hay movimientos hoy; "Mes" y "Año" abren un
+// selector solo con los meses/años que tienen movimientos.
+// Entra desde su tile (container transform D35) y se guarda al cerrar.
 import { useState } from 'react';
 import { sMono } from '../../constants/styles';
 import { Back } from '../../components/ui/Icons';
 
 const CLOSE_MS = 200; // duración de ppGrowOut (+ margen) antes de desmontar
 
-const PERIODS = [
-  { id: 'hoy', label: 'Hoy' },
-  { id: 'mes', label: 'Este mes' },
-  { id: 'anio', label: 'Este año' },
-  { id: 'todo', label: 'Todo' },
-];
-
-// Icono por tipo de movimiento (libro mayor de puntos — feedback del
-// dueño: compras, festivos, encuestas, boletos de rifa, canjes, etc.)
+// Icono por tipo de movimiento (libro mayor de puntos)
 const TYPE_ICON = {
   compra: '⛽', canje: '🎁', rifa: '🎟️',
   encuesta: '📋', evento: '🎉', registro: '⭐',
   registro_vehiculos: '🚗',
 };
+
+const MES_CORTO = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+const monthLabel = (ym) => `${MES_CORTO[parseInt(ym.slice(5, 7), 10) - 1] || '?'} ${ym.slice(0, 4)}`;
 
 // Fecha del item normalizada a 'YYYY-MM-DD' en hora de Guatemala.
 const itemDay = (raw) => {
@@ -34,33 +31,41 @@ const itemDay = (raw) => {
 };
 
 export default function HistorySheet({ type, origin, onClose, acts, redeemed, tierName }) {
-  const [period, setPeriod] = useState('hoy');
-  const [closing, setClosing] = useState(false);
   const isBlack = tierName === 'BLACK';
+  const isCompras = type === 'compras';
+  const todayGT = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Guatemala' });
 
-  // D35: al cerrar, la ventana "se guarda" en el cuadro de origen
-  // (ppGrowOut hacia el transform-origin) y recién ahí se desmonta.
+  // Base del tipo, SIN filtro de período — de acá se derivan los
+  // períodos disponibles (solo los que tienen movimientos).
+  const base = isCompras
+    ? (acts || []).filter(a => (parseInt(a.pts, 10) || 0) !== 0)
+    : (redeemed || []);
+  const days = base.map(x => itemDay(x.date)).filter(Boolean);
+  const hasToday = days.includes(todayGT);
+  const months = [...new Set(days.map(d => d.slice(0, 7)))].sort().reverse();
+  const years = [...new Set(days.map(d => d.slice(0, 4)))].sort().reverse();
+
+  const [mode, setMode] = useState(() => (hasToday ? 'hoy' : months.length ? 'mes' : 'todo'));
+  const [selMonth, setSelMonth] = useState(() => months[0] || null);
+  const [selYear, setSelYear] = useState(() => years[0] || null);
+  const [closing, setClosing] = useState(false);
+
+  // D35: al cerrar, la ventana "se guarda" en el cuadro de origen.
   const close = () => {
     if (closing) return;
     setClosing(true);
     setTimeout(onClose, CLOSE_MS);
   };
 
-  const todayGT = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Guatemala' });
   const inPeriod = (day) => {
-    if (!day) return period === 'todo';
-    if (period === 'hoy') return day === todayGT;
-    if (period === 'mes') return day.slice(0, 7) === todayGT.slice(0, 7);
-    if (period === 'anio') return day.slice(0, 4) === todayGT.slice(0, 4);
+    if (mode === 'todo') return true;
+    if (!day) return false;
+    if (mode === 'hoy') return day === todayGT;
+    if (mode === 'mes') return !!selMonth && day.slice(0, 7) === selMonth;
+    if (mode === 'anio') return !!selYear && day.slice(0, 4) === selYear;
     return true;
   };
-
-  const isCompras = type === 'compras';
-  // "Compras" = TODO movimiento que edita puntos (positivo o negativo):
-  // consumos, festivos, encuestas, boletos de rifa, canjes, ajustes.
-  const items = isCompras
-    ? (acts || []).filter(a => ((parseInt(a.pts, 10) || 0) !== 0) && inPeriod(itemDay(a.date)))
-    : (redeemed || []).filter(rd => inPeriod(itemDay(rd.date)));
+  const items = base.filter(x => inPeriod(itemDay(x.date)));
 
   const ganados = isCompras
     ? items.reduce((s, a) => s + Math.max(0, parseInt(a.pts, 10) || 0), 0)
@@ -79,11 +84,27 @@ export default function HistorySheet({ type, origin, onClose, acts, redeemed, ti
     chipOn: isCompras ? '#E65100' : '#00838F',
   };
 
+  // Modos disponibles según los datos (feedback: sin movimientos, sin chip)
+  const modes = [
+    ...(hasToday ? [{ id: 'hoy', label: 'Hoy' }] : []),
+    ...(months.length ? [{ id: 'mes', label: 'Mes' }] : []),
+    ...(years.length ? [{ id: 'anio', label: 'Año' }] : []),
+    { id: 'todo', label: 'Todo' },
+  ];
+
+  const subChip = (selected) => ({
+    padding: '7px 14px', borderRadius: 16, border: 'none', flexShrink: 0,
+    background: selected ? TH.chipOn : TH.surface,
+    color: selected ? '#fff' : TH.txt,
+    fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 800, cursor: 'pointer',
+    whiteSpace: 'nowrap',
+    boxShadow: selected ? '0 2px 8px rgba(0,0,0,.15)' : 'none',
+  });
+
   return (
     <div className={closing ? 'pp-grow-out' : 'pp-grow'} style={{
-      // inset:0 + margin auto centra SIN transform propio: el transform
-      // queda libre para el container-transform (bug IMG2: la animación
-      // anterior pisaba el translateX(-50%) y corría la ventana).
+      // inset:0 + margin auto centra SIN transform propio (el transform
+      // queda libre para el container-transform).
       position: 'fixed', inset: 0, margin: '0 auto',
       width: '100%', maxWidth: 480, zIndex: 200,
       background: TH.bg, overflowY: 'auto', paddingBottom: 40,
@@ -103,7 +124,9 @@ export default function HistorySheet({ type, origin, onClose, acts, redeemed, ti
             {isCompras ? '🧾 Compras y Puntos' : '🎁 Historial de Canjes'}
           </div>
           <div style={{ fontSize: 11, color: TH.sub, fontWeight: 600 }}>
-            {items.length} {items.length === 1 ? 'movimiento' : 'movimientos'}
+            {items.length} {isCompras
+              ? (items.length === 1 ? 'movimiento' : 'movimientos')
+              : (items.length === 1 ? 'canje' : 'canjes')}
             {items.length > 0 && (isCompras
               ? ` · +${ganados}${usados > 0 ? ` / −${usados}` : ''} pts`
               : ` · ${usados} pts canjeados`)}
@@ -111,21 +134,43 @@ export default function HistorySheet({ type, origin, onClose, acts, redeemed, ti
         </div>
       </div>
 
-      {/* Chips de período: Hoy · Mes · Año · Todo */}
-      <div style={{ display: 'flex', gap: 8, padding: '12px 20px' }}>
-        {PERIODS.map(p => (
-          <button key={p.id} onClick={() => setPeriod(p.id)} style={{
+      {/* Chips de modo: Hoy · Mes · Año · Todo (solo los que tienen datos) */}
+      <div style={{ display: 'flex', gap: 8, padding: '12px 20px 8px' }}>
+        {modes.map(m => (
+          <button key={m.id} onClick={() => setMode(m.id)} style={{
             flex: 1, padding: '9px 0', borderRadius: 18, border: 'none',
-            background: period === p.id ? TH.chipOn : TH.surface,
-            color: period === p.id ? '#fff' : TH.txt,
+            background: mode === m.id ? TH.chipOn : TH.surface,
+            color: mode === m.id ? '#fff' : TH.txt,
             fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 800, cursor: 'pointer',
-            boxShadow: period === p.id ? '0 2px 8px rgba(0,0,0,.15)' : 'none',
+            boxShadow: mode === m.id ? '0 2px 8px rgba(0,0,0,.15)' : 'none',
             transition: 'background .2s ease',
           }}>
-            {p.label}
+            {m.label}
           </button>
         ))}
       </div>
+
+      {/* Selector de mes (solo meses con movimientos) */}
+      {mode === 'mes' && months.length > 0 && (
+        <div style={{ display: 'flex', gap: 8, padding: '2px 20px 10px', overflowX: 'auto' }}>
+          {months.map(ym => (
+            <button key={ym} onClick={() => setSelMonth(ym)} style={subChip(selMonth === ym)}>
+              {monthLabel(ym)}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Selector de año (solo años con movimientos) */}
+      {mode === 'anio' && years.length > 0 && (
+        <div style={{ display: 'flex', gap: 8, padding: '2px 20px 10px', overflowX: 'auto' }}>
+          {years.map(y => (
+            <button key={y} onClick={() => setSelYear(y)} style={subChip(selYear === y)}>
+              {y}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Lista */}
       {items.length === 0 && (
