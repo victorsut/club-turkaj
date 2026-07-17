@@ -310,7 +310,7 @@ Algunas gestiones operacionales requieren tiempo de aprobación de terceros y de
 | Cuenta Twilio Business | Semana 1 | 1-2 días | F5 |
 | Aprobación WhatsApp Business via Twilio (Meta) | Semana 1 | 1-4 semanas | F5 |
 | Plantillas WhatsApp pre-aprobadas | Semana 2 (post-aprobación cuenta) | 2-7 días por plantilla | F5 |
-| Diseño de logo Puntos Plus | YA (bloquea el arranque de R1b) | A criterio del dueño | R1b |
+| Diseño de logo Puntos Plus | ✅ Entregado 17-jul (`REFERENCIAS INTERFAZ/logo.png` — P itálica negra + cruz roja en círculo bicolor) | — | R1b |
 | Coordinación técnica con PROPER | YA (adelantada en v3.0) | 2-4 semanas | F7a |
 
 ### 3.6 Implicaciones para el roadmap
@@ -350,7 +350,7 @@ Mover el `useState(checkingPhone)` al tope del componente con los otros useState
 | 0 | B0 | Flecos: F0.4 `AuditLog.jsx` (cierra F0) + confirmar F0.5 | 6-10 hs | Crítica | ✅ **COMPLETADO** (`c01e086`+`8b55c44`, smoke prod OK 17-jul) — **F0 CERRADA** |
 | 1 | R1a | Rebrand exprés a "Puntos Plus" (strings, manifest, splash, push, legales, disclaimer D28) | 10-16 hs | Crítica | ✅ **CERRADA** (`6e195e4`+`faab783`, smoke prod OK 17-jul) |
 | 2 | FA-lite | Impresión `window.print()` optimizada (D37) — plantilla térmica, auto-print, reimpresión, print_logs | 18-26 hs | Crítica | ✅ **CERRADA** (`37f1a92`+`af07171`, validada en Sunmi P2 el 17-jul; PAX A920Pro pendiente sin bloquear) |
-| 3 | PROMO-1 | Motor de promociones v1 (dobles puntos / bonus por día-producto-monto) | 25-35 hs | Crítica | Pendiente |
+| 3 | PROMO-1 | Motor de promociones v1 (dobles puntos / bonus por día-producto-monto) | 25-35 hs | Crítica | 📋 **Propuesta aprobada por el dueño (17-jul)** — implementación tras R1b.1 (re-priorización del dueño) |
 | 4 | SEC-lite | `authenticate_member` + cierre del vector cliente del raffle | 12-20 hs | Alta | Pendiente |
 | 5 | F7a | API REST core para PROPER (sin physical-members) | 45-60 hs | Alta | Pendiente |
 | 6 | F1 | Configurabilidad empresa + estaciones + precios + KPIs | 61-78 hs | Alta | Pendiente |
@@ -361,7 +361,7 @@ Mover el `useState(checkingPhone)` al tope del componente con los otros useState
 | 11 | F6 | Vehículos como entidad + alertas push | 72-93 hs | Media | Pendiente |
 | 12 | F8 | Spike Club Business | 1 sem | Baja | Pendiente |
 | 13 | F9 | Reportería enriquecida (opcional) | 40-55 hs | Opcional | Pendiente |
-| ∥ | **R1b** | **Track paralelo: rediseño visual iterativo por vistas** (Home → Promociones → Historiales → Menú → Canjes/Rifa) | 75-110 hs | Alta | Pendiente — arranca al tener logo |
+| ∥ | **R1b** | **Track paralelo: rediseño visual iterativo por vistas** (Home → Promociones → Historiales → Menú → Canjes/Rifa) | 75-110 hs | Alta | 🔛 **ACTIVO** — logo entregado (`REFERENCIAS INTERFAZ/logo.png`, 17-jul); sesión 1: Home. Orden intercalado: R1b.1 → PROMO-1 → R1b.2 |
 
 **Total restante estimado:** ≈550-750 hs ≈ 24-48 semanas calendario (6-11 meses) a 15-25 hs/sem.
 
