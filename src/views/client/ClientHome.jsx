@@ -162,23 +162,12 @@ export default function ClientHome(ctx) {
       {/* Inactivity warning */}
       <InactivityWarning lastBuy={me.lastBuy} />
 
-      {/* Header compacto: logo + saludo + menú (D34) — todo en una fila
-          para que el grid completo quepa sin scroll */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px 0' }}>
-        <img src="/logo.png" alt="Puntos Plus" style={{ width: 36, height: 36, borderRadius: 11, background: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,.08)', flexShrink: 0 }} />
-        <div style={{ flex: 1, minWidth: 0, padding: '0 2px' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: subTxt, lineHeight: 1.2 }}>¡Hola, {firstName}!</div>
-          <div style={{ fontSize: 17, fontWeight: 900, color: headerTxt, lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            Bienvenido a <Wordmark size={17} color={headerTxt} />
-          </div>
-          {festivo && (
-            <div style={{ fontSize: 11, fontWeight: 800, color: BRAND_RED, lineHeight: 1.3 }}>
-              {festivo.icon} {festivo.bday ? `¡Feliz cumpleaños, ${firstName}!` : `¡Feliz ${festivo.name}!`}
-            </div>
-          )}
-        </div>
+      {/* Header: logo + menú (D34) — espaciado del diseño inicial */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 18px 0' }}>
+        <img src="/logo.png" alt="Puntos Plus" style={{ width: 42, height: 42, borderRadius: 12, background: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,.08)', flexShrink: 0 }} />
+        <div style={{ flex: 1 }} />
         <button onClick={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('menu'); }} aria-label="Menú" style={{
-          width: 38, height: 38, borderRadius: 11, border: 'none', cursor: 'pointer',
+          width: 42, height: 42, borderRadius: 12, border: 'none', cursor: 'pointer',
           background: isBlack ? 'rgba(255,255,255,.08)' : '#fff',
           color: headerTxt,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -186,6 +175,19 @@ export default function ClientHome(ctx) {
         }}>
           <Menu />
         </button>
+      </div>
+
+      {/* Saludo personalizado (festivo vía special_days — D34) */}
+      <div style={{ padding: '8px 20px 2px' }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: subTxt }}>¡Hola, {firstName}!</div>
+        <div style={{ fontSize: 23, fontWeight: 900, color: headerTxt, lineHeight: 1.2 }}>
+          Bienvenido a <Wordmark size={23} color={headerTxt} />
+        </div>
+        {festivo && (
+          <div style={{ marginTop: 4, fontSize: 12, fontWeight: 800, color: BRAND_RED }}>
+            {festivo.icon} {festivo.bday ? `¡Feliz cumpleaños, ${firstName}!` : `¡Feliz ${festivo.name}!`}
+          </div>
+        )}
       </div>
 
       {/* Tarjeta de nivel (D34: doble zona táctil — general → detalle, puntos → Canjes) */}
@@ -300,7 +302,7 @@ export default function ClientHome(ctx) {
         {/* 7 · Historial de compras (ancho completo) */}
         <BentoTile
           index={6} span={2} color={bento.orange} icon={<BagIcon size={24} />} title="Historial de Compras"
-          sub="Consulta tus compras y puntos acumulados"
+          sub="Compras y todos tus movimientos de puntos"
           onClick={(e) => setHistSheet({ type: 'compras', origin: originFromEvent(e) })}
         />
       </div>
