@@ -81,6 +81,9 @@ export async function fetchPurchasePromo(purchaseId) {
       extraPoints: data.effect?.extra_points ?? (data.points_final - data.points_base),
       pointsBase: data.points_base,
       pointsFinal: data.points_final,
+      // PROMO-1b: premio regalado (snapshot en effect jsonb)
+      rewardName: data.effect?.reward_name || null,
+      redemptionCode: data.effect?.redemption_code || null,
     },
     error: null,
   };

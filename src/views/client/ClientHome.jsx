@@ -744,9 +744,19 @@ export default function ClientHome(ctx) {
                     fontSize: 12.5, fontWeight: 800, marginBottom: 10,
                     color: cTier.name === 'BLACK' ? '#FFD54F' : '#B58000',
                   }}>
-                    🎉 {pendingOpRating.promo.name}
-                    {pendingOpRating.promo.effectType === 'points_multiplier' && ` x${+pendingOpRating.promo.effectValue}`}
-                    {' '}· +{pendingOpRating.promo.extraPoints} pts extra
+                    {pendingOpRating.promo.effectType === 'grant_reward' ? (
+                      // PROMO-1b: premio regalado — ya está en tus canjes
+                      <>🎁 {pendingOpRating.promo.name} · ¡{pendingOpRating.promo.rewardName} gratis!
+                        <div style={{ fontSize: 10.5, fontWeight: 700, opacity: .85, marginTop: 2 }}>
+                          Ya está en tus canjes pendientes — retiralo en estación
+                        </div>
+                      </>
+                    ) : (
+                      <>🎉 {pendingOpRating.promo.name}
+                        {pendingOpRating.promo.effectType === 'points_multiplier' && ` x${+pendingOpRating.promo.effectValue}`}
+                        {' '}· +{pendingOpRating.promo.extraPoints} pts extra
+                      </>
+                    )}
                   </div>
                 )}
 

@@ -36,7 +36,7 @@ function Chip({ on, children, onClick, minWidth = 0 }) {
 
 function seedForm(rule) {
   if (!rule || rule === 'new') return {
-    name: '', description: '', effect_type: 'points_multiplier', effect_value: '2',
+    name: '', description: '', effect_type: 'points_multiplier', effect_value: '2', reward_id: '',
     starts_on: '', ends_on: '', weekdays: [], specific_dates: [],
     fuel_types: [], min_amount: '', tiers: [], station_ids: [],
     max_uses_total: '', max_uses_per_member: '', active: true,
@@ -46,6 +46,7 @@ function seedForm(rule) {
     description: rule.description || '',
     effect_type: rule.effect_type || 'points_multiplier',
     effect_value: rule.effect_value != null ? String(rule.effect_value) : '',
+    reward_id: rule.reward_id || '',
     starts_on: rule.starts_on || '',
     ends_on: rule.ends_on || '',
     weekdays: rule.weekdays || [],
@@ -60,7 +61,7 @@ function seedForm(rule) {
   };
 }
 
-export default function PromoRuleForm({ rule, stations = [], saving, onCancel, onSubmit, fire }) {
+export default function PromoRuleForm({ rule, stations = [], rewards = [], saving, onCancel, onSubmit, fire }) {
   const isNew = rule === 'new';
   const [f, setF] = useState(() => seedForm(rule));
   const [dateDraft, setDateDraft] = useState('');
@@ -73,16 +74,22 @@ export default function PromoRuleForm({ rule, stations = [], saving, onCancel, o
   const submit = () => {
     const name = f.name.trim();
     if (name.length < 3) { fire('❌ El nombre debe tener al menos 3 caracteres'); return; }
-    const val = parseFloat(f.effect_value);
-    if (!val || val <= 0) { fire('❌ Ingresá el valor del efecto'); return; }
-    if (f.effect_type === 'points_multiplier' && (val <= 1 || val > 10)) {
-      fire('❌ El multiplicador debe ser mayor a 1 y hasta 10'); return;
+    const isGrant = f.effect_type === 'grant_reward';
+    const val = isGrant ? null : parseFloat(f.effect_value);
+    if (isGrant) {
+      if (!f.reward_id) { fire('❌ Elegí el premio del catálogo'); return; }
+    } else {
+      if (!val || val <= 0) { fire('❌ Ingresá el valor del efecto'); return; }
+      if (f.effect_type === 'points_multiplier' && (val <= 1 || val > 10)) {
+        fire('❌ El multiplicador debe ser mayor a 1 y hasta 10'); return;
+      }
     }
     onSubmit({
       name,
       description: f.description.trim(),
       effect_type: f.effect_type,
       effect_value: val,
+      reward_id: isGrant ? f.reward_id : null,
       starts_on: f.starts_on || null,
       ends_on: f.ends_on || null,
       weekdays: f.weekdays,
@@ -133,7 +140,7 @@ export default function PromoRuleForm({ rule, stations = [], saving, onCancel, o
         {/* Efecto */}
         <div style={{ marginBottom: 12 }}>
           <div style={label}>Efecto *</div>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
             <Chip on={f.effect_type === 'points_multiplier'} minWidth={0}
               onClick={() => setF(p => ({ ...p, effect_type: 'points_multiplier', effect_value: '2' }))}>
               ✖️ Multiplicar puntos
@@ -142,17 +149,37 @@ export default function PromoRuleForm({ rule, stations = [], saving, onCancel, o
               onClick={() => setF(p => ({ ...p, effect_type: 'bonus_points', effect_value: '' }))}>
               ➕ Bonus fijo
             </Chip>
+            <Chip on={f.effect_type === 'grant_reward'} minWidth={0}
+              onClick={() => setF(p => ({ ...p, effect_type: 'grant_reward', effect_value: '' }))}>
+              🎁 Premio gratis
+            </Chip>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <input type="number" value={f.effect_value} style={{ ...darkInput, width: 110 }}
-              placeholder={f.effect_type === 'points_multiplier' ? '2' : '50'}
-              onChange={e => set('effect_value', e.target.value)} />
-            <span style={{ fontSize: 12, color: AT.sub }}>
-              {f.effect_type === 'points_multiplier'
-                ? '2 = dobles puntos, 3 = triples…'
-                : 'puntos extra fijos por compra'}
-            </span>
-          </div>
+          {f.effect_type === 'grant_reward' ? (
+            <>
+              <select value={f.reward_id} onChange={e => set('reward_id', e.target.value)} style={darkInput}>
+                <option value="">Elegí el premio del catálogo…</option>
+                {rewards.filter(r => r.active !== false).map(r => (
+                  <option key={r.id} value={r.id}>{r.icon ? r.icon + ' ' : ''}{r.name} ({r.pts} pts)</option>
+                ))}
+              </select>
+              <div style={{ fontSize: 11, color: AT.sub, marginTop: 6, lineHeight: 1.5 }}>
+                La compra genera un canje GRATIS (0 pts) que el cliente retira en
+                estación como cualquier canje. Para la regla "gana la de mayor
+                beneficio", este efecto vale los puntos del premio.
+              </div>
+            </>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <input type="number" value={f.effect_value} style={{ ...darkInput, width: 110 }}
+                placeholder={f.effect_type === 'points_multiplier' ? '2' : '50'}
+                onChange={e => set('effect_value', e.target.value)} />
+              <span style={{ fontSize: 12, color: AT.sub }}>
+                {f.effect_type === 'points_multiplier'
+                  ? '2 = dobles puntos, 3 = triples…'
+                  : 'puntos extra fijos por compra'}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Vigencia */}

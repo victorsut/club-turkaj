@@ -989,7 +989,12 @@ export default function App() {
     const { points: pts, gallons: gal, tier_changed, new_tier, new_card_code, promo } = data;
     const today = localDate();
     // PROMO-1: pts ya viene FINAL (base + extra); promo trae {name, extra_points} si aplicó.
-    const promoTag = promo ? ` · 🎉 ${promo.name} (+${promo.extra_points})` : '';
+    // PROMO-1b: grant_reward regala un canje (reward_name, redemption_code) en vez de puntos.
+    const promoTag = promo
+      ? (promo.effect_type === 'grant_reward'
+        ? ` · 🎁 ${promo.reward_name} GRATIS`
+        : ` · 🎉 ${promo.name} (+${promo.extra_points})`)
+      : '';
 
     // Optimistic update del state local con los valores REALES devueltos por el server
     setCusts(p => p.map(c => c.id === cid ? {

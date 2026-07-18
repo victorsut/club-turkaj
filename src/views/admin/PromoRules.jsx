@@ -14,10 +14,11 @@ const DAY_LABELS = { 1: 'Lun', 2: 'Mar', 3: 'Mié', 4: 'Jue', 5: 'Vie', 6: 'Sáb
 const FUEL_LABELS = { super: 'Súper', regular: 'Regular', diesel: 'Diésel' };
 const darkInput = { ...inputStyle, background: '#333', border: `1px solid ${AT.border}`, color: AT.txt };
 
-function effectLabel(r) {
+function effectLabel(r, rewards = []) {
   if (r.effect_type === 'points_multiplier') return `✖️ Puntos x${+r.effect_value}`;
   if (r.effect_type === 'bonus_points') return `➕ +${Math.floor(r.effect_value)} pts extra`;
-  return '🎁 Premio (PROMO-2)';
+  const rw = rewards.find(x => x.id === r.reward_id);
+  return `🎁 ${rw ? (rw.icon ? rw.icon + ' ' : '') + rw.name : 'Premio'} gratis`;
 }
 
 // Resumen humano de vigencia + condiciones para la card de la lista.
@@ -43,7 +44,7 @@ function usesLabel(r) {
 }
 
 export default function PromoRules(ctx) {
-  const { stations = [], fire, sbConnected, loggedAdmin, setScr } = ctx;
+  const { stations = [], rewards = [], fire, sbConnected, loggedAdmin, setScr } = ctx;
 
   const [rules, setRules]     = useState([]);
   const [loading, setLoading] = useState(true);
@@ -185,7 +186,10 @@ export default function PromoRules(ctx) {
           </button>
           {simResult && (
             <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, background: '#333', fontSize: 12, color: AT.txt, lineHeight: 1.6 }}>
-              {simResult.promo ? (
+              {simResult.promo?.effect_type === 'grant_reward' ? (
+                <>🎁 Aplicaría <b>{simResult.promo.name}</b>: <b style={{ color: '#FBBC04' }}>{simResult.promo.reward_name} gratis</b>
+                  {' '}(+{simResult.base_points} pts base de la compra)</>
+              ) : simResult.promo ? (
                 <>🎉 Aplicaría <b>{simResult.promo.name}</b>: {simResult.base_points} pts base
                   {' '}+ <b style={{ color: '#FBBC04' }}>{simResult.promo.extra_points} extra</b> = {simResult.final_points} pts</>
               ) : (
@@ -215,7 +219,7 @@ export default function PromoRules(ctx) {
                 {r.active ? 'ACTIVA' : 'INACTIVA'}
               </div>
             </div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#FBBC04', marginBottom: 6 }}>{effectLabel(r)}</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#FBBC04', marginBottom: 6 }}>{effectLabel(r, rewards)}</div>
             <div style={{ fontSize: 11, color: AT.sub, lineHeight: 1.6, marginBottom: 10 }}>
               {condsSummary(r, stations)}<br />
               🔢 {usesLabel(r)}
@@ -247,6 +251,7 @@ export default function PromoRules(ctx) {
           key={editing === 'new' ? 'new' : editing.id}
           rule={editing}
           stations={stations}
+          rewards={rewards}
           saving={saving}
           fire={fire}
           onCancel={() => setEditing(null)}
