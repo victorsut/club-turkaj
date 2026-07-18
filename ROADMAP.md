@@ -350,7 +350,7 @@ Mover el `useState(checkingPhone)` al tope del componente con los otros useState
 | 0 | B0 | Flecos: F0.4 `AuditLog.jsx` (cierra F0) + confirmar F0.5 | 6-10 hs | Crítica | ✅ **COMPLETADO** (`c01e086`+`8b55c44`, smoke prod OK 17-jul) — **F0 CERRADA** |
 | 1 | R1a | Rebrand exprés a "Puntos Plus" (strings, manifest, splash, push, legales, disclaimer D28) | 10-16 hs | Crítica | ✅ **CERRADA** (`6e195e4`+`faab783`, smoke prod OK 17-jul) |
 | 2 | FA-lite | Impresión `window.print()` optimizada (D37) — plantilla térmica, auto-print, reimpresión, print_logs | 18-26 hs | Crítica | ✅ **CERRADA** (`37f1a92`+`af07171`, validada en Sunmi P2 el 17-jul; PAX A920Pro pendiente sin bloquear) |
-| 3 | PROMO-1 | Motor de promociones v1 (dobles puntos / bonus por día-producto-monto) | 25-35 hs | Crítica | 📋 **Propuesta aprobada por el dueño (17-jul)** — implementación tras R1b.1 (re-priorización del dueño) |
+| 3 | PROMO-1 | Motor de promociones v1 (dobles puntos / bonus por día-producto-monto) | 25-35 hs | Crítica | 🔨 **CONSTRUIDA (18-jul)** — mig `20260718_promo1_motor_promociones.sql` (promo_rules + promo_applications + pick_best_promo + hook en register_purchase + manage_promo_rule STRICT + preview_promo), `PromoRules.jsx`/`PromoRuleForm.jsx`/`promoService.js`, toast+push con promo. **PENDIENTE: ejecutar la migración en el SQL Editor + smoke en prod** |
 | 4 | SEC-lite | `authenticate_member` + cierre del vector cliente del raffle | 12-20 hs | Alta | Pendiente |
 | 5 | F7a | API REST core para PROPER (sin physical-members) | 45-60 hs | Alta | Pendiente |
 | 6 | F1 | Configurabilidad empresa + estaciones + precios + KPIs | 61-78 hs | Alta | Pendiente |

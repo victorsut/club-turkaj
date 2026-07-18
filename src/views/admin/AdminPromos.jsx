@@ -38,7 +38,7 @@ const F = ({ label, fieldKey, type = 'text', placeholder = '', form, setForm }) 
 );
 
 export default function AdminPromos(ctx) {
-  const { promos, setPromos, fire, sbConnected, loggedAdmin } = ctx;
+  const { promos, setPromos, fire, sbConnected, loggedAdmin, setScr } = ctx;
 
   const [editing, setEditing]   = useState(null);  // promo en edición
   const [form, setForm]         = useState(EMPTY);
@@ -247,9 +247,19 @@ export default function AdminPromos(ctx) {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 20px 12px' }}>
         <div style={{ fontSize: 20, fontWeight: 800, color: AT.txt }}>📢 Promociones</div>
-        <button onClick={openNew} style={{ ...btnYellow, padding: '10px 18px', fontSize: 13, width: 'auto' }}>
-          + Nueva
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {/* PROMO-1: acceso al motor de reglas (dobles puntos, bonus) */}
+          <button onClick={() => setScr('promorules')} style={{
+            padding: '10px 14px', fontSize: 13, borderRadius: 12, cursor: 'pointer',
+            border: `1px solid ${AT.border}`, background: 'none', color: AT.txt,
+            fontFamily: "'DM Sans'", fontWeight: 700,
+          }}>
+            ⚙️ Motor
+          </button>
+          <button onClick={openNew} style={{ ...btnYellow, padding: '10px 18px', fontSize: 13, width: 'auto' }}>
+            + Nueva
+          </button>
+        </div>
       </div>
 
       <div style={{ padding: '0 20px' }}>

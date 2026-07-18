@@ -72,6 +72,7 @@ import AdminRaffle from './admin/AdminRaffle';
 import AdminPremios from './admin/AdminPremios';
 import Settings from './admin/Settings';
 import AdminPromos from './admin/AdminPromos';
+import PromoRules from './admin/PromoRules';
 import OpManagement from './admin/OpManagement';
 import AuditLog from './admin/AuditLog';
 import VehiclesSoon from './client/VehiclesSoon';
@@ -973,8 +974,10 @@ export default function App() {
       return;
     }
 
-    const { points: pts, gallons: gal, tier_changed, new_tier, new_card_code } = data;
+    const { points: pts, gallons: gal, tier_changed, new_tier, new_card_code, promo } = data;
     const today = localDate();
+    // PROMO-1: pts ya viene FINAL (base + extra); promo trae {name, extra_points} si aplicó.
+    const promoTag = promo ? ` · 🎉 ${promo.name} (+${promo.extra_points})` : '';
 
     // Optimistic update del state local con los valores REALES devueltos por el server
     setCusts(p => p.map(c => c.id === cid ? {
@@ -999,14 +1002,14 @@ export default function App() {
       cardId: new_card_code || p.cardId,
     }));
 
-    fire(`+${pts} pts · ${gal} gal · Q${a}`);
+    fire(`+${pts} pts · ${gal} gal · Q${a}${promoTag}`);
     setModal(null); setAmt('');
 
     // Push notification
     if (loggedOp) {
       sendPushToMember(cid, {
-        title: '⛽ ¡Compra registrada!',
-        body: `+${pts} pts · ${gal} gal · Q${a} — Atendido por ${loggedOp.name}`,
+        title: promo ? '🎉 ¡Compra con promoción!' : '⛽ ¡Compra registrada!',
+        body: `+${pts} pts · ${gal} gal · Q${a}${promoTag} — Atendido por ${loggedOp.name}`,
         operatorId: loggedOp.id,
         operatorName: loggedOp.name,
         stationName,
@@ -1360,6 +1363,7 @@ export default function App() {
       if (scr === 'audit') return <AuditLog {...ctx} />;
       if (scr === 'rules') return <Rules {...ctx} />;
       if (scr === 'promos') return <AdminPromos {...ctx} />;
+      if (scr === 'promorules') return <PromoRules {...ctx} />;
       return <AdminDash {...ctx} />;
     }
 
