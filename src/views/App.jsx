@@ -373,6 +373,7 @@ export default function App() {
             valid_until: p.valid_until || null,
             conditions: p.conditions || null,
             promo_rule_id: p.promo_rule_id || null,
+            text_colors: p.text_colors || null,
           })));
         }
 

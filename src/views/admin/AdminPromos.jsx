@@ -28,6 +28,7 @@ const snap = (p) => ({
   valid_until: p.valid_until || null,
   conditions: p.conditions || null,
   promo_rule_id: p.promo_rule_id || null,
+  text_colors: p.text_colors || null,
 });
 
 // Fila de la DB → shape del estado local (App.jsx usa el mismo).
@@ -38,6 +39,7 @@ const mapRow = (r) => ({
   image_url: r.image_url || null, category: r.category || null,
   valid_until: r.valid_until || null, conditions: r.conditions || null,
   promo_rule_id: r.promo_rule_id || null,
+  text_colors: r.text_colors || null,
 });
 
 export default function AdminPromos(ctx) {
@@ -139,7 +141,7 @@ export default function AdminPromos(ctx) {
             bg: u.bg_gradient, color: u.text_color, sort_order: u.sort_order,
             image_url: u.image_url, category: u.category,
             valid_until: u.valid_until, conditions: u.conditions,
-            promo_rule_id: u.promo_rule_id,
+            promo_rule_id: u.promo_rule_id, text_colors: u.text_colors || null,
           } : p));
           fire('Promocion actualizada');
           break;

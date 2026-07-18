@@ -38,6 +38,9 @@ const CFG = {
 export default function PromoCard({ promo, ratio = '3:4', style = {}, onClick }) {
   const c = CFG[ratio] || CFG['3:4'];
   const color = promo.color || '#fff';
+  // Color individual por bloque (text_colors jsonb) con fallback al
+  // color general — permite convivir con zonas claras/oscuras del arte.
+  const blockColor = (block) => promo.text_colors?.[block] || color;
   const validez = fmtDate(promo.valid_until);
   const hasRestricciones = c.restricciones && (promo.conditions || validez);
   const hasImage = !!promo.image_url;
@@ -93,7 +96,7 @@ export default function PromoCard({ promo, ratio = '3:4', style = {}, onClick })
         {/* Título (arriba-izquierda) */}
         <div style={{
           fontSize: c.title, fontWeight: 900, lineHeight: 1.15,
-          whiteSpace: 'pre-line',
+          whiteSpace: 'pre-line', color: blockColor('title'),
           textShadow: '0 1px 3px rgba(0,0,0,.18)',
         }}>
           {promo.title}
@@ -103,7 +106,7 @@ export default function PromoCard({ promo, ratio = '3:4', style = {}, onClick })
           <div style={{
             marginTop: 4,
             fontSize: c.desc, fontWeight: 600, lineHeight: 1.3,
-            opacity: 0.92, whiteSpace: 'pre-line',
+            opacity: 0.92, whiteSpace: 'pre-line', color: blockColor('desc'),
             textShadow: '0 1px 3px rgba(0,0,0,.15)',
           }}>
             {promo.desc}
@@ -112,7 +115,7 @@ export default function PromoCard({ promo, ratio = '3:4', style = {}, onClick })
 
         {/* Restricciones (abajo-izquierda, solo card vertical) */}
         {hasRestricciones && (
-          <div style={{ marginTop: 'auto' }}>
+          <div style={{ marginTop: 'auto', color: blockColor('conditions') }}>
             {promo.conditions && (
               <div style={{ fontSize: 10.5, fontWeight: 600, opacity: 0.9, lineHeight: 1.35, whiteSpace: 'pre-line', textShadow: '0 1px 3px rgba(0,0,0,.15)' }}>
                 {promo.conditions}

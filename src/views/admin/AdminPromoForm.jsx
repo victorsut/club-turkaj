@@ -29,15 +29,36 @@ const CATEGORIES = [
 const label = { fontSize: 11, fontWeight: 700, color: AT.sub, marginBottom: 6, textTransform: 'uppercase', letterSpacing: .5 };
 const darkInput = { ...inputStyle, background: '#333', border: `1px solid ${AT.border}`, color: AT.txt };
 
+// Selector de color compacto por bloque de texto (swatches + custom).
+// A nivel de módulo para no remontar los inputs en cada render.
+const ColorRow = ({ title, value, onChange }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+    <div style={{ width: 92, fontSize: 11, fontWeight: 700, color: AT.sub, flexShrink: 0 }}>{title}</div>
+    {['#ffffff', '#0D0D0D', '#FBBC04', '#E53935'].map(c => (
+      <div key={c} onClick={() => onChange(c)} style={{
+        width: 30, height: 30, borderRadius: 8, background: c, cursor: 'pointer',
+        border: value === c ? '2px solid #FBBC04' : `2px solid ${AT.border}`,
+      }} />
+    ))}
+    <input type="color" value={value} onChange={e => onChange(e.target.value)}
+      style={{ width: 30, height: 30, borderRadius: 8, border: `2px solid ${AT.border}`, background: 'none', cursor: 'pointer', padding: 1 }} />
+  </div>
+);
+
 function seedForm(promo) {
   if (!promo || promo === 'new') return {
-    title: '', desc: '', icon: '', bg_gradient: GRADIENTS[0].value, text_color: '#ffffff',
+    title: '', desc: '', icon: '', bg_gradient: GRADIENTS[0].value,
+    title_color: '#ffffff', desc_color: '#ffffff', conditions_color: '#ffffff',
     sort_order: '0', active: true,
     image_url: null, category: '', valid_until: '', conditions: '', promo_rule_id: '',
   };
+  const base = promo.color || '#ffffff';
   return {
     title: promo.title || '', desc: promo.desc || '', icon: promo.icon || '',
-    bg_gradient: promo.bg || GRADIENTS[0].value, text_color: promo.color || '#ffffff',
+    bg_gradient: promo.bg || GRADIENTS[0].value,
+    title_color: promo.text_colors?.title || base,
+    desc_color: promo.text_colors?.desc || base,
+    conditions_color: promo.text_colors?.conditions || base,
     sort_order: String(promo.sort_order ?? 0), active: promo.active !== false,
     image_url: promo.image_url || null, category: promo.category || '',
     valid_until: promo.valid_until || '', conditions: promo.conditions || '',
@@ -74,7 +95,8 @@ export default function AdminPromoForm({ promo, saving, onCancel, onSubmit, fire
       description: f.desc.trim(),
       icon:        f.icon.trim(),
       bg_gradient: f.bg_gradient,
-      text_color:  f.text_color,
+      text_color:  f.title_color,   // color general/legacy = el del título
+      text_colors: { title: f.title_color, desc: f.desc_color, conditions: f.conditions_color },
       sort_order:  parseInt(f.sort_order) || 0,
       image_url:   f.image_url || null,
       category:    f.category || null,
@@ -88,9 +110,19 @@ export default function AdminPromoForm({ promo, saving, onCancel, onSubmit, fire
   // Objeto para el preview (mismo shape que consume PromoCard)
   const preview = {
     title: f.title || 'Título de la promo', desc: f.desc, icon: f.icon,
-    bg: f.bg_gradient, color: f.text_color, image_url: f.image_url,
+    bg: f.bg_gradient, color: f.title_color, image_url: f.image_url,
+    text_colors: { title: f.title_color, desc: f.desc_color, conditions: f.conditions_color },
     conditions: f.conditions, valid_until: f.valid_until || null,
   };
+
+  // Dimensiones REALES de las cards en el dispositivo (la app clampa a
+  // 480px de ancho): vista PROMOCIONES = (ancho - padding 14×2 - gap 12)/2;
+  // cuadro del home = (ancho - padding 14×2 - gap 10)/2. Las fuentes son
+  // px fijos, así que el preview a tamaño real muestra el quiebre de
+  // línea y el recorte EXACTOS que verá el cliente.
+  const vw = Math.min(typeof window !== 'undefined' ? window.innerWidth : 480, 480);
+  const promoCardW = Math.round((vw - 28 - 12) / 2);
+  const homeTileW  = Math.round((vw - 28 - 10) / 2);
 
   return (
     <div
@@ -204,20 +236,12 @@ export default function AdminPromoForm({ promo, saving, onCancel, onSubmit, fire
           </div>
         </div>
 
-        {/* Color texto */}
+        {/* Color por bloque de texto (para convivir con el arte del fondo) */}
         <div style={{ marginBottom: 12 }}>
-          <div style={label}>Color del texto</div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {['#ffffff', '#0D0D0D', '#FBBC04', '#FFD54F'].map(c => (
-              <div key={c} onClick={() => set('text_color', c)} style={{
-                width: 36, height: 36, borderRadius: 10, background: c, cursor: 'pointer',
-                border: f.text_color === c ? '2px solid #FBBC04' : `2px solid ${AT.border}`,
-              }} />
-            ))}
-            <input type="color" value={f.text_color}
-              onChange={e => set('text_color', e.target.value)}
-              style={{ width: 36, height: 36, borderRadius: 10, border: `2px solid ${AT.border}`, background: 'none', cursor: 'pointer', padding: 2 }} />
-          </div>
+          <div style={label}>Color por bloque de texto</div>
+          <ColorRow title="Título" value={f.title_color} onChange={v => set('title_color', v)} />
+          <ColorRow title="Descripción" value={f.desc_color} onChange={v => set('desc_color', v)} />
+          <ColorRow title="Condiciones" value={f.conditions_color} onChange={v => set('conditions_color', v)} />
         </div>
 
         {/* Vínculo con regla del motor (documental en v1) */}
@@ -242,15 +266,18 @@ export default function AdminPromoForm({ promo, saving, onCancel, onSubmit, fire
           </div>
         )}
 
-        {/* Preview en vivo: vertical (vista PROMOCIONES, grid de 2) + 1:1 (home) */}
+        {/* Preview en vivo A TAMAÑO REAL del dispositivo: los quiebres de
+            línea y el recorte del home son exactamente los del cliente */}
         <div style={{ marginBottom: 16 }}>
-          <div style={label}>Vista previa · Promociones (vertical) y home (1:1)</div>
+          <div style={label}>Vista previa · tamaño real en el dispositivo</div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-            <div style={{ flex: 1 }}>
+            <div style={{ width: promoCardW, flexShrink: 0 }}>
               <PromoCard promo={preview} ratio="3:4" />
+              <div style={{ fontSize: 10, color: AT.sub, marginTop: 5, textAlign: 'center' }}>Vista Promociones</div>
             </div>
-            <div style={{ flex: 1 }}>
+            <div style={{ width: homeTileW, flexShrink: 0 }}>
               <PromoCard promo={preview} ratio="1:1" />
+              <div style={{ fontSize: 10, color: AT.sub, marginTop: 5, textAlign: 'center' }}>Cuadro del home</div>
             </div>
           </div>
         </div>
