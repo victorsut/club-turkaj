@@ -1,16 +1,17 @@
 // src/components/ui/PromoCard.jsx
 // R1b.2 (D33) — Card de promoción compuesta por código (layout firmado
-// por el dueño 18-jul):
-//   · Arriba-izquierda:  título.
-//   · Debajo del título: descripción (siempre alineada a la izquierda).
-//   · Abajo-izquierda:   restricciones (condiciones + "Válido hasta"),
-//                        solo en la card vertical de la vista PROMOCIONES.
-//   · Media/inferior derecha: sujeto de la imagen (image_url de
-//                        Storage, idealmente PNG recortado). Sin
-//                        imagen → ícono emoji como fallback.
-// Ratios: '3:4' (vertical, vista PROMOCIONES en grid de 2 columnas
-// como la referencia — toda la info) y '1:1' (cuadro del home, solo
-// título + descripción + sujeto).
+// por el dueño 18-jul, ajuste 2):
+//   · La imagen subida (900×1200 px, 3:4) es el FONDO COMPLETO de la
+//     card (object-fit cover; en la 1:1 del home se recorta centrada).
+//     Sin imagen → degradado + ícono emoji como fallback.
+//   · Los textos van ENCIMA de la imagen: título arriba-izquierda,
+//     descripción debajo, restricciones (condiciones + "Válido hasta")
+//     abajo-izquierda solo en la card vertical.
+//   · Los tres campos respetan los SALTOS DE LÍNEA manuales del admin
+//     (white-space: pre-line) para no tapar el arte de la imagen — el
+//     admin acomoda el texto con Enter y lo ve en el preview en vivo.
+// Ratios: '3:4' (vertical, vista PROMOCIONES en grid de 2 columnas)
+// y '1:1' (cuadro del home: solo título + descripción).
 
 const fmtDate = (d) => {
   if (!d) return null;
@@ -18,21 +19,17 @@ const fmtDate = (d) => {
   return `${day}/${m}/${y}`;
 };
 
-// Métricas por ratio: la 3:4 es angosta (media pantalla) y alta, así
-// que el texto usa casi todo el ancho y el sujeto vive en la franja
-// media; la 1:1 es compacta.
+// Métricas por ratio.
 const CFG = {
   '3:4': {
     aspect: '3 / 4', pad: '14px 14px 13px',
-    title: 17, titleMax: '94%', desc: 12, descMax: '88%', descLines: 3,
-    img: { right: '4%', bottom: '17%', w: '64%', h: '42%' },
+    title: 17, desc: 12,
     icon: 52, iconPos: { right: '8%', bottom: '20%' },
     restricciones: true,
   },
   '1:1': {
     aspect: '1 / 1', pad: '12px 12px 11px',
-    title: 14, titleMax: '78%', desc: 10, descMax: '72%', descLines: 2,
-    img: { right: '4%', bottom: '10%', w: '52%', h: '58%' },
+    title: 14, desc: 10,
     icon: 42, iconPos: { right: '7%', bottom: '12%' },
     restricciones: false,
   },
@@ -43,6 +40,7 @@ export default function PromoCard({ promo, ratio = '3:4', style = {}, onClick })
   const color = promo.color || '#fff';
   const validez = fmtDate(promo.valid_until);
   const hasRestricciones = c.restricciones && (promo.conditions || validez);
+  const hasImage = !!promo.image_url;
 
   return (
     <div
@@ -57,31 +55,36 @@ export default function PromoCard({ promo, ratio = '3:4', style = {}, onClick })
         ...style,
       }}
     >
-      {/* brillo sutil, coherente con los tiles bento */}
-      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 18% 12%, rgba(255,255,255,.18), transparent 55%)', pointerEvents: 'none' }} />
-
-      {/* Sujeto de la imagen — zona media/inferior derecha */}
-      {promo.image_url ? (
+      {/* Imagen de fondo completa (900×1200 = 3:4 exacto; en 1:1 se
+          recorta centrada). El degradado queda debajo por si tarda. */}
+      {hasImage && (
         <img
           src={promo.image_url}
           alt=""
           style={{
-            position: 'absolute', right: c.img.right, bottom: c.img.bottom,
-            width: c.img.w, height: c.img.h,
-            objectFit: 'contain', objectPosition: 'right bottom',
+            position: 'absolute', inset: 0, width: '100%', height: '100%',
+            objectFit: 'cover', objectPosition: 'center',
             pointerEvents: 'none',
-            filter: 'drop-shadow(0 6px 14px rgba(0,0,0,.25))',
           }}
         />
-      ) : promo.icon ? (
-        <div style={{
-          position: 'absolute', right: c.iconPos.right, bottom: c.iconPos.bottom,
-          fontSize: c.icon, lineHeight: 1, pointerEvents: 'none',
-          filter: 'drop-shadow(0 4px 10px rgba(0,0,0,.25))',
-        }}>{promo.icon}</div>
-      ) : null}
+      )}
 
-      {/* Bloques de texto — columna izquierda */}
+      {/* Sin imagen: brillo sutil bento + ícono emoji como sujeto */}
+      {!hasImage && (
+        <>
+          <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 18% 12%, rgba(255,255,255,.18), transparent 55%)', pointerEvents: 'none' }} />
+          {promo.icon && (
+            <div style={{
+              position: 'absolute', right: c.iconPos.right, bottom: c.iconPos.bottom,
+              fontSize: c.icon, lineHeight: 1, pointerEvents: 'none',
+              filter: 'drop-shadow(0 4px 10px rgba(0,0,0,.25))',
+            }}>{promo.icon}</div>
+          )}
+        </>
+      )}
+
+      {/* Bloques de texto — encima de la imagen, saltos de línea del
+          admin respetados (pre-line) para no tapar el arte */}
       <div style={{
         position: 'absolute', inset: 0,
         padding: c.pad,
@@ -90,7 +93,7 @@ export default function PromoCard({ promo, ratio = '3:4', style = {}, onClick })
         {/* Título (arriba-izquierda) */}
         <div style={{
           fontSize: c.title, fontWeight: 900, lineHeight: 1.15,
-          maxWidth: c.titleMax,
+          whiteSpace: 'pre-line',
           textShadow: '0 1px 3px rgba(0,0,0,.18)',
         }}>
           {promo.title}
@@ -100,9 +103,8 @@ export default function PromoCard({ promo, ratio = '3:4', style = {}, onClick })
           <div style={{
             marginTop: 4,
             fontSize: c.desc, fontWeight: 600, lineHeight: 1.3,
-            opacity: 0.92, maxWidth: c.descMax,
-            overflow: 'hidden', display: '-webkit-box',
-            WebkitLineClamp: c.descLines, WebkitBoxOrient: 'vertical',
+            opacity: 0.92, whiteSpace: 'pre-line',
+            textShadow: '0 1px 3px rgba(0,0,0,.15)',
           }}>
             {promo.desc}
           </div>
@@ -110,14 +112,14 @@ export default function PromoCard({ promo, ratio = '3:4', style = {}, onClick })
 
         {/* Restricciones (abajo-izquierda, solo card vertical) */}
         {hasRestricciones && (
-          <div style={{ marginTop: 'auto', maxWidth: '85%' }}>
+          <div style={{ marginTop: 'auto' }}>
             {promo.conditions && (
-              <div style={{ fontSize: 10.5, fontWeight: 600, opacity: 0.85, lineHeight: 1.35, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+              <div style={{ fontSize: 10.5, fontWeight: 600, opacity: 0.9, lineHeight: 1.35, whiteSpace: 'pre-line', textShadow: '0 1px 3px rgba(0,0,0,.15)' }}>
                 {promo.conditions}
               </div>
             )}
             {validez && (
-              <div style={{ fontSize: 10.5, fontWeight: 700, opacity: 0.85, marginTop: promo.conditions ? 3 : 0 }}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, opacity: 0.9, marginTop: promo.conditions ? 3 : 0, textShadow: '0 1px 3px rgba(0,0,0,.15)' }}>
                 Válido hasta {validez}
               </div>
             )}

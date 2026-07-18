@@ -113,17 +113,26 @@ export default function AdminPromoForm({ promo, saving, onCancel, onSubmit, fire
           {isNew ? '➕ Nueva promoción' : '✏️ Editar promoción'}
         </div>
 
+        {/* Los tres textos van ENCIMA de la imagen de fondo: Enter agrega
+            saltos de línea que la card respeta (pre-line) — acomodá el
+            texto para no tapar el arte y controlalo en el preview. */}
         <div style={{ marginBottom: 12 }}>
-          <div style={label}>Título *</div>
-          <input value={f.title} placeholder="Ej: 2x Puntos en Diésel" onChange={e => set('title', e.target.value)} style={darkInput} />
+          <div style={label}>Título * <span style={{ textTransform: 'none' }}>(Enter = salto de línea)</span></div>
+          <textarea value={f.title} rows={2} placeholder={'Ej: 2x Puntos\nen Diésel'}
+            onChange={e => set('title', e.target.value)}
+            style={{ ...darkInput, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.35 }} />
         </div>
         <div style={{ marginBottom: 12 }}>
-          <div style={label}>Descripción</div>
-          <input value={f.desc} placeholder="Ej: Todos los miércoles" onChange={e => set('desc', e.target.value)} style={darkInput} />
+          <div style={label}>Descripción <span style={{ textTransform: 'none' }}>(Enter = salto de línea)</span></div>
+          <textarea value={f.desc} rows={2} placeholder={'Ej: Todos los\nmiércoles'}
+            onChange={e => set('desc', e.target.value)}
+            style={{ ...darkInput, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.35 }} />
         </div>
         <div style={{ marginBottom: 12 }}>
-          <div style={label}>Condiciones / restricciones</div>
-          <input value={f.conditions} placeholder="Ej: Solo pago en efectivo" onChange={e => set('conditions', e.target.value)} style={darkInput} />
+          <div style={label}>Condiciones / restricciones <span style={{ textTransform: 'none' }}>(Enter = salto de línea)</span></div>
+          <textarea value={f.conditions} rows={2} placeholder="Ej: Solo pago en efectivo"
+            onChange={e => set('conditions', e.target.value)}
+            style={{ ...darkInput, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.35 }} />
         </div>
 
         <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
@@ -139,9 +148,9 @@ export default function AdminPromoForm({ promo, saving, onCancel, onSubmit, fire
           </div>
         </div>
 
-        {/* Sujeto de imagen (Storage) */}
+        {/* Imagen de fondo (Storage) */}
         <div style={{ marginBottom: 12 }}>
-          <div style={label}>Sujeto de imagen <span style={{ textTransform: 'none' }}>(PNG recortado ideal; va abajo a la derecha)</span></div>
+          <div style={label}>Imagen de fondo <span style={{ textTransform: 'none' }}>(900×1200 px, 3:4 — ocupa TODA la card; en el home 1:1 se recorta centrada)</span></div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <label style={{
               flex: 1, padding: 11, borderRadius: 12, border: `1px dashed ${AT.border}`,
@@ -162,9 +171,11 @@ export default function AdminPromoForm({ promo, saving, onCancel, onSubmit, fire
               </button>
             )}
           </div>
-          {!f.image_url && (
-            <div style={{ fontSize: 11, color: AT.sub, marginTop: 6 }}>Sin imagen, la card usa el ícono emoji.</div>
-          )}
+          <div style={{ fontSize: 11, color: AT.sub, marginTop: 6 }}>
+            {f.image_url
+              ? 'Los textos van encima de la imagen — usá Enter en los campos para que no tapen el arte.'
+              : 'Sin imagen, la card usa el degradado y el ícono emoji.'}
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>

@@ -171,6 +171,11 @@ export async function uploadPromoImage(file) {
     const contentType = keepPng ? 'image/png' : 'image/jpeg';
     const dataUrl = canvas.toDataURL(contentType, keepPng ? undefined : 0.85);
     const base64 = dataUrl.split(',')[1];
+    // Guard del límite del bucket (2 MB): un PNG fotográfico de fondo
+    // completo puede superarlo — el JPG comprime mucho mejor.
+    if (Math.ceil(base64.length * 3 / 4) > 2 * 1024 * 1024) {
+      return { data: null, error: { message: 'La imagen procesada supera 2 MB — exportala como JPG (el PNG solo conviene si usa transparencia)' } };
+    }
 
     const res = await fetch('/api/upload-promo-image', {
       method: 'POST',
