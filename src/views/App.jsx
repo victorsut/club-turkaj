@@ -57,6 +57,7 @@ import Catalog from './shared/Catalog';
 import ClientRaffle from './client/ClientRaffle';
 import Rules from './shared/Rules';
 import ClientMenu from './client/ClientMenu';
+import ClientPromos from './client/ClientPromos';
 
 // Operator Views
 import OpHome from './operator/OpHome';
@@ -366,6 +367,12 @@ export default function App() {
             bg: p.bg_gradient, color: p.text_color,
             sort_order: p.sort_order,
             active: p.active !== false,
+            // R1b.2 (D33): card compuesta + vista PROMOCIONES
+            image_url: p.image_url || null,
+            category: p.category || null,
+            valid_until: p.valid_until || null,
+            conditions: p.conditions || null,
+            promo_rule_id: p.promo_rule_id || null,
           })));
         }
 
@@ -1381,6 +1388,7 @@ export default function App() {
 
     // Client screens
     if (cScr === 'cat') return <Catalog {...ctx} client={true} />;
+    if (cScr === 'promos') return <ClientPromos {...ctx} />;
     if (cScr === 'raf') return <ClientRaffle {...ctx} />;
     if (cScr === 'rules') return <Rules {...ctx} />;
     if (cScr === 'menu') return <ClientMenu {...ctx} />;

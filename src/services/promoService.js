@@ -135,6 +135,58 @@ export async function managePromoRule(action, audit = {}, { ruleId = null, rule 
 }
 
 // ──────────────────────────────────────────────
+// 2b. IMÁGENES — uploadPromoImage (R1b.2 / D33)
+// ──────────────────────────────────────────────
+// Sube el "sujeto" de imagen de una promoción vía el serverless
+// /api/upload-promo-image (el bucket promo-images no acepta escritura
+// con la apikey anon; el endpoint valida el token admin y sube con la
+// service key). Antes de subir, la imagen se REDIMENSIONA client-side
+// (máx 1200px de lado) para respetar el límite de 2 MB y no castigar
+// los datos móviles del cliente. PNG conserva transparencia (ideal
+// para sujetos recortados); JPEG/WebP se re-encodea a JPEG 0.85.
+//
+// @param {File} file - imagen elegida en el input del admin.
+// @returns {Promise<{ data: string|null, error }>} data = URL pública.
+export async function uploadPromoImage(file) {
+  const token = getAdminToken()?.token;
+  if (!token) return { data: null, error: { message: 'Sesión admin no disponible' } };
+  if (!file?.type?.startsWith('image/')) {
+    return { data: null, error: { message: 'El archivo debe ser una imagen' } };
+  }
+  try {
+    const keepPng = file.type === 'image/png';
+    const img = await new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const i = new Image();
+      i.onload = () => { URL.revokeObjectURL(url); resolve(i); };
+      i.onerror = () => { URL.revokeObjectURL(url); reject(new Error('No se pudo leer la imagen')); };
+      i.src = url;
+    });
+    const MAX = 1200;
+    const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(img.width * scale);
+    canvas.height = Math.round(img.height * scale);
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+    const contentType = keepPng ? 'image/png' : 'image/jpeg';
+    const dataUrl = canvas.toDataURL(contentType, keepPng ? undefined : 0.85);
+    const base64 = dataUrl.split(',')[1];
+
+    const res = await fetch('/api/upload-promo-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, contentType, data: base64 }),
+    });
+    const json = await res.json();
+    if (!res.ok) return { data: null, error: { message: json.error || 'Error al subir la imagen' } };
+    return { data: json.url, error: null };
+  } catch (err) {
+    console.error('[Promo:uploadPromoImage]', err);
+    return { data: null, error: { message: err.message } };
+  }
+}
+
+// ──────────────────────────────────────────────
 // 3. SIMULADOR — previewPromo
 // ──────────────────────────────────────────────
 // "¿Aplicaría a una compra de Q150 de súper hoy en Turkaj II?"

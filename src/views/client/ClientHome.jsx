@@ -1,8 +1,9 @@
 // src/views/client/ClientHome.jsx
 // Main client dashboard: tier card, stats, survey, QR, promo carousel, history
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { sMono, bento, BRAND_RED } from '../../constants/styles';
+import PromoCard from '../../components/ui/PromoCard';
 import { CARD_PREFIX } from '../../constants/config';
 import Wordmark from '../../components/ui/Wordmark';
 import LegalFooter from '../../components/ui/LegalFooter';
@@ -117,6 +118,10 @@ export default function ClientHome(ctx) {
   const firstName = (me.name || '').trim().split(' ')[0] || 'cliente';
   const [showTierDetail, setShowTierDetail] = useState(false);
   const [histSheet, setHistSheet] = useState(null); // { type: 'compras'|'canjes', origin } | null
+  // R1b.2: tracking del arrastre del carrusel de promos (un swipe
+  // horizontal cambia la card; un tap navega a la ventana PROMOCIONES).
+  const promoTouchRef = useRef(null);
+  const promoSwipedRef = useRef(false);
   // D35: punto del último cuadro presionado → el modal centrado "sale"
   // de ahí (transform-origin relativo al centro del viewport).
   const [modalOrigin, setModalOrigin] = useState(null);
@@ -213,46 +218,60 @@ export default function ClientHome(ctx) {
       {/* ── Bento grid (referencia visual R1b) ── */}
       <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: 'auto 1fr 1fr auto', gap: 10, padding: '10px 14px 0' }}>
 
-        {/* 1 · Promociones: el carrusel real ocupa el slot del cuadro rojo (D33) */}
+        {/* 1 · Promociones (R1b.2/D33): card 1:1 compuesta (título +
+            descripción + sujeto). Tap → ventana PROMOCIONES; arrastre
+            horizontal DENTRO del cuadro → cambia el carrusel. */}
         <div
           className="pp-tile"
-          onClick={() => activePromos.length > 1 && setPromoIdx((promoIdx + 1) % activePromos.length)}
+          onTouchStart={(e) => {
+            promoTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            promoSwipedRef.current = false;
+          }}
+          onTouchEnd={(e) => {
+            const t = promoTouchRef.current;
+            if (!t || activePromos.length < 2) return;
+            const dx = e.changedTouches[0].clientX - t.x;
+            const dy = e.changedTouches[0].clientY - t.y;
+            if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy)) {
+              promoSwipedRef.current = true;
+              setPromoIdx(i => (i + (dx < 0 ? 1 : -1) + activePromos.length) % activePromos.length);
+            }
+          }}
+          onClick={(e) => {
+            // Un arrastre no navega: solo cambia la card visible.
+            if (promoSwipedRef.current) { promoSwipedRef.current = false; return; }
+            if (setNavOrigin) setNavOrigin(originFromEvent(e));
+            setCScr('promos');
+          }}
           style={{
             background: bento.red, borderRadius: bento.radius, aspectRatio: '1 / 1',
             position: 'relative', overflow: 'hidden', boxShadow: bento.shadow,
-            cursor: activePromos.length > 1 ? 'pointer' : 'default',
-            color: '#fff', padding: '13px 14px 12px',
-            display: 'flex', flexDirection: 'column', animationDelay: '0ms',
+            cursor: 'pointer', color: '#fff', animationDelay: '0ms',
+            touchAction: 'pan-y',
           }}
         >
-          <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 18% 12%, rgba(255,255,255,.22), transparent 55%)', pointerEvents: 'none' }} />
           {activePromos.length === 0 ? (
-            <>
+            <div style={{ position: 'absolute', inset: 0, padding: '13px 14px 12px', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 18% 12%, rgba(255,255,255,.22), transparent 55%)', pointerEvents: 'none' }} />
               <GiftIcon size={26} />
               <div style={{ marginTop: 'auto', paddingTop: 8 }}>
                 <div style={{ fontSize: 12.5, fontWeight: 900, textTransform: 'uppercase', letterSpacing: 0.7 }}>Promociones</div>
                 <div style={{ fontSize: 10.5, opacity: 0.85, marginTop: 2, fontWeight: 600 }}>Descubre ofertas exclusivas</div>
               </div>
-            </>
+            </div>
           ) : (
             <>
               {activePromos.map((p, i) => (
-                <div key={p.id} style={{
-                  position: 'absolute', inset: 0, padding: '14px 14px 20px',
-                  background: p.bg || bento.red,
-                  display: 'flex', flexDirection: 'column',
-                  opacity: i === promoIdx ? 1 : 0, transition: 'opacity .5s ease',
-                }}>
-                  {p.icon && <div style={{ fontSize: 26, lineHeight: 1 }}>{p.icon}</div>}
-                  <div style={{ marginTop: 'auto' }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 900, color: p.color || '#fff', lineHeight: 1.25 }}>{p.title}</div>
-                    {p.desc && (
-                      <div style={{ fontSize: 10, color: p.color || '#fff', opacity: 0.8, marginTop: 2, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                        {p.desc}
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <PromoCard
+                  key={p.id}
+                  promo={p}
+                  ratio="1:1"
+                  style={{
+                    position: 'absolute', inset: 0, aspectRatio: 'auto', borderRadius: 0,
+                    opacity: i === promoIdx ? 1 : 0, transition: 'opacity .5s ease',
+                    pointerEvents: 'none',
+                  }}
+                />
               ))}
               {activePromos.length > 1 && (
                 <div style={{ position: 'absolute', bottom: 7, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 4 }}>
