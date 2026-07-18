@@ -231,12 +231,16 @@ export default function AdminPromoForm({ promo, saving, onCancel, onSubmit, fire
           </div>
         )}
 
-        {/* Preview en vivo: 4:3 (vista PROMOCIONES) + 1:1 (home) */}
+        {/* Preview en vivo: vertical (vista PROMOCIONES, grid de 2) + 1:1 (home) */}
         <div style={{ marginBottom: 16 }}>
-          <div style={label}>Vista previa · Promociones (4:3) y home (1:1)</div>
-          <PromoCard promo={preview} ratio="4:3" />
-          <div style={{ width: '55%', marginTop: 10 }}>
-            <PromoCard promo={preview} ratio="1:1" />
+          <div style={label}>Vista previa · Promociones (vertical) y home (1:1)</div>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <div style={{ flex: 1 }}>
+              <PromoCard promo={preview} ratio="3:4" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <PromoCard promo={preview} ratio="1:1" />
+            </div>
           </div>
         </div>
 

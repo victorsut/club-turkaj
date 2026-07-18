@@ -64,22 +64,25 @@ export default function ClientPromos(ctx) {
         })}
       </div>
 
-      {/* Cards 4:3 — toda la información */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '0 14px' }}>
-        {visible.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '48px 20px', color: subTxt }}>
-            <div style={{ fontSize: 34, marginBottom: 10 }}>🎁</div>
-            <div style={{ fontSize: 14, fontWeight: 700 }}>
-              {chip === 'todas' ? 'Pronto habrá promociones para vos' : 'Sin promociones en esta categoría por ahora'}
-            </div>
+      {/* Cards verticales agrupadas en cuadrícula de 2 columnas
+          (orientación de la referencia) — toda la información */}
+      {visible.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '48px 20px', color: subTxt }}>
+          <div style={{ fontSize: 34, marginBottom: 10 }}>🎁</div>
+          <div style={{ fontSize: 14, fontWeight: 700 }}>
+            {chip === 'todas' ? 'Pronto habrá promociones para vos' : 'Sin promociones en esta categoría por ahora'}
           </div>
-        )}
+        </div>
+      )}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '0 14px' }}>
         {visible.map((p, i) => (
           <div key={p.id} className="pp-tile" style={{ animationDelay: `${i * 60}ms`, boxShadow: bento.shadow, borderRadius: 20 }}>
-            <PromoCard promo={p} ratio="4:3" />
+            <PromoCard promo={p} ratio="3:4" />
           </div>
         ))}
+      </div>
 
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '12px 14px 0' }}>
         {/* Banner inferior: canje de premios (referencia) */}
         <div
           className="pp-tile"
