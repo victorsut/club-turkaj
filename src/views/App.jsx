@@ -317,7 +317,8 @@ export default function App() {
       console.log('[Auth]', event, session?.user?.email || 'no session');
       if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session?.user) {
         setUserFromSession(session.user);
-        if (event === 'SIGNED_IN') fire('👋 Bienvenido ' + (session.user.user_metadata?.full_name || session.user.email));
+        // (El toast "👋 Bienvenido" se quitó a pedido del dueño: OAuth
+        // re-emite SIGNED_IN en cada apertura y saludaba siempre.)
       }
       if (event === 'SIGNED_OUT') {
         setMe(null); setAuthScreen('login'); setGoogleStep('welcome');

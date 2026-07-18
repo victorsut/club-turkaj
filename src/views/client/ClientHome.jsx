@@ -578,8 +578,13 @@ export default function ClientHome(ctx) {
             </div>
 
             {(() => {
-              // Resolve last station name (could be UUID, name, or empty)
-              const raw = me.station || '';
+              // Estación del ÚLTIMO CONSUMO (D34). Fuente: activity_log
+              // (la última 'compra' con estación, ya ordenado DESC) — NO
+              // me.station: viene de members.last_station, columna que
+              // register_purchase nunca actualiza y quedaba stale
+              // (marcaba Turkaj III con el último consumo en Turkaj II).
+              const lastAct = myActs.find(a => a.type === 'compra' && a.station);
+              const raw = lastAct?.station || me.station || '';
               const fromId = (stations || []).find(st => st.id === raw)?.name || '';
               const lastName = fromId || raw;
 
