@@ -22,27 +22,68 @@ import { notifySessionExpired } from './sessionExpiry';
 // 1. LECTURA — fetchPromoRules
 // ──────────────────────────────────────────────
 // promo_rules tiene SELECT abierto por RLS (info de marketing).
-// El embed promo_applications(count) trae el contador de usos por
-// regla (para "X usos" y el límite en la UI admin).
+// El contador de usos se arma client-side desde promo_applications
+// (dos selects planos): NO se usa el embed `promo_applications(count)`
+// porque depende de que PostgREST tenga agregados habilitados —
+// un select plano funciona en cualquier configuración. Volumen
+// esperado bajo (una fila por compra CON promo).
 //
 // @returns {{ data: Array|null, error }}
 //   Cada fila incluye uses (int) ya aplanado.
 export async function fetchPromoRules() {
   if (!sb) return { data: null, error: { message: 'Sin conexión al servidor' } };
+  const [rulesRes, appsRes] = await Promise.all([
+    sb.from('promo_rules').select('*').order('created_at', { ascending: false }),
+    sb.from('promo_applications').select('promo_rule_id'),
+  ]);
+  if (rulesRes.error) {
+    console.error('[Promo:fetchPromoRules]', rulesRes.error.message);
+    return { data: null, error: rulesRes.error };
+  }
+  if (appsRes.error) console.error('[Promo:fetchPromoRules] usos:', appsRes.error.message);
+  const counts = {};
+  (appsRes.data || []).forEach(a => {
+    counts[a.promo_rule_id] = (counts[a.promo_rule_id] || 0) + 1;
+  });
+  const rows = (rulesRes.data || []).map(r => ({ ...r, uses: counts[r.id] || 0 }));
+  return { data: rows, error: null };
+}
+
+// ──────────────────────────────────────────────
+// 1b. LECTURA — fetchPurchasePromo
+// ──────────────────────────────────────────────
+// Promo aplicada a UNA compra (para el modal de calificación del
+// cliente: el INSERT Realtime de purchases no trae la promo, pero
+// promo_applications sí — register_purchase la escribe en la misma
+// transacción, así que al llegar el evento ya está commiteada).
+// Embed to-one hacia promo_rules (FK) — no requiere agregados.
+//
+// @returns {{ data: { name, effectType, effectValue, extraPoints,
+//                     pointsBase, pointsFinal }|null, error }}
+//   data null (sin error) = la compra no tuvo promo.
+export async function fetchPurchasePromo(purchaseId) {
+  if (!sb || !purchaseId) return { data: null, error: null };
   const { data, error } = await sb
-    .from('promo_rules')
-    .select('*, promo_applications(count)')
-    .order('created_at', { ascending: false });
+    .from('promo_applications')
+    .select('points_base, points_final, effect, promo_rules(name, effect_type, effect_value)')
+    .eq('purchase_id', purchaseId)
+    .maybeSingle();
   if (error) {
-    console.error('[Promo:fetchPromoRules]', error.message);
+    console.error('[Promo:fetchPurchasePromo]', error.message);
     return { data: null, error };
   }
-  const rows = (data || []).map(r => ({
-    ...r,
-    uses: r.promo_applications?.[0]?.count ?? 0,
-    promo_applications: undefined,
-  }));
-  return { data: rows, error: null };
+  if (!data) return { data: null, error: null };
+  return {
+    data: {
+      name: data.promo_rules?.name || 'Promoción',
+      effectType: data.promo_rules?.effect_type || data.effect?.type,
+      effectValue: data.promo_rules?.effect_value ?? data.effect?.value,
+      extraPoints: data.effect?.extra_points ?? (data.points_final - data.points_base),
+      pointsBase: data.points_base,
+      pointsFinal: data.points_final,
+    },
+    error: null,
+  };
 }
 
 // ──────────────────────────────────────────────

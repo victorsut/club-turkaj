@@ -706,6 +706,31 @@ export default function ClientHome(ctx) {
                 <div style={{ fontSize: 18, fontWeight: 900, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D', marginBottom: 6 }}>
                   ¡Compra registrada!
                 </div>
+
+                {/* PROMO-1: puntos de la compra + promo aplicada (llega por
+                    fetchPurchasePromo tras el INSERT Realtime) */}
+                {pendingOpRating.points != null && (
+                  <div style={{ fontSize: 16, fontWeight: 900, color: cTier.name === 'BLACK' ? '#81C784' : '#2E7D32', marginBottom: pendingOpRating.promo ? 8 : 6 }}>
+                    +{pendingOpRating.points} pts
+                    {pendingOpRating.amount != null && (
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#9E9E9E' }}> · Q{+pendingOpRating.amount}</span>
+                    )}
+                  </div>
+                )}
+                {pendingOpRating.promo && (
+                  <div style={{
+                    display: 'inline-block', padding: '7px 14px', borderRadius: 20,
+                    background: cTier.name === 'BLACK' ? 'rgba(251,188,4,.15)' : '#FFF8E1',
+                    border: '1px solid rgba(251,188,4,.45)',
+                    fontSize: 12.5, fontWeight: 800, marginBottom: 10,
+                    color: cTier.name === 'BLACK' ? '#FFD54F' : '#B58000',
+                  }}>
+                    🎉 {pendingOpRating.promo.name}
+                    {pendingOpRating.promo.effectType === 'points_multiplier' && ` x${+pendingOpRating.promo.effectValue}`}
+                    {' '}· +{pendingOpRating.promo.extraPoints} pts extra
+                  </div>
+                )}
+
                 <div style={{ fontSize: 13, color: '#9E9E9E', marginBottom: 4 }}>
                   Fuiste atendido por
                 </div>

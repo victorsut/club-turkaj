@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { sb } from '../lib/supabaseClient';
 import { makeTier, daysInactive } from '../lib/tierSystem';
 import { CFG_INIT, FUEL_LABELS } from '../constants/config';
-import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey, grantSpecialDayBonus } from '../services';
+import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey, grantSpecialDayBonus, fetchPurchasePromo } from '../services';
 import { logoutOperator, logoutAdmin } from '../services'; // SEC.B.4: logout delega el subconjunto de localStorage (ct_op/ct_admin + token de rol)
 import { getOperatorToken, getAdminToken } from '../services/sessionTokens'; // SEC.B.6.4: chequeo de token vivo para el cierre proactivo de sesión expirada
 import { setSessionExpiredHandler } from '../services/sessionExpiry'; // SEC.B.8.2: registro del handler que dispara expireSession ante rechazo 28000 del server
@@ -878,22 +878,26 @@ export default function App() {
         // Sin operador no hay a quién calificar; el modal es solo de la vista cliente.
         if (!opId || viewRef.current !== 'client') return;
         const stationName = stations.find(s => s.id === stId)?.name || '';
+        // PROMO-1: el modal muestra los puntos de la compra y la promo aplicada.
+        const base = {
+          operatorId: opId,
+          stationName,
+          points: p.points_earned ?? null,
+          amount: p.amount ?? null,
+        };
         const op = operators.find(o => o.id === opId);
         if (op) {
-          setPendingOpRating({
-            operatorId: opId,
-            operatorName: op.name,
-            stationName,
-          });
+          setPendingOpRating({ ...base, operatorName: op.name });
         } else {
           sb.from('operators').select('name').eq('id', opId).single().then(r => {
-            setPendingOpRating({
-              operatorId: opId,
-              operatorName: r.data?.name || 'Operador',
-              stationName,
-            });
+            setPendingOpRating({ ...base, operatorName: r.data?.name || 'Operador' });
           });
         }
+        // La promo llega en query aparte (promo_applications, misma tx que la
+        // compra → ya commiteada). Enriquecer el modal si sigue abierto.
+        fetchPurchasePromo(p.id).then(({ data: promo }) => {
+          if (promo) setPendingOpRating(prev => (prev ? { ...prev, promo } : prev));
+        });
       })
       .subscribe((status) => {
         console.log('[Realtime] purchases subscription:', status);
