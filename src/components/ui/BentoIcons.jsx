@@ -1,8 +1,8 @@
 // src/components/ui/BentoIcons.jsx
 // R1b — Iconos blancos de los tiles del home, fieles a la referencia
-// visual (glifos limpios en blanco, no emojis). Trazo consistente.
-const S = ({ size = 28, children }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+// FORMATO GENERAL (glifos grandes limpios en blanco, no emojis).
+const S = ({ size = 38, children }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
     {children}
   </svg>
 );

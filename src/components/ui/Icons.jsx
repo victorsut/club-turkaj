@@ -153,6 +153,23 @@ export const Menu = () => (
   </svg>
 );
 
+// Casa (pestaña Inicio — referencia FORMATO GENERAL)
+export const House = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3.5 10.2 12 3.5l8.5 6.7" />
+    <path d="M5.3 9v9.5a1.7 1.7 0 0 0 1.7 1.7h10a1.7 1.7 0 0 0 1.7-1.7V9" />
+    <path d="M9.8 20.2v-5.6a1 1 0 0 1 1-1h2.4a1 1 0 0 1 1 1v5.6" />
+  </svg>
+);
+
+// Boleto con estrella (pestaña Canjes — referencia FORMATO GENERAL)
+export const TicketStar = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3.5 9V7a1 1 0 0 1 1-1h15a1 1 0 0 1 1 1v2a2.6 2.6 0 0 0 0 6v2a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1v-2a2.6 2.6 0 0 0 0-6z" />
+    <path d="m12 8.6.95 1.95 2.15.3-1.55 1.5.35 2.15L12 13.5l-1.9 1 .35-2.15-1.55-1.5 2.15-.3z" fill="currentColor" stroke="none" />
+  </svg>
+);
+
 export const Car = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <path d="M5 11l1.5-4.2A2 2 0 0 1 8.4 5.5h7.2a2 2 0 0 1 1.9 1.3L19 11"/>
@@ -163,5 +180,5 @@ export const Car = () => (
   </svg>
 );
 
-const IC = { Fuel, Users, Gift, Ticket, Star, Plus, Search, Back, Check, Chev, Pin, Clock, Warn, QR, Gear, Logout, GoogleLogo, FacebookLogo, Megaphone, Menu, Car };
+const IC = { Fuel, Users, Gift, Ticket, Star, Plus, Search, Back, Check, Chev, Pin, Clock, Warn, QR, Gear, Logout, GoogleLogo, FacebookLogo, Megaphone, Menu, House, TicketStar, Car };
 export default IC;

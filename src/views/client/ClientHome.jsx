@@ -114,7 +114,6 @@ export default function ClientHome(ctx) {
   // ── R1b: estado del home bento ────────────────────────────
   const isBlack = cTier.name === 'BLACK';
   const headerTxt = isBlack ? '#fff' : '#0D0D0D';
-  const subTxt = isBlack ? 'rgba(255,255,255,.55)' : '#6E6E73';
   const firstName = (me.name || '').trim().split(' ')[0] || 'cliente';
   const [showTierDetail, setShowTierDetail] = useState(false);
   const [histSheet, setHistSheet] = useState(null); // { type: 'compras'|'canjes', origin } | null
@@ -134,12 +133,10 @@ export default function ClientHome(ctx) {
     const d = centerDeltaFromEvent(e);
     return d ? { ...d, tint } : { dx: 0, dy: 0, tint };
   };
-  // Tinte de la tarjeta de nivel (mismo tema del tier).
+  // Tinte de la tarjeta de nivel (mismo tema del tier, sólido plano).
   const tierTint = isBlack
     ? 'radial-gradient(ellipse at 20% 30%, #0d0d1a 0%, #050508 40%, #000 100%)'
-    : cTier.name === 'PLATINO'
-    ? 'linear-gradient(135deg,#9E9E9E,#BDBDBD,#CFD8DC)'
-    : 'linear-gradient(135deg,#FBBC04,#FFD540,#FBBC04)';
+    : cTier.name === 'PLATINO' ? '#9EA7AD' : bento.gold;
 
   // Beneficios del nivel (detalle al tocar la tarjeta)
   const bens = [
@@ -179,26 +176,28 @@ export default function ClientHome(ctx) {
       {/* Inactivity warning */}
       <InactivityWarning lastBuy={me.lastBuy} />
 
-      {/* Header: logo + menú (D34) — espaciado del diseño inicial */}
+      {/* Header (FORMATO GENERAL): logo arriba-izquierda + menú plano
+          arriba-derecha (sustituye la campana de la referencia — D34) */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 18px 0' }}>
-        <img src="/logo.png" alt="Puntos Plus" style={{ width: 42, height: 42, borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,.08)', flexShrink: 0 }} />
+        <img src="/logo.png" alt="Puntos Plus" style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0 }} />
         <div style={{ flex: 1 }} />
         <button onClick={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('menu'); }} aria-label="Menú" style={{
-          width: 42, height: 42, borderRadius: 12, border: 'none', cursor: 'pointer',
-          background: isBlack ? 'rgba(255,255,255,.08)' : '#fff',
-          color: headerTxt,
+          width: 42, height: 42, border: 'none', cursor: 'pointer',
+          background: 'none', color: headerTxt,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: isBlack ? 'none' : '0 2px 8px rgba(0,0,0,.08)', flexShrink: 0,
+          flexShrink: 0, padding: 0,
         }}>
           <Menu />
         </button>
       </div>
 
-      {/* Saludo personalizado (festivo vía special_days — D34) */}
-      <div style={{ padding: '8px 20px 2px' }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: subTxt }}>¡Hola, {firstName}!</div>
-        <div style={{ fontSize: 23, fontWeight: 900, color: headerTxt, lineHeight: 1.2 }}>
-          Bienvenido a <Wordmark size={23} color={headerTxt} />
+      {/* Saludo (FORMATO GENERAL): tres líneas — hola / Bienvenido a /
+          wordmark grande. Festivo vía special_days (D34). */}
+      <div style={{ padding: '10px 20px 2px' }}>
+        <div style={{ fontSize: 16, fontWeight: 600, color: headerTxt }}>¡Hola, {firstName}!</div>
+        <div style={{ fontSize: 24, fontWeight: 800, color: headerTxt, lineHeight: 1.25 }}>Bienvenido a</div>
+        <div style={{ lineHeight: 1.1 }}>
+          <Wordmark size={34} color={headerTxt} />
         </div>
         {festivo && (
           <div style={{ marginTop: 4, fontSize: 12, fontWeight: 800, color: BRAND_RED }}>
@@ -215,8 +214,8 @@ export default function ClientHome(ctx) {
         onPointsTap={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('cat'); }}
       />
 
-      {/* ── Bento grid (referencia visual R1b) ── */}
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: 'auto 1fr 1fr auto', gap: 10, padding: '10px 14px 0' }}>
+      {/* ── Bento grid (referencia FORMATO GENERAL) ── */}
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: 'auto 1fr 1fr auto', gap: 11, padding: '12px 16px 0' }}>
 
         {/* 1 · Promociones (R1b.2/D33): card 1:1 compuesta (título +
             descripción + sujeto). Tap → ventana PROMOCIONES; arrastre
@@ -245,18 +244,17 @@ export default function ClientHome(ctx) {
           }}
           style={{
             background: bento.red, borderRadius: bento.radius, aspectRatio: '1 / 1',
-            position: 'relative', overflow: 'hidden', boxShadow: bento.shadow,
+            position: 'relative', overflow: 'hidden',
             cursor: 'pointer', color: '#fff', animationDelay: '0ms',
             touchAction: 'pan-y',
           }}
         >
           {activePromos.length === 0 ? (
-            <div style={{ position: 'absolute', inset: 0, padding: '13px 14px 12px', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 18% 12%, rgba(255,255,255,.22), transparent 55%)', pointerEvents: 'none' }} />
-              <GiftIcon size={26} />
-              <div style={{ marginTop: 'auto', paddingTop: 8 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 900, textTransform: 'uppercase', letterSpacing: 0.7 }}>Promociones</div>
-                <div style={{ fontSize: 10.5, opacity: 0.85, marginTop: 2, fontWeight: 600 }}>Descubre ofertas exclusivas</div>
+            <div style={{ position: 'absolute', inset: 0, padding: '15px 16px 14px', display: 'flex', flexDirection: 'column' }}>
+              <GiftIcon />
+              <div style={{ marginTop: 'auto', paddingTop: 10 }}>
+                <div style={{ fontSize: 14, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5 }}>Promociones</div>
+                <div style={{ fontSize: 11.5, opacity: 0.9, marginTop: 3, fontWeight: 500 }}>Descubre ofertas exclusivas</div>
               </div>
             </div>
           ) : (
@@ -332,7 +330,7 @@ export default function ClientHome(ctx) {
 
         {/* 7 · Historial de compras (ancho completo) */}
         <BentoTile
-          index={6} span={2} color={bento.orange} icon={<BagIcon size={24} />} title="Historial de Compras"
+          index={6} span={2} color={bento.orange} icon={<BagIcon size={32} />} title="Historial de Compras"
           sub="Compras y todos tus movimientos de puntos"
           onClick={(e) => setHistSheet({ type: 'compras', origin: originFromEvent(e), tint: bento.orange })}
         />
@@ -342,8 +340,12 @@ export default function ClientHome(ctx) {
 
       </div>{/* /pp-home-fit */}
 
-      {/* Disclaimer legal D28 — bajo el fold: aparece al scrollear */}
-      <LegalFooter color={isBlack ? 'rgba(255,255,255,.4)' : '#9E9E9E'} />
+      {/* Disclaimer legal D28 — pegado al historial de compras: entra en
+          la zona de holgura de la nav (queda oculto tras la barra hasta
+          scrollear, sigue bajo el fold) */}
+      <div style={{ marginTop: -52 }}>
+        <LegalFooter color={isBlack ? 'rgba(255,255,255,.4)' : '#9E9E9E'} />
+      </div>
       <div style={{ height: 72 }} />
 
       {/* Detalle del nivel (tocar la tarjeta — D34) */}

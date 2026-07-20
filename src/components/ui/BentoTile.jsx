@@ -1,7 +1,7 @@
 // src/components/ui/BentoTile.jsx
-// R1b — Tile del bento grid del home (referencia visual): degradado
-// saturado + brillo radial sutil, icono SVG blanco, título uppercase,
-// subtítulo corto. Entrada con stagger (animationDelay por índice) y
+// R1b (FORMATO GENERAL) — Tile del bento grid del home: color sólido
+// plano, icono SVG blanco grande arriba-izquierda, título uppercase y
+// subtítulo abajo. Entrada con stagger (animationDelay por índice) y
 // press-scale vía .pp-tile. `icon` acepta un nodo (BentoIcons) o texto.
 import { bento } from '../../constants/styles';
 
@@ -14,31 +14,30 @@ export default function BentoTile({
   return (
     <div
       onClick={onClick}
-      className="pp-tile"
+      // pp-bento-row: en pantallas cortas los tiles medianos pasan a
+      // layout horizontal (icono a la izquierda) para que el home quepa.
+      className={`pp-tile${!wide && !square ? ' pp-bento-row' : ''}`}
       style={{
         gridColumn: wide ? '1 / -1' : 'auto',
         background: color,
         borderRadius: bento.radius,
-        padding: wide ? '12px 16px' : '13px 14px 12px',
+        padding: wide ? '16px 18px' : '15px 16px 14px',
         // square: proporción 1:1 fija (Promos/Vehículo); el resto se
         // estira con la fila del grid (adaptable a la resolución).
         aspectRatio: square ? '1 / 1' : undefined,
-        minHeight: wide ? 60 : (square ? undefined : 84),
+        minHeight: wide ? 64 : (square ? undefined : 96),
         color: '#fff',
         position: 'relative',
         overflow: 'hidden',
         cursor: onClick ? 'pointer' : 'default',
         opacity: dimmed ? 0.55 : 1,
-        boxShadow: bento.shadow,
         animationDelay: `${index * 60}ms`,
         display: 'flex',
         flexDirection: wide ? 'row' : 'column',
         alignItems: wide ? 'center' : 'flex-start',
-        gap: wide ? 12 : 0,
+        gap: wide ? 14 : 0,
       }}
     >
-      {/* Brillo radial sutil (profundidad del degradado de la referencia) */}
-      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 18% 12%, rgba(255,255,255,.22), transparent 55%)', pointerEvents: 'none' }} />
       {badge && (
         <span style={{
           position: 'absolute', top: 8, right: 8, zIndex: 2,
@@ -50,18 +49,18 @@ export default function BentoTile({
       )}
       {children || (
         <>
-          <div style={{ lineHeight: 1, flexShrink: 0, display: 'flex' }}>{icon}</div>
-          <div style={wide ? { flex: 1, minWidth: 0 } : { marginTop: 'auto', paddingTop: 8 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 900, textTransform: 'uppercase', letterSpacing: 0.7, lineHeight: 1.2 }}>
+          <div className="pp-bento-ico" style={{ lineHeight: 1, flexShrink: 0, display: 'flex' }}>{icon}</div>
+          <div className="pp-bento-body" style={wide ? { flex: 1, minWidth: 0 } : { marginTop: 'auto', paddingTop: 10 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5, lineHeight: 1.2 }}>
               {title}
             </div>
             {sub && (
-              <div style={{ fontSize: 10.5, opacity: 0.85, marginTop: 2, lineHeight: 1.3, fontWeight: 600 }}>
+              <div style={{ fontSize: 11.5, opacity: 0.9, marginTop: 3, lineHeight: 1.35, fontWeight: 500 }}>
                 {sub}
               </div>
             )}
           </div>
-          {wide && <div style={{ fontSize: 20, opacity: 0.7, flexShrink: 0 }}>›</div>}
+          {wide && <div style={{ fontSize: 22, opacity: 0.85, flexShrink: 0, fontWeight: 700 }}>›</div>}
         </>
       )}
     </div>

@@ -131,6 +131,15 @@ body {
    (filas fr) y el disclaimer queda bajo el fold (feedback IMG3). */
 .pp-home-fit { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
 
+/* R1b — pantallas cortas: en los tiles medianos (WiFi/Encuesta/Ubicación/
+   Historial de Canjes) el icono pasa a la izquierda del texto para que
+   todos los cuadros del inicio quepan sin scroll. */
+@media (max-height: 760px) {
+  .pp-bento-row { flex-direction: row !important; align-items: center !important; gap: 12px !important; min-height: 62px !important; }
+  .pp-bento-row .pp-bento-body { margin-top: 0 !important; padding-top: 0 !important; }
+  .pp-bento-row .pp-bento-ico svg { width: 28px; height: 28px; }
+}
+
 /* ===== Scrollbar ===== */
 ::-webkit-scrollbar       { width: 3px; }
 ::-webkit-scrollbar-thumb { background: #E0E0E0; border-radius: 2px; }

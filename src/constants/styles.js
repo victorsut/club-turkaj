@@ -46,21 +46,20 @@ export const adminTheme = {
 // Rojo de marca Puntos Plus (D30 — wordmark de la referencia visual).
 export const BRAND_RED = '#E02020'; // acento de marca en textos/chips (el naranja #FA5408 vive solo en el logo)
 
-// R1b — Tokens del sistema bento (derivados de la referencia visual y
-// consolidando la paleta que ya existía en los gradientes de AdminPromos).
+// R1b — Tokens del sistema bento (referencia FORMATO GENERAL: colores
+// sólidos planos, sin degradados ni sombras — moderno y minimalista).
 export const bento = {
   pageBg: '#F5F5F7',
   radius: 20,
-  shadow: '0 4px 10px rgba(0,0,0,.10)',
-  // Degradados por tile (feedback del dueño: la referencia no usa
-  // colores sólidos — cada cuadro lleva un patrón degradado sutil).
-  red:    'linear-gradient(145deg,#EF5350 0%,#C62828 100%)',
-  green:  'linear-gradient(145deg,#43A047 0%,#1B5E20 100%)',
-  blue:   'linear-gradient(145deg,#1E88E5 0%,#0D47A1 100%)',
-  amber:  'linear-gradient(145deg,#F2B33D 0%,#D98E04 100%)',
-  purple: 'linear-gradient(145deg,#8E24AA 0%,#4A148C 100%)',
-  teal:   'linear-gradient(145deg,#00ACC1 0%,#00695C 100%)',
-  orange: 'linear-gradient(145deg,#FB8C00 0%,#D84315 100%)',
+  shadow: 'none',
+  red:    '#D6281A',
+  green:  '#1E7A33',
+  blue:   '#1C4E9E',
+  amber:  '#D9A40B',
+  purple: '#7A35AE',
+  teal:   '#0F8C97',
+  orange: '#E37310',
+  gold:   '#D9A40B', // tarjeta de nivel ORO (mismo dorado de la referencia)
 };
 
 // Galaxy gradients for BLACK tier

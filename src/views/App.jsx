@@ -41,7 +41,7 @@ import QRCode from '../components/ui/QRCode';
 import TierDeco from '../components/ui/TierDeco';
 import SpecialDayBonusModal from '../components/SpecialDayBonusModal';
 import UpdateAvailable from '../components/UpdateAvailable';
-import { Check, Fuel, Users, Gift, Ticket, Clock, Gear, Megaphone, Menu, Car } from '../components/ui/Icons';
+import { Check, Fuel, Users, Gift, Ticket, Clock, Gear, Megaphone, Menu, House, TicketStar, Car } from '../components/ui/Icons';
 
 // Auth Views
 import ClientLogin from './client/ClientLogin';
@@ -1346,11 +1346,13 @@ export default function App() {
     { id: 'oredeem', label: 'Premios', icon: <Gift /> },
     { id: 'oraffle', label: 'Rifa', icon: <Ticket /> },
   ];
+  // Iconos y labels según la referencia FORMATO GENERAL: casa, boleto
+  // con estrella, QR central, regalo, carro.
   const clientNav = [
-    { id: 'home', label: 'Inicio', icon: <Fuel /> },
-    { id: 'cat', label: 'Canjear', icon: <Gift /> },
+    { id: 'home', label: 'Inicio', icon: <House /> },
+    { id: 'cat', label: 'Canjes', icon: <Gift /> },
     { id: 'qr', label: '', icon: null, isQR: true },
-    { id: 'raf', label: 'Rifa', icon: <Ticket /> },
+    { id: 'raf', label: 'Rifa', icon: <TicketStar /> },
     { id: 'veh', label: 'Vehículos', icon: <Car /> },
   ];
 
