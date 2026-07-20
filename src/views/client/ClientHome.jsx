@@ -180,16 +180,20 @@ export default function ClientHome(ctx) {
       <InactivityWarning lastBuy={me.lastBuy} />
 
       {/* Header + saludo (FORMATO GENERAL). En pantallas cortas el logo
-          se integra a la altura de "¡Hola!" / "Bienvenido a" para
-          compensar la proporción 1:1 de Promos/Vehículo; en pantallas
-          grandes conserva su fila propia como la referencia. El menú
-          plano sustituye la campana (D34). */}
+          se integra a la izquierda ocupando la altura del saludo COMPLETO
+          (¡Hola! / Bienvenido a / Puntos Plus) para compensar la
+          proporción 1:1 de Promos/Vehículo; en pantallas grandes conserva
+          su fila propia como la referencia. El menú plano sustituye la
+          campana (D34). */}
       {shortScr ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px 0' }}>
-          <img src="/logo.png" alt="Puntos Plus" style={{ width: 48, height: 48, borderRadius: 12, flexShrink: 0 }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 18px 0' }}>
+          <img src="/logo.png" alt="Puntos Plus" style={{ width: 74, height: 74, borderRadius: 18, flexShrink: 0 }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: headerTxt }}>¡Hola, {firstName}!</div>
             <div style={{ fontSize: 20, fontWeight: 800, color: headerTxt, lineHeight: 1.2 }}>Bienvenido a</div>
+            <div style={{ lineHeight: 1.1 }}>
+              <Wordmark size={28} color={headerTxt} />
+            </div>
           </div>
           <button onClick={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('menu'); }} aria-label="Menú" style={{
             width: 42, height: 42, border: 'none', cursor: 'pointer',
@@ -217,21 +221,19 @@ export default function ClientHome(ctx) {
           <div style={{ padding: '10px 20px 0' }}>
             <div style={{ fontSize: 16, fontWeight: 600, color: headerTxt }}>¡Hola, {firstName}!</div>
             <div style={{ fontSize: 24, fontWeight: 800, color: headerTxt, lineHeight: 1.25 }}>Bienvenido a</div>
+            <div style={{ lineHeight: 1.1 }}>
+              <Wordmark size={34} color={headerTxt} />
+            </div>
           </div>
         </>
       )}
 
-      {/* Wordmark grande + festivo vía special_days (D34) */}
-      <div style={{ padding: shortScr ? '2px 20px 0' : '0 20px 2px' }}>
-        <div style={{ lineHeight: 1.1 }}>
-          <Wordmark size={shortScr ? 28 : 34} color={headerTxt} />
+      {/* Saludo festivo vía special_days (D34) */}
+      {festivo && (
+        <div style={{ padding: '4px 20px 0', fontSize: 12, fontWeight: 800, color: BRAND_RED }}>
+          {festivo.icon} {festivo.bday ? `¡Feliz cumpleaños, ${firstName}!` : `¡Feliz ${festivo.name}!`}
         </div>
-        {festivo && (
-          <div style={{ marginTop: 4, fontSize: 12, fontWeight: 800, color: BRAND_RED }}>
-            {festivo.icon} {festivo.bday ? `¡Feliz cumpleaños, ${firstName}!` : `¡Feliz ${festivo.name}!`}
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Tarjeta de nivel (D34: doble zona táctil — general → detalle, puntos → Canjes) */}
       <TierCardBento
