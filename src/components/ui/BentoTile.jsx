@@ -14,10 +14,9 @@ export default function BentoTile({
   return (
     <div
       onClick={onClick}
-      // pp-bento-row / pp-bento-square: en pantallas cortas los tiles
-      // medianos pasan a layout horizontal y los 1:1 se acortan para
-      // que el home quepa completo (media query en global.css).
-      className={`pp-tile${!wide && !square ? ' pp-bento-row' : ''}${square ? ' pp-bento-square' : ''}`}
+      // pp-bento-row: en pantallas cortas los tiles medianos pasan a
+      // layout horizontal (icono a la izquierda) para que el home quepa.
+      className={`pp-tile${!wide && !square ? ' pp-bento-row' : ''}`}
       style={{
         gridColumn: wide ? '1 / -1' : 'auto',
         background: color,

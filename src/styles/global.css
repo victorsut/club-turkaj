@@ -133,14 +133,14 @@ body {
 
 /* R1b — pantallas cortas (≤800px de alto CSS): el home se compacta para
    que todos los cuadros quepan sin scroll. Los tiles medianos (WiFi/
-   Encuesta/Ubicación/Historial de Canjes) pasan el icono a la izquierda
-   y los cuadros 1:1 (Promos/Vehículo) se acortan un 12%. Mantener el
+   Encuesta/Ubicación/Historial de Canjes) pasan el icono a la izquierda;
+   los 1:1 (Promos/Vehículo) conservan su proporción — la altura se
+   compensa integrando el logo al saludo (ClientHome). Mantener el
    umbral sincronizado con useShortScreen.js. */
 @media (max-height: 800px) {
   .pp-bento-row { flex-direction: row !important; align-items: center !important; gap: 12px !important; min-height: 58px !important; }
   .pp-bento-row .pp-bento-body { margin-top: 0 !important; padding-top: 0 !important; }
   .pp-bento-row .pp-bento-ico svg { width: 28px; height: 28px; }
-  .pp-bento-square { aspect-ratio: 1 / 0.88 !important; }
 }
 
 /* ===== Scrollbar ===== */

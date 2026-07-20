@@ -179,26 +179,50 @@ export default function ClientHome(ctx) {
       {/* Inactivity warning */}
       <InactivityWarning lastBuy={me.lastBuy} />
 
-      {/* Header (FORMATO GENERAL): logo arriba-izquierda + menú plano
-          arriba-derecha (sustituye la campana de la referencia — D34) */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: shortScr ? '10px 18px 0' : '16px 18px 0' }}>
-        <img src="/logo.png" alt="Puntos Plus" style={{ width: shortScr ? 40 : 44, height: shortScr ? 40 : 44, borderRadius: 11, flexShrink: 0 }} />
-        <div style={{ flex: 1 }} />
-        <button onClick={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('menu'); }} aria-label="Menú" style={{
-          width: 42, height: 42, border: 'none', cursor: 'pointer',
-          background: 'none', color: headerTxt,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0, padding: 0,
-        }}>
-          <Menu />
-        </button>
-      </div>
+      {/* Header + saludo (FORMATO GENERAL). En pantallas cortas el logo
+          se integra a la altura de "¡Hola!" / "Bienvenido a" para
+          compensar la proporción 1:1 de Promos/Vehículo; en pantallas
+          grandes conserva su fila propia como la referencia. El menú
+          plano sustituye la campana (D34). */}
+      {shortScr ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px 0' }}>
+          <img src="/logo.png" alt="Puntos Plus" style={{ width: 48, height: 48, borderRadius: 12, flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: headerTxt }}>¡Hola, {firstName}!</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: headerTxt, lineHeight: 1.2 }}>Bienvenido a</div>
+          </div>
+          <button onClick={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('menu'); }} aria-label="Menú" style={{
+            width: 42, height: 42, border: 'none', cursor: 'pointer',
+            background: 'none', color: headerTxt,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0, padding: 0, alignSelf: 'flex-start',
+          }}>
+            <Menu />
+          </button>
+        </div>
+      ) : (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 18px 0' }}>
+            <img src="/logo.png" alt="Puntos Plus" style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0 }} />
+            <div style={{ flex: 1 }} />
+            <button onClick={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('menu'); }} aria-label="Menú" style={{
+              width: 42, height: 42, border: 'none', cursor: 'pointer',
+              background: 'none', color: headerTxt,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0, padding: 0,
+            }}>
+              <Menu />
+            </button>
+          </div>
+          <div style={{ padding: '10px 20px 0' }}>
+            <div style={{ fontSize: 16, fontWeight: 600, color: headerTxt }}>¡Hola, {firstName}!</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: headerTxt, lineHeight: 1.25 }}>Bienvenido a</div>
+          </div>
+        </>
+      )}
 
-      {/* Saludo (FORMATO GENERAL): tres líneas — hola / Bienvenido a /
-          wordmark grande. Festivo vía special_days (D34). */}
-      <div style={{ padding: shortScr ? '6px 20px 0' : '10px 20px 2px' }}>
-        <div style={{ fontSize: shortScr ? 14 : 16, fontWeight: 600, color: headerTxt }}>¡Hola, {firstName}!</div>
-        <div style={{ fontSize: shortScr ? 20 : 24, fontWeight: 800, color: headerTxt, lineHeight: 1.25 }}>Bienvenido a</div>
+      {/* Wordmark grande + festivo vía special_days (D34) */}
+      <div style={{ padding: shortScr ? '2px 20px 0' : '0 20px 2px' }}>
         <div style={{ lineHeight: 1.1 }}>
           <Wordmark size={shortScr ? 28 : 34} color={headerTxt} />
         </div>
@@ -224,7 +248,7 @@ export default function ClientHome(ctx) {
             descripción + sujeto). Tap → ventana PROMOCIONES; arrastre
             horizontal DENTRO del cuadro → cambia el carrusel. */}
         <div
-          className="pp-tile pp-bento-square"
+          className="pp-tile"
           onTouchStart={(e) => {
             promoTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
             promoSwipedRef.current = false;
