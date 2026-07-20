@@ -3,6 +3,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { sMono, btnYellow } from '../../constants/styles';
 import Badge from '../../components/ui/Badge';
+import LogoSpinner from '../../components/ui/LogoSpinner';
 import QRScanner from '../../components/ui/QRScanner';
 import { Back } from '../../components/ui/Icons';
 import { buildRedemptionReceipt } from '../../lib/receiptModel';
@@ -210,7 +211,7 @@ export default function OpRedeem(ctx) {
           <div style={{ fontSize: 11, fontWeight: 800, color: '#BDBDBD', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>
             Canjes pendientes de entrega
           </div>
-          {loadingPending && <div style={{ textAlign: 'center', padding: 32, color: '#9E9E9E' }}>Cargando...</div>}
+          {loadingPending && <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}><LogoSpinner size={34} /></div>}
           {!loadingPending && pendingList.length === 0 && (
             <div style={{ textAlign: 'center', padding: '32px 20px', background: '#F9F9F9', borderRadius: 16, border: '1px solid #eee' }}>
               <div style={{ fontSize: 32, marginBottom: 8 }}>OK</div>
@@ -336,7 +337,7 @@ export default function OpRedeem(ctx) {
           Canjes entregados hoy ({todayHistory.length})
         </div>
 
-        {loadingToday && <div style={{ textAlign: 'center', padding: 24, color: '#9E9E9E', fontSize: 13 }}>Cargando historial...</div>}
+        {loadingToday && <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}><LogoSpinner size={30} label="Cargando historial..." /></div>}
 
         {!loadingToday && todayHistory.length === 0 && (
           <div style={{ textAlign: 'center', padding: '24px 20px', background: '#F9F9F9', borderRadius: 16, border: '1px solid #eee' }}>

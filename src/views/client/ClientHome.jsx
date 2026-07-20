@@ -181,7 +181,7 @@ export default function ClientHome(ctx) {
 
       {/* Header: logo + menú (D34) — espaciado del diseño inicial */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 18px 0' }}>
-        <img src="/logo.png" alt="Puntos Plus" style={{ width: 42, height: 42, borderRadius: 12, background: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,.08)', flexShrink: 0 }} />
+        <img src="/logo.png" alt="Puntos Plus" style={{ width: 42, height: 42, borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,.08)', flexShrink: 0 }} />
         <div style={{ flex: 1 }} />
         <button onClick={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('menu'); }} aria-label="Menú" style={{
           width: 42, height: 42, borderRadius: 12, border: 'none', cursor: 'pointer',

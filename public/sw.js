@@ -5,7 +5,8 @@ const CACHE_NAME = 'club-turkaj-__BUILD_HASH__';
 const OFFLINE_URLS = [
   '/',
   '/index.html',
-  '/favicon.svg',
+  '/favicon.png',
+  '/logo.png',
   '/manifest.json',
 ];
 
@@ -105,7 +106,7 @@ self.addEventListener('fetch', (event) => {
 
 // ── Push Notifications ────────────────────────────────────
 self.addEventListener('push', (event) => {
-  let data = { title: 'Puntos Plus', body: 'Tenes una notificacion', icon: '/favicon.svg' };
+  let data = { title: 'Puntos Plus', body: 'Tenes una notificacion', icon: '/logo.png' };
   try {
     if (event.data) data = { ...data, ...event.data.json() };
   } catch (e) {
@@ -114,8 +115,8 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.body,
-    icon: data.icon || '/favicon.svg',
-    badge: '/favicon.svg',
+    icon: data.icon || '/logo.png',
+    badge: '/favicon.png',
     vibrate: [200, 100, 200],
     tag: data.tag || 'club-turkaj',
     renotify: true,

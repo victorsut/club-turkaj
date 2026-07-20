@@ -26,6 +26,8 @@ export default function ClientLogin(ctx) {
     <div style={{ padding: '40px 24px 120px', position: 'relative', zIndex: 1 }}>
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
+        <img src="/logo.png" alt="Puntos Plus" style={{ width: 72, height: 72, borderRadius: 20, boxShadow: '0 4px 14px rgba(0,0,0,.1)', marginBottom: 12 }} />
+        <br />
         <Wordmark size={28} color={cTier.name === 'BLACK' ? '#fff' : '#0D0D0D'} />
         <div style={{ fontSize: 13, color: '#9E9E9E', marginTop: 8 }}>
           Inicia sesión para continuar

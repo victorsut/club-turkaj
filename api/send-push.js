@@ -31,7 +31,7 @@ export default async function handler(req, res) {
     const payload = JSON.stringify({
       title: title || 'Puntos Plus',
       body: body || 'Tenés una notificación',
-      icon: '/favicon.svg',
+      icon: '/logo.png',
       tag: 'purchase-' + Date.now(),
       url: '/',
       ...(data || {}),

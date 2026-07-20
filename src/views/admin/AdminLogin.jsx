@@ -54,7 +54,7 @@ export default function AdminLogin(ctx) {
   return (
     <div style={{ padding: '40px 24px 120px', background: '#1E1E1E', minHeight: '80vh' }}>
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
-        <div style={{ fontSize: 40, marginBottom: 8 }}>🔧</div>
+        <img src="/logo.png" alt="Puntos Plus" style={{ width: 64, height: 64, borderRadius: 18, marginBottom: 10 }} />
         <div style={{ fontSize: 22, fontWeight: 900, color: '#FBBC04' }}>Administrador</div>
         <div style={{ fontSize: 13, color: '#777', marginTop: 4 }}>Acceso restringido</div>
       </div>

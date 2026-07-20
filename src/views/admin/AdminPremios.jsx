@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { adminTheme as AT, btnYellow, btnDark, inputStyle, sMono } from '../../constants/styles';
 import { Back, Plus } from '../../components/ui/Icons';
+import LogoSpinner from '../../components/ui/LogoSpinner';
 import ReasonModal from '../../components/ui/ReasonModal';
 import { logAdminAction } from '../../services/rpcServices';
 
@@ -498,7 +499,7 @@ export default function AdminPremios(ctx) {
             <button onClick={openNewRaf} style={{ ...btnYellow, borderRadius: 14, fontSize: 14 }}><Plus /> Nueva Rifa</button>
           </div>
 
-          {loadingRaf && <div style={{ textAlign: 'center', padding: 32, color: '#777' }}>Cargando...</div>}
+          {loadingRaf && <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}><LogoSpinner size={34} dark /></div>}
 
           {!loadingRaf && raffleList.length === 0 && (
             <div style={{ textAlign: 'center', padding: 40, color: '#555', fontSize: 13 }}>Sin rifas configuradas</div>
@@ -592,7 +593,7 @@ export default function AdminPremios(ctx) {
             <button onClick={openNewFest} style={{ ...btnYellow, borderRadius: 14, fontSize: 14 }}><Plus /> Nuevo Festivo</button>
           </div>
 
-          {loadingFest && <div style={{ textAlign: 'center', padding: 32, color: '#777' }}>Cargando...</div>}
+          {loadingFest && <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}><LogoSpinner size={34} dark /></div>}
 
           {!loadingFest && festList.length === 0 && (
             <div style={{ textAlign: 'center', padding: 40, color: '#555', fontSize: 13 }}>Sin dias festivos configurados</div>

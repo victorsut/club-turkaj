@@ -44,7 +44,7 @@ export const adminTheme = {
 };
 
 // Rojo de marca Puntos Plus (D30 — wordmark de la referencia visual).
-export const BRAND_RED = '#E02020';
+export const BRAND_RED = '#E02020'; // acento de marca en textos/chips (el naranja #FA5408 vive solo en el logo)
 
 // R1b — Tokens del sistema bento (derivados de la referencia visual y
 // consolidando la paleta que ya existía en los gradientes de AdminPromos).
