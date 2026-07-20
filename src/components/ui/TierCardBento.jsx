@@ -9,12 +9,14 @@ import { bento } from '../../constants/styles';
 import { tierProgress } from '../../lib/tierSystem';
 import GalaxyDust from './GalaxyDust';
 import useCountUp from '../../hooks/useCountUp';
+import useShortScreen from '../../hooks/useShortScreen';
 
 export default function TierCardBento({ me, cTier, onOpenDetail, onPointsTap }) {
   const isBlack = cTier.name === 'BLACK';
   const isPlat = cTier.name === 'PLATINO';
   const pg = tierProgress(me.gallons, cTier);
   const points = useCountUp(me.points);
+  const shortScr = useShortScreen();
 
   const bg = isBlack
     ? 'radial-gradient(ellipse at 20% 30%, #0d0d1a 0%, #050508 40%, #000 100%)'
@@ -26,7 +28,9 @@ export default function TierCardBento({ me, cTier, onOpenDetail, onPointsTap }) 
       onClick={onOpenDetail}
       className="pp-tile"
       style={{
-        borderRadius: bento.radius, padding: '18px 20px', margin: '12px 16px 0',
+        borderRadius: bento.radius,
+        padding: shortScr ? '14px 18px' : '18px 20px',
+        margin: shortScr ? '10px 16px 0' : '12px 16px 0',
         background: bg, color: '#fff',
         position: 'relative', overflow: 'hidden', cursor: 'pointer',
       }}
@@ -35,14 +39,14 @@ export default function TierCardBento({ me, cTier, onOpenDetail, onPointsTap }) 
       <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'stretch', gap: 14 }}>
         {/* Zona izquierda: nivel + barra + galones → detalle */}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div style={{ fontSize: 17, lineHeight: 1.2 }}>
+          <div style={{ fontSize: shortScr ? 16 : 17, lineHeight: 1.2 }}>
             <span style={{ fontWeight: 500, opacity: 0.85 }}>Nivel </span>
             <span style={{ fontWeight: 800 }}>{cTier.name}</span>
           </div>
-          <div style={{ height: 7, borderRadius: 4, overflow: 'hidden', background: barBg, marginTop: 12 }}>
+          <div style={{ height: 7, borderRadius: 4, overflow: 'hidden', background: barBg, marginTop: shortScr ? 9 : 12 }}>
             <div style={{ height: '100%', borderRadius: 4, width: `${pg}%`, background: '#fff', transition: 'width 1s ease' }} />
           </div>
-          <div style={{ fontSize: 12.5, fontWeight: 700, opacity: 0.9, marginTop: 8 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 700, opacity: 0.9, marginTop: shortScr ? 6 : 8 }}>
             {cTier.next
               ? `${me.gallons.toFixed(0)} / ${cTier.target} gal`
               : `${me.gallons.toFixed(0)} gal acumulados`}
@@ -54,7 +58,7 @@ export default function TierCardBento({ me, cTier, onOpenDetail, onPointsTap }) 
           onClick={(e) => { e.stopPropagation(); onPointsTap(e); }}
           style={{ textAlign: 'center', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingLeft: 12 }}
         >
-          <div style={{ fontSize: 44, fontWeight: 800, letterSpacing: -1, lineHeight: 1 }}>{points}</div>
+          <div style={{ fontSize: shortScr ? 38 : 44, fontWeight: 800, letterSpacing: -1, lineHeight: 1 }}>{points}</div>
           <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 2 }}>Puntos</div>
         </div>
       </div>
