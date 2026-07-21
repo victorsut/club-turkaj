@@ -30,12 +30,12 @@ export const CarIcon = ({ size }) => (
 );
 
 // WiFi
-export const WifiIcon = ({ size }) => (
-  <S size={size}>
+export const WifiIcon = ({ size, color = '#fff' }) => (
+  <S size={size} color={color}>
     <path d="M2.5 9.2a15 15 0 0 1 19 0" />
     <path d="M5.6 12.7a10.3 10.3 0 0 1 12.8 0" />
     <path d="M8.7 16.1a5.7 5.7 0 0 1 6.6 0" />
-    <circle cx="12" cy="19.2" r="1.3" fill="#fff" stroke="none" />
+    <circle cx="12" cy="19.2" r="1.3" fill={color} stroke="none" />
   </S>
 );
 

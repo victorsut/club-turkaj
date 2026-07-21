@@ -14,6 +14,7 @@ import HistorySheet from './HistorySheet';
 import useShortScreen from '../../hooks/useShortScreen';
 import { Menu, Fuel, Ticket, Percent, Tag, Wifi, Door, Cake } from '../../components/ui/Icons';
 import GalaxyDust from '../../components/ui/GalaxyDust';
+import GrowModal from '../../components/ui/GrowModal';
 import { GiftIcon, CarIcon, WifiIcon, SurveyIcon, PinIcon, TicketStarIcon, BagIcon } from '../../components/ui/BentoIcons';
 import { originFromEvent, centerDeltaFromEvent } from '../../lib/motionOrigin';
 
@@ -387,21 +388,11 @@ export default function ClientHome(ctx) {
           inamovible: ORO dorado, PLATINO metálico, BLACK galaxia) y
           lista de beneficios con iconos SVG. */}
       {showTierDetail && (
-        <div onClick={() => setShowTierDetail(false)} style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)',
-          zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: 20, animation: 'ppFade .2s ease',
-        }}>
-          <div onClick={e => e.stopPropagation()} className="pp-grow" style={{
-            background: isBlack ? '#101018' : '#fff',
-            borderRadius: 24, maxWidth: 380, width: '100%',
-            maxHeight: '85vh', overflowY: 'auto',
-            transformOrigin: mOrigin, position: 'relative',
-          }}>
-            {mTint && <div className="pp-tint" style={{ position: 'absolute', inset: 0, background: mTint, borderRadius: 24, zIndex: 5 }} />}
-
-            {/* Banda de identidad del nivel */}
-            <div style={{ background: tierTint, color: '#fff', padding: '22px 20px 18px', position: 'relative', overflow: 'hidden' }}>
+        <GrowModal onClose={() => setShowTierDetail(false)} origin={mOrigin} tint={mTint}
+          background={isBlack ? '#101018' : '#fff'}>
+          {(close) => (<>
+            {/* Banda de identidad del nivel (centrada — feedback 21-jul) */}
+            <div style={{ background: tierTint, color: '#fff', padding: '22px 20px 18px', position: 'relative', overflow: 'hidden', textAlign: 'center' }}>
               {isBlack && <GalaxyDust n={10} />}
               <div style={{ position: 'relative', zIndex: 2 }}>
                 <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.5, opacity: 0.85 }}>
@@ -432,7 +423,7 @@ export default function ClientHome(ctx) {
                   Faltan {cTier.rem} galones para {cTier.next}
                 </div>
               )}
-              <button onClick={() => setShowTierDetail(false)} style={{
+              <button onClick={close} style={{
                 width: '100%', marginTop: 14, padding: 14, borderRadius: 14,
                 background: isBlack ? 'rgba(255,255,255,.08)' : '#F5F5F7',
                 border: 'none',
@@ -442,26 +433,19 @@ export default function ClientHome(ctx) {
                 Cerrar
               </button>
             </div>
-          </div>
-        </div>
+          </>)}
+        </GrowModal>
       )}
 
       {/* WiFi (pase de acceso — la clave la entrega el operador) */}
       {showWifi && (
-        <div onClick={() => setShowWifi(false)} style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)',
-          zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: 20, animation: 'ppFade .2s ease',
-        }}>
-          <div onClick={e => e.stopPropagation()} className="pp-grow" style={{
-            background: isBlack ? '#1A1A2E' : '#fff',
-            borderRadius: 24, maxWidth: 340, width: '100%', padding: '26px 22px', textAlign: 'center',
-            border: isBlack ? '1px solid rgba(255,255,255,.1)' : '1px solid #eee',
-            boxShadow: '0 20px 60px rgba(0,0,0,.3)',
-            transformOrigin: mOrigin, position: 'relative',
-          }}>
-            {mTint && <div className="pp-tint" style={{ position: 'absolute', inset: 0, background: mTint, borderRadius: 24, zIndex: 5 }} />}
-            <div style={{ fontSize: 38, marginBottom: 8 }}>📶</div>
+        <GrowModal onClose={() => setShowWifi(false)} origin={mOrigin} tint={mTint}
+          background={isBlack ? '#1A1A2E' : '#fff'} maxWidth={340}
+          style={{ padding: '26px 22px', textAlign: 'center' }}>
+          {(close) => (<>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
+              <WifiIcon size={38} color={isBlack ? '#64B5F6' : '#1565C0'} />
+            </div>
             <div style={{ fontSize: 19, fontWeight: 900, color: isBlack ? '#fff' : '#0D0D0D' }}>WiFi Puntos Plus</div>
             <div style={{ fontSize: 11, fontWeight: 800, color: '#1565C0', marginTop: 2, textTransform: 'uppercase', letterSpacing: 1 }}>
               Beneficio {cTier.name}
@@ -477,17 +461,17 @@ export default function ClientHome(ctx) {
             }}>
               {displayCode}
             </div>
-            <button onClick={() => setShowWifi(false)} style={{
+            <button onClick={close} style={{
               width: '100%', marginTop: 14, padding: 14, borderRadius: 14,
-              background: isBlack ? 'rgba(255,255,255,.08)' : '#F5F5F5',
-              border: isBlack ? '1px solid rgba(255,255,255,.1)' : '1px solid #eee',
+              background: isBlack ? 'rgba(255,255,255,.08)' : '#F5F5F7',
+              border: 'none',
               fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700,
               color: isBlack ? '#ccc' : '#424242', cursor: 'pointer',
             }}>
               Cerrar
             </button>
-          </div>
-        </div>
+          </>)}
+        </GrowModal>
       )}
 
       {/* Historiales full-screen: Hoy · Mes · Año · Todo (D34) */}
@@ -504,20 +488,10 @@ export default function ClientHome(ctx) {
       )}
       {/* Stations modal */}
       {showMap && (
-        <div onClick={() => setShowMap(false)} style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)',
-          zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: 20, animation: 'ppFade .2s ease',
-        }}>
-          <div onClick={e => e.stopPropagation()} className="pp-grow" style={{
-            background: cTier.name === 'BLACK' ? '#1A1A2E' : '#fff',
-            borderRadius: 24, maxWidth: 380, width: '100%', padding: '24px 20px',
-            border: cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.1)' : '1px solid #eee',
-            boxShadow: '0 20px 60px rgba(0,0,0,.3)',
-            maxHeight: '86vh', overflowY: 'auto',
-            transformOrigin: mOrigin, position: 'relative',
-          }}>
-            {mTint && <div className="pp-tint" style={{ position: 'absolute', inset: 0, background: mTint, borderRadius: 24, zIndex: 5 }} />}
+        <GrowModal onClose={() => setShowMap(false)} origin={mOrigin} tint={mTint}
+          background={cTier.name === 'BLACK' ? '#1A1A2E' : '#fff'} maxHeight="86vh"
+          style={{ padding: '24px 20px' }}>
+          {(close) => (<>
             <div style={{ textAlign: 'center', marginBottom: 20 }}>
               <div style={{ fontSize: 36, marginBottom: 8 }}>⛽</div>
               <div style={{ fontSize: 20, fontWeight: 900, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D' }}>
@@ -585,36 +559,26 @@ export default function ClientHome(ctx) {
               </div>
             ))}
 
-            <button onClick={() => setShowMap(false)} style={{
+            <button onClick={close} style={{
               width: '100%', marginTop: 16, padding: 14, borderRadius: 14,
-              background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.08)' : '#F5F5F5',
-              border: cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.1)' : '1px solid #eee',
+              background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.08)' : '#F5F5F7',
+              border: 'none',
               fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700,
               color: cTier.name === 'BLACK' ? '#ccc' : '#424242',
               cursor: 'pointer',
             }}>
               Cerrar
             </button>
-          </div>
-        </div>
+          </>)}
+        </GrowModal>
       )}
 
       {/* Survey station selection modal */}
       {showSurveys && (
-        <div onClick={() => setShowSurveys(false)} style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)',
-          zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: 20, animation: 'ppFade .2s ease',
-        }}>
-          <div onClick={e => e.stopPropagation()} className="pp-grow" style={{
-            background: cTier.name === 'BLACK' ? '#1A1A2E' : '#fff',
-            borderRadius: 24, maxWidth: 380, width: '100%', padding: '24px 20px',
-            border: cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.1)' : '1px solid #eee',
-            boxShadow: '0 20px 60px rgba(0,0,0,.3)',
-            maxHeight: '88vh', overflowY: 'auto',
-            transformOrigin: mOrigin, position: 'relative',
-          }}>
-            {mTint && <div className="pp-tint" style={{ position: 'absolute', inset: 0, background: mTint, borderRadius: 24, zIndex: 5 }} />}
+        <GrowModal onClose={() => setShowSurveys(false)} origin={mOrigin} tint={mTint}
+          background={cTier.name === 'BLACK' ? '#1A1A2E' : '#fff'} maxHeight="88vh"
+          style={{ padding: '24px 20px' }}>
+          {(close) => (<>
             <div style={{ textAlign: 'center', marginBottom: 16 }}>
               <div style={{ fontSize: 36, marginBottom: 8 }}>📋</div>
               <div style={{ fontSize: 20, fontWeight: 900, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D' }}>
@@ -733,18 +697,18 @@ export default function ClientHome(ctx) {
               </div>
             )}
 
-            <button onClick={() => { if (!surveyPending) setShowSurveys(false); else { setSurveyPending(null); setShowSurveys(false); } }} style={{
+            <button onClick={() => { if (surveyPending) setSurveyPending(null); close(); }} style={{
               width: '100%', marginTop: 8, padding: 14, borderRadius: 14,
-              background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.08)' : '#F5F5F5',
-              border: cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.1)' : '1px solid #eee',
+              background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.08)' : '#F5F5F7',
+              border: 'none',
               fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700,
               color: cTier.name === 'BLACK' ? '#ccc' : '#424242',
               cursor: 'pointer',
             }}>
               {surveyPending ? 'Cancelar' : 'Cerrar'}
             </button>
-          </div>
-        </div>
+          </>)}
+        </GrowModal>
       )}
 
       {/* Operator Rating Modal — triggered by Realtime after purchase */}
