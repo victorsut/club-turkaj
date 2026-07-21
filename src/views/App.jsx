@@ -383,6 +383,7 @@ export default function App() {
           setStations(stRes.data.map(s => ({
             id: s.id, name: s.name, address: s.address || '',
             lat: s.lat, lng: s.lng, active: s.active !== false,
+            schedule: s.schedule || null,
           })));
           console.log('[Puntos Plus] Estaciones cargadas:', stRes.data.length);
         }
