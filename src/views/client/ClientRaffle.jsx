@@ -54,58 +54,58 @@ export default function ClientRaffle(ctx) {
     : null;
   const PrizeIcon = rewardIconFor({ name: rm.name || '', icon: rm.icon || '' });
 
+  // Chevrons de navegación: sin caja (solo el glifo), rojos cuando hay
+  // a dónde ir — se leen como control, no como cuadro de información.
   const navBtn = (enabled) => ({
-    width: 34, height: 34, borderRadius: '50%', border: 'none',
-    background: surface, color: headerTxt, cursor: enabled ? 'pointer' : 'default',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    opacity: enabled ? 1 : 0.3, flexShrink: 0, padding: 0,
+    width: 38, height: 38, border: 'none', background: 'none', padding: 0,
+    color: enabled ? BRAND_RED : (isBlack ? 'rgba(255,255,255,.2)' : '#C7C7CC'),
+    cursor: enabled ? 'pointer' : 'default',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   });
 
   return (
     <div style={{ paddingBottom: 100, minHeight: '100vh', background: isBlack ? 'transparent' : bento.pageBg }}>
 
-      {/* Header centrado + navegación de meses */}
-      <div style={{ padding: '18px 16px 4px', textAlign: 'center' }}>
-        <div style={{ fontSize: 18, fontWeight: 800, color: headerTxt }}>Rifa Mensual</div>
-        <div style={{ fontSize: 11, fontWeight: 600, color: subTxt, marginTop: 1 }}>
-          Cada {cfg.ticketPts} pts = 1 boleto · sorteo al cierre del mes
-        </div>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, padding: '10px 16px 14px' }}>
+      {/* Header compacto: navegación de meses integrada al título */}
+      <div style={{ display: 'flex', alignItems: 'center', padding: '14px 12px 10px' }}>
         <button onClick={() => viewMonth > 0 && setViewMonth(viewMonth - 1)} aria-label="Mes anterior" style={navBtn(viewMonth > 0)}>
           <Back />
         </button>
-        <div style={{ fontSize: 14, fontWeight: 800, color: headerTxt, minWidth: 130, textAlign: 'center' }}>
-          {rm.m} {rm.year || ''}
+        <div style={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: headerTxt }}>Rifa Mensual</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: subTxt, marginTop: 1 }}>
+            {rm.m} {rm.year || ''} · sorteo al cierre del mes
+          </div>
         </div>
         <button onClick={() => viewMonth < curMonth && setViewMonth(viewMonth + 1)} aria-label="Mes siguiente" style={navBtn(viewMonth < curMonth)}>
           <Chev />
         </button>
       </div>
 
-      {/* ── Premio del mes (imagen real o ícono) ── */}
-      <div style={{ margin: '0 16px 12px', padding: '20px 18px', borderRadius: 20, background: surface, textAlign: 'center' }}>
+      {/* ── Premio del mes + mis boletos/total (una sola tarjeta de
+          información — los números NO son botones) ── */}
+      <div style={{ margin: '0 16px 10px', padding: '16px 16px 12px', borderRadius: 20, background: surface, textAlign: 'center' }}>
         <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase', color: subTxt, marginBottom: 10 }}>
           Premio de {rm.m}
         </div>
         {rm.img ? (
           <img src={rm.img} alt={rm.name || 'Premio'} style={{
-            width: '100%', maxWidth: 250, aspectRatio: '4 / 3', objectFit: 'cover',
-            borderRadius: 14, margin: '0 auto 12px', display: 'block',
+            width: '100%', maxWidth: 220, aspectRatio: '4 / 3', objectFit: 'cover',
+            borderRadius: 14, margin: '0 auto 10px', display: 'block',
           }} />
         ) : (
           <div style={{
-            width: 64, height: 64, borderRadius: 18, margin: '0 auto 12px',
+            width: 56, height: 56, borderRadius: 16, margin: '0 auto 10px',
             background: bento.red, color: '#fff',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <div style={{ transform: 'scale(1.6)', lineHeight: 0 }}><PrizeIcon /></div>
+            <div style={{ transform: 'scale(1.4)', lineHeight: 0 }}><PrizeIcon /></div>
           </div>
         )}
-        <div style={{ fontSize: 19, fontWeight: 800, color: headerTxt, lineHeight: 1.25 }}>
+        <div style={{ fontSize: 17, fontWeight: 800, color: headerTxt, lineHeight: 1.25 }}>
           {rm.name || 'Premio por anunciar'}
         </div>
-        <div style={{ fontSize: 12.5, fontWeight: 700, color: subTxt, marginTop: 2 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: subTxt, marginTop: 2 }}>
           Valorado en {rm.v}
         </div>
 
@@ -113,7 +113,7 @@ export default function ClientRaffle(ctx) {
         {!isCurrent && (
           winnerName ? (
             <div style={{
-              display: 'inline-block', marginTop: 12, padding: '8px 16px', borderRadius: 12,
+              display: 'inline-block', marginTop: 10, padding: '7px 14px', borderRadius: 12,
               background: isBlack ? 'rgba(30,122,51,.25)' : 'rgba(30,122,51,.12)',
               fontSize: 12.5, fontWeight: 800, color: good,
             }}>
@@ -121,7 +121,7 @@ export default function ClientRaffle(ctx) {
             </div>
           ) : (
             <div style={{
-              display: 'inline-block', marginTop: 12, padding: '8px 16px', borderRadius: 12,
+              display: 'inline-block', marginTop: 10, padding: '7px 14px', borderRadius: 12,
               background: isBlack ? 'rgba(255,255,255,.06)' : '#F5F5F7',
               fontSize: 12, fontWeight: 700, color: subTxt,
             }}>
@@ -129,29 +129,31 @@ export default function ClientRaffle(ctx) {
             </div>
           )
         )}
+
+        {/* Mis boletos / Total — integrados a la tarjeta del premio */}
+        <div style={{
+          display: 'flex', marginTop: 14, paddingTop: 12,
+          borderTop: `1px solid ${rowLine}`,
+        }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 24, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: BRAND_RED }}>{myTickets}</div>
+            <div style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: subTxt, marginTop: 1 }}>Mis boletos</div>
+          </div>
+          <div style={{ width: 1, background: rowLine }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 24, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: headerTxt }}>{totalTickets}</div>
+            <div style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: subTxt, marginTop: 1 }}>Total del mes</div>
+          </div>
+        </div>
       </div>
 
-      {/* ── Mis boletos / Total del mes ── */}
-      <div style={{ display: 'flex', gap: 10, margin: '0 16px 12px' }}>
-        <div style={{ flex: 1, padding: '14px 10px', borderRadius: 16, background: surface, textAlign: 'center' }}>
-          <div style={{ fontSize: 26, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: BRAND_RED }}>{myTickets}</div>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: subTxt, marginTop: 2 }}>Mis boletos</div>
-        </div>
-        <div style={{ flex: 1, padding: '14px 10px', borderRadius: 16, background: surface, textAlign: 'center' }}>
-          <div style={{ fontSize: 26, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: headerTxt }}>{totalTickets}</div>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: subTxt, marginTop: 2 }}>Total del mes</div>
-        </div>
-      </div>
-
-      {/* ── Comprar boletos (solo mes en curso) ── */}
+      {/* ── Comprar boletos (solo mes en curso) — UNA tarjeta; los
+          botones son ROJOS sólidos para diferenciarse de la info ── */}
       {isCurrent && (
-        <div style={{ padding: '0 16px', marginBottom: 16 }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            marginBottom: 10, padding: '11px 16px', borderRadius: 14, background: surface,
-          }}>
+        <div style={{ margin: '0 16px 14px', padding: '12px 14px', borderRadius: 20, background: surface }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <span style={{ fontSize: 12, color: subTxt, fontWeight: 600 }}>Tus puntos</span>
-            <span style={{ fontSize: 17, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: headerTxt }}>{me.points}</span>
+            <span style={{ fontSize: 15, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: headerTxt }}>{me.points}</span>
             <span style={{ fontSize: 11, color: subTxt, fontWeight: 600 }}>{cfg.ticketPts} pts/boleto</span>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -159,17 +161,17 @@ export default function ClientRaffle(ctx) {
               const canBuy = me.points >= n * cfg.ticketPts;
               return (
                 <button key={n} onClick={() => canBuy && buyTickets(n)} disabled={!canBuy} style={{
-                  flex: 1, padding: '13px 0', borderRadius: 14, border: 'none',
-                  background: canBuy ? surface : (isBlack ? 'rgba(255,255,255,.03)' : '#ECECEE'),
-                  fontFamily: "'DM Sans'", fontSize: 16, fontWeight: 800,
+                  flex: 1, padding: '12px 0', borderRadius: 12, border: 'none',
+                  background: canBuy ? BRAND_RED : (isBlack ? 'rgba(255,255,255,.05)' : '#ECECEE'),
+                  fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 800,
                   fontVariantNumeric: 'tabular-nums',
                   cursor: canBuy ? 'pointer' : 'default',
-                  color: canBuy ? BRAND_RED : (isBlack ? 'rgba(255,255,255,.25)' : '#BDBDBD'),
+                  color: canBuy ? '#fff' : (isBlack ? 'rgba(255,255,255,.25)' : '#BDBDBD'),
                 }}>+{n}</button>
               );
             })}
           </div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: subTxt, textAlign: 'center', marginTop: 8 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 600, color: subTxt, textAlign: 'center', marginTop: 8 }}>
             Tocá para comprar boletos · más boletos, más posibilidades
           </div>
         </div>
