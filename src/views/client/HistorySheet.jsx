@@ -37,7 +37,7 @@ const itemDay = (raw) => {
   } catch { return s.slice(0, 10); }
 };
 
-export default function HistorySheet({ type, origin, tint, onClose, acts, redeemed, tierName }) {
+export default function HistorySheet({ type, origin, tint, onClose, acts, redeemed, tierName, initialPending = false }) {
   const isBlack = tierName === 'BLACK';
   const isCompras = type === 'compras';
   const todayGT = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Guatemala' });
@@ -57,8 +57,9 @@ export default function HistorySheet({ type, origin, tint, onClose, acts, redeem
   const [selYear, setSelYear] = useState(() => years[0] || null);
   const [closing, setClosing] = useState(false);
   // Canjes: vista de PENDIENTES de usar (ícono esquina superior derecha).
-  // Ignora el período — un canje pendiente importa hoy, sin importar cuándo se hizo.
-  const [pendingOnly, setPendingOnly] = useState(false);
+  // Ignora el período — un canje pendiente importa hoy, sin importar
+  // cuándo se hizo. initialPending: abrir ya filtrado (reloj de CANJES).
+  const [pendingOnly, setPendingOnly] = useState(initialPending && type !== 'compras');
   const pendingCount = isCompras ? 0 : base.filter(x => !x.collected).length;
 
   // D35: al cerrar, la ventana "se guarda" en el cuadro de origen.

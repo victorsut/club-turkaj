@@ -4,16 +4,27 @@
 // categoría en filas con wrap (sin barra de desplazamiento), cards flat
 // sin borde con el ícono SVG del premio (RewardIcon — sin emojis) sobre
 // un cuadro de color sólido por categoría. BLACK conserva su galaxia.
+import { useState } from 'react';
 import { bento, BRAND_RED, CAT_LABELS, CAT_COLORS } from '../../constants/styles';
 import RewardIcon from '../../components/ui/RewardIcon';
 import ChipScroller from '../../components/ui/ChipScroller';
+import HistorySheet from '../client/HistorySheet';
+import { Clock } from '../../components/ui/Icons';
+import { originFromEvent } from '../../lib/motionOrigin';
 
 export default function Catalog(ctx) {
-  const { rewards, me, gT, cfg, cTier, catF, setCatF, redeem, setRedeemConfirm, client = true } = ctx;
+  const { rewards, me, gT, cfg, cTier, catF, setCatF, redeem, setRedeemConfirm, client = true, redeemedList, activityLog } = ctx;
   const t    = me ? gT(me.gallons) : gT(0);
   const cats = ['todos', ...Object.keys(CAT_LABELS)];
   const visible = (rewards || []).filter(r => r.active !== false);
   const filtered = catF === 'todos' ? visible : visible.filter(r => r.cat === catF);
+
+  // Canjes PENDIENTES de usar (reloj arriba-derecha → HistorySheet ya
+  // filtrado, mismo patrón del Historial de Canjes).
+  const [pendSheet, setPendSheet] = useState(null); // { origin } | null
+  const myRedeemed = (client && me) ? (redeemedList || []).filter(rd => rd.memberId === me.id) : [];
+  const pendingCount = myRedeemed.filter(r => !r.collected).length;
+  const myActs = me ? (activityLog?.[me.id] || []) : [];
 
   const isBlack = (cTier?.name || 'ORO') === 'BLACK';
   const headerTxt = isBlack ? '#fff' : '#0D0D0D';
@@ -23,8 +34,9 @@ export default function Catalog(ctx) {
 
   return (
     <div style={{ paddingBottom: 100, minHeight: '100vh', background: isBlack ? 'transparent' : bento.pageBg }}>
-      {/* Header centrado (formato de las ventanas del track) */}
-      <div style={{ padding: '18px 16px 4px', textAlign: 'center' }}>
+      {/* Header centrado (formato de las ventanas del track) + reloj de
+          canjes pendientes de usar arriba-derecha */}
+      <div style={{ padding: '18px 16px 4px', textAlign: 'center', position: 'relative' }}>
         <div style={{ fontSize: 18, fontWeight: 800, color: headerTxt }}>
           Catálogo de Premios
         </div>
@@ -32,6 +44,27 @@ export default function Catalog(ctx) {
           <div style={{ fontSize: 11, fontWeight: 600, color: subTxt, marginTop: 1 }}>
             Tenés <span style={{ fontWeight: 800, color: good, fontVariantNumeric: 'tabular-nums' }}>{me.points} pts</span> para canjear
           </div>
+        )}
+        {client && me && (
+          <button onClick={(e) => setPendSheet({ origin: originFromEvent(e) })} aria-label="Canjes pendientes" style={{
+            position: 'absolute', right: 10, top: 12,
+            width: 40, height: 40, border: 'none', cursor: 'pointer', padding: 0,
+            borderRadius: 12, background: 'none', color: headerTxt,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Clock />
+            {pendingCount > 0 && (
+              <span style={{
+                position: 'absolute', top: 3, right: 3,
+                minWidth: 16, height: 16, borderRadius: 8, padding: '0 4px',
+                background: bento.red, color: '#fff',
+                fontSize: 9.5, fontWeight: 800, lineHeight: '16px',
+                fontFamily: "'DM Sans'", boxSizing: 'border-box',
+              }}>
+                {pendingCount}
+              </span>
+            )}
+          </button>
         )}
       </div>
 
@@ -98,6 +131,20 @@ export default function Catalog(ctx) {
         <div style={{ textAlign: 'center', padding: 40, color: subTxt, fontSize: 13, fontWeight: 700 }}>
           No hay premios en esta categoría
         </div>
+      )}
+
+      {/* Canjes pendientes de usar (HistorySheet ya filtrado) */}
+      {pendSheet && (
+        <HistorySheet
+          type="canjes"
+          initialPending
+          origin={pendSheet.origin}
+          tint={bento.teal}
+          onClose={() => setPendSheet(null)}
+          acts={myActs}
+          redeemed={myRedeemed}
+          tierName={cTier?.name || 'ORO'}
+        />
       )}
     </div>
   );
