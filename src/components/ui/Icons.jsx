@@ -161,6 +161,52 @@ export const Menu = () => (
   </svg>
 );
 
+// Porcentaje (descuentos por nivel)
+export const Percent = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="19" y1="5" x2="5" y2="19" />
+    <circle cx="6.5" cy="6.5" r="2.5" />
+    <circle cx="17.5" cy="17.5" r="2.5" />
+  </svg>
+);
+
+// Etiqueta (descuento en canje de premios)
+export const Tag = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+    <line x1="7" y1="7" x2="7.01" y2="7" />
+  </svg>
+);
+
+// WiFi (beneficio PLATINO/BLACK)
+export const Wifi = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2.5 9.2a15 15 0 0 1 19 0" />
+    <path d="M5.6 12.7a10.3 10.3 0 0 1 12.8 0" />
+    <path d="M8.7 16.1a5.7 5.7 0 0 1 6.6 0" />
+    <circle cx="12" cy="19.2" r="1.2" fill="currentColor" stroke="none" />
+  </svg>
+);
+
+// Puerta (acceso a baños)
+export const Door = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16" />
+    <path d="M3 21h18" />
+    <circle cx="14.5" cy="12" r="1" fill="currentColor" stroke="none" />
+  </svg>
+);
+
+// Pastel (puntos en eventos especiales / cumpleaños)
+export const Cake = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 20.5v-6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v6" />
+    <path d="M2.5 20.5h19" />
+    <path d="M7.5 12.5V10M12 12.5V10M16.5 12.5V10" />
+    <path d="M7.5 7.5v-2M12 7.5v-2M16.5 7.5v-2" />
+  </svg>
+);
+
 // Casa (pestaña Inicio — referencia FORMATO GENERAL)
 export const House = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
@@ -188,5 +234,5 @@ export const Car = () => (
   </svg>
 );
 
-const IC = { Fuel, Users, Gift, Ticket, Star, Plus, Search, Back, ArrowLeft, Check, Chev, Pin, Clock, Warn, QR, Gear, Logout, GoogleLogo, FacebookLogo, Megaphone, Menu, House, TicketStar, Car };
+const IC = { Fuel, Users, Gift, Ticket, Star, Plus, Search, Back, ArrowLeft, Check, Chev, Pin, Clock, Warn, QR, Gear, Logout, GoogleLogo, FacebookLogo, Megaphone, Menu, Percent, Tag, Wifi, Door, Cake, House, TicketStar, Car };
 export default IC;

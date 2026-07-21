@@ -12,7 +12,8 @@ import TierCardBento from '../../components/ui/TierCardBento';
 import InactivityWarning from '../../components/ui/InactivityWarning';
 import HistorySheet from './HistorySheet';
 import useShortScreen from '../../hooks/useShortScreen';
-import { Menu } from '../../components/ui/Icons';
+import { Menu, Fuel, Ticket, Percent, Tag, Wifi, Door, Cake } from '../../components/ui/Icons';
+import GalaxyDust from '../../components/ui/GalaxyDust';
 import { GiftIcon, CarIcon, WifiIcon, SurveyIcon, PinIcon, TicketStarIcon, BagIcon } from '../../components/ui/BentoIcons';
 import { originFromEvent, centerDeltaFromEvent } from '../../lib/motionOrigin';
 
@@ -141,16 +142,20 @@ export default function ClientHome(ctx) {
     ? 'radial-gradient(ellipse at 20% 30%, #0d0d1a 0%, #050508 40%, #000 100%)'
     : cTier.name === 'PLATINO' ? '#9EA7AD' : bento.gold;
 
-  // Beneficios del nivel (detalle al tocar la tarjeta)
+  // Beneficios del nivel (detalle al tocar la tarjeta — FORMATO GENERAL,
+  // iconos SVG sin emojis). El WiFi gratis solo aparece en PLATINO/BLACK
+  // (en ORO se omite la línea); sin "invitar amigos" (feedback 21-jul).
   const bens = [
-    { i: '⛽', t: `1 pt por cada Q${cfg.qPerPt}` },
-    ...(cTier.discount > 0 ? [{ i: '💰', t: `Descuento Q${cTier.discount.toFixed(2)}/galón` }] : []),
-    ...(cTier.redeemDisc > 0 ? [{ i: '🏷️', t: `-${Math.round(cTier.redeemDisc * 100)}% en canje de premios` }] : []),
-    { i: '📶', t: cTier.name === 'ORO' ? 'WiFi — desde nivel PLATINO' : 'WiFi ilimitado' },
-    ...(cTier.bath ? [{ i: '🚻', t: 'Acceso a baños' }] : []),
-    { i: '🎂', t: `${cTier.evtPts} pts en eventos especiales` },
-    { i: '🎟️', t: `Rifa mensual (${cfg.ticketPts} pts = 1 boleto)` },
+    { icon: <Fuel />, t: `1 pt por cada Q${cfg.qPerPt}` },
+    ...(cTier.discount > 0 ? [{ icon: <Percent />, t: `Descuento Q${cTier.discount.toFixed(2)}/galón` }] : []),
+    ...(cTier.redeemDisc > 0 ? [{ icon: <Tag />, t: `-${Math.round(cTier.redeemDisc * 100)}% en canje de premios` }] : []),
+    ...(cTier.name !== 'ORO' ? [{ icon: <Wifi />, t: 'WiFi gratis ilimitado' }] : []),
+    ...(cTier.bath ? [{ icon: <Door />, t: 'Acceso a baños' }] : []),
+    { icon: <Cake />, t: `${cTier.evtPts} pts en eventos especiales` },
+    { icon: <Ticket />, t: `Rifa mensual (${cfg.ticketPts} pts = 1 boleto)` },
   ];
+  // Acento de los iconos según la identidad del nivel.
+  const tierAccent = isBlack ? '#FBBC04' : cTier.name === 'PLATINO' ? '#6B767D' : bento.gold;
 
   // Saludo festivo (D34): special_days de hoy (hora de Guatemala) o cumpleaños.
   const [festivo, setFestivo] = useState(null);
@@ -377,7 +382,10 @@ export default function ClientHome(ctx) {
       </div>
       <div style={{ height: 72 }} />
 
-      {/* Detalle del nivel (tocar la tarjeta — D34) */}
+      {/* Detalle del nivel (tocar la tarjeta — D34, FORMATO GENERAL):
+          banda superior con la identidad sólida del tier (regla
+          inamovible: ORO dorado, PLATINO metálico, BLACK galaxia) y
+          lista de beneficios con iconos SVG. */}
       {showTierDetail && (
         <div onClick={() => setShowTierDetail(false)} style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)',
@@ -385,43 +393,55 @@ export default function ClientHome(ctx) {
           padding: 20, animation: 'ppFade .2s ease',
         }}>
           <div onClick={e => e.stopPropagation()} className="pp-grow" style={{
-            background: isBlack ? '#1A1A2E' : '#fff',
-            borderRadius: 24, maxWidth: 380, width: '100%', padding: '24px 20px',
-            border: isBlack ? '1px solid rgba(255,255,255,.1)' : '1px solid #eee',
-            boxShadow: '0 20px 60px rgba(0,0,0,.3)',
+            background: isBlack ? '#101018' : '#fff',
+            borderRadius: 24, maxWidth: 380, width: '100%',
             maxHeight: '85vh', overflowY: 'auto',
             transformOrigin: mOrigin, position: 'relative',
           }}>
             {mTint && <div className="pp-tint" style={{ position: 'absolute', inset: 0, background: mTint, borderRadius: 24, zIndex: 5 }} />}
-            <div style={{ textAlign: 'center', marginBottom: 14 }}>
-              <div style={{ fontSize: 34, marginBottom: 6 }}>{cTier.icon}</div>
-              <div style={{ fontSize: 20, fontWeight: 900, color: isBlack ? '#fff' : '#0D0D0D' }}>Nivel {cTier.name}</div>
-              {cTier.base > 0 && <div style={{ fontSize: 11, color: '#9E9E9E', fontWeight: 700, marginTop: 2 }}>{cTier.base}+ galones</div>}
+
+            {/* Banda de identidad del nivel */}
+            <div style={{ background: tierTint, color: '#fff', padding: '22px 20px 18px', position: 'relative', overflow: 'hidden' }}>
+              {isBlack && <GalaxyDust n={10} />}
+              <div style={{ position: 'relative', zIndex: 2 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.5, opacity: 0.85 }}>
+                  Tu nivel
+                </div>
+                <div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1.15, letterSpacing: 0.5 }}>
+                  {cTier.name}
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 700, opacity: 0.9, marginTop: 2 }}>
+                  {cTier.next ? `${cTier.base} – ${cTier.target - 1} galones` : `${cTier.base}+ galones`}
+                </div>
+              </div>
             </div>
-            {bens.map((b, i) => (
-              <div key={i} style={{
-                display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0',
-                borderBottom: i < bens.length - 1 ? `1px solid ${isBlack ? 'rgba(255,255,255,.08)' : '#F0F0F0'}` : 'none',
-                fontSize: 13, fontWeight: 600, color: isBlack ? '#E0E0E0' : '#424242',
+
+            <div style={{ padding: '8px 20px 20px' }}>
+              {bens.map((b, i) => (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0',
+                  borderBottom: i < bens.length - 1 ? `1px solid ${isBlack ? 'rgba(255,255,255,.08)' : '#F0F0F0'}` : 'none',
+                  fontSize: 13, fontWeight: 600, color: isBlack ? '#E0E0E0' : '#424242',
+                }}>
+                  <span style={{ width: 24, display: 'flex', justifyContent: 'center', color: tierAccent, flexShrink: 0 }}>{b.icon}</span>
+                  <span>{b.t}</span>
+                </div>
+              ))}
+              {cTier.next && (
+                <div style={{ marginTop: 12, fontSize: 11, fontWeight: 700, color: isBlack ? 'rgba(255,255,255,.45)' : '#9E9E9E', textAlign: 'center' }}>
+                  Faltan {cTier.rem} galones para {cTier.next}
+                </div>
+              )}
+              <button onClick={() => setShowTierDetail(false)} style={{
+                width: '100%', marginTop: 14, padding: 14, borderRadius: 14,
+                background: isBlack ? 'rgba(255,255,255,.08)' : '#F5F5F7',
+                border: 'none',
+                fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700,
+                color: isBlack ? '#ccc' : '#424242', cursor: 'pointer',
               }}>
-                <span style={{ width: 28, textAlign: 'center' }}>{b.i}</span>
-                <span>{b.t}</span>
-              </div>
-            ))}
-            {cTier.next && (
-              <div style={{ marginTop: 12, fontSize: 11, fontWeight: 700, color: '#9E9E9E', textAlign: 'center' }}>
-                Faltan {cTier.rem} galones para {cTier.next}
-              </div>
-            )}
-            <button onClick={() => setShowTierDetail(false)} style={{
-              width: '100%', marginTop: 14, padding: 14, borderRadius: 14,
-              background: isBlack ? 'rgba(255,255,255,.08)' : '#F5F5F5',
-              border: isBlack ? '1px solid rgba(255,255,255,.1)' : '1px solid #eee',
-              fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700,
-              color: isBlack ? '#ccc' : '#424242', cursor: 'pointer',
-            }}>
-              Cerrar
-            </button>
+                Cerrar
+              </button>
+            </div>
           </div>
         </div>
       )}
