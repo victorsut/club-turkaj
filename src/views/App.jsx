@@ -38,7 +38,6 @@ import useToast from '../hooks/useToast';
 // UI Components
 import BottomNav from '../components/ui/BottomNav';
 import QRCode from '../components/ui/QRCode';
-import TierDeco from '../components/ui/TierDeco';
 import SpecialDayBonusModal from '../components/SpecialDayBonusModal';
 import UpdateAvailable from '../components/UpdateAvailable';
 import { Fuel, Users, Gift, Ticket, Clock, Gear, Megaphone, Menu, House, TicketStar, Car } from '../components/ui/Icons';
@@ -205,6 +204,13 @@ export default function App() {
     if (rcClosing) return;
     setRcClosing(true);
     setTimeout(() => { setRedeemConfirm(null); setRcClosing(false); }, 220);
+  };
+  // Cierre animado del sheet del código QR (misma regla).
+  const [qrClosing, setQrClosing] = useState(false);
+  const closeQR = () => {
+    if (qrClosing) return;
+    setQrClosing(true);
+    setTimeout(() => { setShowQR(false); setQrClosing(false); }, 220);
   };
   const [showSurveys, setShowSurveys] = useState(false);
   const [specialBonusModal, setSpecialBonusModal] = useState({ open: false, events: [], bonus: 0, memberName: '' });
@@ -1719,70 +1725,79 @@ export default function App() {
         </div>
       )}
 
-      {/* ── Modal QR emergente ── */}
+      {/* ── Modal QR emergente (FORMATO GENERAL: flat, esquinas de
+          escáner en rojo de marca — referencia pantalla Código QR) ── */}
       {showQR && isC && me && (
         <div
-          onClick={() => setShowQR(false)}
+          onClick={closeQR}
           style={{
             position: 'fixed', inset: 0, zIndex: 500,
             background: 'rgba(0,0,0,.6)',
             display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-            animation: 'fadeIn .2s ease',
+            animation: qrClosing ? 'ppFadeOut .22s ease forwards' : 'fadeIn .2s ease',
           }}
         >
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              background: cTier.name === 'BLACK' ? '#0D0D1A'
-                : cTier.name === 'PLATINO' ? '#E8E8E8' : '#fff',
+              background: cTier.name === 'BLACK' ? '#101018' : '#fff',
               borderRadius: '28px 28px 0 0',
               width: '100%', maxWidth: 480,
-              padding: '12px 24px 48px',
-              animation: 'slideUp .32s cubic-bezier(.32,1.2,.64,1)',
-              boxShadow: '0 -8px 40px rgba(0,0,0,.25)',
+              padding: '12px 24px 44px',
+              animation: qrClosing ? 'slideDownOut .22s ease-in forwards' : 'slideUp .32s cubic-bezier(.32,1.2,.64,1)',
             }}
           >
             {/* Handle */}
-            <div style={{ width: 40, height: 4, borderRadius: 4, background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.2)' : '#E0E0E0', margin: '0 auto 20px' }} />
+            <div style={{ width: 40, height: 4, borderRadius: 4, background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.2)' : '#E0E0E0', margin: '0 auto 18px' }} />
 
             {/* Título */}
-            <div style={{ textAlign: 'center', marginBottom: 20 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase', color: cTier.name === 'BLACK' ? '#FFD54F' : '#F0A500', marginBottom: 2 }}>
-                {cTier.icon} {cTier.name}
+            <div style={{ textAlign: 'center', marginBottom: 18 }}>
+              <div style={{
+                fontSize: 11, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2,
+                color: cTier.name === 'BLACK' ? '#FFD54F' : cTier.name === 'PLATINO' ? '#6B767D' : bento.gold,
+              }}>
+                Nivel {cTier.name}
               </div>
-              <div style={{ fontSize: 18, fontWeight: 900, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D' }}>
-                Mi código QR
+              <div style={{ fontSize: 18, fontWeight: 800, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D' }}>
+                Código QR
               </div>
             </div>
 
-            {/* Tarjeta QR */}
+            {/* QR enmarcado por esquinas de escáner (rojo de marca) */}
             <div style={{ textAlign: 'center' }}>
-              <div style={{
-                display: 'inline-block', position: 'relative', overflow: 'hidden',
-                borderRadius: 20, padding: '24px 28px',
-                background: cTier.name === 'BLACK' ? 'linear-gradient(135deg,#1A1A2E,#0D0D1A)'
-                  : cTier.name === 'PLATINO' ? 'linear-gradient(135deg,#C8C8C8,#E8E8E8)'
-                  : 'linear-gradient(135deg,#FFFDE7,#FFF8E1)',
-                border: cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.08)'
-                  : cTier.name === 'PLATINO' ? '1px solid #BDBDBD'
-                  : '1px solid #FFE082',
-                boxShadow: cTier.name === 'BLACK' ? '0 8px 32px rgba(0,0,0,.5)'
-                  : '0 8px 32px rgba(251,188,4,.2)',
-              }}>
-                <TierDeco name={cTier.name} />
-                <div style={{ position: 'relative', zIndex: 2 }}>
-                  <QRCode code={me.cardId || me.id} sz={180} scanColor={cTier.name === 'BLACK' ? '#FFD54F' : cTier.name === 'PLATINO' ? '#1565C0' : '#F0A500'} />
-                  <div style={{ marginTop: 14, padding: '6px 16px', borderRadius: 10, background: 'rgba(0,0,0,.08)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 13 }}>💳</span>
-                    <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 800, color: cTier.name === 'BLACK' ? '#FFD54F' : '#0D0D0D', letterSpacing: 1 }}>
-                      {me.cardId || '—'}
-                    </span>
-                  </div>
+              <div style={{ display: 'inline-block', position: 'relative', padding: 14 }}>
+                {[
+                  { top: 0, left: 0, borderTopWidth: 3, borderLeftWidth: 3, borderTopLeftRadius: 14 },
+                  { top: 0, right: 0, borderTopWidth: 3, borderRightWidth: 3, borderTopRightRadius: 14 },
+                  { bottom: 0, left: 0, borderBottomWidth: 3, borderLeftWidth: 3, borderBottomLeftRadius: 14 },
+                  { bottom: 0, right: 0, borderBottomWidth: 3, borderRightWidth: 3, borderBottomRightRadius: 14 },
+                ].map((pos, i) => (
+                  <div key={i} style={{
+                    position: 'absolute', width: 30, height: 30,
+                    borderColor: BRAND_RED, borderStyle: 'solid', borderWidth: 0,
+                    ...pos,
+                  }} />
+                ))}
+                {/* Panel blanco siempre (el QR necesita fondo claro para escanear) */}
+                <div style={{ background: '#fff', borderRadius: 12, padding: 16, display: 'inline-block', lineHeight: 0 }}>
+                  <QRCode code={me.cardId || me.id} sz={180} scanColor={BRAND_RED} />
+                </div>
+              </div>
+
+              {/* Código de tarjeta */}
+              <div style={{ marginTop: 10 }}>
+                <div style={{
+                  display: 'inline-block', padding: '8px 18px', borderRadius: 10,
+                  background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.08)' : '#F5F5F7',
+                  ...sMono, fontSize: 13, fontWeight: 800, letterSpacing: 1.5,
+                  color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D',
+                }}>
+                  {me.cardId || '—'}
                 </div>
               </div>
             </div>
 
-            <div style={{ textAlign: 'center', marginTop: 16, fontSize: 13, color: cTier.name === 'BLACK' ? 'rgba(255,255,255,.5)' : '#9E9E9E', fontWeight: 600 }}>
+            <div style={{ textAlign: 'center', marginTop: 14, fontSize: 12.5, color: cTier.name === 'BLACK' ? 'rgba(255,255,255,.5)' : '#6E6E73', fontWeight: 600 }}>
               Mostrá este código en cada carga de combustible
             </div>
           </div>
