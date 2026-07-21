@@ -12,7 +12,7 @@ import TierCardBento from '../../components/ui/TierCardBento';
 import InactivityWarning from '../../components/ui/InactivityWarning';
 import HistorySheet from './HistorySheet';
 import useShortScreen from '../../hooks/useShortScreen';
-import { Menu, Fuel, Ticket, Percent, Tag, Wifi, Door, Cake } from '../../components/ui/Icons';
+import { Menu, Fuel, Ticket, Percent, Tag, Wifi, Door, Cake, Pin, Clock, Chev } from '../../components/ui/Icons';
 import GalaxyDust from '../../components/ui/GalaxyDust';
 import GrowModal from '../../components/ui/GrowModal';
 import { GiftIcon, CarIcon, WifiIcon, SurveyIcon, PinIcon, TicketStarIcon, BagIcon } from '../../components/ui/BentoIcons';
@@ -47,7 +47,7 @@ export default function ClientHome(ctx) {
         stars: starCount,
       });
       if (error) console.error('[Rating]', error);
-      else fire(`⭐ ¡Gracias! Calificación enviada: ${starCount}/5`);
+      else fire(`¡Gracias! Calificación enviada: ${starCount}/5`, 'success');
     }
     setSavingRating(false);
     setPendingOpRating(null);
@@ -86,11 +86,11 @@ export default function ClientHome(ctx) {
         doSurvey();
         setSurveyPending(null);
         setShowSurveys(false);
-        fire(`✅ Encuesta completada · +${cfg.surveyPts} pts`);
+        fire(`Encuesta completada · +${cfg.surveyPts} pts`, 'success');
       } else {
         // Returned too early — cancel
         setSurveyPending(null);
-        fire('❌ Encuesta cancelada · Permanecé al menos 1:30 min en la página');
+        fire('Encuesta cancelada · Permanecé al menos 1:30 min en la página', 'error');
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);
@@ -330,7 +330,7 @@ export default function ClientHome(ctx) {
           sub={cTier.name === 'ORO' ? 'Disponible desde nivel PLATINO' : 'Conéctate a nuestro WiFi gratis'}
           dimmed={cTier.name === 'ORO'}
           onClick={(e) => {
-            if (cTier.name === 'ORO') { fire('📶 El WiFi gratis se desbloquea en nivel PLATINO'); return; }
+            if (cTier.name === 'ORO') { fire('El WiFi gratis se desbloquea en nivel PLATINO', 'info'); return; }
             setModalOrigin(withTint(e, bento.blue));
             setShowWifi(true);
           }}
@@ -340,10 +340,10 @@ export default function ClientHome(ctx) {
         <BentoTile
           index={3} color={bento.amber} icon={<SurveyIcon />} title="Encuesta"
           sub={mySurveyCount >= cfg.surveyDaily
-            ? '✅ Completaste las de hoy'
+            ? 'Completaste las de hoy'
             : `${mySurveyCount}/${cfg.surveyDaily} hoy · +${cfg.surveyPts} pts c/u`}
           onClick={(e) => {
-            if (mySurveyCount >= cfg.surveyDaily) { fire('✅ Ya completaste tus encuestas de hoy'); return; }
+            if (mySurveyCount >= cfg.surveyDaily) { fire('Ya completaste tus encuestas de hoy', 'success'); return; }
             setModalOrigin(withTint(e, bento.amber));
             setShowSurveys(true);
           }}
@@ -550,21 +550,26 @@ export default function ClientHome(ctx) {
       {/* Survey station selection modal */}
       {showSurveys && (
         <GrowModal onClose={() => setShowSurveys(false)} origin={mOrigin} tint={mTint}
-          background={cTier.name === 'BLACK' ? '#1A1A2E' : '#fff'} maxHeight="88vh"
-          arrowColor={cTier.name === 'BLACK' ? '#fff' : '#0D0D0D'}
-          style={{ padding: '24px 20px' }}>
+          background={cTier.name === 'BLACK' ? '#101018' : '#fff'} maxHeight="88vh"
+          arrowColor="#fff">
           {(close) => (<>
-            <div style={{ textAlign: 'center', marginBottom: 16 }}>
-              <div style={{ fontSize: 36, marginBottom: 8 }}>📋</div>
-              <div style={{ fontSize: 20, fontWeight: 900, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D' }}>
+            {/* Banda de identidad (mismo formato del modal de nivel —
+                color sólido del cuadro Encuesta, centrada) */}
+            <div style={{ background: bento.amber, color: '#fff', padding: '22px 20px 18px', textAlign: 'center' }}>
+              <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.5, opacity: 0.85 }}>
+                Encuesta de satisfacción
+              </div>
+              <div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1.15, letterSpacing: 0.5 }}>
                 Encuesta Shell
               </div>
-              <div style={{ fontSize: 12, color: '#9E9E9E', marginTop: 4 }}>
-                Seleccioná la estación donde cargaste combustible
-              </div>
-              <div style={{ ...sMono, fontSize: 12, fontWeight: 800, color: cTier.name === 'BLACK' ? '#64B5F6' : '#1565C0', marginTop: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, opacity: 0.9, marginTop: 2 }}>
                 {mySurveyCount}/{cfg.surveyDaily} hoy · +{cfg.surveyPts} pts por encuesta
               </div>
+            </div>
+
+            <div style={{ padding: '14px 20px 20px' }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: cTier.name === 'BLACK' ? 'rgba(255,255,255,.5)' : '#6E6E73', textAlign: 'center', marginBottom: 12 }}>
+              Seleccioná la estación donde cargaste combustible
             </div>
 
             {(() => {
@@ -584,6 +589,7 @@ export default function ClientHome(ctx) {
                 { name: 'Turkaj III', url: 'https://tellshell.shell.com/GTM?source=smartQR&s=10700211' },
               ].map((s) => {
                 const isLast = lastName && lastName === s.name;
+                const waitingThis = surveyPending?.stationName === s.name;
                 return (
                 <div key={s.name}
                   onClick={() => {
@@ -593,52 +599,47 @@ export default function ClientHome(ctx) {
                   }}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 14,
-                    padding: '14px 12px', marginBottom: 8, borderRadius: 16,
+                    padding: '13px 12px', marginBottom: 8, borderRadius: 16,
                     cursor: surveyPending ? 'default' : 'pointer',
-                    opacity: surveyPending ? (surveyPending.stationName === s.name ? 1 : 0.4) : 1,
+                    opacity: surveyPending ? (waitingThis ? 1 : 0.4) : 1,
                     background: isLast
-                      ? (cTier.name === 'BLACK' ? 'rgba(251,188,4,.1)' : '#FFF8E1')
-                      : (cTier.name === 'BLACK' ? 'rgba(255,255,255,.04)' : '#F9F9F9'),
-                    border: isLast
-                      ? (cTier.name === 'BLACK' ? '2px solid rgba(251,188,4,.3)' : '2px solid #FFE082')
-                      : (cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.06)' : '1px solid #eee'),
+                      ? (cTier.name === 'BLACK' ? 'rgba(217,164,11,.14)' : '#FAF1DC')
+                      : (cTier.name === 'BLACK' ? 'rgba(255,255,255,.05)' : '#F5F5F7'),
                     transition: 'transform .15s',
                   }}>
                   <div style={{
                     width: 44, height: 44, borderRadius: 14, flexShrink: 0,
-                    background: cTier.name === 'BLACK' ? 'rgba(100,181,246,.1)' : '#E3F2FD',
-                    border: cTier.name === 'BLACK' ? '1px solid rgba(100,181,246,.2)' : '1px solid #BBDEFB',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
+                    background: bento.amber, color: '#fff',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    ⛽
+                    <Fuel />
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{
                       fontSize: 15, fontWeight: 800,
-                      color: cTier.name === 'BLACK' ? (isLast ? '#FFD54F' : '#E0E0E0') : '#0D0D0D',
+                      color: cTier.name === 'BLACK' ? '#E0E0E0' : '#0D0D0D',
                     }}>
                       {s.name}
                     </div>
                     {isLast && (
                       <div style={{
                         fontSize: 10, fontWeight: 800, marginTop: 3,
-                        color: cTier.name === 'BLACK' ? '#FFD54F' : '#F0A500',
+                        color: cTier.name === 'BLACK' ? '#FFD54F' : '#B58000',
                         display: 'flex', alignItems: 'center', gap: 4,
                       }}>
-                        📍 Última visita
+                        <Pin /> Última visita
                       </div>
                     )}
                   </div>
+                  {/* CTA: círculo negro con chevron (formato del banner de
+                      Promociones); esperando → círculo ámbar con reloj */}
                   <div style={{
-                    fontSize: 11, fontWeight: 800, padding: '6px 12px', borderRadius: 10,
-                    background: surveyPending?.stationName === s.name
-                      ? (cTier.name === 'BLACK' ? 'rgba(251,188,4,.15)' : '#FFF8E1')
-                      : (cTier.name === 'BLACK' ? 'rgba(100,181,246,.15)' : '#E3F2FD'),
-                    color: surveyPending?.stationName === s.name
-                      ? (cTier.name === 'BLACK' ? '#FFD54F' : '#F0A500')
-                      : (cTier.name === 'BLACK' ? '#64B5F6' : '#1565C0'),
+                    width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
+                    background: waitingThis ? bento.amber : (cTier.name === 'BLACK' ? '#fff' : '#0D0D0D'),
+                    color: waitingThis ? '#fff' : (cTier.name === 'BLACK' ? '#0D0D0D' : '#fff'),
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    {surveyPending?.stationName === s.name ? '⏳ Esperando' : 'Llenar →'}
+                    {waitingThis ? <Clock /> : <Chev />}
                   </div>
                 </div>
               );
@@ -648,17 +649,20 @@ export default function ClientHome(ctx) {
             {/* Pending survey: countdown */}
             {surveyPending && (
               <div style={{
-                background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.06)' : '#FFF8E1',
+                background: cTier.name === 'BLACK' ? 'rgba(217,164,11,.14)' : '#FAF1DC',
                 borderRadius: 16, padding: 16, marginBottom: 8, textAlign: 'center',
-                border: cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.1)' : '1px solid #FFE082',
               }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: cTier.name === 'BLACK' ? '#FFD54F' : '#F0A500', marginBottom: 6 }}>
-                  ⏳ Completá la encuesta de {surveyPending.stationName}
+                <div style={{
+                  fontSize: 13, fontWeight: 700, marginBottom: 6,
+                  color: cTier.name === 'BLACK' ? '#FFD54F' : '#B58000',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                }}>
+                  <Clock /> Completá la encuesta de {surveyPending.stationName}
                 </div>
-                <div style={{ ...sMono, fontSize: 28, fontWeight: 900, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D' }}>
+                <div style={{ fontSize: 28, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D' }}>
                   {Math.floor(surveyCountdown / 60)}:{String(surveyCountdown % 60).padStart(2, '0')}
                 </div>
-                <div style={{ fontSize: 11, color: '#9E9E9E', marginTop: 4 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: cTier.name === 'BLACK' ? 'rgba(255,255,255,.5)' : '#6E6E73', marginTop: 4 }}>
                   Permanecé en la página de Shell · Los puntos se asignan al volver
                 </div>
                 {/* Progress bar */}
@@ -666,7 +670,7 @@ export default function ClientHome(ctx) {
                   <div style={{
                     height: '100%', borderRadius: 2, transition: 'width 1s linear',
                     width: `${((SURVEY_WAIT - surveyCountdown) / SURVEY_WAIT) * 100}%`,
-                    background: cTier.name === 'BLACK' ? '#FFD54F' : '#FBBC04',
+                    background: bento.amber,
                   }} />
                 </div>
               </div>
@@ -686,6 +690,7 @@ export default function ClientHome(ctx) {
                 Cancelar
               </button>
             )}
+            </div>
           </>)}
         </GrowModal>
       )}
