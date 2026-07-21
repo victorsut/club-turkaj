@@ -1214,11 +1214,21 @@ export default function App() {
       : c));
 
     if (bonus_ticket) {
-      fire(`📋 +${pts} pts · 🎟️ ¡Bonus! ${count}/${limit} encuestas = 1 boleto gratis`);
+      // El boleto bonus entra a la rifa del mes en curso (RPC
+      // complete_survey, migration 20260721b) — reflejarlo al instante.
+      setRafData(p => p.map((rd, i) => {
+        if (i !== curMonth) return rd;
+        const ps = [...rd.participants];
+        const ex = ps.findIndex(p2 => p2.cid === me.id);
+        if (ex >= 0) ps[ex] = { ...ps[ex], tickets: ps[ex].tickets + 1 };
+        else ps.push({ cid: me.id, name: me.name, tickets: 1 });
+        return { ...rd, participants: ps };
+      }));
+      fire(`+${pts} pts · ¡Bonus! ${count}/${limit} encuestas = 1 boleto de rifa gratis`, 'success');
     } else {
-      fire(`📋 Encuesta completada · +${pts} pts (${count}/${limit})`);
+      fire(`Encuesta completada · +${pts} pts (${count}/${limit})`, 'success');
     }
-  }, [me, fire, sbConnected]);
+  }, [me, fire, sbConnected, curMonth]);
 
   // SEC.B.6.4: helper reutilizable para terminar una sesión de operador/admin.
   // Encapsula la revocación server-side (logoutOperator/logoutAdmin, B.6.3) +
