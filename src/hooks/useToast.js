@@ -9,13 +9,16 @@ import { useState, useCallback } from 'react';
  *
  * @param {number} [duration=3000] - Duración en ms
  * @returns {{ toast, fire }}
+ *
+ * fire(message, type?) — type opcional 'success'|'error'|'warn'|'info'
+ * para el Toast (si se omite, el componente la deriva del mensaje).
  */
 export function useToast(duration = 3000) {
   const [toast, setToast] = useState(null);
 
   const fire = useCallback(
-    (message) => {
-      setToast(message);
+    (message, type) => {
+      setToast(type ? { msg: message, type } : message);
       setTimeout(() => setToast(null), duration);
     },
     [duration]

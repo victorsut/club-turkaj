@@ -41,7 +41,8 @@ import QRCode from '../components/ui/QRCode';
 import TierDeco from '../components/ui/TierDeco';
 import SpecialDayBonusModal from '../components/SpecialDayBonusModal';
 import UpdateAvailable from '../components/UpdateAvailable';
-import { Check, Fuel, Users, Gift, Ticket, Clock, Gear, Megaphone, Menu, House, TicketStar, Car } from '../components/ui/Icons';
+import { Fuel, Users, Gift, Ticket, Clock, Gear, Megaphone, Menu, House, TicketStar, Car } from '../components/ui/Icons';
+import Toast from '../components/ui/Toast';
 
 // Auth Views
 import ClientLogin from './client/ClientLogin';
@@ -1749,18 +1750,8 @@ export default function App() {
         </div>
       )}
 
-      {/* Toast */}
-      {toast && (
-        <div style={{
-          position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)',
-          background: '#0D0D0D', color: '#fff', padding: '14px 24px',
-          borderRadius: 14, fontWeight: 700, fontSize: 14, zIndex: 300,
-          animation: 'fadeUp .3s', display: 'flex', alignItems: 'center', gap: 8,
-          boxShadow: '0 8px 32px rgba(0,0,0,.2)', maxWidth: '90%',
-        }}>
-          <Check /> {toast}
-        </div>
-      )}
+      {/* Toast (FORMATO GENERAL — severidad e ícono en Toast.jsx) */}
+      <Toast toast={toast} />
 
       {/* ── Modal celebrativo de bono por día especial (FB.6.2c) ── */}
       <SpecialDayBonusModal
