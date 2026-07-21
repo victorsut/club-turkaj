@@ -5,8 +5,8 @@
 // selector solo con los meses/años que tienen movimientos.
 // Entra desde su tile (container transform D35) y se guarda al cerrar.
 import { useState } from 'react';
-import { sMono } from '../../constants/styles';
-import { ArrowLeft } from '../../components/ui/Icons';
+import { sMono, bento } from '../../constants/styles';
+import { ArrowLeft, Gift, Clock } from '../../components/ui/Icons';
 
 const CLOSE_MS = 200; // duración de ppGrowOut (+ margen) antes de desmontar
 
@@ -49,6 +49,10 @@ export default function HistorySheet({ type, origin, tint, onClose, acts, redeem
   const [selMonth, setSelMonth] = useState(() => months[0] || null);
   const [selYear, setSelYear] = useState(() => years[0] || null);
   const [closing, setClosing] = useState(false);
+  // Canjes: vista de PENDIENTES de usar (ícono esquina superior derecha).
+  // Ignora el período — un canje pendiente importa hoy, sin importar cuándo se hizo.
+  const [pendingOnly, setPendingOnly] = useState(false);
+  const pendingCount = isCompras ? 0 : base.filter(x => !x.collected).length;
 
   // D35: al cerrar, la ventana "se guarda" en el cuadro de origen.
   const close = () => {
@@ -65,7 +69,9 @@ export default function HistorySheet({ type, origin, tint, onClose, acts, redeem
     if (mode === 'anio') return !!selYear && day.slice(0, 4) === selYear;
     return true;
   };
-  const items = base.filter(x => inPeriod(itemDay(x.date)));
+  const items = (!isCompras && pendingOnly)
+    ? base.filter(x => !x.collected)
+    : base.filter(x => inPeriod(itemDay(x.date)));
 
   const ganados = isCompras
     ? items.reduce((s, a) => s + Math.max(0, parseInt(a.pts, 10) || 0), 0)
@@ -81,7 +87,7 @@ export default function HistorySheet({ type, origin, tint, onClose, acts, redeem
     txt: isBlack ? '#E0E0E0' : '#424242',
     sub: isBlack ? 'rgba(255,255,255,.5)' : '#9E9E9E',
     border: isBlack ? 'rgba(255,255,255,.08)' : '#EDEDED',
-    chipOn: isCompras ? '#E65100' : '#00838F',
+    chipOn: isCompras ? bento.orange : bento.teal,
   };
 
   // Modos disponibles según los datos (feedback: sin movimientos, sin chip)
@@ -93,12 +99,12 @@ export default function HistorySheet({ type, origin, tint, onClose, acts, redeem
   ];
 
   const subChip = (selected) => ({
-    padding: '7px 14px', borderRadius: 16, border: 'none', flexShrink: 0,
+    padding: '8px 14px', borderRadius: 12, border: 'none', flexShrink: 0,
     background: selected ? TH.chipOn : TH.surface,
     color: selected ? '#fff' : TH.txt,
-    fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 800, cursor: 'pointer',
+    fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 700, cursor: 'pointer',
     whiteSpace: 'nowrap',
-    boxShadow: selected ? '0 2px 8px rgba(0,0,0,.15)' : 'none',
+    transition: 'background .2s, color .2s',
   });
 
   return (
@@ -115,49 +121,85 @@ export default function HistorySheet({ type, origin, tint, onClose, acts, redeem
       {tint && (
         <div className={closing ? 'pp-tint-in' : 'pp-tint'} style={{ position: 'absolute', inset: 0, background: tint, zIndex: 5 }} />
       )}
-      {/* Header */}
+      {/* Header (formato de la ventana Promociones: flecha suelta +
+          título centrado; en Canjes, ícono de PENDIENTES a la derecha) */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 2, background: TH.bg,
-        padding: '16px 20px 10px', display: 'flex', alignItems: 'center', gap: 10,
-        borderBottom: `1px solid ${TH.border}`,
+        padding: '16px 14px 8px', display: 'flex', alignItems: 'center',
       }}>
-        <button onClick={close} aria-label="Volver" style={{ background: 'none', border: 'none', color: TH.header, cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 4 }}>
+        <button onClick={close} aria-label="Volver" style={{
+          width: 40, height: 40, border: 'none', cursor: 'pointer',
+          background: 'none', color: TH.header, padding: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
           <ArrowLeft />
         </button>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 18, fontWeight: 900, color: TH.header }}>
-            {isCompras ? '🧾 Compras y Puntos' : '🎁 Historial de Canjes'}
+        <div style={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: TH.header }}>
+            {isCompras ? 'Compras y Puntos' : (pendingOnly ? 'Canjes Pendientes' : 'Historial de Canjes')}
           </div>
-          <div style={{ fontSize: 11, color: TH.sub, fontWeight: 600 }}>
-            {items.length} {isCompras
-              ? (items.length === 1 ? 'movimiento' : 'movimientos')
-              : (items.length === 1 ? 'canje' : 'canjes')}
-            {items.length > 0 && (isCompras
-              ? ` · +${ganados}${usados > 0 ? ` / −${usados}` : ''} pts`
-              : ` · ${usados} pts canjeados`)}
+          <div style={{ fontSize: 11, color: TH.sub, fontWeight: 600, marginTop: 1 }}>
+            {pendingOnly
+              ? `${items.length} pendiente${items.length === 1 ? '' : 's'} de usar`
+              : <>
+                  {items.length} {isCompras
+                    ? (items.length === 1 ? 'movimiento' : 'movimientos')
+                    : (items.length === 1 ? 'canje' : 'canjes')}
+                  {items.length > 0 && (isCompras
+                    ? ` · +${ganados}${usados > 0 ? ` / −${usados}` : ''} pts`
+                    : ` · ${usados} pts canjeados`)}
+                </>}
           </div>
         </div>
+        {/* Canjes: toggle de pendientes de entregar/usar */}
+        {!isCompras ? (
+          <button onClick={() => setPendingOnly(p => !p)} aria-label="Canjes pendientes" style={{
+            width: 40, height: 40, border: 'none', cursor: 'pointer', padding: 0,
+            borderRadius: 12, position: 'relative', flexShrink: 0,
+            background: pendingOnly ? TH.chipOn : 'none',
+            color: pendingOnly ? '#fff' : TH.header,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'background .2s, color .2s',
+          }}>
+            <Clock />
+            {!pendingOnly && pendingCount > 0 && (
+              <span style={{
+                position: 'absolute', top: 3, right: 3,
+                minWidth: 16, height: 16, borderRadius: 8, padding: '0 4px',
+                background: bento.red, color: '#fff',
+                fontSize: 9.5, fontWeight: 800, lineHeight: '16px',
+                fontFamily: "'DM Sans'", boxSizing: 'border-box',
+              }}>
+                {pendingCount}
+              </span>
+            )}
+          </button>
+        ) : (
+          <div style={{ width: 40, flexShrink: 0 }} />
+        )}
       </div>
 
-      {/* Chips de modo: Hoy · Mes · Año · Todo (solo los que tienen datos) */}
-      <div style={{ display: 'flex', gap: 8, padding: '12px 20px 8px' }}>
+      {/* Chips de período (ocultos en la vista de pendientes): fila fija
+          que se reparte el ancho — sin barra de desplazamiento */}
+      {!pendingOnly && (<>
+      <div style={{ display: 'flex', gap: 7, padding: '10px 14px 8px' }}>
         {modes.map(m => (
           <button key={m.id} onClick={() => setMode(m.id)} style={{
-            flex: 1, padding: '9px 0', borderRadius: 18, border: 'none',
+            flex: '1 1 0', minWidth: 0, padding: '10px 2px', borderRadius: 12, border: 'none',
             background: mode === m.id ? TH.chipOn : TH.surface,
             color: mode === m.id ? '#fff' : TH.txt,
-            fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 800, cursor: 'pointer',
-            boxShadow: mode === m.id ? '0 2px 8px rgba(0,0,0,.15)' : 'none',
-            transition: 'background .2s ease',
+            fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 700, cursor: 'pointer',
+            textAlign: 'center', whiteSpace: 'nowrap',
+            transition: 'background .2s, color .2s',
           }}>
             {m.label}
           </button>
         ))}
       </div>
 
-      {/* Selector de mes (solo meses con movimientos) */}
+      {/* Selector de mes (solo meses con movimientos) — wrap, sin scroll */}
       {mode === 'mes' && months.length > 0 && (
-        <div style={{ display: 'flex', gap: 8, padding: '2px 20px 10px', overflowX: 'auto' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, padding: '2px 14px 10px' }}>
           {months.map(ym => (
             <button key={ym} onClick={() => setSelMonth(ym)} style={subChip(selMonth === ym)}>
               {monthLabel(ym)}
@@ -166,9 +208,9 @@ export default function HistorySheet({ type, origin, tint, onClose, acts, redeem
         </div>
       )}
 
-      {/* Selector de año (solo años con movimientos) */}
+      {/* Selector de año (solo años con movimientos) — wrap, sin scroll */}
       {mode === 'anio' && years.length > 0 && (
-        <div style={{ display: 'flex', gap: 8, padding: '2px 20px 10px', overflowX: 'auto' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, padding: '2px 14px 10px' }}>
           {years.map(y => (
             <button key={y} onClick={() => setSelYear(y)} style={subChip(selYear === y)}>
               {y}
@@ -176,11 +218,21 @@ export default function HistorySheet({ type, origin, tint, onClose, acts, redeem
           ))}
         </div>
       )}
+      </>)}
 
       {/* Lista */}
       {items.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '48px 24px', color: TH.sub, fontSize: 13 }}>
-          {isCompras ? 'Sin movimientos de puntos en este período' : 'Sin canjes en este período'}
+        <div style={{ textAlign: 'center', padding: '48px 24px', color: TH.sub }}>
+          {pendingOnly && (
+            <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}>
+              <Gift />
+            </div>
+          )}
+          <div style={{ fontSize: 13, fontWeight: 700 }}>
+            {pendingOnly
+              ? 'No tenés canjes pendientes de usar'
+              : (isCompras ? 'Sin movimientos de puntos en este período' : 'Sin canjes en este período')}
+          </div>
         </div>
       )}
 
@@ -217,21 +269,34 @@ export default function HistorySheet({ type, origin, tint, onClose, acts, redeem
           : items.map((rd, i) => (
               <div key={rd.id || i} style={{
                 display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
-                background: TH.surface, borderRadius: 14, marginBottom: 8,
-                border: `1px solid ${TH.border}`,
+                background: TH.surface, borderRadius: 16, marginBottom: 8,
                 animation: `slideIn .3s ${Math.min(i, 10) * 0.03}s both`,
               }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(0,131,143,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 19, flexShrink: 0 }}>
-                  {rd.reward?.icon || '🎁'}
+                <div style={{
+                  width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                  background: bento.teal, color: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Gift />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: TH.txt }}>{rd.reward?.name || 'Premio'}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: TH.txt, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rd.reward?.name || 'Premio'}</div>
                   <div style={{ fontSize: 10, color: TH.sub, ...sMono, marginTop: 2 }}>{itemDay(rd.date)} · {rd.code}</div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ ...sMono, fontSize: 13, fontWeight: 800, color: '#C62828' }}>-{rd.cost} pts</div>
-                  <div style={{ fontSize: 9, fontWeight: 700, marginTop: 2, color: rd.collected ? '#2E7D32' : '#FF8F00' }}>
-                    {rd.collected ? '✅ Recogido' : '⏳ Pendiente'}
+                  <div style={{ fontSize: 13, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: isBlack ? '#FF8A80' : bento.red }}>-{rd.cost} pts</div>
+                  <div style={{
+                    display: 'inline-block', marginTop: 3,
+                    padding: '3px 8px', borderRadius: 8,
+                    fontSize: 9, fontWeight: 800, letterSpacing: 0.3,
+                    background: rd.collected
+                      ? (isBlack ? 'rgba(30,122,51,.25)' : 'rgba(30,122,51,.12)')
+                      : (isBlack ? 'rgba(217,164,11,.22)' : '#FAF1DC'),
+                    color: rd.collected
+                      ? (isBlack ? '#7CD98F' : bento.green)
+                      : (isBlack ? '#FFD54F' : '#B58000'),
+                  }}>
+                    {rd.collected ? 'RECOGIDO' : 'PENDIENTE'}
                   </div>
                 </div>
               </div>
