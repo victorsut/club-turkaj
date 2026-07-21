@@ -25,6 +25,15 @@ const shuffle = (arr) => {
 export default function ClientRaffle(ctx) {
   const { me, cfg, cTier, raffleCal, rafData, buyTickets, curMonth, custs } = ctx;
   const [viewMonth, setViewMonth] = useState(curMonth);
+  // Confirmación de compra de boletos (bottom sheet con cierre animado,
+  // mismo patrón del sheet de canjes).
+  const [buyConfirm, setBuyConfirm] = useState(null); // { n, cost } | null
+  const [buyClosing, setBuyClosing] = useState(false);
+  const closeBuy = () => {
+    if (buyClosing) return;
+    setBuyClosing(true);
+    setTimeout(() => { setBuyConfirm(null); setBuyClosing(false); }, 220);
+  };
 
   const parts = rafData[viewMonth]?.participants || [];
   // Orden aleatorio con "yo" siempre en la primera fila. Se rebaraja
@@ -160,7 +169,7 @@ export default function ClientRaffle(ctx) {
             {[1, 3, 5, 10].map(n => {
               const canBuy = me.points >= n * cfg.ticketPts;
               return (
-                <button key={n} onClick={() => canBuy && buyTickets(n)} disabled={!canBuy} style={{
+                <button key={n} onClick={() => canBuy && setBuyConfirm({ n, cost: n * cfg.ticketPts })} disabled={!canBuy} style={{
                   flex: 1, padding: '12px 0', borderRadius: 12, border: 'none',
                   background: canBuy ? BRAND_RED : (isBlack ? 'rgba(255,255,255,.05)' : '#ECECEE'),
                   fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 800,
@@ -238,6 +247,80 @@ export default function ClientRaffle(ctx) {
           </div>
         )}
       </div>
+
+      {/* ── Confirmar compra de boletos (bottom sheet) ── */}
+      {buyConfirm && (
+        <div onClick={closeBuy} style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)',
+          zIndex: 400, display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          animation: buyClosing ? 'ppFadeOut .22s ease forwards' : 'ppFade .2s ease',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: isBlack ? '#101018' : '#fff',
+            borderRadius: '24px 24px 0 0',
+            width: '100%', maxWidth: 480, padding: '12px 24px 40px',
+            animation: buyClosing ? 'slideDownOut .22s ease-in forwards' : 'slideUp .3s cubic-bezier(.32,1.2,.64,1)',
+          }}>
+            <div style={{ width: 40, height: 4, borderRadius: 4, background: isBlack ? 'rgba(255,255,255,.2)' : '#E0E0E0', margin: '0 auto 20px' }} />
+
+            <div style={{ textAlign: 'center', marginBottom: 18 }}>
+              <div style={{
+                width: 56, height: 56, borderRadius: 16, margin: '0 auto 10px',
+                background: bento.red, color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <TicketStar />
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: headerTxt }}>Confirmar compra</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: subTxt, marginTop: 2 }}>
+                Participás en el sorteo de {rm.m}
+              </div>
+            </div>
+
+            <div style={{ background: isBlack ? 'rgba(255,255,255,.05)' : '#F5F5F7', borderRadius: 16, padding: '16px 20px', marginBottom: 20 }}>
+              {[
+                { l: 'Boletos', v: `${buyConfirm.n}`, bold: true },
+                { l: 'Costo', v: `${buyConfirm.cost} pts`, large: true, red: true },
+                { l: 'Saldo actual', v: `${me.points} pts` },
+                { l: 'Saldo tras la compra', v: `${me.points - buyConfirm.cost} pts`, green: true },
+              ].map((row, i, arr) => (
+                <div key={row.l} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  paddingBottom: i < arr.length - 1 ? 12 : 0,
+                  borderBottom: i < arr.length - 1 ? `1px solid ${isBlack ? 'rgba(255,255,255,.06)' : '#ECECEE'}` : 'none',
+                  marginBottom: i < arr.length - 1 ? 12 : 0,
+                }}>
+                  <span style={{ fontSize: 13, color: '#9E9E9E', fontWeight: 600 }}>{row.l}</span>
+                  <span style={{
+                    fontSize: row.large ? 18 : 13,
+                    fontWeight: row.bold || row.large ? 800 : 700,
+                    fontVariantNumeric: 'tabular-nums',
+                    color: row.red ? bento.red : row.green ? good : headerTxt,
+                  }}>{row.v}</span>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button onClick={closeBuy} style={{
+                flex: 1, padding: 16, borderRadius: 14, border: 'none',
+                background: isBlack ? 'rgba(255,255,255,.08)' : '#F5F5F7',
+                color: isBlack ? '#ccc' : '#424242',
+                fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              }}>Cancelar</button>
+              <button onClick={() => {
+                const { n } = buyConfirm;
+                setBuyConfirm(null);
+                buyTickets(n);
+              }} style={{
+                flex: 2, padding: 16, borderRadius: 14, border: 'none',
+                background: BRAND_RED, color: '#fff',
+                fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 800, cursor: 'pointer',
+              }}>Comprar boletos</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

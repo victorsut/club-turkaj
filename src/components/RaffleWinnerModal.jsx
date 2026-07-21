@@ -59,16 +59,36 @@ export default function RaffleWinnerModal({ cal, name, isBlack = false, onClose 
           </div>
         )}
 
-        {/* Cómo recibirlo */}
-        <div style={{
-          background: isBlack ? 'rgba(255,255,255,.06)' : '#F5F5F7',
-          borderRadius: 14, padding: '12px 14px', margin: '16px 0 18px',
-          fontSize: 12.5, fontWeight: 600, lineHeight: 1.55,
-          color: isBlack ? '#CFCFCF' : '#48484A',
-        }}>
-          Tu premio ya está en tus canjes pendientes. Presentá el código en
-          cualquier estación Turkaj para recibirlo.
-        </div>
+        {/* Cómo recibirlo: detalle configurado por la empresa
+            (raffle_calendar.prize_detail — solo lo ve el ganador) o
+            texto genérico si no hay detalle */}
+        {cal.detail ? (
+          <div style={{
+            background: isBlack ? 'rgba(255,255,255,.06)' : '#F5F5F7',
+            borderRadius: 14, padding: '12px 14px', margin: '16px 0 18px', textAlign: 'left',
+          }}>
+            <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1, color: '#9E9E9E', marginBottom: 6 }}>
+              Detalle del premio
+            </div>
+            <div style={{
+              maxHeight: 150, overflowY: 'auto',
+              fontSize: 12.5, fontWeight: 600, lineHeight: 1.55, whiteSpace: 'pre-line',
+              color: isBlack ? '#CFCFCF' : '#48484A',
+            }}>
+              {cal.detail}
+            </div>
+          </div>
+        ) : (
+          <div style={{
+            background: isBlack ? 'rgba(255,255,255,.06)' : '#F5F5F7',
+            borderRadius: 14, padding: '12px 14px', margin: '16px 0 18px',
+            fontSize: 12.5, fontWeight: 600, lineHeight: 1.55,
+            color: isBlack ? '#CFCFCF' : '#48484A',
+          }}>
+            Tu premio ya está en tus canjes pendientes. Presentá el código en
+            cualquier estación Turkaj para recibirlo.
+          </div>
+        )}
 
         <button onClick={onClose} style={{
           width: '100%', padding: 15, borderRadius: 14, border: 'none',

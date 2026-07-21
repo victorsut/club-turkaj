@@ -456,7 +456,7 @@ export default function App() {
           // fecha de sorteo e imagen real del premio (R1b.4 Rifa).
           const yr = new Date().getFullYear();
           const cal = months.map((m, i) => ({
-            m, p: '—', name: null, icon: null, img: null,
+            m, p: '—', name: null, icon: null, img: null, detail: null,
             v: 'Q0', cost: 0, dbId: null, month: i + 1, year: yr,
             winnerId: null, drawnAt: null,
           }));
@@ -464,6 +464,7 @@ export default function App() {
             cal[r.month - 1] = {
               m: months[r.month - 1], p: `${r.prize_icon} ${r.prize_name}`,
               name: r.prize_name, icon: r.prize_icon, img: r.prize_image_url || null,
+              detail: r.prize_detail || null,
               v: `Q${r.prize_value}`, cost: r.prize_value, dbId: r.id,
               month: r.month, year: r.year || yr,
               winnerId: r.winner_id || null, drawnAt: r.drawn_at || null,

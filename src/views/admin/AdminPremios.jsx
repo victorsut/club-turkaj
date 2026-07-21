@@ -250,12 +250,12 @@ export default function AdminPremios(ctx) {
     setShowReasonModal(true);
   };
 
-  const openNewRaf = () => { setEditRaf(null); setRafForm({ month: '', year: new Date().getFullYear(), prize_name: '', prize_icon: '🎁', prize_value: '', prize_image_url: '' }); setShowRafForm(true); };
-  const openEditRaf = (r) => { setEditRaf(r); setRafForm({ month: r.month, year: r.year, prize_name: r.prize_name, prize_icon: r.prize_icon || '🎁', prize_value: String(r.prize_value), prize_image_url: r.prize_image_url || '' }); setShowRafForm(true); };
+  const openNewRaf = () => { setEditRaf(null); setRafForm({ month: '', year: new Date().getFullYear(), prize_name: '', prize_icon: '🎁', prize_value: '', prize_image_url: '', prize_detail: '' }); setShowRafForm(true); };
+  const openEditRaf = (r) => { setEditRaf(r); setRafForm({ month: r.month, year: r.year, prize_name: r.prize_name, prize_icon: r.prize_icon || '🎁', prize_value: String(r.prize_value), prize_image_url: r.prize_image_url || '', prize_detail: r.prize_detail || '' }); setShowRafForm(true); };
 
   const saveRaf = async () => {
     if (!rafForm.month || !rafForm.prize_name || !rafForm.prize_value) { fire('Mes, premio y valor son obligatorios'); return; }
-    const data = { month: parseInt(rafForm.month), year: parseInt(rafForm.year), prize_name: rafForm.prize_name.trim(), prize_icon: rafForm.prize_icon, prize_value: parseFloat(rafForm.prize_value), prize_image_url: rafForm.prize_image_url.trim() || null };
+    const data = { month: parseInt(rafForm.month), year: parseInt(rafForm.year), prize_name: rafForm.prize_name.trim(), prize_icon: rafForm.prize_icon, prize_value: parseFloat(rafForm.prize_value), prize_image_url: rafForm.prize_image_url.trim() || null, prize_detail: (rafForm.prize_detail || '').trim() || null };
 
     // EDITAR: auditar via ReasonModal.
     if (editRaf) {
@@ -272,6 +272,7 @@ export default function AdminPremios(ctx) {
           prize_icon: editRaf.prize_icon,
           prize_value: editRaf.prize_value,
           prize_image_url: editRaf.prize_image_url || null,
+          prize_detail: editRaf.prize_detail || null,
         },
       });
       setShowRafForm(false);
@@ -564,9 +565,16 @@ export default function AdminPremios(ctx) {
                   <label style={sLbl}>Valor estimado (Q) *</label>
                   <input value={rafForm.prize_value} onChange={e => setRafForm(p => ({ ...p, prize_value: e.target.value.replace(/[^0-9.]/g,'') }))} placeholder="Ej: 15000" inputMode="decimal" style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A' }} />
                 </div>
-                <div style={{ marginTop: 10 }}>
+                <div style={{ marginTop: 10, marginBottom: 14 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#9E9E9E', marginBottom: 6 }}>Imagen real del premio (URL, opcional — si se omite se usa el ícono)</div>
                   <input value={rafForm.prize_image_url} onChange={e => setRafForm(p => ({ ...p, prize_image_url: e.target.value }))} placeholder="https://..." style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A' }} />
+                </div>
+
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#9E9E9E', marginBottom: 6 }}>Detalle para el ganador (opcional — descripción del regalo y dónde recogerlo; SOLO lo ve el ganador en su notificación)</div>
+                  <textarea value={rafForm.prize_detail} onChange={e => setRafForm(p => ({ ...p, prize_detail: e.target.value }))} rows={4}
+                    placeholder="Ej: Bocinas Bluetooth JBL nuevas en caja. Pasá a recogerlas en Turkaj I (7a Av 6-10 Z1) presentando tu código de canje y tu DPI."
+                    style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A', resize: 'vertical', lineHeight: 1.5 }} />
                 </div>
 
                 <div style={{ marginBottom: 20 }}>
