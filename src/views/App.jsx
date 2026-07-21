@@ -198,6 +198,14 @@ export default function App() {
   const [pendingRedeemConfirm, setPendingRedeemConfirm] = useState(null); // { redemptionId, rewardName, rewardIcon, cost } // { operatorId, operatorName }
   const [purchaseConfirm, setPurchaseConfirm] = useState(null); // { client, amt, fuel, onConfirm }
   const [redeemConfirm, setRedeemConfirm]   = useState(null); // { reward, cost }
+  // Cierre animado del sheet de canje: se desliza hacia abajo (inverso
+  // de la apertura) al tocar Cancelar o fuera del componente.
+  const [rcClosing, setRcClosing] = useState(false);
+  const closeRedeemConfirm = () => {
+    if (rcClosing) return;
+    setRcClosing(true);
+    setTimeout(() => { setRedeemConfirm(null); setRcClosing(false); }, 220);
+  };
   const [showSurveys, setShowSurveys] = useState(false);
   const [specialBonusModal, setSpecialBonusModal] = useState({ open: false, events: [], bonus: 0, memberName: '' });
   const [sortDir, setSortDir] = useState('desc');
@@ -1547,16 +1555,17 @@ export default function App() {
 
       {/* ── Modal confirmación de canje (nivel raíz) ── */}
       {redeemConfirm && isC && me && (
-        <div style={{
+        <div onClick={closeRedeemConfirm} style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)',
           zIndex: 400, display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          animation: rcClosing ? 'ppFadeOut .22s ease forwards' : 'ppFade .2s ease',
         }}>
-          <div style={{
-            background: cTier.name === 'BLACK' ? '#0D0D1A' : cTier.name === 'PLATINO' ? '#E8E8E8' : '#fff',
+          <div onClick={e => e.stopPropagation()} style={{
+            background: cTier.name === 'BLACK' ? '#0D0D1A' : '#fff',
             borderRadius: '24px 24px 0 0',
             width: '100%', maxWidth: 480, padding: '12px 24px 40px',
-            boxShadow: '0 -8px 40px rgba(0,0,0,.2)',
-            animation: 'slideUp .3s cubic-bezier(.32,1.2,.64,1)',
+            maxHeight: '88vh', overflowY: 'auto',
+            animation: rcClosing ? 'slideDownOut .22s ease-in forwards' : 'slideUp .3s cubic-bezier(.32,1.2,.64,1)',
           }}>
             <div style={{ width: 40, height: 4, borderRadius: 4, background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.2)' : '#E0E0E0', margin: '0 auto 20px' }} />
 
@@ -1575,6 +1584,26 @@ export default function App() {
               </div>
               <div style={{ fontSize: 13, fontWeight: 600, color: '#9E9E9E' }}>Revisá los detalles antes de confirmar</div>
             </div>
+
+            {/* Detalle largo del premio (rewards.description — qué
+                servicio o bien se adquiere con el canje) */}
+            {redeemConfirm.reward.description && (
+              <div style={{
+                background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.05)' : '#F5F5F7',
+                borderRadius: 16, padding: '14px 16px', marginBottom: 12, textAlign: 'left',
+              }}>
+                <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1, color: '#9E9E9E', marginBottom: 6 }}>
+                  Detalle del premio
+                </div>
+                <div style={{
+                  maxHeight: 130, overflowY: 'auto',
+                  fontSize: 12.5, fontWeight: 600, lineHeight: 1.6, whiteSpace: 'pre-line',
+                  color: cTier.name === 'BLACK' ? '#CFCFCF' : '#48484A',
+                }}>
+                  {redeemConfirm.reward.description}
+                </div>
+              </div>
+            )}
 
             <div style={{ background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.05)' : '#F5F5F7', borderRadius: 16, padding: '16px 20px', marginBottom: 20 }}>
               {[
@@ -1602,7 +1631,7 @@ export default function App() {
             </div>
 
             <div style={{ display: 'flex', gap: 12 }}>
-              <button onClick={() => setRedeemConfirm(null)} style={{
+              <button onClick={closeRedeemConfirm} style={{
                 flex: 1, padding: 16, borderRadius: 14, border: 'none',
                 background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.08)' : '#F5F5F7',
                 color: cTier.name === 'BLACK' ? '#ccc' : '#424242',

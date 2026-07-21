@@ -738,7 +738,9 @@ export default function AdminPremios(ctx) {
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={sLbl}>Descripcion</label>
-              <input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Breve descripcion" style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A' }} />
+              <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={5}
+                placeholder="Detalle del premio: describe el servicio o bien que el cliente adquiere con el canje (se muestra al confirmar el canje)"
+                style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A', resize: 'vertical', lineHeight: 1.5 }} />
             </div>
 
             <div style={{ marginBottom: 14 }}>
