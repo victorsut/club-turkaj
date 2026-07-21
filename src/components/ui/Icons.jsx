@@ -63,6 +63,14 @@ export const Back = () => (
   </svg>
 );
 
+// Flecha con cola (volver — referencia FORMATO GENERAL: glifo suelto sin recuadro)
+export const ArrowLeft = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="19" y1="12" x2="5" y2="12" />
+    <polyline points="12 19 5 12 12 5" />
+  </svg>
+);
+
 export const Check = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="20 6 9 17 4 12" />
@@ -180,5 +188,5 @@ export const Car = () => (
   </svg>
 );
 
-const IC = { Fuel, Users, Gift, Ticket, Star, Plus, Search, Back, Check, Chev, Pin, Clock, Warn, QR, Gear, Logout, GoogleLogo, FacebookLogo, Megaphone, Menu, House, TicketStar, Car };
+const IC = { Fuel, Users, Gift, Ticket, Star, Plus, Search, Back, ArrowLeft, Check, Chev, Pin, Clock, Warn, QR, Gear, Logout, GoogleLogo, FacebookLogo, Megaphone, Menu, House, TicketStar, Car };
 export default IC;

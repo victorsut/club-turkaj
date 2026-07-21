@@ -12,6 +12,7 @@
 //     admin acomoda el texto con Enter y lo ve en el preview en vivo.
 // Ratios: '3:4' (vertical, vista PROMOCIONES en grid de 2 columnas)
 // y '1:1' (cuadro del home: solo título + descripción).
+import { GiftIcon } from './BentoIcons';
 
 const fmtDate = (d) => {
   if (!d) return null;
@@ -72,17 +73,17 @@ export default function PromoCard({ promo, ratio = '3:4', style = {}, onClick })
         />
       )}
 
-      {/* Sin imagen: brillo sutil bento + ícono emoji como sujeto */}
+      {/* Sin imagen: brillo sutil bento + ícono de regalo SVG como
+          sujeto (sin emojis — directiva 21-jul) */}
       {!hasImage && (
         <>
           <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 18% 12%, rgba(255,255,255,.18), transparent 55%)', pointerEvents: 'none' }} />
-          {promo.icon && (
-            <div style={{
-              position: 'absolute', right: c.iconPos.right, bottom: c.iconPos.bottom,
-              fontSize: c.icon, lineHeight: 1, pointerEvents: 'none',
-              filter: 'drop-shadow(0 4px 10px rgba(0,0,0,.25))',
-            }}>{promo.icon}</div>
-          )}
+          <div style={{
+            position: 'absolute', right: c.iconPos.right, bottom: c.iconPos.bottom,
+            lineHeight: 0, pointerEvents: 'none', opacity: 0.9,
+          }}>
+            <GiftIcon size={c.icon} />
+          </div>
         </>
       )}
 

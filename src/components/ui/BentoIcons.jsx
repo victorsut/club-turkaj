@@ -1,15 +1,15 @@
 // src/components/ui/BentoIcons.jsx
 // R1b — Iconos blancos de los tiles del home, fieles a la referencia
 // FORMATO GENERAL (glifos grandes limpios en blanco, no emojis).
-const S = ({ size = 38, children }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+const S = ({ size = 38, color = '#fff', children }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
     {children}
   </svg>
 );
 
 // Regalo (Promociones)
-export const GiftIcon = ({ size }) => (
-  <S size={size}>
+export const GiftIcon = ({ size, color }) => (
+  <S size={size} color={color}>
     <rect x="3.5" y="7.5" width="17" height="4.5" rx="1" />
     <path d="M5.5 12v7a1.5 1.5 0 0 0 1.5 1.5h10a1.5 1.5 0 0 0 1.5-1.5v-7" />
     <path d="M12 7.5v13" />

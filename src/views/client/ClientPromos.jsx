@@ -1,12 +1,19 @@
 // src/views/client/ClientPromos.jsx
-// R1b.2 (D33) — Ventana PROMOCIONES según referencia visual: header
-// con volver, chips Todas/Combustible/Tienda/Servicios, cards 4:3
-// compuestas por código (PromoCard, toda la info) y banner inferior
-// hacia el catálogo de canjes. Se llega tocando el cuadro de
-// Promociones del home; no es pestaña del bottom nav.
+// R1b.4 — Ventana PROMOCIONES con el FORMATO GENERAL (referencia
+// maestra, pantalla 2): flat/minimalista, colores sólidos sin sombras.
+//   · Volver = flecha suelta sin recuadro (feedback 21-jul).
+//   · Chips Todas/Combustible/Tienda/Servicios en UNA fila fija que se
+//     reparte el ancho (sin overflow → sin barra de desplazamiento).
+//   · Cards 3:4 compuestas por código (PromoCard) en grid de 2 columnas.
+//   · Banner inferior al catálogo: cuadro rojo con ícono de regalo SVG
+//     + botón circular negro con chevron (sin emojis).
+// Se llega tocando el cuadro de Promociones del home; no es pestaña
+// del bottom nav.
 import { useState } from 'react';
 import { bento, BRAND_RED } from '../../constants/styles';
 import PromoCard from '../../components/ui/PromoCard';
+import { GiftIcon } from '../../components/ui/BentoIcons';
+import { ArrowLeft, Chev } from '../../components/ui/Icons';
 import { originFromEvent } from '../../lib/motionOrigin';
 
 const CHIPS = [
@@ -30,33 +37,33 @@ export default function ClientPromos(ctx) {
 
   return (
     <div style={{ minHeight: '100vh', background: isBlack ? 'transparent' : bento.pageBg, paddingBottom: 100 }}>
-      {/* Header: volver + título centrado (referencia) */}
-      <div style={{ display: 'flex', alignItems: 'center', padding: '16px 14px 8px' }}>
+      {/* Header: flecha suelta + título centrado (FORMATO GENERAL) */}
+      <div style={{ display: 'flex', alignItems: 'center', padding: '18px 16px 10px' }}>
         <button onClick={() => setCScr('home')} aria-label="Volver" style={{
-          width: 42, height: 42, borderRadius: 12, border: 'none', cursor: 'pointer',
-          background: isBlack ? 'rgba(255,255,255,.08)' : '#fff', color: headerTxt,
-          fontSize: 20, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: isBlack ? 'none' : '0 2px 8px rgba(0,0,0,.08)', flexShrink: 0,
+          width: 40, height: 40, border: 'none', cursor: 'pointer',
+          background: 'none', color: headerTxt, padding: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
         }}>
-          ←
+          <ArrowLeft />
         </button>
-        <div style={{ flex: 1, textAlign: 'center', fontSize: 18, fontWeight: 900, color: headerTxt, marginRight: 42 }}>
+        <div style={{ flex: 1, textAlign: 'center', fontSize: 18, fontWeight: 800, color: headerTxt, marginRight: 40 }}>
           Promociones
         </div>
       </div>
 
-      {/* Chips de categorías */}
-      <div style={{ display: 'flex', gap: 8, padding: '8px 14px 14px', overflowX: 'auto' }}>
+      {/* Chips de categorías: una sola fila que se reparte el ancho —
+          nunca desborda, nunca muestra barra de desplazamiento */}
+      <div style={{ display: 'flex', gap: 7, padding: '6px 14px 16px' }}>
         {CHIPS.map(c => {
           const on = chip === c.v;
           return (
             <button key={c.v} onClick={() => setChip(c.v)} style={{
-              padding: '9px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
+              flex: '1 1 0', minWidth: 0, padding: '10px 2px', borderRadius: 12,
+              border: 'none', cursor: 'pointer', textAlign: 'center',
               background: on ? BRAND_RED : (isBlack ? 'rgba(255,255,255,.08)' : '#fff'),
-              color: on ? '#fff' : (isBlack ? 'rgba(255,255,255,.75)' : '#424242'),
-              fontFamily: "'DM Sans'", fontSize: 12.5, fontWeight: 800, whiteSpace: 'nowrap',
-              boxShadow: isBlack ? 'none' : '0 2px 8px rgba(0,0,0,.06)',
-              transition: 'background .2s, color .2s', flexShrink: 0,
+              color: on ? '#fff' : (isBlack ? 'rgba(255,255,255,.75)' : '#3A3A3C'),
+              fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+              transition: 'background .2s, color .2s',
             }}>
               {c.label}
             </button>
@@ -68,7 +75,9 @@ export default function ClientPromos(ctx) {
           (orientación de la referencia) — toda la información */}
       {visible.length === 0 && (
         <div style={{ textAlign: 'center', padding: '48px 20px', color: subTxt }}>
-          <div style={{ fontSize: 34, marginBottom: 10 }}>🎁</div>
+          <div style={{ marginBottom: 12, lineHeight: 0, display: 'flex', justifyContent: 'center' }}>
+            <GiftIcon size={44} color={subTxt} />
+          </div>
           <div style={{ fontSize: 14, fontWeight: 700 }}>
             {chip === 'todas' ? 'Pronto habrá promociones para vos' : 'Sin promociones en esta categoría por ahora'}
           </div>
@@ -76,14 +85,14 @@ export default function ClientPromos(ctx) {
       )}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: '0 14px' }}>
         {visible.map((p, i) => (
-          <div key={p.id} className="pp-tile" style={{ animationDelay: `${i * 60}ms`, boxShadow: bento.shadow, borderRadius: 20 }}>
+          <div key={p.id} className="pp-tile" style={{ animationDelay: `${i * 60}ms`, borderRadius: 20 }}>
             <PromoCard promo={p} ratio="3:4" />
           </div>
         ))}
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '12px 14px 0' }}>
-        {/* Banner inferior: canje de premios (referencia) */}
+      {/* Banner inferior: canje de premios (referencia — flat, sin emojis) */}
+      <div style={{ padding: '12px 14px 0' }}>
         <div
           className="pp-tile"
           onClick={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('cat'); }}
@@ -91,18 +100,30 @@ export default function ClientPromos(ctx) {
             animationDelay: `${visible.length * 60}ms`,
             display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer',
             background: isBlack ? 'rgba(255,255,255,.06)' : '#fff', borderRadius: 20,
-            padding: '18px 18px', boxShadow: bento.shadow, marginTop: 4,
+            padding: '16px 16px', marginTop: 4,
           }}
         >
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 15, fontWeight: 900, color: headerTxt, lineHeight: 1.3 }}>
+          <div style={{
+            width: 46, height: 46, borderRadius: 14, flexShrink: 0,
+            background: bento.red, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <GiftIcon size={26} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: headerTxt, lineHeight: 1.25 }}>
               Canjea tus puntos por increíbles premios
             </div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: subTxt, marginTop: 4 }}>
-              Ver catálogo ›
+            <div style={{ fontSize: 12, fontWeight: 600, color: subTxt, marginTop: 3 }}>
+              Ver catálogo
             </div>
           </div>
-          <div style={{ fontSize: 36, flexShrink: 0 }}>🎁</div>
+          <div style={{
+            width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
+            background: isBlack ? '#fff' : '#0D0D0D', color: isBlack ? '#0D0D0D' : '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Chev />
+          </div>
         </div>
       </div>
     </div>
