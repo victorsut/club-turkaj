@@ -43,6 +43,7 @@ import UpdateAvailable from '../components/UpdateAvailable';
 import { Fuel, Users, Gift, Ticket, Clock, Gear, Megaphone, Menu, House, TicketStar, Car } from '../components/ui/Icons';
 import Toast from '../components/ui/Toast';
 import RewardIcon from '../components/ui/RewardIcon';
+import RaffleWinnerModal from '../components/RaffleWinnerModal';
 
 // Auth Views
 import ClientLogin from './client/ClientLogin';
@@ -205,6 +206,18 @@ export default function App() {
     setRcClosing(true);
     setTimeout(() => { setRedeemConfirm(null); setRcClosing(false); }, 220);
   };
+  // R1b.4 Rifa — modal de ganador: si el sorteo (draw_due_raffles) me
+  // marcó ganador de una rifa que aún no he visto, felicitar UNA vez.
+  const [raffleWin, setRaffleWin] = useState(null);
+  useEffect(() => {
+    if (!me?.id || !raffleCal.length) return;
+    try {
+      const win = raffleCal.find(r => r?.winnerId === me.id && r.drawnAt && r.dbId
+        && !localStorage.getItem(`pp_rafwin_${r.dbId}`));
+      if (win) setRaffleWin(win);
+    } catch { /* localStorage no disponible */ }
+  }, [me?.id, raffleCal]);
+
   // Cierre animado del sheet del código QR (misma regla).
   const [qrClosing, setQrClosing] = useState(false);
   const closeQR = () => {
@@ -360,6 +373,12 @@ export default function App() {
 
     async function loadFromSupabase() {
       try {
+        // Sorteo perezoso de rifas: si un mes terminó sin ganador, se
+        // sortea acá (ponderado por boletos, idempotente — ver migration
+        // 20260721_rifa_sorteo). Debe correr ANTES de leer raffle_calendar
+        // para que winner_id/drawn_at lleguen frescos.
+        try { await sb.rpc('draw_due_raffles'); } catch (e) { console.warn('[Raffle] draw_due_raffles:', e?.message); }
+
         const [rwRes, prRes, stRes, cfgRes, rcRes] = await Promise.all([
           sb.from('rewards').select('*').order('sort_order'),
           sb.from('promotions').select('*').order('sort_order'),
@@ -432,10 +451,25 @@ export default function App() {
 
         if (rcRes.data?.length > 0) {
           const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-          setRaffleCal(rcRes.data.map(r => ({
-            m: months[r.month - 1], p: `${r.prize_icon} ${r.prize_name}`,
-            v: `Q${r.prize_value}`, cost: r.prize_value, dbId: r.id,
-          })));
+          // 12 slots por índice de mes (0-11) del AÑO EN CURSO: los
+          // consumidores indexan raffleCal[curMonth]. Incluye ganador,
+          // fecha de sorteo e imagen real del premio (R1b.4 Rifa).
+          const yr = new Date().getFullYear();
+          const cal = months.map((m, i) => ({
+            m, p: '—', name: null, icon: null, img: null,
+            v: 'Q0', cost: 0, dbId: null, month: i + 1, year: yr,
+            winnerId: null, drawnAt: null,
+          }));
+          rcRes.data.filter(r => !r.year || r.year === yr).forEach(r => {
+            cal[r.month - 1] = {
+              m: months[r.month - 1], p: `${r.prize_icon} ${r.prize_name}`,
+              name: r.prize_name, icon: r.prize_icon, img: r.prize_image_url || null,
+              v: `Q${r.prize_value}`, cost: r.prize_value, dbId: r.id,
+              month: r.month, year: r.year || yr,
+              winnerId: r.winner_id || null, drawnAt: r.drawn_at || null,
+            };
+          });
+          setRaffleCal(cal);
         }
 
         // Load members (with fallback if join fails)
@@ -514,19 +548,20 @@ export default function App() {
           })));
         }
 
-        // Load raffle entries — join con raffle_calendar para obtener el mes
-        // Usamos los IDs de raffle_calendar ya cargados para mapear correctamente
-        // Cargar raffle_entries sin join — el nombre se resuelve desde custs o members
-        const reRes = await sb.from('raffle_entries')
-          .select('member_id, raffle_id, tickets')
-          .order('created_at', { ascending: false });
+        // Load raffle tickets — FUENTE REAL de boletos comprados: la
+        // tabla que llena el RPC buy_raffle_tickets es raffle_tickets
+        // (raffle_entries quedó obsoleta y por eso "Mis boletos" volvía
+        // a cero al recargar). El nombre se resuelve desde members.
+        const reRes = await sb.from('raffle_tickets')
+          .select('member_id, raffle_id, quantity');
 
-        console.log('[Raffle] raffle_entries:', reRes.error?.message || `${reRes.data?.length ?? 0} filas`);
+        console.log('[Raffle] raffle_tickets:', reRes.error?.message || `${reRes.data?.length ?? 0} filas`);
 
         if (!reRes.error && reRes.data?.length > 0 && rcRes.data?.length > 0) {
-          // mapa raffle_id → month 0-indexed
+          // mapa raffle_id → month 0-indexed (solo año en curso)
+          const yrNow = new Date().getFullYear();
           const idToMonth = {};
-          rcRes.data.forEach(r => { idToMonth[r.id] = r.month - 1; });
+          rcRes.data.filter(r => !r.year || r.year === yrNow).forEach(r => { idToMonth[r.id] = r.month - 1; });
 
           // mapa member_id → name desde la carga de members ya hecha arriba
           const idToName = {};
@@ -541,11 +576,11 @@ export default function App() {
             const ps  = rafMap[month].participants;
             const ex  = ps.findIndex(p => p.cid === e.member_id);
             const name = idToName[e.member_id] || 'Miembro';
-            if (ex >= 0) ps[ex].tickets += e.tickets || 1;
-            else ps.push({ cid: e.member_id, name, tickets: e.tickets || 1 });
+            if (ex >= 0) ps[ex].tickets += e.quantity || 1;
+            else ps.push({ cid: e.member_id, name, tickets: e.quantity || 1 });
           });
           setRafData(rafMap);
-          console.log('[Raffle] ✅ rafData listo:', reRes.data.length, 'entradas');
+          console.log('[Raffle] ✅ rafData listo:', reRes.data.length, 'compras');
         } else if (reRes.error) {
           console.error('[Raffle] Error:', reRes.error.message);
         }
@@ -1116,6 +1151,7 @@ export default function App() {
       .from('raffle_calendar')
       .select('id')
       .eq('month', curMonth + 1)
+      .eq('year', new Date().getFullYear())
       .maybeSingle();
 
     if (rafErr || !rafRow?.id) {
@@ -1806,6 +1842,19 @@ export default function App() {
 
       {/* Toast (FORMATO GENERAL — severidad e ícono en Toast.jsx) */}
       <Toast toast={toast} />
+
+      {/* ── Modal de ganador de la rifa mensual (R1b.4) ── */}
+      {raffleWin && isC && me && (
+        <RaffleWinnerModal
+          cal={raffleWin}
+          name={me.name}
+          isBlack={cTier.name === 'BLACK'}
+          onClose={() => {
+            try { localStorage.setItem(`pp_rafwin_${raffleWin.dbId}`, '1'); } catch { /* noop */ }
+            setRaffleWin(null);
+          }}
+        />
+      )}
 
       {/* ── Modal celebrativo de bono por día especial (FB.6.2c) ── */}
       <SpecialDayBonusModal

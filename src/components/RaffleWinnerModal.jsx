@@ -1,0 +1,83 @@
+// src/components/RaffleWinnerModal.jsx
+// R1b.4 Rifa — Modal de felicitación al ganador del sorteo mensual
+// (análogo al modal de bono por día festivo). Aparece UNA sola vez por
+// rifa ganada (flag en localStorage, lo maneja App.jsx) la primera vez
+// que el ganador abre la app tras el sorteo — típicamente al día
+// siguiente del cierre del mes. FORMATO GENERAL: flat, sin emojis;
+// imagen real del premio si existe, si no el ícono SVG adecuado.
+import { bento, BRAND_RED } from '../constants/styles';
+import { rewardIconFor } from './ui/RewardIcon';
+
+export default function RaffleWinnerModal({ cal, name, isBlack = false, onClose }) {
+  if (!cal) return null;
+  const PrizeIcon = rewardIconFor({ name: cal.name || '', icon: cal.icon || '' });
+  const firstName = (name || '').trim().split(' ')[0] || 'cliente';
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,.65)',
+      zIndex: 320, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: 20, animation: 'ppFade .25s ease',
+    }}>
+      <div className="pp-grow" style={{
+        background: isBlack ? '#101018' : '#fff',
+        borderRadius: 24, maxWidth: 360, width: '100%', padding: '26px 22px',
+        textAlign: 'center',
+      }}>
+        {/* Banda kicker de celebración */}
+        <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, color: BRAND_RED }}>
+          Rifa de {cal.m}
+        </div>
+        <div style={{ fontSize: 22, fontWeight: 800, color: isBlack ? '#fff' : '#0D0D0D', marginTop: 4 }}>
+          ¡Felicidades, {firstName}!
+        </div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: isBlack ? 'rgba(255,255,255,.55)' : '#6E6E73', marginTop: 2, marginBottom: 16 }}>
+          Ganaste el sorteo de este mes
+        </div>
+
+        {/* Premio: imagen real o ícono SVG en cuadro rojo */}
+        {cal.img ? (
+          <img src={cal.img} alt={cal.name || 'Premio'} style={{
+            width: '100%', maxWidth: 240, aspectRatio: '4 / 3', objectFit: 'cover',
+            borderRadius: 16, margin: '0 auto 12px', display: 'block',
+          }} />
+        ) : (
+          <div style={{
+            width: 64, height: 64, borderRadius: 18, margin: '0 auto 12px',
+            background: bento.red, color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <div style={{ transform: 'scale(1.6)', lineHeight: 0 }}><PrizeIcon /></div>
+          </div>
+        )}
+        <div style={{ fontSize: 18, fontWeight: 800, color: isBlack ? '#fff' : '#0D0D0D' }}>
+          {cal.name || 'Premio'}
+        </div>
+        {cal.v && cal.v !== 'Q0' && (
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: isBlack ? 'rgba(255,255,255,.55)' : '#6E6E73', marginTop: 2 }}>
+            Valorado en {cal.v}
+          </div>
+        )}
+
+        {/* Cómo recibirlo */}
+        <div style={{
+          background: isBlack ? 'rgba(255,255,255,.06)' : '#F5F5F7',
+          borderRadius: 14, padding: '12px 14px', margin: '16px 0 18px',
+          fontSize: 12.5, fontWeight: 600, lineHeight: 1.55,
+          color: isBlack ? '#CFCFCF' : '#48484A',
+        }}>
+          Tu premio ya está en tus canjes pendientes. Presentá el código en
+          cualquier estación Turkaj para recibirlo.
+        </div>
+
+        <button onClick={onClose} style={{
+          width: '100%', padding: 15, borderRadius: 14, border: 'none',
+          background: BRAND_RED, color: '#fff',
+          fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 800, cursor: 'pointer',
+        }}>
+          Entendido
+        </button>
+      </div>
+    </div>
+  );
+}
