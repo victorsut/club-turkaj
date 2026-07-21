@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { sMono, bento } from '../../constants/styles';
 import { ArrowLeft, Gift, Clock, Fuel, Ticket, Cake, Car, Clipboard, StarLine } from '../../components/ui/Icons';
 import RewardIcon, { rewardIconFor } from '../../components/ui/RewardIcon';
+import ChipScroller from '../../components/ui/ChipScroller';
 
 const CLOSE_MS = 200; // duración de ppGrowOut (+ margen) antes de desmontar
 
@@ -203,26 +204,27 @@ export default function HistorySheet({ type, origin, tint, onClose, acts, redeem
         ))}
       </div>
 
-      {/* Selector de mes (solo meses con movimientos) — wrap, sin scroll */}
+      {/* Selector de mes (solo meses con movimientos) — chips
+          desplazables sin barra visible (ChipScroller) */}
       {mode === 'mes' && months.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, padding: '2px 14px 10px' }}>
+        <ChipScroller padding="2px 14px 10px">
           {months.map(ym => (
             <button key={ym} onClick={() => setSelMonth(ym)} style={subChip(selMonth === ym)}>
               {monthLabel(ym)}
             </button>
           ))}
-        </div>
+        </ChipScroller>
       )}
 
-      {/* Selector de año (solo años con movimientos) — wrap, sin scroll */}
+      {/* Selector de año (solo años con movimientos) */}
       {mode === 'anio' && years.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, padding: '2px 14px 10px' }}>
+        <ChipScroller padding="2px 14px 10px">
           {years.map(y => (
             <button key={y} onClick={() => setSelYear(y)} style={subChip(selYear === y)}>
               {y}
             </button>
           ))}
-        </div>
+        </ChipScroller>
       )}
       </>)}
 

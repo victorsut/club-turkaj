@@ -143,6 +143,12 @@ body {
   .pp-bento-row .pp-bento-ico svg { width: 28px; height: 28px; }
 }
 
+/* R1b.4 — Chips desplazables (FORMATO GENERAL): scroll horizontal sin
+   barra visible; el desvanecido de bordes lo pinta ChipScroller.jsx */
+.pp-chip-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+.pp-chip-scroll::-webkit-scrollbar { display: none; }
+.pp-chip-scroll > * { scroll-snap-align: start; flex-shrink: 0; }
+
 /* ===== Scrollbar ===== */
 ::-webkit-scrollbar       { width: 3px; }
 ::-webkit-scrollbar-thumb { background: #E0E0E0; border-radius: 2px; }

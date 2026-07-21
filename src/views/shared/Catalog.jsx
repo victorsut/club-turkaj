@@ -6,6 +6,7 @@
 // un cuadro de color sólido por categoría. BLACK conserva su galaxia.
 import { bento, BRAND_RED, CAT_LABELS, CAT_COLORS } from '../../constants/styles';
 import RewardIcon from '../../components/ui/RewardIcon';
+import ChipScroller from '../../components/ui/ChipScroller';
 
 export default function Catalog(ctx) {
   const { rewards, me, gT, cfg, cTier, catF, setCatF, redeem, setRedeemConfirm, client = true } = ctx;
@@ -34,8 +35,9 @@ export default function Catalog(ctx) {
         )}
       </div>
 
-      {/* Filtros por categoría — wrap, sin barra de desplazamiento */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, padding: '10px 14px 16px', justifyContent: 'center' }}>
+      {/* Filtros por categoría — chips desplazables sin barra visible
+          (ChipScroller: desvanecido en bordes = hay más) */}
+      <ChipScroller padding="10px 14px 16px">
         {cats.map(c => {
           const on = catF === c;
           return (
@@ -50,7 +52,7 @@ export default function Catalog(ctx) {
             </button>
           );
         })}
-      </div>
+      </ChipScroller>
 
       {/* Grid de premios — cards flat sin borde */}
       <div style={{ padding: '0 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
