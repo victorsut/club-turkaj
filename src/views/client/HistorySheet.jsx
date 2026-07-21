@@ -6,7 +6,7 @@
 // Entra desde su tile (container transform D35) y se guarda al cerrar.
 import { useState } from 'react';
 import { sMono } from '../../constants/styles';
-import { Back } from '../../components/ui/Icons';
+import { ArrowLeft } from '../../components/ui/Icons';
 
 const CLOSE_MS = 200; // duración de ppGrowOut (+ margen) antes de desmontar
 
@@ -121,8 +121,8 @@ export default function HistorySheet({ type, origin, tint, onClose, acts, redeem
         padding: '16px 20px 10px', display: 'flex', alignItems: 'center', gap: 10,
         borderBottom: `1px solid ${TH.border}`,
       }}>
-        <button onClick={close} style={{ background: 'none', border: 'none', color: TH.sub, cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 4 }}>
-          <Back />
+        <button onClick={close} aria-label="Volver" style={{ background: 'none', border: 'none', color: TH.header, cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 4 }}>
+          <ArrowLeft />
         </button>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 18, fontWeight: 900, color: TH.header }}>

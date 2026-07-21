@@ -389,8 +389,8 @@ export default function ClientHome(ctx) {
           lista de beneficios con iconos SVG. */}
       {showTierDetail && (
         <GrowModal onClose={() => setShowTierDetail(false)} origin={mOrigin} tint={mTint}
-          background={isBlack ? '#101018' : '#fff'}>
-          {(close) => (<>
+          background={isBlack ? '#101018' : '#fff'} arrowColor="#fff">
+          {() => (<>
             {/* Banda de identidad del nivel (centrada — feedback 21-jul) */}
             <div style={{ background: tierTint, color: '#fff', padding: '22px 20px 18px', position: 'relative', overflow: 'hidden', textAlign: 'center' }}>
               {isBlack && <GalaxyDust n={10} />}
@@ -423,15 +423,6 @@ export default function ClientHome(ctx) {
                   Faltan {cTier.rem} galones para {cTier.next}
                 </div>
               )}
-              <button onClick={close} style={{
-                width: '100%', marginTop: 14, padding: 14, borderRadius: 14,
-                background: isBlack ? 'rgba(255,255,255,.08)' : '#F5F5F7',
-                border: 'none',
-                fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700,
-                color: isBlack ? '#ccc' : '#424242', cursor: 'pointer',
-              }}>
-                Cerrar
-              </button>
             </div>
           </>)}
         </GrowModal>
@@ -441,8 +432,9 @@ export default function ClientHome(ctx) {
       {showWifi && (
         <GrowModal onClose={() => setShowWifi(false)} origin={mOrigin} tint={mTint}
           background={isBlack ? '#1A1A2E' : '#fff'} maxWidth={340}
-          style={{ padding: '26px 22px', textAlign: 'center' }}>
-          {(close) => (<>
+          arrowColor={isBlack ? '#fff' : '#0D0D0D'}
+          style={{ padding: '30px 22px 26px', textAlign: 'center' }}>
+          {() => (<>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
               <WifiIcon size={38} color={isBlack ? '#64B5F6' : '#1565C0'} />
             </div>
@@ -461,15 +453,6 @@ export default function ClientHome(ctx) {
             }}>
               {displayCode}
             </div>
-            <button onClick={close} style={{
-              width: '100%', marginTop: 14, padding: 14, borderRadius: 14,
-              background: isBlack ? 'rgba(255,255,255,.08)' : '#F5F5F7',
-              border: 'none',
-              fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700,
-              color: isBlack ? '#ccc' : '#424242', cursor: 'pointer',
-            }}>
-              Cerrar
-            </button>
           </>)}
         </GrowModal>
       )}
@@ -490,8 +473,9 @@ export default function ClientHome(ctx) {
       {showMap && (
         <GrowModal onClose={() => setShowMap(false)} origin={mOrigin} tint={mTint}
           background={cTier.name === 'BLACK' ? '#1A1A2E' : '#fff'} maxHeight="86vh"
+          arrowColor={cTier.name === 'BLACK' ? '#fff' : '#0D0D0D'}
           style={{ padding: '24px 20px' }}>
-          {(close) => (<>
+          {() => (<>
             <div style={{ textAlign: 'center', marginBottom: 20 }}>
               <div style={{ fontSize: 36, marginBottom: 8 }}>⛽</div>
               <div style={{ fontSize: 20, fontWeight: 900, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D' }}>
@@ -559,16 +543,6 @@ export default function ClientHome(ctx) {
               </div>
             ))}
 
-            <button onClick={close} style={{
-              width: '100%', marginTop: 16, padding: 14, borderRadius: 14,
-              background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.08)' : '#F5F5F7',
-              border: 'none',
-              fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700,
-              color: cTier.name === 'BLACK' ? '#ccc' : '#424242',
-              cursor: 'pointer',
-            }}>
-              Cerrar
-            </button>
           </>)}
         </GrowModal>
       )}
@@ -577,6 +551,7 @@ export default function ClientHome(ctx) {
       {showSurveys && (
         <GrowModal onClose={() => setShowSurveys(false)} origin={mOrigin} tint={mTint}
           background={cTier.name === 'BLACK' ? '#1A1A2E' : '#fff'} maxHeight="88vh"
+          arrowColor={cTier.name === 'BLACK' ? '#fff' : '#0D0D0D'}
           style={{ padding: '24px 20px' }}>
           {(close) => (<>
             <div style={{ textAlign: 'center', marginBottom: 16 }}>
@@ -697,16 +672,20 @@ export default function ClientHome(ctx) {
               </div>
             )}
 
-            <button onClick={() => { if (surveyPending) setSurveyPending(null); close(); }} style={{
-              width: '100%', marginTop: 8, padding: 14, borderRadius: 14,
-              background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.08)' : '#F5F5F7',
-              border: 'none',
-              fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700,
-              color: cTier.name === 'BLACK' ? '#ccc' : '#424242',
-              cursor: 'pointer',
-            }}>
-              {surveyPending ? 'Cancelar' : 'Cerrar'}
-            </button>
+            {/* Sin botón "Cerrar": la salida es la flecha del GrowModal.
+                Con encuesta pendiente queda "Cancelar" para abortarla. */}
+            {surveyPending && (
+              <button onClick={() => { setSurveyPending(null); close(); }} style={{
+                width: '100%', marginTop: 8, padding: 14, borderRadius: 14,
+                background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.08)' : '#F5F5F7',
+                border: 'none',
+                fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700,
+                color: cTier.name === 'BLACK' ? '#ccc' : '#424242',
+                cursor: 'pointer',
+              }}>
+                Cancelar
+              </button>
+            )}
           </>)}
         </GrowModal>
       )}
