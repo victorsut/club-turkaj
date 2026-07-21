@@ -514,6 +514,16 @@ export default function ClientHome(ctx) {
                   <div style={{ fontSize: 12, fontWeight: 600, color: cTier.name === 'BLACK' ? 'rgba(255,255,255,.5)' : '#6E6E73', marginTop: 3, lineHeight: 1.4 }}>
                     {s.address || 'Dirección no disponible'}
                   </div>
+                  {/* Horario de atención (stations.schedule — dato de empresa) */}
+                  {s.schedule && (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 5, marginTop: 5,
+                      fontSize: 11.5, fontWeight: 700,
+                      color: cTier.name === 'BLACK' ? '#C79BE8' : bento.purple,
+                    }}>
+                      <Clock /> {s.schedule}
+                    </div>
+                  )}
                   {/* Navegación: chips sólidos flat (sin emojis) */}
                   {(s.lat && s.lng) && (
                     <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
