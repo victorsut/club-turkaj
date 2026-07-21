@@ -338,7 +338,7 @@ export default function ClientHome(ctx) {
 
         {/* 4 · Encuesta de Satisfacción (sustituye a "Encuentra Shell" — D34) */}
         <BentoTile
-          index={3} color={bento.amber} icon={<SurveyIcon />} title="Encuesta"
+          index={3} color={bento.amber} icon={<SurveyIcon />} title="Encuesta de Satisfacción"
           sub={mySurveyCount >= cfg.surveyDaily
             ? 'Completaste las de hoy'
             : `${mySurveyCount}/${cfg.surveyDaily} hoy · +${cfg.surveyPts} pts c/u`}
@@ -557,10 +557,10 @@ export default function ClientHome(ctx) {
                 color sólido del cuadro Encuesta, centrada) */}
             <div style={{ background: bento.amber, color: '#fff', padding: '22px 20px 18px', textAlign: 'center' }}>
               <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.5, opacity: 0.85 }}>
-                Encuesta de satisfacción
+                Califica nuestro servicio
               </div>
-              <div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1.15, letterSpacing: 0.5 }}>
-                Encuesta Shell
+              <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.2, letterSpacing: 0.3 }}>
+                Encuesta de Satisfacción
               </div>
               <div style={{ fontSize: 12, fontWeight: 700, opacity: 0.9, marginTop: 2 }}>
                 {mySurveyCount}/{cfg.surveyDaily} hoy · +{cfg.surveyPts} pts por encuesta
