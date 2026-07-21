@@ -161,6 +161,112 @@ export const Menu = () => (
   </svg>
 );
 
+// ── Iconos de premios (canjes por tipo: combustible, lavado, café…) ──
+export const Coffee = () => (
+  <svg {...s}>
+    <path d="M17 8h1a3 3 0 0 1 0 6h-1" />
+    <path d="M3 8h14v7a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z" />
+    <line x1="6.5" y1="2.5" x2="6.5" y2="5" />
+    <line x1="10" y1="2.5" x2="10" y2="5" />
+    <line x1="13.5" y1="2.5" x2="13.5" y2="5" />
+  </svg>
+);
+
+export const Soda = () => (
+  <svg {...s}>
+    <path d="M6 8l1.5 12.6a1 1 0 0 0 1 .9h7a1 1 0 0 0 1-.9L18 8" />
+    <path d="M5 8h14" />
+    <path d="M12 8l2.5-5.5L17 3.5" />
+  </svg>
+);
+
+// Gotas (lavado de vehículo)
+export const Drops = () => (
+  <svg {...s}>
+    <path d="M10 3.5S5 9.4 5 12.8a5 5 0 0 0 10 0C15 9.4 10 3.5 10 3.5z" />
+    <path d="M18.5 13s-2.5 3-2.5 4.7a2.5 2.5 0 0 0 5 0c0-1.7-2.5-4.7-2.5-4.7z" />
+  </svg>
+);
+
+export const Shirt = () => (
+  <svg {...s}>
+    <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z" />
+  </svg>
+);
+
+export const Gamepad = () => (
+  <svg {...s}>
+    <rect x="2" y="6" width="20" height="12" rx="4" />
+    <line x1="6" y1="12" x2="10" y2="12" />
+    <line x1="8" y1="10" x2="8" y2="14" />
+    <line x1="15" y1="13" x2="15.01" y2="13" />
+    <line x1="18" y1="11" x2="18.01" y2="11" />
+  </svg>
+);
+
+export const Headphones = () => (
+  <svg {...s}>
+    <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+    <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+  </svg>
+);
+
+export const Tv = () => (
+  <svg {...s}>
+    <rect x="2" y="7" width="20" height="13" rx="2" />
+    <polyline points="17 2 12 7 7 2" />
+  </svg>
+);
+
+export const Speaker = () => (
+  <svg {...s}>
+    <rect x="5" y="2" width="14" height="20" rx="2" />
+    <circle cx="12" cy="14" r="4" />
+    <line x1="12" y1="6" x2="12.01" y2="6" />
+  </svg>
+);
+
+export const Key = () => (
+  <svg {...s}>
+    <circle cx="7.5" cy="15.5" r="4" />
+    <path d="m10.3 12.7 9.2-9.2" />
+    <path d="M21 5l-2-2" />
+    <path d="M15.5 7.5l2 2" />
+  </svg>
+);
+
+export const Ball = () => (
+  <svg {...s}>
+    <circle cx="12" cy="12" r="9.5" />
+    <path d="M12 7.5l-4.3 3.1 1.65 5h5.3l1.65-5z" />
+    <path d="M12 2.5v5M4.5 6.8l3.2 3.8M19.5 6.8l-3.2 3.8M6.6 20l2.75-4.4M17.4 20l-2.75-4.4" />
+  </svg>
+);
+
+export const Utensils = () => (
+  <svg {...s}>
+    <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
+    <path d="M7 2v20" />
+    <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7" />
+  </svg>
+);
+
+// Portapapeles pequeño (encuestas en historiales)
+export const Clipboard = () => (
+  <svg {...s}>
+    <rect x="5" y="4" width="14" height="17" rx="2" />
+    <path d="M9.5 4V3a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1" />
+    <path d="M8.5 10h7M8.5 13.5h7M8.5 17h4" />
+  </svg>
+);
+
+// Estrella en línea (registro en historiales)
+export const StarLine = () => (
+  <svg {...s}>
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  </svg>
+);
+
 // Tache (errores — toasts)
 export const XMark = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -251,5 +357,5 @@ export const Car = () => (
   </svg>
 );
 
-const IC = { Fuel, Users, Gift, Ticket, Star, Plus, Search, Back, ArrowLeft, Check, Chev, Pin, Clock, Warn, XMark, Info, QR, Gear, Logout, GoogleLogo, FacebookLogo, Megaphone, Menu, Percent, Tag, Wifi, Door, Cake, House, TicketStar, Car };
+const IC = { Fuel, Users, Gift, Ticket, Star, Plus, Search, Back, ArrowLeft, Check, Chev, Pin, Clock, Warn, XMark, Info, QR, Gear, Logout, GoogleLogo, FacebookLogo, Megaphone, Menu, Percent, Tag, Wifi, Door, Cake, House, TicketStar, Car, Coffee, Soda, Drops, Shirt, Gamepad, Headphones, Tv, Speaker, Key, Ball, Utensils, Clipboard, StarLine };
 export default IC;

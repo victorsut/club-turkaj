@@ -6,15 +6,21 @@
 // Entra desde su tile (container transform D35) y se guarda al cerrar.
 import { useState } from 'react';
 import { sMono, bento } from '../../constants/styles';
-import { ArrowLeft, Gift, Clock } from '../../components/ui/Icons';
+import { ArrowLeft, Gift, Clock, Fuel, Ticket, Cake, Car, Clipboard, StarLine } from '../../components/ui/Icons';
+import RewardIcon, { rewardIconFor } from '../../components/ui/RewardIcon';
 
 const CLOSE_MS = 200; // duración de ppGrowOut (+ margen) antes de desmontar
 
-// Icono por tipo de movimiento (libro mayor de puntos)
-const TYPE_ICON = {
-  compra: '⛽', canje: '🎁', rifa: '🎟️',
-  encuesta: '📋', evento: '🎉', registro: '⭐',
-  registro_vehiculos: '🚗',
+// Icono SVG por tipo de movimiento (libro mayor de puntos — sin emojis).
+// Los canjes intentan resolver el ícono del PREMIO desde la descripción.
+const TYPE_ICONS = {
+  compra: Fuel, canje: Gift, rifa: Ticket,
+  encuesta: Clipboard, evento: Cake, registro: StarLine,
+  registro_vehiculos: Car,
+};
+const actIconFor = (a) => {
+  if (a.type === 'canje') return rewardIconFor({ name: a.desc || '' });
+  return TYPE_ICONS[a.type] || StarLine;
 };
 
 const MES_CORTO = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -242,25 +248,28 @@ export default function HistorySheet({ type, origin, tint, onClose, acts, redeem
               const day = itemDay(a.date);
               const pts = parseInt(a.pts, 10) || 0;
               const pos = pts > 0;
+              const ActIcon = actIconFor(a);
+              const good = isBlack ? '#7CD98F' : bento.green;
+              const bad = isBlack ? '#FF8A80' : bento.red;
               return (
                 <div key={i} style={{
                   display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
-                  background: TH.surface, borderRadius: 14, marginBottom: 8,
-                  border: `1px solid ${TH.border}`,
+                  background: TH.surface, borderRadius: 16, marginBottom: 8,
                   animation: `slideIn .3s ${Math.min(i, 10) * 0.03}s both`,
                 }}>
                   <div style={{
                     width: 38, height: 38, borderRadius: 11, flexShrink: 0,
-                    background: pos ? 'rgba(46,125,50,.12)' : 'rgba(198,40,40,.12)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17,
+                    background: pos ? 'rgba(30,122,51,.12)' : 'rgba(214,40,26,.10)',
+                    color: pos ? good : bad,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    {TYPE_ICON[a.type] || '⭐'}
+                    <ActIcon />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 700, color: TH.txt, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.desc}</div>
                     <div style={{ fontSize: 10, color: TH.sub, ...sMono, marginTop: 2 }}>{day}</div>
                   </div>
-                  <div style={{ ...sMono, fontSize: 13, fontWeight: 800, color: pos ? '#2E7D32' : '#C62828', flexShrink: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: pos ? good : bad, flexShrink: 0 }}>
                     {pos ? '+' : ''}{pts}
                   </div>
                 </div>
@@ -277,7 +286,7 @@ export default function HistorySheet({ type, origin, tint, onClose, acts, redeem
                   background: bento.teal, color: '#fff',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <Gift />
+                  <RewardIcon reward={rd.reward} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: TH.txt, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rd.reward?.name || 'Premio'}</div>
