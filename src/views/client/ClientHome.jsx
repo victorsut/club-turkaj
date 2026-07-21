@@ -473,76 +473,74 @@ export default function ClientHome(ctx) {
       {showMap && (
         <GrowModal onClose={() => setShowMap(false)} origin={mOrigin} tint={mTint}
           background={cTier.name === 'BLACK' ? '#1A1A2E' : '#fff'} maxHeight="86vh"
-          arrowColor={cTier.name === 'BLACK' ? '#fff' : '#0D0D0D'}
-          style={{ padding: '24px 20px' }}>
+          arrowColor="#fff">
           {() => (<>
-            <div style={{ textAlign: 'center', marginBottom: 20 }}>
-              <div style={{ fontSize: 36, marginBottom: 8 }}>⛽</div>
-              <div style={{ fontSize: 20, fontWeight: 900, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D' }}>
+            {/* Banda de identidad (patrón banda+cuerpo — color sólido
+                del cuadro Ubicación, centrada) */}
+            <div style={{ background: bento.purple, color: '#fff', padding: '22px 20px 18px', textAlign: 'center' }}>
+              <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.5, opacity: 0.85 }}>
+                Encuéntranos
+              </div>
+              <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.2, letterSpacing: 0.3 }}>
                 Nuestras Estaciones
               </div>
-              <div style={{ fontSize: 12, color: '#9E9E9E', marginTop: 4 }}>Gasolineras Turkaj</div>
+              <div style={{ fontSize: 12, fontWeight: 700, opacity: 0.9, marginTop: 2 }}>
+                Gasolineras Turkaj · Chichicastenango
+              </div>
             </div>
 
+            <div style={{ padding: '14px 20px 20px' }}>
             {(stations.length > 0 ? stations : [
               { name: 'Turkaj I', address: '' },
               { name: 'Turkaj II', address: '' },
               { name: 'Turkaj III', address: '' },
-            ]).filter(s => s.active !== false).map((s, i, arr) => (
+            ]).filter(s => s.active !== false).map((s) => (
               <div key={s.id || s.name} style={{
-                padding: '14px 0',
-                borderBottom: i < arr.length - 1 ? `1px solid ${cTier.name === 'BLACK' ? 'rgba(255,255,255,.06)' : '#F0F0F0'}` : 'none',
+                display: 'flex', alignItems: 'flex-start', gap: 14,
+                padding: '13px 12px', marginBottom: 8, borderRadius: 16,
+                background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.05)' : '#F5F5F7',
               }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-                  <div style={{
-                    width: 44, height: 44, borderRadius: 14, flexShrink: 0,
-                    background: cTier.name === 'BLACK' ? 'rgba(251,188,4,.1)' : '#FFF8E1',
-                    border: cTier.name === 'BLACK' ? '1px solid rgba(251,188,4,.2)' : '1px solid #FFE082',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
-                  }}>
-                    ⛽
+                <div style={{
+                  width: 44, height: 44, borderRadius: 14, flexShrink: 0,
+                  background: bento.purple,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <PinIcon size={24} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: cTier.name === 'BLACK' ? '#E0E0E0' : '#0D0D0D' }}>
+                    {s.name}
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: cTier.name === 'BLACK' ? '#FFD54F' : '#0D0D0D' }}>
-                      {s.name}
-                    </div>
-                    <div style={{ fontSize: 12, color: cTier.name === 'BLACK' ? 'rgba(255,255,255,.5)' : '#757575', marginTop: 3, lineHeight: 1.4 }}>
-                      {s.address ? `📍 ${s.address}` : 'Dirección no disponible'}
-                    </div>
-                    {/* Navigation buttons */}
-                    {(s.lat && s.lng) && (
-                      <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                        <a href={`https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}`}
-                          target="_blank" rel="noopener noreferrer"
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: 5,
-                            padding: '6px 12px', borderRadius: 10, textDecoration: 'none',
-                            background: cTier.name === 'BLACK' ? 'rgba(66,133,244,.15)' : '#E8F0FE',
-                            border: cTier.name === 'BLACK' ? '1px solid rgba(66,133,244,.3)' : '1px solid #C5DAF6',
-                            fontSize: 11, fontWeight: 700, fontFamily: "'DM Sans'",
-                            color: cTier.name === 'BLACK' ? '#8AB4F8' : '#1A73E8',
-                          }}>
-                          🗺️ Google Maps
-                        </a>
-                        <a href={`https://waze.com/ul?ll=${s.lat},${s.lng}&navigate=yes`}
-                          target="_blank" rel="noopener noreferrer"
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: 5,
-                            padding: '6px 12px', borderRadius: 10, textDecoration: 'none',
-                            background: cTier.name === 'BLACK' ? 'rgba(51,208,219,.12)' : '#E0F7FA',
-                            border: cTier.name === 'BLACK' ? '1px solid rgba(51,208,219,.3)' : '1px solid #B2EBF2',
-                            fontSize: 11, fontWeight: 700, fontFamily: "'DM Sans'",
-                            color: cTier.name === 'BLACK' ? '#33D0DB' : '#00838F',
-                          }}>
-                          🚗 Waze
-                        </a>
-                      </div>
-                    )}
+                  <div style={{ fontSize: 12, fontWeight: 600, color: cTier.name === 'BLACK' ? 'rgba(255,255,255,.5)' : '#6E6E73', marginTop: 3, lineHeight: 1.4 }}>
+                    {s.address || 'Dirección no disponible'}
                   </div>
+                  {/* Navegación: chips sólidos flat (sin emojis) */}
+                  {(s.lat && s.lng) && (
+                    <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                      <a href={`https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}`}
+                        target="_blank" rel="noopener noreferrer"
+                        style={{
+                          padding: '7px 14px', borderRadius: 10, textDecoration: 'none',
+                          background: bento.blue, color: '#fff',
+                          fontSize: 11, fontWeight: 700, fontFamily: "'DM Sans'",
+                        }}>
+                        Google Maps
+                      </a>
+                      <a href={`https://waze.com/ul?ll=${s.lat},${s.lng}&navigate=yes`}
+                        target="_blank" rel="noopener noreferrer"
+                        style={{
+                          padding: '7px 14px', borderRadius: 10, textDecoration: 'none',
+                          background: bento.teal, color: '#fff',
+                          fontSize: 11, fontWeight: 700, fontFamily: "'DM Sans'",
+                        }}>
+                        Waze
+                      </a>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
-
+            </div>
           </>)}
         </GrowModal>
       )}
