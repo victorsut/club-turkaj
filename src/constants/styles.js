@@ -62,6 +62,18 @@ export const bento = {
   gold:   '#D9A40B', // tarjeta de nivel ORO (mismo dorado de la referencia)
 };
 
+// Color sólido por categoría de premio (FORMATO GENERAL — flat, para
+// el cuadro del ícono en catálogo y confirmación de canje)
+export const CAT_COLORS = {
+  combustible: bento.orange,
+  servicio: bento.teal,
+  merch: bento.red,
+  cultural: bento.purple,
+  shell: bento.amber,
+  premium: '#1C1C1E',
+  apple: '#5E5E63',
+};
+
 // Galaxy gradients for BLACK tier
 export const GAL = 'radial-gradient(ellipse at 20% 30%, #0d0d1a 0%, #050508 40%, #000 100%)';
 export const GAL3 = 'radial-gradient(ellipse at 30% 40%, #0a0a15 0%, #04040a 50%, #000 100%)';

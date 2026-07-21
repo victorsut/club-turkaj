@@ -1,5 +1,11 @@
 // src/views/shared/Catalog.jsx
-import { sMono, CAT_STYLES, CAT_LABELS } from '../../constants/styles';
+// R1b.4 — Pestaña CANJES (catálogo de premios) con FORMATO GENERAL:
+// fondo claro de la app, título centrado + puntos disponibles, chips de
+// categoría en filas con wrap (sin barra de desplazamiento), cards flat
+// sin borde con el ícono SVG del premio (RewardIcon — sin emojis) sobre
+// un cuadro de color sólido por categoría. BLACK conserva su galaxia.
+import { bento, BRAND_RED, CAT_LABELS, CAT_COLORS } from '../../constants/styles';
+import RewardIcon from '../../components/ui/RewardIcon';
 
 export default function Catalog(ctx) {
   const { rewards, me, gT, cfg, cTier, catF, setCatF, redeem, setRedeemConfirm, client = true } = ctx;
@@ -8,75 +14,76 @@ export default function Catalog(ctx) {
   const visible = (rewards || []).filter(r => r.active !== false);
   const filtered = catF === 'todos' ? visible : visible.filter(r => r.cat === catF);
 
-  // ── Tema por tier ──────────────────────────────────────
-  const tier = cTier?.name || 'ORO';
-  const isDark   = tier === 'BLACK';
-  const isPlatino = tier === 'PLATINO';
-
-  const TH = {
-    bg:       isDark ? '#06060C' : isPlatino ? '#E8E8E8' : '#fff',
-    text:     isDark ? '#E0E0E0' : '#424242',
-    subText:  isDark ? '#9E9E9E' : '#9E9E9E',
-    cardBg:   isDark ? 'rgba(255,255,255,.05)' : isPlatino ? 'rgba(255,255,255,.6)' : '#fff',
-    cardBorder: isDark ? '1px solid rgba(255,255,255,.08)' : isPlatino ? '1px solid #BDBDBD' : '1px solid #eee',
-    accent:   isDark ? '#FFD54F' : isPlatino ? '#1565C0' : '#FBBC04',
-    accentText: isDark ? '#0D0D0D' : '#0D0D0D',
-    filterActive: isDark ? '#FFD54F' : isPlatino ? '#1565C0' : '#FBBC04',
-    filterActiveTxt: isDark ? '#0D0D0D' : isPlatino ? '#fff' : '#0D0D0D',
-    filterBg: isDark ? 'rgba(255,255,255,.06)' : isPlatino ? 'rgba(0,0,0,.06)' : '#F5F5F5',
-    priceCan: isDark ? '#69F0AE' : isPlatino ? '#1565C0' : '#2E7D32',
-    header:   isDark ? '#fff' : '#0D0D0D',
-    discountColor: isDark ? '#90CAF9' : isPlatino ? '#1565C0' : '#1565C0',
-  };
+  const isBlack = (cTier?.name || 'ORO') === 'BLACK';
+  const headerTxt = isBlack ? '#fff' : '#0D0D0D';
+  const subTxt = isBlack ? 'rgba(255,255,255,.55)' : '#6E6E73';
+  const surface = isBlack ? 'rgba(255,255,255,.06)' : '#fff';
+  const good = isBlack ? '#7CD98F' : bento.green;
 
   return (
-    <div style={{ paddingBottom: 90, minHeight: '100vh', background: TH.bg }}>
-      <div style={{ padding: '16px 20px 8px', fontSize: 20, fontWeight: 800, color: TH.header }}>
-        {client ? '🎁 Catálogo de Premios' : '🎁 Premios'}
+    <div style={{ paddingBottom: 100, minHeight: '100vh', background: isBlack ? 'transparent' : bento.pageBg }}>
+      {/* Header centrado (formato de las ventanas del track) */}
+      <div style={{ padding: '18px 16px 4px', textAlign: 'center' }}>
+        <div style={{ fontSize: 18, fontWeight: 800, color: headerTxt }}>
+          Catálogo de Premios
+        </div>
+        {client && me && (
+          <div style={{ fontSize: 11, fontWeight: 600, color: subTxt, marginTop: 1 }}>
+            Tenés <span style={{ fontWeight: 800, color: good, fontVariantNumeric: 'tabular-nums' }}>{me.points} pts</span> para canjear
+          </div>
+        )}
       </div>
 
-      {/* Filtros por categoría */}
-      <div style={{ display: 'flex', gap: 6, padding: '0 20px', overflowX: 'auto', marginBottom: 16 }}>
-        {cats.map(c => (
-          <button key={c} onClick={() => setCatF(c)} style={{
-            padding: '8px 14px', borderRadius: 20, border: 'none',
-            background: catF === c ? TH.filterActive : TH.filterBg,
-            color: catF === c ? TH.filterActiveTxt : TH.subText,
-            fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans'",
-            whiteSpace: 'nowrap', flexShrink: 0,
-          }}>
-            {c === 'todos' ? 'Todos' : CAT_LABELS[c] || c}
-          </button>
-        ))}
+      {/* Filtros por categoría — wrap, sin barra de desplazamiento */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, padding: '10px 14px 16px', justifyContent: 'center' }}>
+        {cats.map(c => {
+          const on = catF === c;
+          return (
+            <button key={c} onClick={() => setCatF(c)} style={{
+              padding: '8px 14px', borderRadius: 12, border: 'none', cursor: 'pointer',
+              background: on ? BRAND_RED : (isBlack ? 'rgba(255,255,255,.08)' : '#fff'),
+              color: on ? '#fff' : (isBlack ? 'rgba(255,255,255,.75)' : '#3A3A3C'),
+              fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+              transition: 'background .2s, color .2s',
+            }}>
+              {c === 'todos' ? 'Todos' : CAT_LABELS[c] || c}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Grid de premios */}
-      <div style={{ padding: '0 20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        {filtered.map(r => {
-          const cs       = CAT_STYLES[r.cat] || { bg: '#F5F5F5', c: '#616161' };
+      {/* Grid de premios — cards flat sin borde */}
+      <div style={{ padding: '0 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        {filtered.map((r, i) => {
+          const catColor = CAT_COLORS[r.cat] || '#5E5E63';
           const cost     = client && me ? Math.round(r.pts * (1 - t.redeemDisc)) : r.pts;
           const canAfford = client && me ? me.points >= cost : false;
           return (
-            <div key={r.id} onClick={() => {
+            <div key={r.id} className="pp-tile" onClick={() => {
               if (!client || !canAfford) return;
               if (setRedeemConfirm) setRedeemConfirm({ reward: r, cost });
               else redeem(r);
             }} style={{
-              background: TH.cardBg, borderRadius: 16, padding: 16, textAlign: 'center',
-              border: TH.cardBorder,
+              animationDelay: `${Math.min(i, 12) * 40}ms`,
+              background: surface, borderRadius: 20, padding: '18px 14px 16px', textAlign: 'center',
               cursor: client && canAfford ? 'pointer' : 'default',
-              opacity: client && !canAfford ? .5 : 1,
-              transition: 'transform .1s',
+              opacity: client && !canAfford ? .55 : 1,
             }}>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>{r.icon}</div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: TH.text, marginBottom: 6, lineHeight: 1.3 }}>
+              <div style={{
+                width: 46, height: 46, borderRadius: 14, margin: '0 auto 10px',
+                background: catColor, color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <RewardIcon reward={r} />
+              </div>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: isBlack ? '#E0E0E0' : '#0D0D0D', marginBottom: 6, lineHeight: 1.3 }}>
                 {r.name}
               </div>
-              <div style={{ ...sMono, fontSize: 14, fontWeight: 800, color: canAfford ? TH.priceCan : TH.subText }}>
+              <div style={{ fontSize: 14, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: canAfford ? good : subTxt }}>
                 {cost} pts
               </div>
               {t.redeemDisc > 0 && cost < r.pts && (
-                <div style={{ fontSize: 10, color: TH.discountColor, fontWeight: 700, marginTop: 2 }}>
+                <div style={{ fontSize: 10, color: isBlack ? '#90CAF9' : bento.blue, fontWeight: 700, marginTop: 2 }}>
                   -{Math.round(t.redeemDisc * 100)}% ({r.pts} pts)
                 </div>
               )}
@@ -86,7 +93,7 @@ export default function Catalog(ctx) {
       </div>
 
       {filtered.length === 0 && (
-        <div style={{ textAlign: 'center', padding: 40, color: TH.subText }}>
+        <div style={{ textAlign: 'center', padding: 40, color: subTxt, fontSize: 13, fontWeight: 700 }}>
           No hay premios en esta categoría
         </div>
       )}

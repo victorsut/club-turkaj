@@ -32,7 +32,7 @@ function utcToLocal(isoString) {
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
-import { clientTheme, adminTheme, sMono, GAL } from '../constants/styles';
+import { clientTheme, adminTheme, sMono, GAL, bento, BRAND_RED, CAT_LABELS, CAT_COLORS } from '../constants/styles';
 import useToast from '../hooks/useToast';
 
 // UI Components
@@ -43,6 +43,7 @@ import SpecialDayBonusModal from '../components/SpecialDayBonusModal';
 import UpdateAvailable from '../components/UpdateAvailable';
 import { Fuel, Users, Gift, Ticket, Clock, Gear, Megaphone, Menu, House, TicketStar, Car } from '../components/ui/Icons';
 import Toast from '../components/ui/Toast';
+import RewardIcon from '../components/ui/RewardIcon';
 
 // Auth Views
 import ClientLogin from './client/ClientLogin';
@@ -1560,17 +1561,25 @@ export default function App() {
             <div style={{ width: 40, height: 4, borderRadius: 4, background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.2)' : '#E0E0E0', margin: '0 auto 20px' }} />
 
             <div style={{ textAlign: 'center', marginBottom: 20 }}>
-              <div style={{ fontSize: 52, marginBottom: 8 }}>{redeemConfirm.reward.icon || '🎁'}</div>
-              <div style={{ fontSize: 18, fontWeight: 900, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D', marginBottom: 4 }}>
+              {/* Ícono SVG del premio en cuadro de color de su categoría
+                  (FORMATO GENERAL — sin emojis) */}
+              <div style={{
+                width: 56, height: 56, borderRadius: 16, margin: '0 auto 10px',
+                background: CAT_COLORS[redeemConfirm.reward.cat] || '#5E5E63', color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <RewardIcon reward={redeemConfirm.reward} />
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D', marginBottom: 4 }}>
                 Confirmar Canje
               </div>
-              <div style={{ fontSize: 13, color: '#9E9E9E' }}>Revisá los detalles antes de confirmar</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#9E9E9E' }}>Revisá los detalles antes de confirmar</div>
             </div>
 
-            <div style={{ background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.05)' : cTier.name === 'PLATINO' ? 'rgba(255,255,255,.5)' : '#F9F9F9', borderRadius: 16, padding: '16px 20px', marginBottom: 20 }}>
+            <div style={{ background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.05)' : '#F5F5F7', borderRadius: 16, padding: '16px 20px', marginBottom: 20 }}>
               {[
                 { l: 'Premio',          v: redeemConfirm.reward.name, bold: true },
-                { l: 'Categoría',       v: redeemConfirm.reward.cat || '—' },
+                { l: 'Categoría',       v: CAT_LABELS[redeemConfirm.reward.cat] || redeemConfirm.reward.cat || '—' },
                 { l: 'Costo',           v: `${redeemConfirm.cost} pts`, large: true, red: true },
                 { l: 'Saldo actual',    v: `${me.points} pts` },
                 { l: 'Saldo tras canje',v: `${me.points - redeemConfirm.cost} pts`, green: true },
@@ -1578,14 +1587,15 @@ export default function App() {
                 <div key={row.l} style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   paddingBottom: i < arr.length - 1 ? 12 : 0,
-                  borderBottom: i < arr.length - 1 ? `1px solid ${cTier.name === 'BLACK' ? 'rgba(255,255,255,.06)' : '#eee'}` : 'none',
+                  borderBottom: i < arr.length - 1 ? `1px solid ${cTier.name === 'BLACK' ? 'rgba(255,255,255,.06)' : '#ECECEE'}` : 'none',
                   marginBottom: i < arr.length - 1 ? 12 : 0,
                 }}>
                   <span style={{ fontSize: 13, color: '#9E9E9E', fontWeight: 600 }}>{row.l}</span>
                   <span style={{
                     fontSize: row.large ? 18 : 13,
-                    fontWeight: row.bold || row.large ? 900 : 700,
-                    color: row.red ? '#C62828' : row.green ? '#2E7D32' : (cTier.name === 'BLACK' ? '#fff' : '#0D0D0D'),
+                    fontWeight: row.bold || row.large ? 800 : 700,
+                    fontVariantNumeric: 'tabular-nums',
+                    color: row.red ? bento.red : row.green ? bento.green : (cTier.name === 'BLACK' ? '#fff' : '#0D0D0D'),
                   }}>{row.v}</span>
                 </div>
               ))}
@@ -1593,8 +1603,9 @@ export default function App() {
 
             <div style={{ display: 'flex', gap: 12 }}>
               <button onClick={() => setRedeemConfirm(null)} style={{
-                flex: 1, padding: 16, borderRadius: 14, border: `2px solid ${cTier.name === 'BLACK' ? 'rgba(255,255,255,.1)' : '#eee'}`,
-                background: 'none', color: cTier.name === 'BLACK' ? '#9E9E9E' : '#424242',
+                flex: 1, padding: 16, borderRadius: 14, border: 'none',
+                background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.08)' : '#F5F5F7',
+                color: cTier.name === 'BLACK' ? '#ccc' : '#424242',
                 fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700, cursor: 'pointer',
               }}>Cancelar</button>
               <button onClick={() => {
@@ -1603,11 +1614,9 @@ export default function App() {
                 redeem(reward);
               }} style={{
                 flex: 2, padding: 16, borderRadius: 14, border: 'none',
-                background: cTier.name === 'BLACK' ? '#FFD54F' : cTier.name === 'PLATINO' ? '#1565C0' : '#FBBC04',
-                color: cTier.name === 'PLATINO' ? '#fff' : '#0D0D0D',
-                fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 900, cursor: 'pointer',
-                boxShadow: `0 4px 16px ${cTier.name === 'BLACK' ? 'rgba(255,213,79,.3)' : cTier.name === 'PLATINO' ? 'rgba(21,101,192,.35)' : 'rgba(251,188,4,.35)'}`,
-              }}>✓ Confirmar Canje</button>
+                background: BRAND_RED, color: '#fff',
+                fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 800, cursor: 'pointer',
+              }}>Confirmar Canje</button>
             </div>
           </div>
         </div>
