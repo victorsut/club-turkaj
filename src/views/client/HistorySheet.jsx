@@ -9,6 +9,7 @@ import { sMono, bento } from '../../constants/styles';
 import { ArrowLeft, Gift, Clock, Fuel, Ticket, Cake, Car, Clipboard, StarLine } from '../../components/ui/Icons';
 import RewardIcon, { rewardIconFor } from '../../components/ui/RewardIcon';
 import ChipScroller from '../../components/ui/ChipScroller';
+import useBackLayer from '../../hooks/useBackLayer';
 
 const CLOSE_MS = 200; // duración de ppGrowOut (+ margen) antes de desmontar
 
@@ -69,6 +70,9 @@ export default function HistorySheet({ type, origin, tint, onClose, acts, redeem
     setTimeout(onClose, CLOSE_MS);
   };
 
+  // Botón físico de volver: cierra el historial en vez de salir de la app.
+  useBackLayer(true, close);
+
   const inPeriod = (day) => {
     if (mode === 'todo') return true;
     if (!day) return false;
@@ -117,11 +121,13 @@ export default function HistorySheet({ type, origin, tint, onClose, acts, redeem
 
   return (
     <div className={closing ? 'pp-grow-out' : 'pp-grow'} style={{
-      // inset:0 + margin auto centra SIN transform propio (el transform
-      // queda libre para el container-transform).
-      position: 'fixed', inset: 0, margin: '0 auto',
-      width: '100%', maxWidth: 480, zIndex: 200,
-      background: TH.bg, overflowY: 'auto', paddingBottom: 40,
+      // inset + margin auto centra SIN transform propio (el transform
+      // queda libre para el container-transform). bottom:55 + zIndex
+      // BAJO la BottomNav (100): la barra de pestañas queda visible y
+      // usable con el historial abierto (feedback 21-jul).
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 55, margin: '0 auto',
+      width: '100%', maxWidth: 480, zIndex: 90,
+      background: TH.bg, overflowY: 'auto', paddingBottom: 24,
       transformOrigin: origin ? `${origin.x}px ${origin.y}px` : '50% 80%',
     }}>
       {/* Tinte de continuidad: nace del color del tile y se aclara; al

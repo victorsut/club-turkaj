@@ -13,6 +13,7 @@
 //   </GrowModal>
 import { useState } from 'react';
 import { ArrowLeft } from './Icons';
+import useBackLayer from '../../hooks/useBackLayer';
 
 const CLOSE_MS = 200; // duración de ppGrowOut (+ margen) antes de desmontar
 
@@ -24,6 +25,9 @@ export default function GrowModal({ onClose, origin = '50% 50%', tint, backgroun
     setClosing(true);
     setTimeout(onClose, CLOSE_MS);
   };
+
+  // Botón físico de volver: cierra este modal en vez de salir de la app.
+  useBackLayer(true, close);
 
   return (
     <div onClick={close} style={{

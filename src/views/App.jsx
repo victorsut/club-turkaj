@@ -44,6 +44,7 @@ import { Fuel, Users, Gift, Ticket, Clock, Gear, Megaphone, Menu, House, TicketS
 import Toast from '../components/ui/Toast';
 import RewardIcon from '../components/ui/RewardIcon';
 import RaffleWinnerModal from '../components/RaffleWinnerModal';
+import useBackLayer from '../hooks/useBackLayer';
 
 // Auth Views
 import ClientLogin from './client/ClientLogin';
@@ -206,6 +207,14 @@ export default function App() {
     setRcClosing(true);
     setTimeout(() => { setRedeemConfirm(null); setRcClosing(false); }, 220);
   };
+  // ── Botón físico de volver (Android/gesto del navegador) ──
+  // Cada capa abierta registra su cierre: volver cierra la capa superior
+  // (modal/sheet) o regresa al inicio desde cualquier ventana, en vez de
+  // salir de la app. GrowModal/HistorySheet se registran solos.
+  useBackLayer(view === 'client' && cScr !== 'home', () => setCScr('home'));
+  useBackLayer(view === 'client' && showQR, () => closeQR());
+  useBackLayer(view === 'client' && !!redeemConfirm, () => closeRedeemConfirm());
+
   // R1b.4 Rifa — modal de ganador: si el sorteo (draw_due_raffles) me
   // marcó ganador de una rifa que aún no he visto, felicitar UNA vez.
   const [raffleWin, setRaffleWin] = useState(null);

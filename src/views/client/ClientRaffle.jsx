@@ -12,6 +12,7 @@ import { useState, useMemo } from 'react';
 import { bento, BRAND_RED } from '../../constants/styles';
 import { Back, Chev, TicketStar } from '../../components/ui/Icons';
 import { rewardIconFor } from '../../components/ui/RewardIcon';
+import useBackLayer from '../../hooks/useBackLayer';
 
 const shuffle = (arr) => {
   const a = arr.slice();
@@ -34,6 +35,8 @@ export default function ClientRaffle(ctx) {
     setBuyClosing(true);
     setTimeout(() => { setBuyConfirm(null); setBuyClosing(false); }, 220);
   };
+  // Botón físico de volver: cierra la confirmación en vez de salir.
+  useBackLayer(!!buyConfirm, closeBuy);
 
   const parts = rafData[viewMonth]?.participants || [];
   // Orden aleatorio con "yo" siempre en la primera fila. Se rebaraja

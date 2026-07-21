@@ -7,8 +7,11 @@
 // imagen real del premio si existe, si no el ícono SVG adecuado.
 import { bento, BRAND_RED } from '../constants/styles';
 import { rewardIconFor } from './ui/RewardIcon';
+import useBackLayer from '../hooks/useBackLayer';
 
 export default function RaffleWinnerModal({ cal, name, isBlack = false, onClose }) {
+  // Botón físico de volver: cierra el modal (y marca la rifa como vista).
+  useBackLayer(!!cal, onClose);
   if (!cal) return null;
   const PrizeIcon = rewardIconFor({ name: cal.name || '', icon: cal.icon || '' });
   const firstName = (name || '').trim().split(' ')[0] || 'cliente';
