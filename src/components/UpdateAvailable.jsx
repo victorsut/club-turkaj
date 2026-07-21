@@ -7,6 +7,8 @@
 
 import { useState, useEffect } from 'react';
 import { setUpdateAvailableCallback, applyUpdate } from '../lib/swRegistration';
+import { BRAND_RED } from '../constants/styles';
+import { Refresh } from './ui/Icons';
 
 export default function UpdateAvailable() {
   const [visible, setVisible] = useState(false);
@@ -17,6 +19,8 @@ export default function UpdateAvailable() {
 
   if (!visible) return null;
 
+  // FORMATO GENERAL: misma píldora flat de los toasts (Toast.jsx) —
+  // disco de color con ícono SVG + texto + acción, sin emojis ni sombra.
   return (
     <div style={{
       position: 'fixed',
@@ -24,31 +28,40 @@ export default function UpdateAvailable() {
       left: '50%',
       transform: 'translateX(-50%)',
       zIndex: 10000,
-      background: '#1E1E1E',
+      background: '#0D0D0D',
       color: '#fff',
-      padding: '14px 20px',
-      borderRadius: 12,
-      boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+      padding: '10px 10px 10px 10px',
+      borderRadius: 16,
       display: 'flex',
       alignItems: 'center',
-      gap: 16,
+      gap: 10,
       maxWidth: '90vw',
       fontFamily: "'DM Sans'",
-      fontSize: 14,
+      fontSize: 13.5,
+      fontWeight: 700,
       animation: 'slideUpFade 400ms ease-out',
     }}>
-      <span>✨ Nueva versión disponible</span>
+      <div style={{
+        width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+        background: BRAND_RED, color: '#fff',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Refresh />
+      </div>
+      <span>Nueva versión disponible</span>
       <button
         onClick={applyUpdate}
         style={{
-          background: '#FBBC04',
-          color: '#000',
+          background: '#fff',
+          color: '#0D0D0D',
           border: 'none',
-          padding: '8px 16px',
-          borderRadius: 8,
+          padding: '8px 14px',
+          borderRadius: 10,
+          fontFamily: "'DM Sans'",
           fontWeight: 700,
           cursor: 'pointer',
           fontSize: 13,
+          flexShrink: 0,
         }}
       >
         Recargar

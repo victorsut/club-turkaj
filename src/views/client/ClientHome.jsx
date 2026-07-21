@@ -12,7 +12,8 @@ import TierCardBento from '../../components/ui/TierCardBento';
 import InactivityWarning from '../../components/ui/InactivityWarning';
 import HistorySheet from './HistorySheet';
 import useShortScreen from '../../hooks/useShortScreen';
-import { Menu, Fuel, Ticket, Percent, Tag, Wifi, Door, Cake, Pin, Clock, Chev } from '../../components/ui/Icons';
+import { Menu, Fuel, Ticket, Percent, Tag, Wifi, Door, Cake, Pin, Clock, Chev, StarRate } from '../../components/ui/Icons';
+import LogoSpinner from '../../components/ui/LogoSpinner';
 import GalaxyDust from '../../components/ui/GalaxyDust';
 import GrowModal from '../../components/ui/GrowModal';
 import { GiftIcon, CarIcon, WifiIcon, SurveyIcon, PinIcon, TicketStarIcon, BagIcon } from '../../components/ui/BentoIcons';
@@ -703,7 +704,8 @@ export default function ClientHome(ctx) {
         </GrowModal>
       )}
 
-      {/* Operator Rating Modal — triggered by Realtime after purchase */}
+      {/* Operator Rating Modal — triggered by Realtime after purchase
+          (FORMATO GENERAL: flat, sin emojis, spinner de marca) */}
       {pendingOpRating && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)',
@@ -711,37 +713,33 @@ export default function ClientHome(ctx) {
           padding: 20, animation: 'fadeUp .3s ease',
         }}>
           <div style={{
-            background: cTier.name === 'BLACK' ? '#1A1A2E' : '#fff',
+            background: isBlack ? '#101018' : '#fff',
             borderRadius: 24, maxWidth: 360, width: '100%', padding: '28px 24px',
-            border: cTier.name === 'BLACK' ? '1px solid rgba(255,255,255,.1)' : '1px solid #eee',
-            boxShadow: '0 20px 60px rgba(0,0,0,.3)', textAlign: 'center',
+            textAlign: 'center',
           }}>
             {savingRating ? (
               /* Saving state */
-              <div style={{ padding: '20px 0' }}>
-                <div style={{ fontSize: 48, marginBottom: 12 }}>⏳</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: cTier.name === 'BLACK' ? '#fff' : '#424242' }}>
-                  Enviando calificación...
-                </div>
+              <div style={{ padding: '24px 0', display: 'flex', justifyContent: 'center' }}>
+                <LogoSpinner size={44} dark={isBlack} label="Enviando calificación..." />
               </div>
             ) : (
               <>
-                {/* Header */}
+                {/* Header: surtidor blanco en cuadro verde sólido */}
                 <div style={{
-                  width: 64, height: 64, borderRadius: '50%', margin: '0 auto 16px',
-                  background: cTier.name === 'BLACK' ? 'rgba(76,175,80,.15)' : '#E8F5E9',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32,
+                  width: 56, height: 56, borderRadius: 16, margin: '0 auto 12px',
+                  background: bento.green, color: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  ⛽
+                  <Fuel />
                 </div>
-                <div style={{ fontSize: 18, fontWeight: 900, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D', marginBottom: 6 }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: isBlack ? '#fff' : '#0D0D0D', marginBottom: 6 }}>
                   ¡Compra registrada!
                 </div>
 
                 {/* PROMO-1: puntos de la compra + promo aplicada (llega por
                     fetchPurchasePromo tras el INSERT Realtime) */}
                 {pendingOpRating.points != null && (
-                  <div style={{ fontSize: 16, fontWeight: 900, color: cTier.name === 'BLACK' ? '#81C784' : '#2E7D32', marginBottom: pendingOpRating.promo ? 8 : 6 }}>
+                  <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: isBlack ? '#7CD98F' : bento.green, marginBottom: pendingOpRating.promo ? 8 : 6 }}>
                     +{pendingOpRating.points} pts
                     {pendingOpRating.amount != null && (
                       <span style={{ fontSize: 12, fontWeight: 700, color: '#9E9E9E' }}> · Q{+pendingOpRating.amount}</span>
@@ -750,21 +748,20 @@ export default function ClientHome(ctx) {
                 )}
                 {pendingOpRating.promo && (
                   <div style={{
-                    display: 'inline-block', padding: '7px 14px', borderRadius: 20,
-                    background: cTier.name === 'BLACK' ? 'rgba(251,188,4,.15)' : '#FFF8E1',
-                    border: '1px solid rgba(251,188,4,.45)',
-                    fontSize: 12.5, fontWeight: 800, marginBottom: 10,
-                    color: cTier.name === 'BLACK' ? '#FFD54F' : '#B58000',
+                    display: 'inline-block', padding: '8px 14px', borderRadius: 12,
+                    background: isBlack ? 'rgba(217,164,11,.18)' : '#FAF1DC',
+                    fontSize: 12.5, fontWeight: 700, marginBottom: 10,
+                    color: isBlack ? '#FFD54F' : '#B58000',
                   }}>
                     {pendingOpRating.promo.effectType === 'grant_reward' ? (
                       // PROMO-1b: premio regalado — ya está en tus canjes
-                      <>🎁 {pendingOpRating.promo.name} · ¡{pendingOpRating.promo.rewardName} gratis!
+                      <>{pendingOpRating.promo.name} · ¡{pendingOpRating.promo.rewardName} gratis!
                         <div style={{ fontSize: 10.5, fontWeight: 700, opacity: .85, marginTop: 2 }}>
                           Ya está en tus canjes pendientes — retiralo en estación
                         </div>
                       </>
                     ) : (
-                      <>🎉 {pendingOpRating.promo.name}
+                      <>{pendingOpRating.promo.name}
                         {pendingOpRating.promo.effectType === 'points_multiplier' && ` x${+pendingOpRating.promo.effectValue}`}
                         {' '}· +{pendingOpRating.promo.extraPoints} pts extra
                       </>
@@ -772,34 +769,33 @@ export default function ClientHome(ctx) {
                   </div>
                 )}
 
-                <div style={{ fontSize: 13, color: '#9E9E9E', marginBottom: 4 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#9E9E9E', marginBottom: 2 }}>
                   Fuiste atendido por
                 </div>
                 <div style={{
-                  fontSize: 20, fontWeight: 900, marginBottom: 2,
-                  color: cTier.name === 'BLACK' ? '#FFD54F' : '#0D0D0D',
+                  fontSize: 20, fontWeight: 800, marginBottom: 2,
+                  color: isBlack ? '#fff' : '#0D0D0D',
                 }}>
                   {pendingOpRating.operatorName}
                 </div>
                 {pendingOpRating.stationName && (
-                  <div style={{ fontSize: 12, color: '#9E9E9E', marginBottom: 20 }}>
-                    📍 {pendingOpRating.stationName}
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#9E9E9E', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                    <Pin /> {pendingOpRating.stationName}
                   </div>
                 )}
 
                 {/* Stars — tap to rate and auto-submit */}
-                <div style={{ fontSize: 14, fontWeight: 700, color: cTier.name === 'BLACK' ? '#E0E0E0' : '#424242', marginBottom: 14 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: isBlack ? '#E0E0E0' : '#424242', marginBottom: 12 }}>
                   Calificá la atención
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 20 }}>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 18 }}>
                   {[1, 2, 3, 4, 5].map(s => (
-                    <button key={s} onClick={() => submitOpRating(s)} style={{
+                    <button key={s} onClick={() => submitOpRating(s)} aria-label={`${s} estrellas`} style={{
                       background: 'none', border: 'none', cursor: 'pointer',
-                      fontSize: 40, padding: 4,
-                      filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.1))',
+                      color: bento.amber, padding: 2, lineHeight: 0,
                       transition: 'transform .1s',
                     }}>
-                      ⭐
+                      <StarRate size={36} />
                     </button>
                   ))}
                 </div>
