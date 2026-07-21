@@ -7,9 +7,17 @@
 // BLACK) + el chip cortado en el borde. Con snap suave al arrastrar.
 import { useRef, useState, useEffect } from 'react';
 
-export default function ChipScroller({ children, padding = '10px 14px 16px', gap = 7 }) {
+export default function ChipScroller({ children, padding = '10px 14px 16px', gap = 7, snapPad = 14 }) {
   const ref = useRef(null);
   const [edges, setEdges] = useState({ left: false, right: false });
+
+  // Un chip tocado a medias se acomoda solo dentro de la vista.
+  const settle = (e) => {
+    const chip = e.target instanceof Element ? e.target.closest('button') : null;
+    if (chip && ref.current?.contains(chip)) {
+      chip.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    }
+  };
 
   const update = () => {
     const el = ref.current;
@@ -33,10 +41,14 @@ export default function ChipScroller({ children, padding = '10px 14px 16px', gap
   const mask = `linear-gradient(to right, ${edges.left ? 'transparent 0, #000 28px' : '#000 0'}, ${edges.right ? '#000 calc(100% - 28px), transparent 100%' : '#000 100%'})`;
 
   return (
-    <div ref={ref} onScroll={update} className="pp-chip-scroll" style={{
+    <div ref={ref} onScroll={update} onClick={settle} className="pp-chip-scroll" style={{
       display: 'flex', gap, padding, overflowX: 'auto',
       WebkitMaskImage: mask, maskImage: mask,
       scrollSnapType: 'x proximity',
+      // El snap debe respetar el padding horizontal: sin esto, el primer
+      // chip ancla en scrollLeft≈14 y el difuminado izquierdo nunca se
+      // apaga (bug del chip "Todos" — feedback del dueño).
+      scrollPaddingLeft: snapPad, scrollPaddingRight: snapPad,
     }}>
       {children}
     </div>
