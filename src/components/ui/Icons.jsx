@@ -3,8 +3,8 @@
 
 const s = { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" };
 
-export const Fuel = () => (
-  <svg {...s}>
+export const Fuel = ({ size = 20 }) => (
+  <svg {...s} width={size} height={size}>
     <path d="M3 22V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v17" />
     <path d="M15 12h2a2 2 0 0 1 2 2v3a2 2 0 0 0 4 0V8l-4-4" />
     <path d="M7 10h4" />
@@ -362,6 +362,66 @@ export const TicketStar = () => (
   </svg>
 );
 
+// ── Iconos de formularios (login / registro) ──
+export const User = ({ size = 17 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4.5 21a7.5 7.5 0 0 1 15 0" />
+  </svg>
+);
+
+export const IdCard = ({ size = 17 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2.5" y="5" width="19" height="14" rx="2" />
+    <circle cx="8" cy="10.5" r="1.8" />
+    <path d="M5.2 15.5a3 3 0 0 1 5.6 0" />
+    <path d="M14 9.5h4.5M14 13h4.5" />
+  </svg>
+);
+
+export const Mail = ({ size = 17 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <polyline points="3 7 12 13 21 7" />
+  </svg>
+);
+
+export const Receipt = ({ size = 17 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5 3h14v18l-2.5-1.5L14 21l-2-1.5L10 21l-2.5-1.5L5 21z" />
+    <path d="M9 8h6M9 12h6" />
+  </svg>
+);
+
+export const Phone = ({ size = 17 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+  </svg>
+);
+
+export const Lock = ({ size = 17 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="4.5" y="10.5" width="15" height="10" rx="2" />
+    <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" />
+  </svg>
+);
+
+export const Eye = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+export const EyeOff = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 10 8 10 8a13.16 13.16 0 0 1-1.67 2.68" />
+    <path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3 8 10 8a9.74 9.74 0 0 0 5.39-1.61" />
+    <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+    <line x1="2" y1="2" x2="22" y2="22" />
+  </svg>
+);
+
 export const Car = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <path d="M5 11l1.5-4.2A2 2 0 0 1 8.4 5.5h7.2a2 2 0 0 1 1.9 1.3L19 11"/>
@@ -372,5 +432,5 @@ export const Car = () => (
   </svg>
 );
 
-const IC = { Fuel, Users, Gift, Ticket, Star, Plus, Search, Back, ArrowLeft, Check, Chev, Pin, Clock, Warn, XMark, Info, QR, Gear, Logout, GoogleLogo, FacebookLogo, Megaphone, Menu, Percent, Tag, Wifi, Door, Cake, House, TicketStar, Car, Coffee, Soda, Drops, Shirt, Gamepad, Headphones, Tv, Speaker, Key, Ball, Utensils, Clipboard, StarLine, StarRate, Refresh };
+const IC = { Fuel, Users, Gift, Ticket, Star, Plus, Search, Back, ArrowLeft, Check, Chev, Pin, Clock, Warn, XMark, Info, QR, Gear, Logout, GoogleLogo, FacebookLogo, Megaphone, Menu, Percent, Tag, Wifi, Door, Cake, House, TicketStar, Car, Coffee, Soda, Drops, Shirt, Gamepad, Headphones, Tv, Speaker, Key, Ball, Utensils, Clipboard, StarLine, StarRate, Refresh, User, IdCard, Mail, Receipt, Phone, Lock, Eye, EyeOff };
 export default IC;
