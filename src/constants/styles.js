@@ -46,6 +46,16 @@ export const adminTheme = {
 // Rojo de marca Puntos Plus (D30 — wordmark de la referencia visual).
 export const BRAND_RED = '#E02020'; // acento de marca en textos/chips (el naranja #FA5408 vive solo en el logo)
 
+// Naranja del logo oficial — paleta de marca naranja/negro/blanco
+// (directiva del dueño 22-jul-2026, estrenada en login/registro).
+export const BRAND_ORANGE = '#FA5408';
+
+// Input flat sin borde visible (FORMATO GENERAL — login/registro).
+// Borde transparente para poder pintar estados sin saltos de layout.
+export const inputFlat = {
+  ...inputStyle, background: '#F5F5F7', border: '1.5px solid transparent',
+};
+
 // R1b — Tokens del sistema bento (referencia FORMATO GENERAL: colores
 // sólidos planos, sin degradados ni sombras — moderno y minimalista).
 export const bento = {

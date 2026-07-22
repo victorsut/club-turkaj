@@ -5,19 +5,19 @@
 // reemplaza acá, sin tocar los call sites.
 import { BRAND_RED } from '../../constants/styles';
 
-export default function Wordmark({ size = 24, color = '#0D0D0D', stacked = false }) {
+export default function Wordmark({ size = 24, color = '#0D0D0D', stacked = false, accent = BRAND_RED }) {
   if (stacked) {
     // Versión compacta de dos líneas (logo de header, como la referencia).
     return (
       <span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1, textAlign: 'left' }}>
         <span style={{ fontSize: Math.round(size * 0.55), fontWeight: 900, letterSpacing: 1.5, color }}>PUNTOS</span>
-        <span style={{ fontSize: size, fontWeight: 900, letterSpacing: 1, color: BRAND_RED }}>PLUS</span>
+        <span style={{ fontSize: size, fontWeight: 900, letterSpacing: 1, color: accent }}>PLUS</span>
       </span>
     );
   }
   return (
     <span style={{ fontSize: size, fontWeight: 900, color, whiteSpace: 'nowrap' }}>
-      Puntos <span style={{ color: BRAND_RED }}>Plus</span>
+      Puntos <span style={{ color: accent }}>Plus</span>
     </span>
   );
 }

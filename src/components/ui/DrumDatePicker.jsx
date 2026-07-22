@@ -4,7 +4,7 @@
 // F0.3.9.2: todos los componentes viven a nivel de módulo — declararlos
 // dentro del padre creaba un tipo nuevo por render y remontaba el tambor.
 import { useState, useRef, useEffect } from 'react';
-import { BRAND_RED } from '../../constants/styles';
+import { BRAND_ORANGE } from '../../constants/styles';
 
 const ITEM_H   = 48;
 const VISIBLE  = 5;
@@ -61,7 +61,7 @@ function DrumPicker({ items, selectedIndex, onChange }) {
       style={{ flex: 1, height: ITEM_H * VISIBLE, overflow: 'hidden', position: 'relative', cursor: 'grab', touchAction: 'none', userSelect: 'none' }}
       onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
     >
-      <div style={{ position: 'absolute', top: CENTER_Y, left: 6, right: 6, height: ITEM_H, background: 'rgba(224,32,32,.06)', borderRadius: 10, borderTop: '1.5px solid rgba(224,32,32,.35)', borderBottom: '1.5px solid rgba(224,32,32,.35)', pointerEvents: 'none', zIndex: 2 }} />
+      <div style={{ position: 'absolute', top: CENTER_Y, left: 6, right: 6, height: ITEM_H, background: 'rgba(250,84,8,.06)', borderRadius: 10, borderTop: '1.5px solid rgba(250,84,8,.35)', borderBottom: '1.5px solid rgba(250,84,8,.35)', pointerEvents: 'none', zIndex: 2 }} />
       <div style={{ transform: `translateY(${displayY}px)`, transition: isSnapping ? 'transform .22s ease' : 'none', willChange: 'transform' }}>
         {items.map((item, i) => (
           <div key={i} style={{ height: ITEM_H, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: i === selectedIndex ? 17 : 14, fontWeight: i === selectedIndex ? 800 : 400, color: i === selectedIndex ? '#0D0D0D' : '#BDBDBD', fontFamily: "'DM Sans'", userSelect: 'none' }}>
@@ -122,7 +122,7 @@ export const DatePickerSheet = ({ tempDate, setTempDate, setShowDatePicker, setR
         <button onClick={() => setShowDatePicker(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 700, color: '#9E9E9E', fontFamily: "'DM Sans'" }}>Cancelar</button>
         <div style={{ fontSize: 15, fontWeight: 800, color: '#0D0D0D' }}>Fecha de nacimiento</div>
         <button onClick={() => { setRegProfile(p => ({ ...p, bday: tempDate })); setShowDatePicker(false); }}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 800, color: BRAND_RED, fontFamily: "'DM Sans'" }}>Seleccionar</button>
+          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 800, color: BRAND_ORANGE, fontFamily: "'DM Sans'" }}>Seleccionar</button>
       </div>
       <div style={{ padding: '12px 20px 0' }}>
         <DateDrumPicker value={tempDate} onChange={setTempDate} />

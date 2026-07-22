@@ -4,25 +4,17 @@
 // iconos de vehículo en ui/VehicleIcons.
 import { useState } from 'react';
 import { sb } from '../../lib/supabaseClient';
-import { inputStyle, btnStyle, BRAND_RED, bento } from '../../constants/styles';
-import { ArrowLeft, User, IdCard, Mail, Receipt, Eye, EyeOff, Plus, XMark } from '../../components/ui/Icons';
+import { inputFlat, btnStyle, BRAND_ORANGE } from '../../constants/styles';
+import { User, IdCard, Mail, Receipt, Eye, EyeOff, Plus, XMark } from '../../components/ui/Icons';
 import { DatePickerSheet } from '../../components/ui/DrumDatePicker';
 import { VEHICLE_TYPES } from '../../components/ui/VehicleIcons';
-import { StepBar, PtsCard, Field, DateField } from './registerUi';
+import { WizardHeader, PtsCard, Field, DateField } from './registerUi';
 import { getNextCardCode } from '../../services/dataService';
 
 const VEHICLE_PTS = 2;
 
 // Acción primaria = color sólido de marca (regla FORMATO GENERAL)
-const btnPrimary = { ...btnStyle, background: BRAND_RED, color: '#fff' };
-
-// Flecha de volver SUELTA, sin recuadro (patrón Promociones)
-const BackArrow = ({ onClick }) => (
-  <button onClick={onClick} aria-label="Volver"
-    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', color: '#0D0D0D', marginBottom: 20 }}>
-    <ArrowLeft />
-  </button>
-);
+const btnPrimary = { ...btnStyle, background: BRAND_ORANGE, color: '#fff' };
 
 export default function GoogleProfile(ctx) {
   const { me, setMe, setCusts, cfg, googleStep, setGoogleStep,
@@ -178,7 +170,7 @@ export default function GoogleProfile(ctx) {
       setGoogleStep('step2');
     };
     return (
-      <div style={{ padding: '28px 24px 120px' }}>
+      <div style={{ padding: '24px 24px 120px' }}>
         {showDatePicker && (
           <DatePickerSheet
             tempDate={tempDate}
@@ -187,8 +179,7 @@ export default function GoogleProfile(ctx) {
             setRegProfile={setRegProfile}
           />
         )}
-        <BackArrow onClick={() => setAuthScreen('login')} />
-        <StepBar step="step1" />
+        <WizardHeader step="step1" onBack={() => setAuthScreen('login')} />
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 22, fontWeight: 900, color: '#0D0D0D', marginBottom: 4 }}>Datos personales</div>
           <div style={{ fontSize: 13, color: '#9E9E9E' }}>Todos los campos son obligatorios</div>
@@ -203,10 +194,10 @@ export default function GoogleProfile(ctx) {
           <Field {...fieldProps} icon={<IdCard />} placeholder="DPI — 13 dígitos *" fieldKey="dpi" inputMode="numeric" maxLen={13} />
           {/* Teléfono con prefijo */}
           <div style={{ position: 'relative' }}>
-            <div style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: '#9E9E9E', fontWeight: 700, zIndex: 1 }}>+502</div>
+            <div style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: '#9E9E9E', fontWeight: 700, zIndex: 1 }}>+502</div>
             <input placeholder="Teléfono 8 dígitos *" value={regProfile.phone || ''} inputMode="numeric" maxLength={8}
               onChange={e => { setRegProfile(p => ({ ...p, phone: e.target.value.replace(/[^0-9]/g, '') })); clearAuthErr(); }}
-              style={{ ...inputStyle, paddingLeft: 60 }} />
+              style={{ ...inputFlat, paddingLeft: 62 }} />
           </div>
         </div>
         <PtsCard total={totalPts} base={cfg.regBase || 15} optional={optFields * regOptional} vehicles={vehiclePts} />
@@ -220,12 +211,11 @@ export default function GoogleProfile(ctx) {
   // ══ PASO 2 — Datos adicionales (opcionales, +pts) ═════════
   if (googleStep === 'step2') {
     return (
-      <div style={{ padding: '28px 24px 120px' }}>
-        <BackArrow onClick={() => { setGoogleStep('step1'); clearAuthErr(); }} />
-        <StepBar step="step2" />
+      <div style={{ padding: '24px 24px 120px' }}>
+        <WizardHeader step="step2" onBack={() => { setGoogleStep('step1'); clearAuthErr(); }} />
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 22, fontWeight: 900, color: '#0D0D0D', marginBottom: 4 }}>Datos adicionales</div>
-          <div style={{ fontSize: 13, color: '#9E9E9E' }}>Opcionales — ganá <strong style={{ color: bento.green }}>+{regOptional} pts</strong> por cada uno que completes</div>
+          <div style={{ fontSize: 13, color: '#9E9E9E' }}>Opcionales — ganá <strong style={{ color: BRAND_ORANGE }}>+{regOptional} pts</strong> por cada uno que completes</div>
         </div>
         {errBox}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
@@ -250,12 +240,11 @@ export default function GoogleProfile(ctx) {
     };
     const typeInfo = k => VEHICLE_TYPES.find(t => t.k === k) || VEHICLE_TYPES[0];
     return (
-      <div style={{ padding: '28px 24px 120px' }}>
-        <BackArrow onClick={() => { setGoogleStep('step2'); clearAuthErr(); }} />
-        <StepBar step="step3" />
+      <div style={{ padding: '24px 24px 120px' }}>
+        <WizardHeader step="step3" onBack={() => { setGoogleStep('step2'); clearAuthErr(); }} />
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 22, fontWeight: 900, color: '#0D0D0D', marginBottom: 4 }}>Tus vehículos</div>
-          <div style={{ fontSize: 13, color: '#9E9E9E' }}>Ganás <strong style={{ color: bento.green }}>+{VEHICLE_PTS} pts</strong> por cada vehículo registrado.</div>
+          <div style={{ fontSize: 13, color: '#9E9E9E' }}>Ganás <strong style={{ color: BRAND_ORANGE }}>+{VEHICLE_PTS} pts</strong> por cada vehículo registrado.</div>
         </div>
         {errBox}
 
@@ -265,15 +254,15 @@ export default function GoogleProfile(ctx) {
             {vehicles.map((v, i) => {
               const t = typeInfo(v.type);
               return (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: bento.pageBg, borderRadius: 16, padding: '12px 14px' }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 12, background: '#1C1C1E', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#F5F5F7', borderRadius: 16, padding: '12px 14px' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: '#0D0D0D', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <t.Icon size={22} />
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 800, color: '#0D0D0D' }}>{t.label}</div>
                     <div style={{ fontSize: 12, color: '#9E9E9E', fontFamily: "'JetBrains Mono', monospace", marginTop: 2 }}>{v.plate}</div>
                   </div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: bento.green, background: '#E8F5E9', padding: '3px 8px', borderRadius: 8, marginRight: 2 }}>+{VEHICLE_PTS} pts</div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: BRAND_ORANGE, background: 'rgba(250,84,8,.1)', padding: '3px 8px', borderRadius: 8, marginRight: 2 }}>+{VEHICLE_PTS} pts</div>
                   <button onClick={() => setVehicles(vs => vs.filter((_, idx) => idx !== i))} aria-label="Quitar vehículo"
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9E9E9E', padding: 4, display: 'flex' }}><XMark /></button>
                 </div>
@@ -284,28 +273,28 @@ export default function GoogleProfile(ctx) {
 
         {/* Formulario agregar */}
         {addingVehicle ? (
-          <div style={{ background: bento.pageBg, borderRadius: 20, padding: 16, marginBottom: 16 }}>
+          <div style={{ background: '#F5F5F7', borderRadius: 20, padding: 16, marginBottom: 16 }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: '#0D0D0D', marginBottom: 12 }}>Tipo de vehículo</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
               {VEHICLE_TYPES.map(t => (
-                <button key={t.k} onClick={() => setNewType(t.k)} style={{ padding: '10px 8px', borderRadius: 12, border: 'none', background: newType === t.k ? BRAND_RED : '#fff', color: newType === t.k ? '#fff' : '#757575', cursor: 'pointer', fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <button key={t.k} onClick={() => setNewType(t.k)} style={{ padding: '10px 8px', borderRadius: 12, border: 'none', background: newType === t.k ? '#0D0D0D' : '#fff', color: newType === t.k ? '#fff' : '#757575', cursor: 'pointer', fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                   <t.Icon size={18} />{t.label}
                 </button>
               ))}
             </div>
             <input placeholder="Placa (ej: ABC-123)" value={newPlate}
               onChange={e => { setNewPlate(e.target.value.toUpperCase()); clearAuthErr(); }}
-              style={{ ...inputStyle, marginBottom: 12, background: '#fff', fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, letterSpacing: 2 }} />
+              style={{ ...inputFlat, marginBottom: 12, background: '#fff', fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, letterSpacing: 2 }} />
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={() => { setAddingVehicle(false); setNewPlate(''); clearAuthErr(); }}
                 style={{ flex: 1, padding: 12, borderRadius: 12, border: 'none', background: '#fff', color: '#9E9E9E', fontFamily: "'DM Sans'", fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>Cancelar</button>
               <button onClick={addVehicle}
-                style={{ flex: 2, padding: 12, borderRadius: 12, border: 'none', background: BRAND_RED, color: '#fff', fontFamily: "'DM Sans'", fontWeight: 800, cursor: 'pointer', fontSize: 13 }}>Agregar</button>
+                style={{ flex: 2, padding: 12, borderRadius: 12, border: 'none', background: BRAND_ORANGE, color: '#fff', fontFamily: "'DM Sans'", fontWeight: 800, cursor: 'pointer', fontSize: 13 }}>Agregar</button>
             </div>
           </div>
         ) : (
-          <button onClick={() => setAddingVehicle(true)} style={{ width: '100%', padding: 14, borderRadius: 16, border: '1.5px solid #E0E0E0', background: '#fff', color: '#0D0D0D', fontFamily: "'DM Sans'", fontWeight: 800, fontSize: 14, cursor: 'pointer', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-            <span style={{ color: BRAND_RED, display: 'flex' }}><Plus /></span>
+          <button onClick={() => setAddingVehicle(true)} style={{ width: '100%', padding: 14, borderRadius: 16, border: '1.5px solid #ECECEE', background: '#fff', color: '#0D0D0D', fontFamily: "'DM Sans'", fontWeight: 800, fontSize: 14, cursor: 'pointer', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <span style={{ color: BRAND_ORANGE, display: 'flex' }}><Plus /></span>
             Agregar vehículo {vehicles.length > 0 && `(${vehicles.length} registrado${vehicles.length > 1 ? 's' : ''})`}
           </button>
         )}
@@ -325,9 +314,8 @@ export default function GoogleProfile(ctx) {
   // ══ PASO 4 — Contraseña ══════════════════════════════════
   if (googleStep === 'step4') {
     return (
-      <div style={{ padding: '28px 24px 120px' }}>
-        <BackArrow onClick={() => { setGoogleStep('step3'); clearAuthErr(); }} />
-        <StepBar step="step4" />
+      <div style={{ padding: '24px 24px 120px' }}>
+        <WizardHeader step="step4" onBack={() => { setGoogleStep('step3'); clearAuthErr(); }} />
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 22, fontWeight: 900, color: '#0D0D0D', marginBottom: 4 }}>Crear contraseña</div>
           <div style={{ fontSize: 13, color: '#9E9E9E' }}>Usarás esta contraseña para acceder a tu cuenta</div>
@@ -341,7 +329,7 @@ export default function GoogleProfile(ctx) {
             <div style={{ position: 'relative' }}>
               <input type={showPass ? 'text' : 'password'} placeholder="Mínimo 6 caracteres" value={password}
                 onChange={e => { setPassword(e.target.value); clearAuthErr(); }}
-                style={{ ...inputStyle, paddingRight: 50 }} />
+                style={{ ...inputFlat, paddingRight: 50 }} />
               <button type="button" onClick={() => setShowPass(p => !p)} aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                 style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9E9E9E', display: 'flex', padding: 2 }}>
                 {showPass ? <EyeOff /> : <Eye />}
@@ -355,15 +343,15 @@ export default function GoogleProfile(ctx) {
             <div style={{ position: 'relative' }}>
               <input type={showPassConfirm ? 'text' : 'password'} placeholder="Repetí tu contraseña" value={passConfirm}
                 onChange={e => { setPassConfirm(e.target.value); clearAuthErr(); }}
-                style={{ ...inputStyle, paddingRight: 50,
-                  borderColor: passConfirm && passConfirm !== password ? '#EF5350' : passConfirm && passConfirm === password ? bento.green : undefined }} />
+                style={{ ...inputFlat, paddingRight: 50,
+                  borderColor: passConfirm && passConfirm !== password ? '#EF5350' : passConfirm && passConfirm === password ? BRAND_ORANGE : 'transparent' }} />
               <button type="button" onClick={() => setShowPassConfirm(p => !p)} aria-label={showPassConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                 style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9E9E9E', display: 'flex', padding: 2 }}>
                 {showPassConfirm ? <EyeOff /> : <Eye />}
               </button>
             </div>
             {passConfirm && passConfirm === password && (
-              <div style={{ fontSize: 11, color: bento.green, fontWeight: 700, marginTop: 6 }}>Las contraseñas coinciden</div>
+              <div style={{ fontSize: 11, color: BRAND_ORANGE, fontWeight: 700, marginTop: 6 }}>Las contraseñas coinciden</div>
             )}
             {passConfirm && passConfirm !== password && (
               <div style={{ fontSize: 11, color: '#EF5350', fontWeight: 700, marginTop: 6 }}>Las contraseñas no coinciden</div>
@@ -376,7 +364,7 @@ export default function GoogleProfile(ctx) {
           <div style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
               {[1,2,3,4].map(i => (
-                <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: password.length >= i * 2 + 2 ? (password.length >= 10 ? bento.green : bento.amber) : '#E8E8EA', transition: 'background .2s' }} />
+                <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: password.length >= i * 2 + 2 ? (password.length >= 10 ? '#0D0D0D' : BRAND_ORANGE) : '#ECECEE', transition: 'background .2s' }} />
               ))}
             </div>
             <div style={{ fontSize: 11, color: '#9E9E9E' }}>
@@ -386,7 +374,7 @@ export default function GoogleProfile(ctx) {
         )}
 
         <PtsCard total={totalPts} base={cfg.regBase || 15} optional={optFields * regOptional} vehicles={vehiclePts} />
-        <button onClick={doFinish} disabled={saving} style={{ ...btnPrimary, background: saving ? '#E0E0E0' : BRAND_RED, color: saving ? '#9E9E9E' : '#fff', opacity: saving ? .8 : 1 }}>
+        <button onClick={doFinish} disabled={saving} style={{ ...btnPrimary, background: saving ? '#E0E0E0' : BRAND_ORANGE, color: saving ? '#9E9E9E' : '#fff', opacity: saving ? .8 : 1 }}>
           {saving ? 'Guardando...' : 'Finalizar registro (' + totalPts + ' pts)'}
         </button>
       </div>
