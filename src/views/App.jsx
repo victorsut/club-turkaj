@@ -48,7 +48,6 @@ import useBackLayer from '../hooks/useBackLayer';
 
 // Auth Views
 import ClientLogin from './client/ClientLogin';
-import ClientRegister from './client/ClientRegister';
 import ClientProfile from './client/ClientProfile';
 import GoogleProfile from './client/GoogleProfile';
 import OperatorLogin from './operator/OperatorLogin';
@@ -1436,7 +1435,9 @@ export default function App() {
   function renderScreen() {
     // Auth gates
     if (isC && authScreen !== 'logged') {
-      if (authScreen === 'register' || authScreen === 'verify') return <ClientRegister {...ctx} />;
+      // 'register'/'verify' legacy: la bienvenida intermedia se eliminó —
+      // el registro entra directo al wizard (decisión del dueño 22-jul).
+      if (authScreen === 'register' || authScreen === 'verify') return <GoogleProfile {...ctx} />;
       if (authScreen === 'profile') return <ClientProfile {...ctx} />;
       if (authScreen === 'googleProfile') return <GoogleProfile {...ctx} />;
       return <ClientLogin {...ctx} />;

@@ -76,7 +76,6 @@ function DrumPicker({ items, selectedIndex, onChange }) {
 }
 
 const MONTHS      = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-const DAYS_ITEMS  = Array.from({ length: 31 }, (_, i) => ({ label: String(i + 1).padStart(2, '0') }));
 const MONTH_ITEMS = MONTHS.map(m => ({ label: m }));
 
 export function DateDrumPicker({ value, onChange }) {
@@ -98,18 +97,27 @@ export function DateDrumPicker({ value, onChange }) {
   const [mi, setMi] = useState(init.m);
   const [yi, setYi] = useState(init.y);
 
+  // Días reales del mes/año elegido — evita fechas inválidas (31/feb)
+  const daysIn   = (m, y) => new Date(parseInt(years[y].label), m + 1, 0).getDate();
+  const dayItems = Array.from({ length: daysIn(mi, yi) }, (_, i) => ({ label: String(i + 1).padStart(2, '0') }));
+
   const emit = (d, m, y) => {
     const year  = parseInt(years[y].label);
     onChange(`${year}-${String(m + 1).padStart(2,'0')}-${String(d + 1).padStart(2,'0')}`);
   };
 
+  // Al cambiar mes/año, el día se ajusta si supera los días del mes
+  const pickDay   = i => { setDi(i); emit(i, mi, yi); };
+  const pickMonth = i => { const d = Math.min(di, daysIn(i, yi) - 1); setMi(i); setDi(d); emit(d, i, yi); };
+  const pickYear  = i => { const d = Math.min(di, daysIn(mi, i) - 1); setYi(i); setDi(d); emit(d, mi, i); };
+
   return (
     <div style={{ display: 'flex', background: '#fff', borderRadius: 16, overflow: 'hidden' }}>
-      <DrumPicker items={DAYS_ITEMS}  selectedIndex={di} onChange={i => { setDi(i); emit(i, mi, yi); }} />
+      <DrumPicker items={dayItems}    selectedIndex={di} onChange={pickDay} />
       <div style={{ width: 1, background: '#F0F0F0' }} />
-      <DrumPicker items={MONTH_ITEMS} selectedIndex={mi} onChange={i => { setMi(i); emit(di, i, yi); }} />
+      <DrumPicker items={MONTH_ITEMS} selectedIndex={mi} onChange={pickMonth} />
       <div style={{ width: 1, background: '#F0F0F0' }} />
-      <DrumPicker items={years}       selectedIndex={yi} onChange={i => { setYi(i); emit(di, mi, i); }} />
+      <DrumPicker items={years}       selectedIndex={yi} onChange={pickYear} />
     </div>
   );
 }

@@ -208,30 +208,10 @@ export default function GoogleProfile(ctx) {
     );
   }
 
-  // ══ PASO 2 — Datos adicionales (opcionales, +pts) ═════════
+  // ══ PASO 2 — Datos adicionales + vehículos (opcional, +pts) ══
+  // (antes eran dos pasos separados — se fusionaron para acortar el
+  // registro: decisión de optimización 22-jul)
   if (googleStep === 'step2') {
-    return (
-      <div style={{ padding: '24px 24px 120px' }}>
-        <WizardHeader step="step2" onBack={() => { setGoogleStep('step1'); clearAuthErr(); }} />
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 22, fontWeight: 900, color: '#0D0D0D', marginBottom: 4 }}>Datos adicionales</div>
-          <div style={{ fontSize: 13, color: '#9E9E9E' }}>Opcionales — ganá <strong style={{ color: BRAND_ORANGE }}>+{regOptional} pts</strong> por cada uno que completes</div>
-        </div>
-        {errBox}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-          <Field {...fieldProps} icon={<Mail />} placeholder="Correo electrónico (opcional)" fieldKey="email" type="email" bonus />
-          <Field {...fieldProps} icon={<Receipt />} placeholder="NIT (opcional)" fieldKey="nit" bonus />
-        </div>
-        <PtsCard total={totalPts} base={cfg.regBase || 15} optional={optFields * regOptional} vehicles={vehiclePts} />
-        <button onClick={() => { clearAuthErr(); setGoogleStep('step3'); }} style={btnPrimary}>
-          Siguiente
-        </button>
-      </div>
-    );
-  }
-
-  // ══ PASO 3 — Vehículos (con placa) ═══════════════════════
-  if (googleStep === 'step3') {
     const addVehicle = () => {
       if (!newPlate.trim()) { setAuthError('Ingresa la placa del vehículo'); return; }
       clearAuthErr();
@@ -241,12 +221,20 @@ export default function GoogleProfile(ctx) {
     const typeInfo = k => VEHICLE_TYPES.find(t => t.k === k) || VEHICLE_TYPES[0];
     return (
       <div style={{ padding: '24px 24px 120px' }}>
-        <WizardHeader step="step3" onBack={() => { setGoogleStep('step2'); clearAuthErr(); }} />
+        <WizardHeader step="step2" onBack={() => { setGoogleStep('step1'); clearAuthErr(); }} />
         <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 22, fontWeight: 900, color: '#0D0D0D', marginBottom: 4 }}>Tus vehículos</div>
-          <div style={{ fontSize: 13, color: '#9E9E9E' }}>Ganás <strong style={{ color: BRAND_ORANGE }}>+{VEHICLE_PTS} pts</strong> por cada vehículo registrado.</div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: '#0D0D0D', marginBottom: 4 }}>Datos adicionales</div>
+          <div style={{ fontSize: 13, color: '#9E9E9E' }}>Todo opcional — cada dato suma <strong style={{ color: BRAND_ORANGE }}>+{regOptional} pts</strong> y cada vehículo <strong style={{ color: BRAND_ORANGE }}>+{VEHICLE_PTS} pts</strong></div>
         </div>
         {errBox}
+
+        {/* Correo + NIT */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 22 }}>
+          <Field {...fieldProps} icon={<Mail />} placeholder="Correo electrónico (opcional)" fieldKey="email" type="email" bonus />
+          <Field {...fieldProps} icon={<Receipt />} placeholder="NIT (opcional)" fieldKey="nit" bonus />
+        </div>
+
+        <div style={{ fontSize: 13, fontWeight: 800, color: '#0D0D0D', marginBottom: 10 }}>Tus vehículos</div>
 
         {/* Vehículos registrados */}
         {vehicles.length > 0 && (
@@ -300,22 +288,22 @@ export default function GoogleProfile(ctx) {
         )}
 
         {vehicles.length === 0 && !addingVehicle && (
-          <div style={{ textAlign: 'center', fontSize: 12, color: '#9E9E9E', marginBottom: 16 }}>Podés omitir este paso si no querés registrar vehículos ahora.</div>
+          <div style={{ textAlign: 'center', fontSize: 12, color: '#9E9E9E', marginBottom: 16 }}>Podés registrar tus vehículos más adelante si preferís.</div>
         )}
 
         <PtsCard total={totalPts} base={cfg.regBase || 15} optional={optFields * regOptional} vehicles={vehiclePts} />
-        <button onClick={() => { clearAuthErr(); setGoogleStep('step4'); }} style={btnPrimary}>
+        <button onClick={() => { clearAuthErr(); setGoogleStep('step3'); }} style={btnPrimary}>
           Siguiente
         </button>
       </div>
     );
   }
 
-  // ══ PASO 4 — Contraseña ══════════════════════════════════
-  if (googleStep === 'step4') {
+  // ══ PASO 3 — Contraseña ══════════════════════════════════
+  if (googleStep === 'step3') {
     return (
       <div style={{ padding: '24px 24px 120px' }}>
-        <WizardHeader step="step4" onBack={() => { setGoogleStep('step3'); clearAuthErr(); }} />
+        <WizardHeader step="step3" onBack={() => { setGoogleStep('step2'); clearAuthErr(); }} />
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 22, fontWeight: 900, color: '#0D0D0D', marginBottom: 4 }}>Crear contraseña</div>
           <div style={{ fontSize: 13, color: '#9E9E9E' }}>Usarás esta contraseña para acceder a tu cuenta</div>

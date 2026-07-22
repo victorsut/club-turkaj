@@ -5,8 +5,8 @@
 import { inputFlat, BRAND_ORANGE } from '../../constants/styles';
 import { ArrowLeft, Cake, Chev } from '../../components/ui/Icons';
 
-const STEP_IDX = { step1: 0, welcome: 0, step2: 1, step3: 2, step4: 3 };
-const STEPS = 4;
+const STEP_IDX = { step1: 0, welcome: 0, step2: 1, step3: 2 };
+const STEPS = 3;
 
 // Encabezado del wizard (patrón de la referencia: flecha suelta +
 // título centrado) con progreso segmentado debajo.
@@ -31,13 +31,14 @@ export function WizardHeader({ step, onBack }) {
   );
 }
 
-// Resumen de puntos que ganará al registrarse — cuadro negro de marca
+// Resumen de puntos que ganará al registrarse — superficie clara flat
+// (el cuadro negro resultaba muy contrastante — feedback del dueño 22-jul)
 export function PtsCard({ total, base, optional, vehicles }) {
   return (
-    <div style={{ background: '#0D0D0D', borderRadius: 20, padding: '14px 18px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+    <div style={{ background: '#F5F5F7', borderRadius: 20, padding: '14px 18px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
       <div>
-        <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,.6)', textTransform: 'uppercase', letterSpacing: 1 }}>Puntos al registrarte</div>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,.55)', marginTop: 3 }}>Base {base} + opcionales {optional} + vehículos {vehicles}</div>
+        <div style={{ fontSize: 10, fontWeight: 800, color: '#9E9E9E', textTransform: 'uppercase', letterSpacing: 1 }}>Puntos al registrarte</div>
+        <div style={{ fontSize: 11, color: '#9E9E9E', marginTop: 3 }}>Base {base} + opcionales {optional} + vehículos {vehicles}</div>
       </div>
       <div style={{ fontSize: 30, fontWeight: 900, color: BRAND_ORANGE, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{total}</div>
     </div>
