@@ -9,7 +9,7 @@ import { User, IdCard, Mail, Receipt, Eye, EyeOff, Plus, XMark } from '../../com
 import { DatePickerSheet } from '../../components/ui/DrumDatePicker';
 import { VEHICLE_TYPES } from '../../components/ui/VehicleIcons';
 import { WizardHeader, PtsCard, Field, DateField } from './registerUi';
-import { phoneMask, dpiMask, nitMask, plateMask, capWords } from '../../lib/inputMasks';
+import { phoneMask, dpiMask, plateMask, capWords } from '../../lib/inputMasks';
 import { getNextCardCode } from '../../services/dataService';
 
 const VEHICLE_PTS = 2;
@@ -72,8 +72,7 @@ export default function GoogleProfile(ctx) {
       let bdayStored = '';
       if (bdayRaw) { const p = bdayRaw.split('-'); if (p.length === 3) bdayStored = p[1] + '-' + p[2]; }
 
-      const nitStored = regProfile.nit ? nitMask.format(regProfile.nit) : '';
-      const updated = { ...me, name: regProfile.name, phone: regProfile.phone || '', dpi: regProfile.dpi || '', plate: firstPlate, email: regProfile.email || me?.email || '', bday: bdayStored, nit: nitStored, points: totalPts, cardId: fallbackCard };
+      const updated = { ...me, name: regProfile.name, phone: regProfile.phone || '', dpi: regProfile.dpi || '', plate: firstPlate, email: regProfile.email || me?.email || '', bday: bdayStored, nit: regProfile.nit || '', points: totalPts, cardId: fallbackCard };
       setMe(updated);
       setCusts(p => [...p, updated]);
       setAuthScreen('logged');
@@ -92,7 +91,7 @@ export default function GoogleProfile(ctx) {
           dpi:              regProfile.dpi || null,
           plate:            firstPlate || null,
           vehicles:         vehicles.length > 0 ? vehicles : [],
-          nit:              nitStored || null,
+          nit:              regProfile.nit || null,
           email:            regProfile.email || me?.email || null,
           birthday:         bdayStored || null,
           points:           totalPts,
@@ -218,7 +217,7 @@ export default function GoogleProfile(ctx) {
       if (!newPlate.trim()) { setAuthError('Ingresa la placa del vehículo'); return; }
       if (!plateMask.complete(newPlate)) { setAuthError('Placa incompleta — formato: P 123 ABC'); return; }
       clearAuthErr();
-      setVehicles(v => [...v, { type: newType, plate: plateMask.format(newPlate) }]);
+      setVehicles(v => [...v, { type: newType, plate: newPlate }]);
       setNewPlate(''); setNewType('liviano'); setAddingVehicle(false);
     };
     const typeInfo = k => VEHICLE_TYPES.find(t => t.k === k) || VEHICLE_TYPES[0];
@@ -234,7 +233,7 @@ export default function GoogleProfile(ctx) {
         {/* Correo + NIT */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 22 }}>
           <Field {...fieldProps} icon={<Mail />} placeholder="Correo electrónico (opcional)" fieldKey="email" type="email" bonus />
-          <Field {...fieldProps} icon={<Receipt />} placeholder="NIT (opcional)" fieldKey="nit" mask={nitMask} bonus />
+          <Field {...fieldProps} icon={<Receipt />} placeholder="NIT (opcional)" fieldKey="nit" bonus />
         </div>
 
         <div style={{ fontSize: 13, fontWeight: 800, color: '#0D0D0D', marginBottom: 10 }}>Tus vehículos</div>
@@ -251,7 +250,7 @@ export default function GoogleProfile(ctx) {
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 800, color: '#0D0D0D' }}>{t.label}</div>
-                    <div style={{ fontSize: 12, color: '#9E9E9E', fontFamily: "'JetBrains Mono', monospace", marginTop: 2 }}>{v.plate}</div>
+                    <div style={{ fontSize: 12, color: '#9E9E9E', fontFamily: "'JetBrains Mono', monospace", marginTop: 2 }}>{plateMask.format(v.plate)}</div>
                   </div>
                   <div style={{ fontSize: 11, fontWeight: 800, color: BRAND_ORANGE, background: 'rgba(250,84,8,.1)', padding: '3px 8px', borderRadius: 8, marginRight: 2 }}>+{VEHICLE_PTS} pts</div>
                   <button onClick={() => setVehicles(vs => vs.filter((_, idx) => idx !== i))} aria-label="Quitar vehículo"

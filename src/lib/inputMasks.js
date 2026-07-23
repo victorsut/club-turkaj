@@ -17,14 +17,8 @@ export const dpiMask = {
   format: v => [v.slice(0, 4), v.slice(4, 9), v.slice(9, 13)].filter(Boolean).join(' '),
 };
 
-// NIT: guión antes del último carácter, que se va corriendo al escribir
-// ("1234567" → "123456-7"). El dígito verificador puede ser K.
-export const nitMask = {
-  clean:  v => v.toUpperCase().replace(/[^0-9K]/g, '').slice(0, 12),
-  format: v => (v.length >= 2 ? v.slice(0, -1) + '-' + v.slice(-1) : v),
-};
-
 // Placa GT: 1 letra + 3 números + 3 letras → "P 123 ABC".
+// Los espacios son SOLO visuales: en estado y BD la placa va sin espacios.
 // clean() acepta caracteres solo si encajan en la posición que toca,
 // así el teclado puede escribir de corrido sin separadores.
 export const plateMask = {

@@ -44,7 +44,7 @@ export default function TierCardBento({ me, cTier, onOpenDetail, onPointsTap }) 
             <span style={{ fontWeight: 800 }}>{cTier.name}</span>
           </div>
           <div style={{ height: 7, borderRadius: 4, overflow: 'hidden', background: barBg, marginTop: shortScr ? 9 : 12 }}>
-            <div style={{ height: '100%', borderRadius: 4, width: `${pg}%`, background: '#fff', transition: 'width 1s ease' }} />
+            <div className="pp-bar-fill" style={{ height: '100%', borderRadius: 4, width: `${pg}%`, background: '#fff', transition: 'width 1s ease' }} />
           </div>
           <div style={{ fontSize: 12.5, fontWeight: 700, opacity: 0.9, marginTop: shortScr ? 6 : 8 }}>
             {cTier.next
