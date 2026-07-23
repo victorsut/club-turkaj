@@ -106,6 +106,9 @@ body {
    los suaviza la transition de width, que continúa desde lo mostrado. */
 @keyframes ppBarFill  { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 .pp-bar-fill { transform-origin: left; animation: ppBarFill .9s cubic-bezier(.32, .72, .33, 1) .25s backwards; }
+/* Confetti festivo (modal de bonus): piezas que flotan suavemente */
+@keyframes ppConfetti { from { transform: translateY(-3px) rotate(-8deg); } to { transform: translateY(5px) rotate(18deg); } }
+.pp-confetti { position: absolute; animation: ppConfetti 1.8s ease-in-out infinite alternate; }
 
 .pp-tile {
   animation: ppTileIn .4s cubic-bezier(.34, 1.3, .64, 1) backwards;
@@ -132,6 +135,7 @@ body {
   .pp-tint-in { animation-duration: .1s; }
   .pp-tile:active { transform: none; }
   .pp-bar-fill { animation: none; }
+  .pp-confetti { animation: none; }
 }
 
 /* R1b — el home llena la resolución del dispositivo: el grid se estira
