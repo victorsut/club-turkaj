@@ -16,12 +16,18 @@ export const menuTheme = (tier) => {
     header:  isDark ? '#fff' : '#0D0D0D',
     text:    isDark ? '#E0E0E0' : '#424242',
     sub:     isDark ? 'rgba(255,255,255,.5)' : '#9E9E9E',
+    divider: isDark ? 'rgba(255,255,255,.08)' : '#F2F2F4',
   };
 };
 
 // Acento por identidad de nivel (mismos valores que el modal del home)
 export const tierAccent = (tier) =>
   tier === 'BLACK' ? '#FBBC04' : tier === 'PLATINO' ? '#6B767D' : bento.gold;
+
+// Fondo con la identidad del tier (banda de Niveles y header del menú)
+export const tierBand = (tier) =>
+  tier === 'BLACK' ? 'radial-gradient(ellipse at 20% 30%, #0d0d1a 0%, #050508 40%, #000 100%)'
+    : tier === 'PLATINO' ? '#9EA7AD' : bento.gold;
 
 // Encabezado de sección: flecha suelta + título centrado (patrón Promociones)
 export function SectionHeader({ title, sub, onBack, TH }) {

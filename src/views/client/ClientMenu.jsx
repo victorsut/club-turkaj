@@ -4,21 +4,22 @@
 // Las secciones viven en views/client/menu/ (modularidad <500 líneas).
 // El botón físico de volver cierra la sección abierta (useBackLayer).
 import { useState } from 'react';
-import { sMono, BRAND_ORANGE, bento } from '../../constants/styles';
+import { sMono, bento } from '../../constants/styles';
 import { User, StarLine, Warn, Clipboard, Info, Door, Chev, ArrowLeft } from '../../components/ui/Icons';
+import GalaxyDust from '../../components/ui/GalaxyDust';
 import LegalFooter from '../../components/ui/LegalFooter';
 import useBackLayer from '../../hooks/useBackLayer';
-import { menuTheme, tierAccent } from './menu/menuUi';
+import { menuTheme, tierBand } from './menu/menuUi';
 import MenuAccount from './menu/MenuAccount';
 import { MenuLevels, MenuInactivity, MenuAbout } from './menu/MenuInfo';
 import MenuTerms from './menu/MenuTerms';
 
 const MENU_ITEMS = [
-  { id: 'cuenta',      icon: <User />,      label: 'Mi Cuenta',               desc: 'Editar datos personales' },
-  { id: 'niveles',     icon: <StarLine />,  label: 'Niveles y Beneficios',    desc: 'ORO, PLATINO y BLACK' },
-  { id: 'inactividad', icon: <Warn />,      label: 'Reglas de Inactividad',   desc: 'Condiciones de degradación' },
-  { id: 'terminos',    icon: <Clipboard />, label: 'Términos y Condiciones',  desc: 'Condiciones de uso del programa' },
-  { id: 'acerca',      icon: <Info />,      label: 'Acerca de Puntos Plus',   desc: 'Aviso legal e información' },
+  { id: 'cuenta',      icon: <User />,      label: 'Mi Cuenta' },
+  { id: 'niveles',     icon: <StarLine />,  label: 'Niveles y Beneficios' },
+  { id: 'inactividad', icon: <Warn />,      label: 'Reglas de Inactividad' },
+  { id: 'terminos',    icon: <Clipboard />, label: 'Términos y Condiciones' },
+  { id: 'acerca',      icon: <Info />,      label: 'Acerca de Puntos Plus' },
 ];
 
 export default function ClientMenu(ctx) {
@@ -51,59 +52,57 @@ export default function ClientMenu(ctx) {
         <div style={{ width: 40 }} />
       </div>
 
-      {/* Tarjeta de miembro */}
+      {/* Encabezado de usuario con la identidad del nivel (referencia
+          menú.png + decisión del dueño: predomina el color del tier e
+          indica los puntos). BLACK conserva su galaxia. */}
       {me && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px', borderRadius: 20, background: TH.surface, marginBottom: 22 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 14, background: TH.iconBox, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 900, color: '#fff', flexShrink: 0, fontFamily: "'DM Sans'" }}>
-            {(me.name || '?')[0].toUpperCase()}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: TH.header, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{me.name}</div>
-            <div style={{ fontSize: 11, color: TH.sub, marginTop: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ ...sMono, fontSize: 11 }}>{me.cardId || '—'}</span>
-              <span style={{ color: tierAccent(tier), fontWeight: 800 }}>{tier}</span>
+        <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 20, background: tierBand(tier), color: '#fff', padding: '18px', marginBottom: 16 }}>
+          {tier === 'BLACK' && <GalaxyDust n={10} />}
+          <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 900, flexShrink: 0 }}>
+              {(me.name || '?')[0].toUpperCase()}
             </div>
-          </div>
-          <div style={{ textAlign: 'right', flexShrink: 0 }}>
-            <div style={{ fontSize: 20, fontWeight: 900, color: BRAND_ORANGE, fontVariantNumeric: 'tabular-nums' }}>{me.points}</div>
-            <div style={{ fontSize: 9, color: TH.sub, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1 }}>Puntos</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{me.name}</div>
+              <div style={{ ...sMono, fontSize: 11, opacity: .85, marginTop: 2 }}>{me.cardId || '—'}</div>
+              <div style={{ display: 'inline-block', background: 'rgba(255,255,255,.25)', borderRadius: 8, padding: '3px 10px', marginTop: 7, fontSize: 10, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>
+                Nivel {tier}
+              </div>
+            </div>
+            <div style={{ textAlign: 'center', flexShrink: 0, paddingLeft: 6 }}>
+              <div style={{ fontSize: 30, fontWeight: 900, letterSpacing: -.5, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{me.points}</div>
+              <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 4, opacity: .9 }}>Puntos</div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Opciones */}
-      {MENU_ITEMS.map(item => (
-        <button key={item.id} onClick={() => setSection(item.id)} style={{
-          width: '100%', display: 'flex', alignItems: 'center', gap: 14,
-          padding: '14px 16px', borderRadius: 16, border: 'none',
-          background: TH.surface, marginBottom: 10, cursor: 'pointer',
-          fontFamily: "'DM Sans'", textAlign: 'left',
-        }}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: TH.iconBox, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            {item.icon}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: TH.header }}>{item.label}</div>
-            <div style={{ fontSize: 11.5, color: TH.sub, marginTop: 2 }}>{item.desc}</div>
-          </div>
-          <span style={{ color: TH.sub, display: 'flex' }}><Chev /></span>
-        </button>
-      ))}
+      {/* Opciones — un solo bloque con divisores finos e iconos inline
+          (estructura de la referencia) */}
+      <div style={{ background: TH.surface, borderRadius: 20, overflow: 'hidden', marginBottom: 12 }}>
+        {MENU_ITEMS.map((item, i) => (
+          <button key={item.id} onClick={() => setSection(item.id)} style={{
+            width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+            padding: '15px 16px', border: 'none', background: 'none',
+            borderTop: i > 0 ? `1px solid ${TH.divider}` : 'none',
+            cursor: 'pointer', fontFamily: "'DM Sans'", textAlign: 'left',
+          }}>
+            <span style={{ display: 'flex', color: TH.header, flexShrink: 0 }}>{item.icon}</span>
+            <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: TH.header }}>{item.label}</span>
+            <span style={{ color: TH.sub, display: 'flex' }}><Chev /></span>
+          </button>
+        ))}
+      </div>
 
-      {/* Cerrar sesión */}
+      {/* Cerrar sesión — tarjeta aparte en rojo, sin chevron (referencia) */}
       <button onClick={logout} style={{
-        width: '100%', display: 'flex', alignItems: 'center', gap: 14,
-        padding: '14px 16px', borderRadius: 16, border: 'none',
-        background: TH.surface, marginTop: 8, cursor: 'pointer',
+        width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+        padding: '15px 16px', borderRadius: 20, border: 'none',
+        background: TH.surface, cursor: 'pointer',
         fontFamily: "'DM Sans'", textAlign: 'left',
       }}>
-        <div style={{ width: 40, height: 40, borderRadius: 12, background: bento.red, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Door />
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: bento.red }}>Cerrar sesión</div>
-          <div style={{ fontSize: 11.5, color: TH.sub, marginTop: 2 }}>Salir de Puntos Plus</div>
-        </div>
+        <span style={{ display: 'flex', color: bento.red, flexShrink: 0 }}><Door /></span>
+        <span style={{ fontSize: 14, fontWeight: 800, color: bento.red }}>Cerrar sesión</span>
       </button>
 
       {/* Disclaimer legal D28 */}

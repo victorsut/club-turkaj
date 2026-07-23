@@ -6,13 +6,7 @@
 import { bento } from '../../../constants/styles';
 import { Fuel, Percent, Tag, Wifi, Door, Cake, Ticket, Warn, Info } from '../../../components/ui/Icons';
 import { makeTier } from '../../../lib/tierSystem';
-import { SectionHeader, tierAccent } from './menuUi';
-
-const BAND_BG = {
-  ORO: bento.gold,
-  PLATINO: '#9EA7AD',
-  BLACK: 'radial-gradient(ellipse at 20% 30%, #0d0d1a 0%, #050508 40%, #000 100%)',
-};
+import { SectionHeader, tierAccent, tierBand } from './menuUi';
 
 // ── NIVELES Y BENEFICIOS ───────────────────────────────────
 export function MenuLevels({ cfg, cTier, me, TH, onBack }) {
@@ -43,7 +37,7 @@ export function MenuLevels({ cfg, cTier, me, TH, onBack }) {
         return (
           <div key={t.name} style={{ borderRadius: 20, overflow: 'hidden', background: TH.surface, marginBottom: 14 }}>
             {/* Banda con la identidad del tier (centrada — regla del dueño) */}
-            <div style={{ background: BAND_BG[t.name], padding: '16px 18px', textAlign: 'center', color: '#fff' }}>
+            <div style={{ background: tierBand(t.name), padding: '16px 18px', textAlign: 'center', color: '#fff' }}>
               <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, opacity: .85 }}>Nivel</div>
               <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: 1, lineHeight: 1.3 }}>{t.name}</div>
               <div style={{ fontSize: 12, fontWeight: 700, opacity: .85 }}>{ranges[t.name]}</div>
