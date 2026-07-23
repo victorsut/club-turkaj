@@ -186,15 +186,13 @@ export default function ClientHome(ctx) {
       {/* Inactivity warning */}
       <InactivityWarning lastBuy={me.lastBuy} />
 
-      {/* Header + saludo (FORMATO GENERAL). En pantallas cortas el logo
-          se integra a la izquierda ocupando la altura del saludo COMPLETO
-          (¡Hola! / Bienvenido a / Puntos Plus) para compensar la
-          proporción 1:1 de Promos/Vehículo; en pantallas grandes conserva
-          su fila propia como la referencia. El menú plano sustituye la
-          campana (D34). */}
+      {/* Header + saludo (FORMATO GENERAL). En pantallas cortas se OMITE
+          el logo (decisión del dueño 23-jul): solo saludo compacto +
+          botón de menú; en pantallas grandes el logo conserva su fila
+          propia como la referencia. El menú plano sustituye la campana
+          (D34). */}
       {shortScr ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 18px 0' }}>
-          <img src="/logo.png" alt="Puntos Plus" style={{ width: 74, height: 74, borderRadius: 18, flexShrink: 0 }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: headerTxt }}>¡Hola, {firstName}!</div>
             <div style={{ fontSize: 20, fontWeight: 800, color: headerTxt, lineHeight: 1.2 }}>Bienvenido a</div>
