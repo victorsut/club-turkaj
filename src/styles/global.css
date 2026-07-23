@@ -106,6 +106,10 @@ body {
    los suaviza la transition de width, que continúa desde lo mostrado. */
 @keyframes ppBarFill  { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 .pp-bar-fill { transform-origin: left; animation: ppBarFill .9s cubic-bezier(.32, .72, .33, 1) .25s backwards; }
+/* Estrellas del fondo BLACK: deriva vertical continua — el contenedor
+   al 200% baja -50% y los dos campos idénticos hacen el loop invisible */
+@keyframes ppStarScroll { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+.pp-star-scroll { animation: ppStarScroll 160s linear infinite; will-change: transform; }
 /* Confetti festivo (modal de bonus): piezas que flotan suavemente */
 @keyframes ppConfetti { from { transform: translateY(-3px) rotate(-8deg); } to { transform: translateY(5px) rotate(18deg); } }
 .pp-confetti { position: absolute; animation: ppConfetti 1.8s ease-in-out infinite alternate; }
@@ -136,6 +140,7 @@ body {
   .pp-tile:active { transform: none; }
   .pp-bar-fill { animation: none; }
   .pp-confetti { animation: none; }
+  .pp-star-scroll { animation: none; }
 }
 
 /* R1b — el home llena la resolución del dispositivo: el grid se estira

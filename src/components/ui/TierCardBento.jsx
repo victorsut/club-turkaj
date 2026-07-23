@@ -51,7 +51,7 @@ export default function TierCardBento({ me, cTier, onOpenDetail, onPointsTap }) 
             <div className="pp-bar-fill" style={{ height: '100%', borderRadius: 4, width: `${pg}%`, background: barFill, transition: 'width 1s ease' }} />
           </div>
           <div style={{ fontSize: 12.5, fontWeight: 700, opacity: 0.9, marginTop: shortScr ? 6 : 8 }}>
-            {cTier.next
+            {(cTier.next || me.gallons < cTier.target)
               ? `${me.gallons.toFixed(0)} / ${cTier.target} gal`
               : `${me.gallons.toFixed(0)} gal acumulados`}
           </div>

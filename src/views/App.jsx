@@ -37,6 +37,7 @@ import useToast from '../hooks/useToast';
 
 // UI Components
 import BottomNav from '../components/ui/BottomNav';
+import GalaxyStars from '../components/ui/GalaxyStars';
 import QRCode from '../components/ui/QRCode';
 import SpecialDayBonusModal from '../components/SpecialDayBonusModal';
 import UpdateAvailable from '../components/UpdateAvailable';
@@ -1498,37 +1499,13 @@ export default function App() {
         maxWidth: 480, margin: '0 auto', minHeight: '100vh',
         background: isA ? adminTheme.bg
           : isO ? '#FAFAFA'
-          : cTier.name === 'BLACK' ? '#06060C'
+          : cTier.name === 'BLACK' ? '#040405'
           : cTier.name === 'PLATINO' ? '#E8E8E8' : '#fff',
         position: 'relative', overflowX: 'hidden',
         boxShadow: '0 0 60px rgba(0,0,0,.08)',
       }}>
-        {/* BLACK tier background stars */}
-        {isC && cTier.name === 'BLACK' && authScreen === 'logged' && (
-          <div style={{
-            position: 'fixed', top: 0, left: '50%', transform: 'translateX(-50%)',
-            width: '100%', maxWidth: 480, height: '100vh',
-            pointerEvents: 'none', zIndex: 0, overflow: 'hidden',
-          }}>
-            <div style={{
-              position: 'absolute', inset: 0,
-              background: 'radial-gradient(ellipse at 15% 20%, rgba(40,20,80,.35) 0%, transparent 50%), radial-gradient(ellipse at 80% 15%, rgba(20,30,70,.25) 0%, transparent 45%), radial-gradient(ellipse at 50% 70%, rgba(50,15,60,.2) 0%, transparent 55%), radial-gradient(ellipse at 85% 80%, rgba(15,25,60,.2) 0%, transparent 40%)',
-            }} />
-            {[...Array(60)].map((_, i) => (
-              <div key={`s${i}`} style={{
-                position: 'absolute',
-                width: i % 7 === 0 ? 2 : i % 4 === 0 ? 1.3 : 0.6,
-                height: i % 7 === 0 ? 2 : i % 4 === 0 ? 1.3 : 0.6,
-                borderRadius: '50%',
-                background: i % 11 === 0 ? 'rgba(180,200,255,.9)' : i % 7 === 0 ? 'rgba(255,230,200,.8)' : i % 4 === 0 ? 'rgba(200,210,255,.6)' : `rgba(255,255,255,${i % 3 === 0 ? .5 : .25})`,
-                left: `${(i * 17.3 + 5.7) % 100}%`,
-                top: `${(i * 23.7 + 3.1) % 100}%`,
-                boxShadow: i % 7 === 0 ? '0 0 3px rgba(180,200,255,.5)' : i % 11 === 0 ? '0 0 2px rgba(255,230,200,.4)' : 'none',
-                animation: i % 5 === 0 ? `twinkle ${3 + i % 4}s ${i * .3}s ease-in-out infinite` : 'none',
-              }} />
-            ))}
-          </div>
-        )}
+        {/* BLACK: fondo galaxia con estrellas en deriva (CSS puro) */}
+        {isC && cTier.name === 'BLACK' && authScreen === 'logged' && <GalaxyStars />}
 
         {/* Active screen — el cliente entra con animación desde el origen presionado (D35) */}
         {isC && authScreen === 'logged'
