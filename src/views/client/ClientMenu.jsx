@@ -52,26 +52,40 @@ export default function ClientMenu(ctx) {
         <div style={{ width: 40 }} />
       </div>
 
-      {/* Encabezado de usuario con la identidad del nivel (referencia
-          menú.png + decisión del dueño: predomina el color del tier e
-          indica los puntos). BLACK conserva su galaxia. */}
+      {/* Encabezado de usuario con la identidad del nivel (estructura de
+          menú.png): círculo grande — foto de la cuenta de Google si
+          existe, si no la inicial — con la información del usuario a la
+          derecha, y debajo los datos del nivel (pill NIVEL X + puntos).
+          Predomina el color del tier; BLACK conserva su galaxia. */}
       {me && (
         <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 20, background: tierBand(tier), color: '#fff', padding: '18px', marginBottom: 16 }}>
           {tier === 'BLACK' && <GalaxyDust n={10} />}
-          <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 900, flexShrink: 0 }}>
-              {(me.name || '?')[0].toUpperCase()}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 16, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{me.name}</div>
-              <div style={{ ...sMono, fontSize: 11, opacity: .85, marginTop: 2 }}>{me.cardId || '—'}</div>
-              <div style={{ display: 'inline-block', background: 'rgba(255,255,255,.25)', borderRadius: 8, padding: '3px 10px', marginTop: 7, fontSize: 10, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>
-                Nivel {tier}
+          <div style={{ position: 'relative', zIndex: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              {me.avatar ? (
+                <img src={me.avatar} alt="" referrerPolicy="no-referrer"
+                  style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2.5px solid rgba(255,255,255,.45)' }} />
+              ) : (
+                <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(255,255,255,.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, flexShrink: 0 }}>
+                  {(me.name || '?')[0].toUpperCase()}
+                </div>
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 17, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{me.name}</div>
+                <div style={{ ...sMono, fontSize: 11, opacity: .85, marginTop: 3 }}>{me.cardId || '—'}</div>
+                {me.email && (
+                  <div style={{ fontSize: 11.5, opacity: .8, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{me.email}</div>
+                )}
               </div>
             </div>
-            <div style={{ textAlign: 'center', flexShrink: 0, paddingLeft: 6 }}>
-              <div style={{ fontSize: 30, fontWeight: 900, letterSpacing: -.5, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{me.points}</div>
-              <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 4, opacity: .9 }}>Puntos</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,.25)' }}>
+              <div style={{ background: 'rgba(255,255,255,.25)', borderRadius: 8, padding: '4px 12px', fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>
+                Nivel {tier}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                <span style={{ fontSize: 26, fontWeight: 900, letterSpacing: -.5, fontVariantNumeric: 'tabular-nums' }}>{me.points}</span>
+                <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.5, opacity: .9 }}>Puntos</span>
+              </div>
             </div>
           </div>
         </div>
