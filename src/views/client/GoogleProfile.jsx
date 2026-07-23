@@ -9,6 +9,7 @@ import { User, IdCard, Mail, Receipt, Eye, EyeOff, Plus, XMark } from '../../com
 import { DatePickerSheet } from '../../components/ui/DrumDatePicker';
 import { VEHICLE_TYPES } from '../../components/ui/VehicleIcons';
 import { WizardHeader, PtsCard, Field, DateField } from './registerUi';
+import { phoneMask, dpiMask, nitMask, plateMask, capWords } from '../../lib/inputMasks';
 import { getNextCardCode } from '../../services/dataService';
 
 const VEHICLE_PTS = 2;
@@ -71,7 +72,8 @@ export default function GoogleProfile(ctx) {
       let bdayStored = '';
       if (bdayRaw) { const p = bdayRaw.split('-'); if (p.length === 3) bdayStored = p[1] + '-' + p[2]; }
 
-      const updated = { ...me, name: regProfile.name, phone: regProfile.phone || '', dpi: regProfile.dpi || '', plate: firstPlate, email: regProfile.email || me?.email || '', bday: bdayStored, nit: regProfile.nit || '', points: totalPts, cardId: fallbackCard };
+      const nitStored = regProfile.nit ? nitMask.format(regProfile.nit) : '';
+      const updated = { ...me, name: regProfile.name, phone: regProfile.phone || '', dpi: regProfile.dpi || '', plate: firstPlate, email: regProfile.email || me?.email || '', bday: bdayStored, nit: nitStored, points: totalPts, cardId: fallbackCard };
       setMe(updated);
       setCusts(p => [...p, updated]);
       setAuthScreen('logged');
@@ -90,7 +92,7 @@ export default function GoogleProfile(ctx) {
           dpi:              regProfile.dpi || null,
           plate:            firstPlate || null,
           vehicles:         vehicles.length > 0 ? vehicles : [],
-          nit:              regProfile.nit || null,
+          nit:              nitStored || null,
           email:            regProfile.email || me?.email || null,
           birthday:         bdayStored || null,
           points:           totalPts,
@@ -186,17 +188,17 @@ export default function GoogleProfile(ctx) {
         </div>
         {errBox}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-          <Field {...fieldProps} icon={<User />} placeholder="Nombre completo *" fieldKey="name" />
+          <Field {...fieldProps} icon={<User />} placeholder="Nombre completo *" fieldKey="name" autoCap="words" transform={capWords} />
           <DateField
             value={regProfile.bday}
             onOpen={() => { setTempDate(regProfile.bday || '2000-01-01'); setShowDatePicker(true); }}
           />
-          <Field {...fieldProps} icon={<IdCard />} placeholder="DPI — 13 dígitos *" fieldKey="dpi" inputMode="numeric" maxLen={13} />
+          <Field {...fieldProps} icon={<IdCard />} placeholder="DPI — 13 dígitos *" fieldKey="dpi" inputMode="numeric" mask={dpiMask} />
           {/* Teléfono con prefijo */}
           <div style={{ position: 'relative' }}>
             <div style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: '#9E9E9E', fontWeight: 700, zIndex: 1 }}>+502</div>
-            <input placeholder="Teléfono 8 dígitos *" value={regProfile.phone || ''} inputMode="numeric" maxLength={8}
-              onChange={e => { setRegProfile(p => ({ ...p, phone: e.target.value.replace(/[^0-9]/g, '') })); clearAuthErr(); }}
+            <input placeholder="Teléfono 8 dígitos *" value={phoneMask.format(regProfile.phone || '')} inputMode="numeric"
+              onChange={e => { setRegProfile(p => ({ ...p, phone: phoneMask.clean(e.target.value) })); clearAuthErr(); }}
               style={{ ...inputFlat, paddingLeft: 62 }} />
           </div>
         </div>
@@ -214,8 +216,9 @@ export default function GoogleProfile(ctx) {
   if (googleStep === 'step2') {
     const addVehicle = () => {
       if (!newPlate.trim()) { setAuthError('Ingresa la placa del vehículo'); return; }
+      if (!plateMask.complete(newPlate)) { setAuthError('Placa incompleta — formato: P 123 ABC'); return; }
       clearAuthErr();
-      setVehicles(v => [...v, { type: newType, plate: newPlate.trim().toUpperCase() }]);
+      setVehicles(v => [...v, { type: newType, plate: plateMask.format(newPlate) }]);
       setNewPlate(''); setNewType('liviano'); setAddingVehicle(false);
     };
     const typeInfo = k => VEHICLE_TYPES.find(t => t.k === k) || VEHICLE_TYPES[0];
@@ -231,7 +234,7 @@ export default function GoogleProfile(ctx) {
         {/* Correo + NIT */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 22 }}>
           <Field {...fieldProps} icon={<Mail />} placeholder="Correo electrónico (opcional)" fieldKey="email" type="email" bonus />
-          <Field {...fieldProps} icon={<Receipt />} placeholder="NIT (opcional)" fieldKey="nit" bonus />
+          <Field {...fieldProps} icon={<Receipt />} placeholder="NIT (opcional)" fieldKey="nit" mask={nitMask} bonus />
         </div>
 
         <div style={{ fontSize: 13, fontWeight: 800, color: '#0D0D0D', marginBottom: 10 }}>Tus vehículos</div>
@@ -270,8 +273,8 @@ export default function GoogleProfile(ctx) {
                 </button>
               ))}
             </div>
-            <input placeholder="Placa (ej: ABC-123)" value={newPlate}
-              onChange={e => { setNewPlate(e.target.value.toUpperCase()); clearAuthErr(); }}
+            <input placeholder="Placa (ej: P 123 ABC)" value={plateMask.format(newPlate)} autoCapitalize="characters"
+              onChange={e => { setNewPlate(plateMask.clean(e.target.value)); clearAuthErr(); }}
               style={{ ...inputFlat, marginBottom: 12, background: '#fff', fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, letterSpacing: 2 }} />
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={() => { setAddingVehicle(false); setNewPlate(''); clearAuthErr(); }}

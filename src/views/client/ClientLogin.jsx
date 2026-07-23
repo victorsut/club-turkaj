@@ -7,6 +7,7 @@ import { useState, useEffect, useRef } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { inputFlat, btnStyle, BRAND_ORANGE } from '../../constants/styles';
 import { GoogleLogo, Phone, Lock, Mail, Chev } from '../../components/ui/Icons';
+import { phoneMask } from '../../lib/inputMasks';
 import Wordmark from '../../components/ui/Wordmark';
 import LegalFooter from '../../components/ui/LegalFooter';
 import useBackLayer from '../../hooks/useBackLayer';
@@ -107,8 +108,8 @@ export default function ClientLogin(ctx) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
         <div style={{ position: 'relative' }}>
           <div style={iconBox}><Phone /></div>
-          <input placeholder="Número de teléfono" value={loginPhone} inputMode="numeric"
-            onChange={e => { setLoginPhone(e.target.value); clearAuthErr(); }} style={{ ...inputFlat, paddingLeft: 44 }} />
+          <input placeholder="Número de teléfono" value={phoneMask.format(loginPhone || '')} inputMode="numeric"
+            onChange={e => { setLoginPhone(phoneMask.clean(e.target.value)); clearAuthErr(); }} style={{ ...inputFlat, paddingLeft: 44 }} />
         </div>
         <div style={{ position: 'relative' }}>
           <div style={iconBox}><Lock /></div>

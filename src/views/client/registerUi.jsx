@@ -45,8 +45,12 @@ export function PtsCard({ total, base, optional, vehicles }) {
   );
 }
 
-// Campo de texto con icono SVG a la izquierda (relleno, sin borde)
-export function Field({ icon, placeholder, fieldKey, type, inputMode, maxLen, bonus,
+// Campo de texto con icono SVG a la izquierda (relleno, sin borde).
+// `mask` ({clean, format} de lib/inputMasks): el estado guarda el valor
+// crudo y el input muestra el formateado con separadores automáticos.
+// `transform` post-procesa el crudo (ej. capWords); `autoCap` pasa
+// autoCapitalize al teclado del celular.
+export function Field({ icon, placeholder, fieldKey, type, inputMode, maxLen, bonus, mask, autoCap, transform,
                         regProfile, setRegProfile, clearAuthErr, regOptional }) {
   const val    = regProfile[fieldKey] || '';
   const filled = val.trim().length > 0;
@@ -54,10 +58,13 @@ export function Field({ icon, placeholder, fieldKey, type, inputMode, maxLen, bo
     <div style={{ position: 'relative' }}>
       <div style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: '#9E9E9E', display: 'flex', zIndex: 1 }}>{icon}</div>
       <input
-        placeholder={placeholder} type={type || 'text'} inputMode={inputMode} maxLength={maxLen}
-        value={val}
+        placeholder={placeholder} type={type || 'text'} inputMode={inputMode}
+        maxLength={mask ? undefined : maxLen} autoCapitalize={autoCap}
+        value={mask ? mask.format(val) : val}
         onChange={e => {
-          let v = inputMode === 'numeric' ? e.target.value.replace(/[^0-9]/g, '') : e.target.value;
+          let v = mask ? mask.clean(e.target.value)
+            : inputMode === 'numeric' ? e.target.value.replace(/[^0-9]/g, '') : e.target.value;
+          if (transform) v = transform(v);
           if (maxLen && v.length > maxLen) v = v.slice(0, maxLen);
           setRegProfile(p => ({ ...p, [fieldKey]: v }));
           clearAuthErr();
