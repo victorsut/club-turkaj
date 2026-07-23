@@ -43,11 +43,13 @@ export const adminTheme = {
   sub: '#9E9E9E',
 };
 
-// Rojo de marca Puntos Plus (D30 — wordmark de la referencia visual).
-export const BRAND_RED = '#E02020'; // acento de marca en textos/chips (el naranja #FA5408 vive solo en el logo)
+// Rojo heredado (D30) — sigue vivo en CTAs/chips/stats mientras el dueño
+// no pida migrarlos; los ÍCONOS y el wordmark ya son naranja (23-jul).
+export const BRAND_RED = '#E02020';
 
-// Naranja del logo oficial — paleta de marca naranja/negro/blanco
-// (directiva del dueño 22-jul-2026, estrenada en login/registro).
+// Naranja del logo oficial — paleta de marca naranja/negro/blanco.
+// Acento de íconos (nav activa, spinner, QR) y de la palabra "Plus"
+// (decisión del dueño 23-jul-2026), además de login/registro.
 export const BRAND_ORANGE = '#FA5408';
 
 // Input flat sin borde visible (FORMATO GENERAL — login/registro).

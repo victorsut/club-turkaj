@@ -1,7 +1,7 @@
 // src/views/admin/AdminDash.jsx
 // Admin dashboard — KPIs, points economy, fuel stats, top members, surveys
 import { useState } from 'react';
-import { sMono, adminTheme as AT, btnYellow, BRAND_RED } from '../../constants/styles';
+import { sMono, adminTheme as AT, btnYellow, BRAND_ORANGE } from '../../constants/styles';
 import Badge from '../../components/ui/Badge';
 import { Gear, Logout, QR as QRIcon, Plus } from '../../components/ui/Icons';
 
@@ -59,7 +59,7 @@ export default function AdminDash(ctx) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <img src="/logo.png" alt="Puntos Plus" style={{ width: 40, height: 40, borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,.3)', flexShrink: 0 }} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: '#fff' }}>Puntos<span style={{ color: BRAND_RED }}>Plus</span></div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: '#fff' }}>Puntos<span style={{ color: BRAND_ORANGE }}>Plus</span></div>
             <div style={{ fontSize: 12, color: '#777', fontWeight: 600 }}>Panel de Administración</div>
           </div>
           <button onClick={() => setScr('cfg')} style={{ width: 40, height: 40, borderRadius: 12, background: AT.card, border: `1px solid ${AT.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#9E9E9E' }}><Gear /></button>

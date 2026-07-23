@@ -7,7 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import { setUpdateAvailableCallback, applyUpdate } from '../lib/swRegistration';
-import { BRAND_RED } from '../constants/styles';
+import { BRAND_ORANGE } from '../constants/styles';
 import { Refresh } from './ui/Icons';
 
 export default function UpdateAvailable() {
@@ -43,7 +43,7 @@ export default function UpdateAvailable() {
     }}>
       <div style={{
         width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-        background: BRAND_RED, color: '#fff',
+        background: BRAND_ORANGE, color: '#fff',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <Refresh />

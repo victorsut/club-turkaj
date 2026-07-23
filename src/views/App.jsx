@@ -32,7 +32,7 @@ function utcToLocal(isoString) {
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
-import { clientTheme, adminTheme, sMono, GAL, bento, BRAND_RED, CAT_LABELS, CAT_COLORS } from '../constants/styles';
+import { clientTheme, adminTheme, sMono, GAL, bento, BRAND_RED, BRAND_ORANGE, CAT_LABELS, CAT_COLORS } from '../constants/styles';
 import useToast from '../hooks/useToast';
 
 // UI Components
@@ -1831,13 +1831,13 @@ export default function App() {
                 ].map((pos, i) => (
                   <div key={i} style={{
                     position: 'absolute', width: 30, height: 30,
-                    borderColor: BRAND_RED, borderStyle: 'solid', borderWidth: 0,
+                    borderColor: BRAND_ORANGE, borderStyle: 'solid', borderWidth: 0,
                     ...pos,
                   }} />
                 ))}
                 {/* Panel blanco siempre (el QR necesita fondo claro para escanear) */}
                 <div style={{ background: '#fff', borderRadius: 12, padding: 16, display: 'inline-block', lineHeight: 0 }}>
-                  <QRCode code={me.cardId || me.id} sz={180} scanColor={BRAND_RED} />
+                  <QRCode code={me.cardId || me.id} sz={180} scanColor={BRAND_ORANGE} />
                 </div>
               </div>
 

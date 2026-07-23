@@ -9,7 +9,7 @@
 // El sorteo es automático al cierre del mes (draw_due_raffles, ponderado
 // por boletos); acá solo se muestra el resultado.
 import { useState, useMemo } from 'react';
-import { bento, BRAND_RED } from '../../constants/styles';
+import { bento, BRAND_RED, BRAND_ORANGE } from '../../constants/styles';
 import { Back, Chev, TicketStar } from '../../components/ui/Icons';
 import { rewardIconFor } from '../../components/ui/RewardIcon';
 import useBackLayer from '../../hooks/useBackLayer';
@@ -66,11 +66,11 @@ export default function ClientRaffle(ctx) {
     : null;
   const PrizeIcon = rewardIconFor({ name: rm.name || '', icon: rm.icon || '' });
 
-  // Chevrons de navegación: sin caja (solo el glifo), rojos cuando hay
+  // Chevrons de navegación: sin caja (solo el glifo), naranjas cuando hay
   // a dónde ir — se leen como control, no como cuadro de información.
   const navBtn = (enabled) => ({
     width: 38, height: 38, border: 'none', background: 'none', padding: 0,
-    color: enabled ? BRAND_RED : (isBlack ? 'rgba(255,255,255,.2)' : '#C7C7CC'),
+    color: enabled ? BRAND_ORANGE : (isBlack ? 'rgba(255,255,255,.2)' : '#C7C7CC'),
     cursor: enabled ? 'pointer' : 'default',
     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   });

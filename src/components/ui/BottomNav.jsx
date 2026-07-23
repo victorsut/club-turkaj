@@ -1,9 +1,9 @@
 // src/components/ui/BottomNav.jsx
 // Cliente (referencia FORMATO GENERAL): barra blanca, pestaña activa en
-// rojo de marca, inactivas en gris oscuro, botón QR central en círculo
-// negro sobresaliente con su label "Código QR" (rojo cuando está activo).
+// naranja de marca, inactivas en gris oscuro, botón QR central en círculo
+// negro sobresaliente con su label "Código QR" (naranja al estar activo).
 // Admin y operador conservan su paleta propia.
-import { adminTheme, BRAND_RED } from '../../constants/styles';
+import { adminTheme, BRAND_ORANGE } from '../../constants/styles';
 
 export default function BottomNav({ items, current, onSelect, view, tierName }) {
   const isA = view === 'admin';
@@ -11,7 +11,7 @@ export default function BottomNav({ items, current, onSelect, view, tierName }) 
 
   const barBg = isA ? adminTheme.bg : '#fff';
   const borderColor = isA ? adminTheme.border : '#ECECEC';
-  const activeColor = isC ? BRAND_RED : '#FBBC04';
+  const activeColor = isC ? BRAND_ORANGE : '#FBBC04';
   const inactiveColor = isA ? '#666' : '#1A1A1A';
 
   return (
@@ -27,7 +27,7 @@ export default function BottomNav({ items, current, onSelect, view, tierName }) 
     }}>
       {items.map(n => {
 
-        // ── Botón QR central (círculo negro, rojo al estar activo) ──
+        // ── Botón QR central (círculo negro, naranja al estar activo) ──
         if (n.isQR && isC) {
           const qrActive = current === 'qr';
           return (
@@ -38,7 +38,7 @@ export default function BottomNav({ items, current, onSelect, view, tierName }) 
             }}>
               <div style={{
                 width: 54, height: 54, borderRadius: '50%',
-                background: qrActive ? BRAND_RED : '#0D0D0D',
+                background: qrActive ? BRAND_ORANGE : '#0D0D0D',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: '0 4px 14px rgba(0,0,0,.25)',
                 border: `3px solid ${barBg}`,
@@ -55,7 +55,7 @@ export default function BottomNav({ items, current, onSelect, view, tierName }) 
               </div>
               <span style={{
                 fontFamily: "'DM Sans'", fontSize: 10.5, fontWeight: 700,
-                color: qrActive ? BRAND_RED : inactiveColor,
+                color: qrActive ? BRAND_ORANGE : inactiveColor,
               }}>
                 Código QR
               </span>
