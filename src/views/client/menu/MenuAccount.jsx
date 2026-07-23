@@ -7,8 +7,19 @@ import { sb } from '../../../lib/supabaseClient';
 import { inputFlat, btnStyle, bento, BRAND_RED } from '../../../constants/styles';
 import { User, Phone, Mail, Receipt, IdCard, Cake, Lock, Key, Eye, EyeOff, Plus, XMark, Chev } from '../../../components/ui/Icons';
 import { VEHICLE_TYPES } from '../../../components/ui/VehicleIcons';
+import { DatePickerSheet } from '../../../components/ui/DrumDatePicker';
 import { phoneMask, dpiMask, plateMask, capWords } from '../../../lib/inputMasks';
 import { SectionHeader } from './menuUi';
+
+const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+// Fecha legible desde 'YYYY-MM-DD' (completa) o 'MM-DD' (registros viejos)
+const fmtBday = v => {
+  if (!v) return null;
+  const p = v.split('-');
+  if (p.length === 3) return `${p[2]} / ${MONTHS[+p[1] - 1] || p[1]} / ${p[0]}`;
+  if (p.length === 2) return `${p[1]} / ${MONTHS[+p[0] - 1] || p[0]}`;
+  return v;
+};
 
 const parseVehicles = (v) => {
   if (!v) return [];
@@ -22,9 +33,15 @@ export default function MenuAccount({ ctx, TH, onBack }) {
   const { me, setMe, fire, sbConnected } = ctx;
 
   const [form, setForm] = useState({
-    name: me?.name || '', phone: me?.phone || '', email: me?.email || '', nit: me?.nit || '',
+    name: me?.name || '', phone: me?.phone || '', email: me?.email || '', nit: me?.nit || '', bday: '',
   });
   const [saving, setSaving] = useState(false);
+
+  // Fecha de nacimiento: los registros viejos solo guardan 'MM-DD' —
+  // se permite COMPLETARLA una única vez; con fecha completa se bloquea.
+  const bdayFull = /^\d{4}-\d{2}-\d{2}$/.test(me?.bday || '');
+  const [showBdayPicker, setShowBdayPicker] = useState(false);
+  const [tempDate, setTempDate] = useState('2000-01-01');
 
   const [vehicles, setVehicles] = useState(() => parseVehicles(me?.vehicles));
   useEffect(() => {
@@ -50,12 +67,16 @@ export default function MenuAccount({ ctx, TH, onBack }) {
     if (!form.name?.trim()) { fire('El nombre es obligatorio', 'error'); return; }
     if (form.phone && !/^\d{8}$/.test(form.phone.trim())) { fire('El teléfono debe tener 8 dígitos', 'error'); return; }
     setSaving(true);
-    const updates = { name: form.name.trim(), phone: form.phone?.trim() || me.phone, email: form.email?.trim() || null, nit: form.nit?.trim() || null };
+    const updates = {
+      name: form.name.trim(), phone: form.phone?.trim() || me.phone, email: form.email?.trim() || null, nit: form.nit?.trim() || null,
+      ...(form.bday ? { birthday: form.bday } : {}),
+    };
     if (sbConnected && sb) {
       const { error } = await sb.from('members').update(updates).eq('id', me.id);
       if (error) { fire('Error al guardar: ' + error.message, 'error'); setSaving(false); return; }
     }
-    setMe(p => ({ ...p, ...updates }));
+    const { birthday, ...local } = updates;
+    setMe(p => ({ ...p, ...local, ...(birthday ? { bday: birthday } : {}) }));
     setSaving(false);
     fire('Datos actualizados', 'success');
     onBack();
@@ -110,12 +131,19 @@ export default function MenuAccount({ ctx, TH, onBack }) {
     { k: 'nit',   l: 'NIT',               icon: <Receipt /> },
   ];
   const readonlyFields = [
-    { l: 'DPI',                 icon: <IdCard />, val: me?.dpi ? dpiMask.format(me.dpi) : '—' },
-    { l: 'Fecha de nacimiento', icon: <Cake />,   val: me?.bday ? me.bday.replace('-', '/') : '—' },
+    { l: 'DPI', icon: <IdCard />, val: me?.dpi ? dpiMask.format(me.dpi) : '—' },
   ];
 
   return (
     <>
+      {showBdayPicker && (
+        <DatePickerSheet
+          tempDate={tempDate}
+          setTempDate={setTempDate}
+          setShowDatePicker={setShowBdayPicker}
+          setRegProfile={(up) => { const r = up({}); if (r.bday) setForm(p => ({ ...p, bday: r.bday })); }}
+        />
+      )}
       <SectionHeader title="Mi Cuenta" sub="Edita tus datos personales" onBack={onBack} TH={TH} />
 
       {editFields.map(f => (
@@ -147,6 +175,34 @@ export default function MenuAccount({ ctx, TH, onBack }) {
           </div>
         </div>
       ))}
+
+      {/* Fecha de nacimiento: completa → bloqueada como el DPI; si el
+          registro viejo solo guardó mes-día, se puede completar UNA vez */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={label}>Fecha de nacimiento</div>
+        {bdayFull ? (
+          <div style={{ ...field, display: 'flex', alignItems: 'center', color: TH.sub, position: 'relative' }}>
+            <div style={iconL}><Cake /></div>
+            <span style={{ flex: 1 }}>{fmtBday(me.bday)}</span>
+            <span style={{ display: 'flex', color: TH.sub, opacity: .6 }}><Lock /></span>
+          </div>
+        ) : (
+          <>
+            <div
+              onClick={() => { setTempDate(me?.bday?.length === 5 ? '2000-' + me.bday : '2000-01-01'); setShowBdayPicker(true); }}
+              style={{ ...field, display: 'flex', alignItems: 'center', cursor: 'pointer', position: 'relative', color: form.bday ? TH.header : TH.sub, userSelect: 'none' }}>
+              <div style={iconL}><Cake /></div>
+              <span style={{ flex: 1 }}>{fmtBday(form.bday) || fmtBday(me?.bday) || 'Completar fecha de nacimiento'}</span>
+              <span style={{ color: TH.sub, display: 'flex' }}><Chev /></span>
+            </div>
+            <div style={{ fontSize: 11, color: TH.sub, marginTop: 5 }}>
+              {form.bday
+                ? 'Toca "Guardar cambios" para confirmar — luego queda bloqueada.'
+                : 'Tu registro solo guarda día y mes. Completá tu fecha una única vez.'}
+            </div>
+          </>
+        )}
+      </div>
 
       <button onClick={saveAccount} disabled={saving} style={{ ...btnPrimary, marginBottom: 28, opacity: saving ? .7 : 1 }}>
         {saving ? 'Guardando...' : 'Guardar cambios'}

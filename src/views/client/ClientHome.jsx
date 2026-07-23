@@ -171,8 +171,10 @@ export default function ClientHome(ctx) {
         if (!data) return;
         const hit = data.find(s => s.month === mm && s.day === dd);
         if (hit) { setFestivo({ name: hit.name, icon: hit.icon || '🎉' }); return; }
-        // month=0 = cumpleaños del miembro (regla del sistema)
-        if (data.some(s => s.month === 0) && me.bday === todayGT.slice(5)) {
+        // month=0 = cumpleaños del miembro (regla del sistema).
+        // bday puede ser 'MM-DD' (miembros antiguos) o 'YYYY-MM-DD'.
+        const bdayMD = (me.bday || '').length === 10 ? me.bday.slice(5) : me.bday;
+        if (data.some(s => s.month === 0) && bdayMD && bdayMD === todayGT.slice(5)) {
           setFestivo({ bday: true, icon: '🎂' });
         }
       });

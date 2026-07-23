@@ -128,7 +128,8 @@ export default function MemberDetail(ctx) {
         return null;
       case 'bday':
         if (!v) return null;
-        if (!/^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(v)) return 'Formato MM-DD (ej: 01-15)';
+        // Acepta MM-DD (registros viejos) y YYYY-MM-DD (fecha completa)
+        if (!/^(\d{4}-)?(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(v)) return 'Formato MM-DD o YYYY-MM-DD';
         return null;
       case 'points': {
         if (v === '') return null;
@@ -383,7 +384,7 @@ export default function MemberDetail(ctx) {
               { k: 'plate', l: 'Placa',      t: 'text',  max: 10 },
               { k: 'email', l: 'Email',      t: 'email', max: 80 },
               { k: 'nit',   l: 'NIT',        t: 'text',  max: 12 },
-              { k: 'bday',  l: 'Cumpleaños', t: 'text',  max: 5 },
+              { k: 'bday',  l: 'Cumpleaños', t: 'text',  max: 10 },
             ].map(f => (
               <div key={f.k} style={{ marginBottom: 8 }}>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#9E9E9E', marginBottom: 4 }}>{f.l}</label>

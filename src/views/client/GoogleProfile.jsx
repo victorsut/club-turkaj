@@ -68,9 +68,10 @@ export default function GoogleProfile(ctx) {
       let fallbackCard = 'CTOD-00001';
       try { fallbackCard = await getNextCardCode('ORO'); } catch(e) { console.warn('[Reg] getNextCardCode falló, usando fallback'); }
 
+      // Fecha COMPLETA YYYY-MM-DD (antes se recortaba a MM-DD; desde
+      // jul-2026 se conserva el año — el RPC del bonus acepta ambos)
       const bdayRaw = regProfile.bday || '';
-      let bdayStored = '';
-      if (bdayRaw) { const p = bdayRaw.split('-'); if (p.length === 3) bdayStored = p[1] + '-' + p[2]; }
+      const bdayStored = /^\d{4}-\d{2}-\d{2}$/.test(bdayRaw) ? bdayRaw : '';
 
       const updated = { ...me, name: regProfile.name, phone: regProfile.phone || '', dpi: regProfile.dpi || '', plate: firstPlate, email: regProfile.email || me?.email || '', bday: bdayStored, nit: regProfile.nit || '', points: totalPts, cardId: fallbackCard };
       setMe(updated);
