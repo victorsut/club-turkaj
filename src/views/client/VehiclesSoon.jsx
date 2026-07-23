@@ -3,7 +3,7 @@
 // sombras ni emojis, héroe verde (mismo color que su cuadro del home)
 // con CarIcon SVG, kicker naranja PRÓXIMAMENTE y lista de los vehículos
 // que el miembro ya registró (iconos de VehicleIcons + placa formateada).
-import { bento, BRAND_ORANGE } from '../../constants/styles';
+import { BRAND_ORANGE, homeColors } from '../../constants/styles';
 import { CarIcon } from '../../components/ui/BentoIcons';
 import { VEHICLE_TYPES } from '../../components/ui/VehicleIcons';
 import { plateMask } from '../../lib/inputMasks';
@@ -26,7 +26,7 @@ export default function VehiclesSoon(ctx) {
   return (
     <div style={{ minHeight: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px 120px', textAlign: 'center' }}>
       <div className="pp-tile" style={{
-        width: 96, height: 96, borderRadius: 24, background: bento.bronze,
+        width: 96, height: 96, borderRadius: 24, background: homeColors(cTier.name).vehicle,
         display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24,
       }}>
         <CarIcon size={52} />

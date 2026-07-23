@@ -80,6 +80,26 @@ export const bento = {
   creamInk: '#8F6E1C', // ...con texto/iconos en dorado oscuro
 };
 
+// Paleta del bento del INICIO por nivel (23-jul): ORO usa la referencia
+// cálida "colores inicio.png"; PLATINO tonos fríos inspirados en el
+// plateado; BLACK versiones oscuras que ceden el protagonismo a la
+// tarjeta galaxia del nivel. Cada ventana/modal hereda el color del
+// cuadro que la abre.
+export const homeColors = (tier) => {
+  if (tier === 'BLACK') return {
+    vehicle: '#6E5416', wifi: '#3A4170', survey: '#57491D', surveyInk: '#EFDFA0',
+    location: '#55257C', redeems: '#1F565C', purchases: '#9C5518',
+  };
+  if (tier === 'PLATINO') return {
+    vehicle: '#71809B', wifi: '#4D5FAE', survey: '#D7DDE7', surveyInk: '#4E5E76',
+    location: '#6A4FA8', redeems: '#2F7386', purchases: '#48708F',
+  };
+  return { // ORO — referencia cálida
+    vehicle: bento.bronze, wifi: bento.indigo, survey: bento.cream, surveyInk: bento.creamInk,
+    location: bento.purple, redeems: bento.teal, purchases: bento.orange,
+  };
+};
+
 // Color sólido por categoría de premio (FORMATO GENERAL — flat, para
 // el cuadro del ícono en catálogo y confirmación de canje)
 export const CAT_COLORS = {

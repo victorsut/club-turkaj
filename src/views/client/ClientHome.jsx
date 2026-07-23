@@ -2,7 +2,7 @@
 // Main client dashboard: tier card, stats, survey, QR, promo carousel, history
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { sb } from '../../lib/supabaseClient';
-import { sMono, bento, BRAND_RED } from '../../constants/styles';
+import { sMono, bento, BRAND_RED, homeColors } from '../../constants/styles';
 import PromoCard from '../../components/ui/PromoCard';
 import { CARD_PREFIX } from '../../constants/config';
 import Wordmark from '../../components/ui/Wordmark';
@@ -158,6 +158,8 @@ export default function ClientHome(ctx) {
   ];
   // Acento de los iconos según la identidad del nivel.
   const tierAccent = isBlack ? '#FBBC04' : cTier.name === 'PLATINO' ? '#6B767D' : bento.gold;
+  // Paleta del bento según el nivel (ORO cálida / PLATINO fría / BLACK oscura)
+  const hp = homeColors(cTier.name);
 
   // Saludo festivo (D34): special_days de hoy (hora de Guatemala) o cumpleaños.
   const [festivo, setFestivo] = useState(null);
@@ -320,56 +322,56 @@ export default function ClientHome(ctx) {
 
         {/* 2 · Vehículo (placeholder hasta F6 — D34) */}
         <BentoTile
-          index={1} square color={bento.bronze} icon={<CarIcon />} title="Vehículo"
+          index={1} square color={hp.vehicle} icon={<CarIcon />} title="Vehículo"
           sub="Administra y consulta tus vehículos" badge="PRÓXIMAMENTE"
           onClick={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('veh'); }}
         />
 
         {/* 3 · WiFi (beneficio PLATINO/BLACK — D34) */}
         <BentoTile
-          index={2} color={bento.indigo} icon={<WifiIcon />} title="WiFi"
+          index={2} color={hp.wifi} icon={<WifiIcon />} title="WiFi"
           sub={cTier.name === 'ORO' ? 'Disponible desde nivel PLATINO' : 'Conéctate a nuestro WiFi gratis'}
           dimmed={cTier.name === 'ORO'}
           onClick={(e) => {
             if (cTier.name === 'ORO') { fire('El WiFi gratis se desbloquea en nivel PLATINO', 'info'); return; }
-            setModalOrigin(withTint(e, bento.indigo));
+            setModalOrigin(withTint(e, hp.wifi));
             setShowWifi(true);
           }}
         />
 
         {/* 4 · Encuesta de Satisfacción (sustituye a "Encuentra Shell" — D34) */}
         <BentoTile
-          index={3} color={bento.cream} ink={bento.creamInk}
-          icon={<SurveyIcon color={bento.creamInk} />} title="Encuesta de Satisfacción"
+          index={3} color={hp.survey} ink={hp.surveyInk}
+          icon={<SurveyIcon color={hp.surveyInk} />} title="Encuesta de Satisfacción"
           sub={mySurveyCount >= cfg.surveyDaily
             ? 'Completaste las de hoy'
             : `${mySurveyCount}/${cfg.surveyDaily} hoy · +${cfg.surveyPts} pts c/u`}
           onClick={(e) => {
             if (mySurveyCount >= cfg.surveyDaily) { fire('Ya completaste tus encuestas de hoy', 'success'); return; }
-            setModalOrigin(withTint(e, bento.cream));
+            setModalOrigin(withTint(e, hp.survey));
             setShowSurveys(true);
           }}
         />
 
         {/* 5 · Ubicación */}
         <BentoTile
-          index={4} color={bento.purple} icon={<PinIcon />} title="Ubicación"
+          index={4} color={hp.location} icon={<PinIcon />} title="Ubicación"
           sub="Ubica nuestras estaciones"
-          onClick={(e) => { setModalOrigin(withTint(e, bento.purple)); setShowMap(true); }}
+          onClick={(e) => { setModalOrigin(withTint(e, hp.location)); setShowMap(true); }}
         />
 
         {/* 6 · Historial de canjes */}
         <BentoTile
-          index={5} color={bento.teal} icon={<TicketStarIcon />} title="Historial de Canjes"
+          index={5} color={hp.redeems} icon={<TicketStarIcon />} title="Historial de Canjes"
           sub={`${myRedeemed.length} canje${myRedeemed.length === 1 ? '' : 's'} realizados`}
-          onClick={(e) => setHistSheet({ type: 'canjes', origin: originFromEvent(e), tint: bento.teal })}
+          onClick={(e) => setHistSheet({ type: 'canjes', origin: originFromEvent(e), tint: hp.redeems })}
         />
 
         {/* 7 · Historial de compras (ancho completo) */}
         <BentoTile
-          index={6} span={2} color={bento.orange} icon={<BagIcon size={32} />} title="Historial de Compras"
+          index={6} span={2} color={hp.purchases} icon={<BagIcon size={32} />} title="Historial de Compras"
           sub="Compras y todos tus movimientos de puntos"
-          onClick={(e) => setHistSheet({ type: 'compras', origin: originFromEvent(e), tint: bento.orange })}
+          onClick={(e) => setHistSheet({ type: 'compras', origin: originFromEvent(e), tint: hp.purchases })}
         />
       </div>
 
@@ -438,10 +440,10 @@ export default function ClientHome(ctx) {
           style={{ padding: '30px 22px 26px', textAlign: 'center' }}>
           {() => (<>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-              <WifiIcon size={38} color={isBlack ? '#9FA6E8' : bento.indigo} />
+              <WifiIcon size={38} color={isBlack ? '#9FA6E8' : hp.wifi} />
             </div>
             <div style={{ fontSize: 19, fontWeight: 900, color: isBlack ? '#fff' : '#0D0D0D' }}>WiFi Puntos Plus</div>
-            <div style={{ fontSize: 11, fontWeight: 800, color: isBlack ? '#9FA6E8' : bento.indigo, marginTop: 2, textTransform: 'uppercase', letterSpacing: 1 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: isBlack ? '#9FA6E8' : hp.wifi, marginTop: 2, textTransform: 'uppercase', letterSpacing: 1 }}>
               Beneficio {cTier.name}
             </div>
             <div style={{ fontSize: 13, color: '#9E9E9E', lineHeight: 1.6, margin: '14px 0' }}>
@@ -451,7 +453,7 @@ export default function ClientHome(ctx) {
               ...sMono, fontSize: 18, fontWeight: 800, letterSpacing: 2,
               padding: '12px 0', borderRadius: 14,
               background: isBlack ? 'rgba(74,82,163,.25)' : '#E9EAF6',
-              color: isBlack ? '#9FA6E8' : bento.indigo,
+              color: isBlack ? '#9FA6E8' : hp.wifi,
             }}>
               {displayCode}
             </div>
@@ -465,6 +467,7 @@ export default function ClientHome(ctx) {
           type={histSheet.type}
           origin={histSheet.origin}
           tint={histSheet.tint}
+          accent={histSheet.tint}
           onClose={() => setHistSheet(null)}
           acts={myActs}
           redeemed={myRedeemed}
@@ -479,7 +482,7 @@ export default function ClientHome(ctx) {
           {() => (<>
             {/* Banda de identidad (patrón banda+cuerpo — color sólido
                 del cuadro Ubicación, centrada) */}
-            <div style={{ background: bento.purple, color: '#fff', padding: '22px 20px 18px', textAlign: 'center' }}>
+            <div style={{ background: hp.location, color: '#fff', padding: '22px 20px 18px', textAlign: 'center' }}>
               <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.5, opacity: 0.85 }}>
                 Encuéntranos
               </div>
@@ -504,7 +507,7 @@ export default function ClientHome(ctx) {
               }}>
                 <div style={{
                   width: 44, height: 44, borderRadius: 14, flexShrink: 0,
-                  background: bento.purple,
+                  background: hp.location,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   <PinIcon size={24} />
@@ -521,7 +524,7 @@ export default function ClientHome(ctx) {
                     <div style={{
                       display: 'flex', alignItems: 'center', gap: 5, marginTop: 5,
                       fontSize: 11.5, fontWeight: 700,
-                      color: cTier.name === 'BLACK' ? '#C79BE8' : bento.purple,
+                      color: cTier.name === 'BLACK' ? '#C79BE8' : hp.location,
                     }}>
                       <Clock /> {s.schedule}
                     </div>
@@ -561,12 +564,12 @@ export default function ClientHome(ctx) {
       {showSurveys && (
         <GrowModal onClose={() => setShowSurveys(false)} origin={mOrigin} tint={mTint}
           background={cTier.name === 'BLACK' ? '#101018' : '#fff'} maxHeight="88vh"
-          arrowColor={bento.creamInk}>
+          arrowColor={hp.surveyInk}>
           {(close) => (<>
             {/* Banda de identidad (mismo formato del modal de nivel —
-                color CREMA del cuadro Encuesta con tinta dorada oscura,
+                color del cuadro Encuesta según el nivel, con su tinta,
                 centrada — referencia colores inicio) */}
-            <div style={{ background: bento.cream, color: bento.creamInk, padding: '22px 20px 18px', textAlign: 'center' }}>
+            <div style={{ background: hp.survey, color: hp.surveyInk, padding: '22px 20px 18px', textAlign: 'center' }}>
               <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.5, opacity: 0.85 }}>
                 Califica nuestro servicio
               </div>

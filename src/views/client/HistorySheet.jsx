@@ -38,7 +38,9 @@ const itemDay = (raw) => {
   } catch { return s.slice(0, 10); }
 };
 
-export default function HistorySheet({ type, origin, tint, onClose, acts, redeemed, tierName, initialPending = false }) {
+// `accent` = color del cuadro del home que abrió el historial (paleta
+// por nivel — homeColors); sin él cae a los tokens teal/orange de ORO.
+export default function HistorySheet({ type, origin, tint, accent, onClose, acts, redeemed, tierName, initialPending = false }) {
   const isBlack = tierName === 'BLACK';
   const isCompras = type === 'compras';
   const todayGT = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Guatemala' });
@@ -99,7 +101,7 @@ export default function HistorySheet({ type, origin, tint, onClose, acts, redeem
     txt: isBlack ? '#E0E0E0' : '#424242',
     sub: isBlack ? 'rgba(255,255,255,.5)' : '#9E9E9E',
     border: isBlack ? 'rgba(255,255,255,.08)' : '#EDEDED',
-    chipOn: isCompras ? bento.orange : bento.teal,
+    chipOn: accent || (isCompras ? bento.orange : bento.teal),
   };
 
   // Modos disponibles según los datos (feedback: sin movimientos, sin chip)
@@ -292,7 +294,7 @@ export default function HistorySheet({ type, origin, tint, onClose, acts, redeem
               }}>
                 <div style={{
                   width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-                  background: bento.teal, color: '#fff',
+                  background: accent || bento.teal, color: '#fff',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   <RewardIcon reward={rd.reward} />

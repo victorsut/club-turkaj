@@ -5,7 +5,7 @@
 // sin borde con el ícono SVG del premio (RewardIcon — sin emojis) sobre
 // un cuadro de color sólido por categoría. BLACK conserva su galaxia.
 import { useState } from 'react';
-import { bento, BRAND_RED, CAT_LABELS, CAT_COLORS } from '../../constants/styles';
+import { bento, BRAND_RED, CAT_LABELS, CAT_COLORS, homeColors } from '../../constants/styles';
 import RewardIcon from '../../components/ui/RewardIcon';
 import ChipScroller from '../../components/ui/ChipScroller';
 import HistorySheet from '../client/HistorySheet';
@@ -139,7 +139,8 @@ export default function Catalog(ctx) {
           type="canjes"
           initialPending
           origin={pendSheet.origin}
-          tint={bento.teal}
+          tint={homeColors(cTier?.name || 'ORO').redeems}
+          accent={homeColors(cTier?.name || 'ORO').redeems}
           onClose={() => setPendSheet(null)}
           acts={myActs}
           redeemed={myRedeemed}
