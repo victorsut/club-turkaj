@@ -86,9 +86,12 @@ export const bento = {
 // tarjeta galaxia del nivel. Cada ventana/modal hereda el color del
 // cuadro que la abre.
 export const homeColors = (tier) => {
+  // BLACK: tema GALAXIA — colores luminosos (nebulosa, aurora, luz
+  // estelar) que contrastan con el fondo oscuro; la tarjeta galaxia
+  // sigue siendo el ancla de identidad del nivel.
   if (tier === 'BLACK') return {
-    vehicle: '#6E5416', wifi: '#3A4170', survey: '#57491D', surveyInk: '#EFDFA0',
-    location: '#55257C', redeems: '#1F565C', purchases: '#9C5518',
+    vehicle: '#B98E2E', wifi: '#6C77D9', survey: '#EFDFA0', surveyInk: '#7A621A',
+    location: '#9B59D0', redeems: '#3FA7AC', purchases: '#DE8433',
   };
   if (tier === 'PLATINO') return {
     vehicle: '#71809B', wifi: '#4D5FAE', survey: '#D7DDE7', surveyInk: '#4E5E76',
