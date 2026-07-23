@@ -9,7 +9,7 @@ export const menuTheme = (tier) => {
   const isDark = tier === 'BLACK';
   return {
     isDark,
-    bg:      isDark ? '#06060C' : bento.pageBg,
+    bg:      isDark ? '#040405' : bento.pageBg,
     surface: isDark ? 'rgba(255,255,255,.07)' : '#fff',
     inset:   isDark ? 'rgba(255,255,255,.05)' : '#F5F5F7',
     iconBox: isDark ? 'rgba(255,255,255,.12)' : '#0D0D0D',

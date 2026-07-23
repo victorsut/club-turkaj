@@ -40,7 +40,9 @@ const itemDay = (raw) => {
 
 // `accent` = color del cuadro del home que abrió el historial (paleta
 // por nivel — homeColors); sin él cae a los tokens teal/orange de ORO.
-export default function HistorySheet({ type, origin, tint, accent, onClose, acts, redeemed, tierName, initialPending = false }) {
+// `accentInk` = tinta sobre el acento (BLACK usa superficies claras u
+// oro con tinta oscura — referencia nivel black).
+export default function HistorySheet({ type, origin, tint, accent, accentInk, onClose, acts, redeemed, tierName, initialPending = false }) {
   const isBlack = tierName === 'BLACK';
   const isCompras = type === 'compras';
   const todayGT = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Guatemala' });
@@ -95,13 +97,14 @@ export default function HistorySheet({ type, origin, tint, accent, onClose, acts
     : items.reduce((s, rd) => s + (rd.cost || 0), 0);
 
   const TH = {
-    bg: isBlack ? '#06060C' : '#F5F5F7',
+    bg: isBlack ? '#040405' : '#F5F5F7',
     surface: isBlack ? 'rgba(255,255,255,.05)' : '#fff',
     header: isBlack ? '#fff' : '#0D0D0D',
     txt: isBlack ? '#E0E0E0' : '#424242',
     sub: isBlack ? 'rgba(255,255,255,.5)' : '#9E9E9E',
     border: isBlack ? 'rgba(255,255,255,.08)' : '#EDEDED',
     chipOn: accent || (isCompras ? bento.orange : bento.teal),
+    chipInk: accentInk || '#fff',
   };
 
   // Modos disponibles según los datos (feedback: sin movimientos, sin chip)
@@ -115,7 +118,7 @@ export default function HistorySheet({ type, origin, tint, accent, onClose, acts
   const subChip = (selected) => ({
     padding: '8px 14px', borderRadius: 12, border: 'none', flexShrink: 0,
     background: selected ? TH.chipOn : TH.surface,
-    color: selected ? '#fff' : TH.txt,
+    color: selected ? TH.chipInk : TH.txt,
     fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 700, cursor: 'pointer',
     whiteSpace: 'nowrap',
     transition: 'background .2s, color .2s',
@@ -173,7 +176,7 @@ export default function HistorySheet({ type, origin, tint, accent, onClose, acts
             width: 40, height: 40, border: 'none', cursor: 'pointer', padding: 0,
             borderRadius: 12, position: 'relative', flexShrink: 0,
             background: pendingOnly ? TH.chipOn : 'none',
-            color: pendingOnly ? '#fff' : TH.header,
+            color: pendingOnly ? TH.chipInk : TH.header,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             transition: 'background .2s, color .2s',
           }}>
@@ -203,7 +206,7 @@ export default function HistorySheet({ type, origin, tint, accent, onClose, acts
           <button key={m.id} onClick={() => setMode(m.id)} style={{
             flex: '1 1 0', minWidth: 0, padding: '10px 2px', borderRadius: 12, border: 'none',
             background: mode === m.id ? TH.chipOn : TH.surface,
-            color: mode === m.id ? '#fff' : TH.txt,
+            color: mode === m.id ? TH.chipInk : TH.txt,
             fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 700, cursor: 'pointer',
             textAlign: 'center', whiteSpace: 'nowrap',
             transition: 'background .2s, color .2s',
@@ -294,7 +297,7 @@ export default function HistorySheet({ type, origin, tint, accent, onClose, acts
               }}>
                 <div style={{
                   width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-                  background: accent || bento.teal, color: '#fff',
+                  background: accent || bento.teal, color: TH.chipInk,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   <RewardIcon reward={rd.reward} />

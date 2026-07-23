@@ -86,12 +86,19 @@ export const bento = {
 // tarjeta galaxia del nivel. Cada ventana/modal hereda el color del
 // cuadro que la abre.
 export const homeColors = (tier) => {
-  // BLACK: tema GALAXIA — colores luminosos (nebulosa, aurora, luz
-  // estelar) que contrastan con el fondo oscuro; la tarjeta galaxia
-  // sigue siendo el ancla de identidad del nivel.
+  // BLACK: referencia "nivel black inicio.png" — monocromo con dorado
+  // champán sobre la galaxia: cuadros NEGROS (Vehículo/Compras) con
+  // título dorado y contenido blanco; cuadros GRIS PERLA (WiFi/
+  // Encuesta/Ubicación/Canjes) con contenido negro. El fondo sigue
+  // siendo la galaxia (más oscura y menos púrpura).
   if (tier === 'BLACK') return {
-    vehicle: '#B98E2E', wifi: '#6C77D9', survey: '#EFDFA0', surveyInk: '#7A621A',
-    location: '#9B59D0', redeems: '#3FA7AC', purchases: '#DE8433',
+    vehicle: '#141417', vehicleTitle: '#D8A94E',
+    wifi: '#E9E9EC', wifiInk: '#141417',
+    survey: '#E9E9EC', surveyInk: '#141417',
+    location: '#E9E9EC', locationInk: '#141417',
+    redeems: '#E9E9EC', redeemsInk: '#141417',
+    purchases: '#141417', purchasesTitle: '#D8A94E',
+    purchasesAccent: '#D8A94E', purchasesAccentInk: '#141417',
   };
   if (tier === 'PLATINO') return {
     vehicle: '#71809B', wifi: '#4D5FAE', survey: '#D7DDE7', surveyInk: '#4E5E76',
@@ -126,7 +133,7 @@ export function clientTheme(tierName) {
     cardBg: 'rgba(255,255,255,.05)', cardBorder: '1px solid rgba(255,255,255,.08)',
     histBg: 'rgba(255,255,255,.03)',
     btnBg: GAL, btnTxt: '#FFD54F',
-    mainBg: '#06060C',
+    mainBg: '#040405', // galaxia más oscura y menos púrpura (23-jul)
   };
   if (tierName === 'PLATINO') return {
     pri: '#1565C0', accent: '#1565C0',

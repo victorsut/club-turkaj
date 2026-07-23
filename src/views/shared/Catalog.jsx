@@ -141,6 +141,7 @@ export default function Catalog(ctx) {
           origin={pendSheet.origin}
           tint={homeColors(cTier?.name || 'ORO').redeems}
           accent={homeColors(cTier?.name || 'ORO').redeems}
+          accentInk={homeColors(cTier?.name || 'ORO').redeemsInk}
           onClose={() => setPendSheet(null)}
           acts={myActs}
           redeemed={myRedeemed}

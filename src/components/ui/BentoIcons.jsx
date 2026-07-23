@@ -49,18 +49,18 @@ export const SurveyIcon = ({ size, color }) => (
 );
 
 // Pin de mapa (Ubicación)
-export const PinIcon = ({ size }) => (
-  <S size={size}>
+export const PinIcon = ({ size, color }) => (
+  <S size={size} color={color}>
     <path d="M12 21.5S5.5 15.8 5.5 11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 10.5-6.5 10.5z" />
     <circle cx="12" cy="10.8" r="2.4" />
   </S>
 );
 
 // Boleto con estrella (Historial de Canjes)
-export const TicketStarIcon = ({ size }) => (
-  <S size={size}>
+export const TicketStarIcon = ({ size, color = '#fff' }) => (
+  <S size={size} color={color}>
     <path d="M3.5 9V7a1 1 0 0 1 1-1h15a1 1 0 0 1 1 1v2a2.6 2.6 0 0 0 0 6v2a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1v-2a2.6 2.6 0 0 0 0-6z" />
-    <path d="m12 8.6.95 1.95 2.15.3-1.55 1.5.35 2.15L12 13.5l-1.9 1 .35-2.15-1.55-1.5 2.15-.3z" fill="#fff" stroke="none" />
+    <path d="m12 8.6.95 1.95 2.15.3-1.55 1.5.35 2.15L12 13.5l-1.9 1 .35-2.15-1.55-1.5 2.15-.3z" fill={color} stroke="none" />
   </S>
 );
 

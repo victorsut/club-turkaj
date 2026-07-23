@@ -22,6 +22,10 @@ export default function TierCardBento({ me, cTier, onOpenDetail, onPointsTap }) 
     ? 'radial-gradient(ellipse at 20% 30%, #0d0d1a 0%, #050508 40%, #000 100%)'
     : isPlat ? '#9EA7AD' : bento.gold;
   const barBg = isBlack ? 'rgba(255,255,255,.18)' : 'rgba(0,0,0,.30)';
+  // BLACK: acentos en dorado champán (referencia nivel black inicio) —
+  // barra y puntos dorados sobre la galaxia.
+  const gold = '#D8A94E';
+  const barFill = isBlack ? gold : '#fff';
 
   return (
     <div
@@ -44,7 +48,7 @@ export default function TierCardBento({ me, cTier, onOpenDetail, onPointsTap }) 
             <span style={{ fontWeight: 800 }}>{cTier.name}</span>
           </div>
           <div style={{ height: 7, borderRadius: 4, overflow: 'hidden', background: barBg, marginTop: shortScr ? 9 : 12 }}>
-            <div className="pp-bar-fill" style={{ height: '100%', borderRadius: 4, width: `${pg}%`, background: '#fff', transition: 'width 1s ease' }} />
+            <div className="pp-bar-fill" style={{ height: '100%', borderRadius: 4, width: `${pg}%`, background: barFill, transition: 'width 1s ease' }} />
           </div>
           <div style={{ fontSize: 12.5, fontWeight: 700, opacity: 0.9, marginTop: shortScr ? 6 : 8 }}>
             {cTier.next
@@ -58,8 +62,8 @@ export default function TierCardBento({ me, cTier, onOpenDetail, onPointsTap }) 
           onClick={(e) => { e.stopPropagation(); onPointsTap(e); }}
           style={{ textAlign: 'center', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingLeft: 12 }}
         >
-          <div style={{ fontSize: shortScr ? 38 : 44, fontWeight: 800, letterSpacing: -1, lineHeight: 1 }}>{points}</div>
-          <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 2 }}>Puntos</div>
+          <div style={{ fontSize: shortScr ? 38 : 44, fontWeight: 800, letterSpacing: -1, lineHeight: 1, color: isBlack ? gold : 'inherit' }}>{points}</div>
+          <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 2, color: isBlack ? gold : 'inherit' }}>Puntos</div>
         </div>
       </div>
     </div>

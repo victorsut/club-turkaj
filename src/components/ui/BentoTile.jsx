@@ -6,9 +6,11 @@
 import { bento } from '../../constants/styles';
 
 // `ink` = color del texto/chevron (default blanco; los cuadros claros
-// como Encuesta usan tinta oscura — referencia colores inicio)
+// como Encuesta usan tinta oscura — referencia colores inicio).
+// `titleColor` = color SOLO del título (los cuadros negros de BLACK
+// llevan título dorado con contenido blanco — referencia nivel black).
 export default function BentoTile({
-  color, icon, title, sub, onClick, ink = '#fff',
+  color, icon, title, sub, onClick, ink = '#fff', titleColor,
   dimmed = false, badge = null, span = 1, square = false, index = 0,
   children,
 }) {
@@ -53,7 +55,7 @@ export default function BentoTile({
         <>
           <div className="pp-bento-ico" style={{ lineHeight: 1, flexShrink: 0, display: 'flex' }}>{icon}</div>
           <div className="pp-bento-body" style={wide ? { flex: 1, minWidth: 0 } : { marginTop: 'auto', paddingTop: 10 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5, lineHeight: 1.2 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5, lineHeight: 1.2, color: titleColor || 'inherit' }}>
               {title}
             </div>
             {sub && (

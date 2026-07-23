@@ -322,14 +322,14 @@ export default function ClientHome(ctx) {
 
         {/* 2 · Vehículo (placeholder hasta F6 — D34) */}
         <BentoTile
-          index={1} square color={hp.vehicle} icon={<CarIcon />} title="Vehículo"
+          index={1} square color={hp.vehicle} titleColor={hp.vehicleTitle} icon={<CarIcon />} title="Vehículo"
           sub="Administra y consulta tus vehículos" badge="PRÓXIMAMENTE"
           onClick={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('veh'); }}
         />
 
         {/* 3 · WiFi (beneficio PLATINO/BLACK — D34) */}
         <BentoTile
-          index={2} color={hp.wifi} icon={<WifiIcon />} title="WiFi"
+          index={2} color={hp.wifi} ink={hp.wifiInk || '#fff'} icon={<WifiIcon color={hp.wifiInk || '#fff'} />} title="WiFi"
           sub={cTier.name === 'ORO' ? 'Disponible desde nivel PLATINO' : 'Conéctate a nuestro WiFi gratis'}
           dimmed={cTier.name === 'ORO'}
           onClick={(e) => {
@@ -355,23 +355,23 @@ export default function ClientHome(ctx) {
 
         {/* 5 · Ubicación */}
         <BentoTile
-          index={4} color={hp.location} icon={<PinIcon />} title="Ubicación"
+          index={4} color={hp.location} ink={hp.locationInk || '#fff'} icon={<PinIcon color={hp.locationInk || '#fff'} />} title="Ubicación"
           sub="Ubica nuestras estaciones"
           onClick={(e) => { setModalOrigin(withTint(e, hp.location)); setShowMap(true); }}
         />
 
         {/* 6 · Historial de canjes */}
         <BentoTile
-          index={5} color={hp.redeems} icon={<TicketStarIcon />} title="Historial de Canjes"
+          index={5} color={hp.redeems} ink={hp.redeemsInk || '#fff'} icon={<TicketStarIcon color={hp.redeemsInk || '#fff'} />} title="Historial de Canjes"
           sub={`${myRedeemed.length} canje${myRedeemed.length === 1 ? '' : 's'} realizados`}
-          onClick={(e) => setHistSheet({ type: 'canjes', origin: originFromEvent(e), tint: hp.redeems })}
+          onClick={(e) => setHistSheet({ type: 'canjes', origin: originFromEvent(e), tint: hp.redeems, accent: hp.redeems, accentInk: hp.redeemsInk })}
         />
 
         {/* 7 · Historial de compras (ancho completo) */}
         <BentoTile
-          index={6} span={2} color={hp.purchases} icon={<BagIcon size={32} />} title="Historial de Compras"
+          index={6} span={2} color={hp.purchases} titleColor={hp.purchasesTitle} icon={<BagIcon size={32} />} title="Historial de Compras"
           sub="Compras y todos tus movimientos de puntos"
-          onClick={(e) => setHistSheet({ type: 'compras', origin: originFromEvent(e), tint: hp.purchases })}
+          onClick={(e) => setHistSheet({ type: 'compras', origin: originFromEvent(e), tint: hp.purchases, accent: hp.purchasesAccent || hp.purchases, accentInk: hp.purchasesAccentInk })}
         />
       </div>
 
@@ -440,10 +440,10 @@ export default function ClientHome(ctx) {
           style={{ padding: '30px 22px 26px', textAlign: 'center' }}>
           {() => (<>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-              <WifiIcon size={38} color={isBlack ? '#9FA6E8' : hp.wifi} />
+              <WifiIcon size={38} color={hp.wifi} />
             </div>
             <div style={{ fontSize: 19, fontWeight: 900, color: isBlack ? '#fff' : '#0D0D0D' }}>WiFi Puntos Plus</div>
-            <div style={{ fontSize: 11, fontWeight: 800, color: isBlack ? '#9FA6E8' : hp.wifi, marginTop: 2, textTransform: 'uppercase', letterSpacing: 1 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: hp.wifi, marginTop: 2, textTransform: 'uppercase', letterSpacing: 1 }}>
               Beneficio {cTier.name}
             </div>
             <div style={{ fontSize: 13, color: '#9E9E9E', lineHeight: 1.6, margin: '14px 0' }}>
@@ -452,8 +452,8 @@ export default function ClientHome(ctx) {
             <div style={{
               ...sMono, fontSize: 18, fontWeight: 800, letterSpacing: 2,
               padding: '12px 0', borderRadius: 14,
-              background: isBlack ? 'rgba(74,82,163,.25)' : '#E9EAF6',
-              color: isBlack ? '#9FA6E8' : hp.wifi,
+              background: isBlack ? 'rgba(255,255,255,.1)' : '#E9EAF6',
+              color: hp.wifi,
             }}>
               {displayCode}
             </div>
@@ -467,7 +467,8 @@ export default function ClientHome(ctx) {
           type={histSheet.type}
           origin={histSheet.origin}
           tint={histSheet.tint}
-          accent={histSheet.tint}
+          accent={histSheet.accent}
+          accentInk={histSheet.accentInk}
           onClose={() => setHistSheet(null)}
           acts={myActs}
           redeemed={myRedeemed}
@@ -477,12 +478,12 @@ export default function ClientHome(ctx) {
       {/* Stations modal */}
       {showMap && (
         <GrowModal onClose={() => setShowMap(false)} origin={mOrigin} tint={mTint}
-          background={cTier.name === 'BLACK' ? '#1A1A2E' : '#fff'} maxHeight="86vh"
-          arrowColor="#fff">
+          background={cTier.name === 'BLACK' ? '#16161A' : '#fff'} maxHeight="86vh"
+          arrowColor={hp.locationInk || '#fff'}>
           {() => (<>
             {/* Banda de identidad (patrón banda+cuerpo — color sólido
-                del cuadro Ubicación, centrada) */}
-            <div style={{ background: hp.location, color: '#fff', padding: '22px 20px 18px', textAlign: 'center' }}>
+                del cuadro Ubicación con su tinta, centrada) */}
+            <div style={{ background: hp.location, color: hp.locationInk || '#fff', padding: '22px 20px 18px', textAlign: 'center' }}>
               <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.5, opacity: 0.85 }}>
                 Encuéntranos
               </div>
@@ -510,7 +511,7 @@ export default function ClientHome(ctx) {
                   background: hp.location,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <PinIcon size={24} />
+                  <PinIcon size={24} color={hp.locationInk || '#fff'} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 15, fontWeight: 800, color: cTier.name === 'BLACK' ? '#E0E0E0' : '#0D0D0D' }}>
@@ -524,7 +525,7 @@ export default function ClientHome(ctx) {
                     <div style={{
                       display: 'flex', alignItems: 'center', gap: 5, marginTop: 5,
                       fontSize: 11.5, fontWeight: 700,
-                      color: cTier.name === 'BLACK' ? '#C79BE8' : hp.location,
+                      color: cTier.name === 'BLACK' ? 'rgba(255,255,255,.75)' : hp.location,
                     }}>
                       <Clock /> {s.schedule}
                     </div>
