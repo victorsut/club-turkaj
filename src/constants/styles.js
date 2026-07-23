@@ -69,9 +69,15 @@ export const bento = {
   blue:   '#1C4E9E',
   amber:  '#D9A40B',
   purple: '#7A35AE',
-  teal:   '#0F8C97',
-  orange: '#E37310',
-  gold:   '#D9A40B', // tarjeta de nivel ORO (mismo dorado de la referencia)
+  // Paleta de "referencia colores inicio.png" (23-jul) — cada cuadro
+  // del home y la ventana/modal que abre comparten el mismo color.
+  teal:     '#2E7D80', // Historial de Canjes
+  orange:   '#E07A2F', // Historial de Compras
+  gold:     '#C9992B', // tarjeta de nivel ORO (dorado profundo de la referencia)
+  bronze:   '#A07A20', // Vehículo
+  indigo:   '#4A52A3', // WiFi (en ORO se ve atenuado por `dimmed`)
+  cream:    '#F0E1A4', // Encuesta de Satisfacción (cuadro claro...)
+  creamInk: '#8F6E1C', // ...con texto/iconos en dorado oscuro
 };
 
 // Color sólido por categoría de premio (FORMATO GENERAL — flat, para

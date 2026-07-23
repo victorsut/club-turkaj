@@ -26,7 +26,7 @@ export default function VehiclesSoon(ctx) {
   return (
     <div style={{ minHeight: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px 120px', textAlign: 'center' }}>
       <div className="pp-tile" style={{
-        width: 96, height: 96, borderRadius: 24, background: bento.green,
+        width: 96, height: 96, borderRadius: 24, background: bento.bronze,
         display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24,
       }}>
         <CarIcon size={52} />

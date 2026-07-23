@@ -5,8 +5,10 @@
 // press-scale vía .pp-tile. `icon` acepta un nodo (BentoIcons) o texto.
 import { bento } from '../../constants/styles';
 
+// `ink` = color del texto/chevron (default blanco; los cuadros claros
+// como Encuesta usan tinta oscura — referencia colores inicio)
 export default function BentoTile({
-  color, icon, title, sub, onClick,
+  color, icon, title, sub, onClick, ink = '#fff',
   dimmed = false, badge = null, span = 1, square = false, index = 0,
   children,
 }) {
@@ -26,7 +28,7 @@ export default function BentoTile({
         // estira con la fila del grid (adaptable a la resolución).
         aspectRatio: square ? '1 / 1' : undefined,
         minHeight: wide ? 64 : (square ? undefined : 96),
-        color: '#fff',
+        color: ink,
         position: 'relative',
         overflow: 'hidden',
         cursor: onClick ? 'pointer' : 'default',

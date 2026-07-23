@@ -40,8 +40,8 @@ export const WifiIcon = ({ size, color = '#fff' }) => (
 );
 
 // Encuesta (portapapeles)
-export const SurveyIcon = ({ size }) => (
-  <S size={size}>
+export const SurveyIcon = ({ size, color }) => (
+  <S size={size} color={color}>
     <rect x="4.5" y="4" width="15" height="17" rx="2" />
     <path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1" />
     <path d="M8.3 10h7.4M8.3 13.5h7.4M8.3 17h4.2" />

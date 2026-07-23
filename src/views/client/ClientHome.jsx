@@ -320,32 +320,33 @@ export default function ClientHome(ctx) {
 
         {/* 2 · Vehículo (placeholder hasta F6 — D34) */}
         <BentoTile
-          index={1} square color={bento.green} icon={<CarIcon />} title="Vehículo"
+          index={1} square color={bento.bronze} icon={<CarIcon />} title="Vehículo"
           sub="Administra y consulta tus vehículos" badge="PRÓXIMAMENTE"
           onClick={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('veh'); }}
         />
 
         {/* 3 · WiFi (beneficio PLATINO/BLACK — D34) */}
         <BentoTile
-          index={2} color={bento.blue} icon={<WifiIcon />} title="WiFi"
+          index={2} color={bento.indigo} icon={<WifiIcon />} title="WiFi"
           sub={cTier.name === 'ORO' ? 'Disponible desde nivel PLATINO' : 'Conéctate a nuestro WiFi gratis'}
           dimmed={cTier.name === 'ORO'}
           onClick={(e) => {
             if (cTier.name === 'ORO') { fire('El WiFi gratis se desbloquea en nivel PLATINO', 'info'); return; }
-            setModalOrigin(withTint(e, bento.blue));
+            setModalOrigin(withTint(e, bento.indigo));
             setShowWifi(true);
           }}
         />
 
         {/* 4 · Encuesta de Satisfacción (sustituye a "Encuentra Shell" — D34) */}
         <BentoTile
-          index={3} color={bento.amber} icon={<SurveyIcon />} title="Encuesta de Satisfacción"
+          index={3} color={bento.cream} ink={bento.creamInk}
+          icon={<SurveyIcon color={bento.creamInk} />} title="Encuesta de Satisfacción"
           sub={mySurveyCount >= cfg.surveyDaily
             ? 'Completaste las de hoy'
             : `${mySurveyCount}/${cfg.surveyDaily} hoy · +${cfg.surveyPts} pts c/u`}
           onClick={(e) => {
             if (mySurveyCount >= cfg.surveyDaily) { fire('Ya completaste tus encuestas de hoy', 'success'); return; }
-            setModalOrigin(withTint(e, bento.amber));
+            setModalOrigin(withTint(e, bento.cream));
             setShowSurveys(true);
           }}
         />
@@ -437,10 +438,10 @@ export default function ClientHome(ctx) {
           style={{ padding: '30px 22px 26px', textAlign: 'center' }}>
           {() => (<>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-              <WifiIcon size={38} color={isBlack ? '#64B5F6' : '#1565C0'} />
+              <WifiIcon size={38} color={isBlack ? '#9FA6E8' : bento.indigo} />
             </div>
             <div style={{ fontSize: 19, fontWeight: 900, color: isBlack ? '#fff' : '#0D0D0D' }}>WiFi Puntos Plus</div>
-            <div style={{ fontSize: 11, fontWeight: 800, color: '#1565C0', marginTop: 2, textTransform: 'uppercase', letterSpacing: 1 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: isBlack ? '#9FA6E8' : bento.indigo, marginTop: 2, textTransform: 'uppercase', letterSpacing: 1 }}>
               Beneficio {cTier.name}
             </div>
             <div style={{ fontSize: 13, color: '#9E9E9E', lineHeight: 1.6, margin: '14px 0' }}>
@@ -449,8 +450,8 @@ export default function ClientHome(ctx) {
             <div style={{
               ...sMono, fontSize: 18, fontWeight: 800, letterSpacing: 2,
               padding: '12px 0', borderRadius: 14,
-              background: isBlack ? 'rgba(21,101,192,.2)' : '#E3F2FD',
-              color: isBlack ? '#64B5F6' : '#1565C0',
+              background: isBlack ? 'rgba(74,82,163,.25)' : '#E9EAF6',
+              color: isBlack ? '#9FA6E8' : bento.indigo,
             }}>
               {displayCode}
             </div>
@@ -560,11 +561,12 @@ export default function ClientHome(ctx) {
       {showSurveys && (
         <GrowModal onClose={() => setShowSurveys(false)} origin={mOrigin} tint={mTint}
           background={cTier.name === 'BLACK' ? '#101018' : '#fff'} maxHeight="88vh"
-          arrowColor="#fff">
+          arrowColor={bento.creamInk}>
           {(close) => (<>
             {/* Banda de identidad (mismo formato del modal de nivel —
-                color sólido del cuadro Encuesta, centrada) */}
-            <div style={{ background: bento.amber, color: '#fff', padding: '22px 20px 18px', textAlign: 'center' }}>
+                color CREMA del cuadro Encuesta con tinta dorada oscura,
+                centrada — referencia colores inicio) */}
+            <div style={{ background: bento.cream, color: bento.creamInk, padding: '22px 20px 18px', textAlign: 'center' }}>
               <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.5, opacity: 0.85 }}>
                 Califica nuestro servicio
               </div>
