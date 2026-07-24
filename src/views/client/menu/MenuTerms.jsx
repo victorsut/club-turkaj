@@ -28,7 +28,7 @@ const SECS = [
   },
   {
     title: 'NIVELES DE MEMBRESÍA',
-    body: 'El Programa cuenta con tres niveles basados en el consumo acumulado de galones: ORO (0 a 149 galones), PLATINO (150 a 499 galones) y BLACK (500 galones o más). Cada nivel otorga beneficios diferenciados incluyendo descuentos en canje de premios y descuentos por galón. El nivel se calcula automáticamente con base en el historial de compras registradas en el Programa.',
+    body: 'El Programa cuenta con tres niveles basados en el consumo acumulado de galones: ORO (0 a 149 galones), PLATINO (150 a 499 galones) y BLACK (500 galones o más). Cada nivel otorga beneficios diferenciados incluyendo descuentos en canje de premios. El nivel se calcula automáticamente con base en el historial de compras registradas en el Programa.',
   },
   {
     title: 'CANJE DE PUNTOS',

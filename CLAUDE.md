@@ -17,8 +17,9 @@ Turkaj I, II y III en Chichicastenango, Guatemala. PWA en producción activa.
 - **Temas visuales:** ORO blanco/dorado, PLATINO gris metálico, BLACK galaxia animada.
 - **Degradación por inactividad:** reglas estrictas a 15, 30 y 45 días.
 - **Encuestas:** límite 5/día, timer 1.5 min, la 5ª otorga boleto de rifa gratis.
-- **Descuentos por galón:** ORO 0%, PLATINO Q0.15/gal, BLACK Q0.25/gal.
+- **Descuentos por galón:** RETIRADOS del programa (24-jul-2026, decisión del dueño). No mostrar en ninguna lista de beneficios; los valores `discGal` siguen en config solo por compatibilidad.
 - **Descuento en canjes:** ORO 0%, PLATINO 10%, BLACK 15%.
+- **Beneficios listados por nivel:** sin línea de "Rifa mensual" (24-jul-2026) — la rifa sigue existiendo como función, pero no se anuncia como beneficio del tier.
 
 ## 2. Stack y Arquitectura
 

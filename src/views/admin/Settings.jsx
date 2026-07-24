@@ -214,17 +214,11 @@ export default function Settings(ctx) {
         {cfg.tiers?.platino && (
           <>
             <div style={{ height: 1, background: AT.border, margin: '8px 0' }} />
-            <div style={row}>
-              <span style={{ color: '#9E9E9E', fontWeight: 600 }}>PLATINO desc/galón</span>
-              <span style={{ ...sMono, color: '#64B5F6' }}>Q{cfg.tiers.platino.discGal.toFixed(2)}</span>
-            </div>
+            {/* El descuento por galón se retiró de los beneficios del
+                programa (decisión del dueño 24-jul-2026) — ya no se lista. */}
             <div style={row}>
               <span style={{ color: '#9E9E9E', fontWeight: 600 }}>PLATINO desc canje</span>
               <span style={{ ...sMono, color: '#64B5F6' }}>{Math.round(cfg.tiers.platino.discRedeem * 100)}%</span>
-            </div>
-            <div style={row}>
-              <span style={{ color: '#9E9E9E', fontWeight: 600 }}>BLACK desc/galón</span>
-              <span style={{ ...sMono, color: '#CE93D8' }}>Q{cfg.tiers.black.discGal.toFixed(2)}</span>
             </div>
             <div style={{ ...row, borderBottom: 'none' }}>
               <span style={{ color: '#9E9E9E', fontWeight: 600 }}>BLACK desc canje</span>
