@@ -76,7 +76,7 @@ export default function ClientRaffle(ctx) {
   });
 
   return (
-    <div style={{ paddingBottom: 100, minHeight: '100vh', background: dark ? 'transparent' : isBlack ? '#F7F7F9' : bento.pageBg }}>
+    <div style={{ paddingBottom: 100, minHeight: '100vh', background: (dark || isBlack) ? 'transparent' : bento.pageBg }}>
 
       {/* Header compacto: navegación de meses integrada al título */}
       <div style={{ display: 'flex', alignItems: 'center', padding: '14px 12px 10px' }}>

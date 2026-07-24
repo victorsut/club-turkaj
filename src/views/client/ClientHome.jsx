@@ -182,7 +182,7 @@ export default function ClientHome(ctx) {
   }, [sbConnected, me.bday]);
 
   return (
-    <div style={{ background: dark ? 'transparent' : isBlack ? '#F7F7F9' : bento.pageBg }}>
+    <div style={{ background: (dark || isBlack) ? 'transparent' : bento.pageBg }}>
       {/* Sección que llena la resolución del dispositivo; el disclaimer
           queda bajo el fold y aparece al scrollear (feedback IMG3) */}
       <div className="pp-home-fit" style={{ paddingBottom: 76 }}>

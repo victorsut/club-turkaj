@@ -1521,17 +1521,25 @@ export default function App() {
         position: 'relative', overflowX: 'hidden',
         boxShadow: '0 0 60px rgba(0,0,0,.08)',
       }}>
-        {/* BLACK: fondo galaxia con estrellas en deriva (CSS puro) */}
-        {/* Estrellas solo en BLACK oscuro — en BLACK claro el fondo es perla */}
-        {isC && cTier.name === 'BLACK' && dark && authScreen === 'logged' && <GalaxyStars />}
+        {/* BLACK: fondo galaxia con estrellas en deriva (CSS puro) — en
+            ambos modos: oscuro = galaxia clásica; claro = estrellas
+            doradas/grises sobre el fondo perla (variante `light`). */}
+        {isC && cTier.name === 'BLACK' && authScreen === 'logged' && <GalaxyStars light={!dark} />}
 
-        {/* Active screen — el cliente entra con animación desde el origen presionado (D35) */}
+        {/* Active screen — el cliente entra con animación desde el origen presionado (D35).
+            position:relative (SIN z-index) apila el contenido SIEMPRE por
+            encima de GalaxyStars: sin él, al terminar la animación de
+            entrada el transform desaparecía, el contenido estático caía
+            bajo el overlay fixed de estrellas/nebulosas y los textos se
+            veían "bajar de opacidad" segundos después de entrar. z-auto
+            no crea stacking context → los modales internos siguen
+            pudiendo tapar la BottomNav. */}
         {isC && authScreen === 'logged'
           ? (
             <div
               key={cScr}
               className="pp-screen"
-              style={{ transformOrigin: navOrigin ? `${navOrigin.x}px ${navOrigin.y}px` : '50% 85%' }}
+              style={{ position: 'relative', transformOrigin: navOrigin ? `${navOrigin.x}px ${navOrigin.y}px` : '50% 85%' }}
             >
               {renderScreen()}
             </div>

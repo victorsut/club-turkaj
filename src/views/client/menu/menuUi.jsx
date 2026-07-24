@@ -12,7 +12,9 @@ export const menuTheme = (tier, dark = tier === 'BLACK') => {
   const isDark = dark;
   return {
     isDark,
-    bg:      isDark ? (tier === 'BLACK' ? '#040405' : '#0E0E10') : (tier === 'BLACK' ? '#F7F7F9' : bento.pageBg),
+    // BLACK: transparente en ambos modos — el shell de App pinta el
+    // fondo (galaxia o perla) y las estrellas en deriva se ven detrás.
+    bg:      tier === 'BLACK' ? 'transparent' : isDark ? '#0E0E10' : bento.pageBg,
     surface: isDark ? 'rgba(255,255,255,.07)' : '#fff',
     inset:   isDark ? 'rgba(255,255,255,.05)' : '#F5F5F7',
     iconBox: isDark ? 'rgba(255,255,255,.12)' : '#0D0D0D',

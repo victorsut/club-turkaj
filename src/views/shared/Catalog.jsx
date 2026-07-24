@@ -36,7 +36,7 @@ export default function Catalog(ctx) {
   const good = dark ? '#7CD98F' : bento.green;
 
   return (
-    <div style={{ paddingBottom: 100, minHeight: '100vh', background: dark ? 'transparent' : (client && isBlack) ? '#F7F7F9' : bento.pageBg }}>
+    <div style={{ paddingBottom: 100, minHeight: '100vh', background: (dark || (client && isBlack)) ? 'transparent' : bento.pageBg }}>
       {/* Header centrado (formato de las ventanas del track) + reloj de
           canjes pendientes de usar arriba-derecha */}
       <div style={{ padding: '18px 16px 4px', textAlign: 'center', position: 'relative' }}>
