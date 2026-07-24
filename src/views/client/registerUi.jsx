@@ -8,23 +8,27 @@ import { ArrowLeft, Cake, Chev } from '../../components/ui/Icons';
 const STEP_IDX = { step1: 0, welcome: 0, step2: 1, step3: 2 };
 const STEPS = 3;
 
+// Superficie de campo/tarjeta según modo (versión oscura del inputFlat)
+const flatBg = dark => dark ? 'rgba(255,255,255,.08)' : '#F5F5F7';
+
 // Encabezado del wizard (patrón de la referencia: flecha suelta +
 // título centrado) con progreso segmentado debajo.
-export function WizardHeader({ step, onBack }) {
+export function WizardHeader({ step, onBack, dark }) {
   const idx = STEP_IDX[step] ?? 0;
+  const ink = dark ? '#fff' : '#0D0D0D';
   return (
     <div style={{ marginBottom: 24 }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: 18 }}>
         <button onClick={onBack} aria-label="Volver"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', color: '#0D0D0D', width: 40 }}>
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', color: ink, width: 40 }}>
           <ArrowLeft />
         </button>
-        <div style={{ flex: 1, textAlign: 'center', fontSize: 16, fontWeight: 800, color: '#0D0D0D' }}>Crear cuenta</div>
+        <div style={{ flex: 1, textAlign: 'center', fontSize: 16, fontWeight: 800, color: ink }}>Crear cuenta</div>
         <div style={{ width: 40, textAlign: 'right', fontSize: 12, fontWeight: 700, color: '#9E9E9E', fontVariantNumeric: 'tabular-nums' }}>{idx + 1}/{STEPS}</div>
       </div>
       <div style={{ display: 'flex', gap: 6 }}>
         {Array.from({ length: STEPS }, (_, i) => (
-          <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i <= idx ? BRAND_ORANGE : '#ECECEE', transition: 'background .2s' }} />
+          <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i <= idx ? BRAND_ORANGE : (dark ? 'rgba(255,255,255,.14)' : '#ECECEE'), transition: 'background .2s' }} />
         ))}
       </div>
     </div>
@@ -33,9 +37,9 @@ export function WizardHeader({ step, onBack }) {
 
 // Resumen de puntos que ganará al registrarse — superficie clara flat
 // (el cuadro negro resultaba muy contrastante — feedback del dueño 22-jul)
-export function PtsCard({ total, base, optional, vehicles }) {
+export function PtsCard({ total, base, optional, vehicles, dark }) {
   return (
-    <div style={{ background: '#F5F5F7', borderRadius: 20, padding: '14px 18px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+    <div style={{ background: flatBg(dark), borderRadius: 20, padding: '14px 18px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
       <div>
         <div style={{ fontSize: 10, fontWeight: 800, color: '#9E9E9E', textTransform: 'uppercase', letterSpacing: 1 }}>Puntos al registrarte</div>
         <div style={{ fontSize: 11, color: '#9E9E9E', marginTop: 3 }}>Base {base} + opcionales {optional} + vehículos {vehicles}</div>
@@ -51,7 +55,7 @@ export function PtsCard({ total, base, optional, vehicles }) {
 // `transform` post-procesa el crudo (ej. capWords); `autoCap` pasa
 // autoCapitalize al teclado del celular.
 export function Field({ icon, placeholder, fieldKey, type, inputMode, maxLen, bonus, mask, autoCap, transform,
-                        regProfile, setRegProfile, clearAuthErr, regOptional }) {
+                        regProfile, setRegProfile, clearAuthErr, regOptional, dark }) {
   const val    = regProfile[fieldKey] || '';
   const filled = val.trim().length > 0;
   return (
@@ -69,7 +73,7 @@ export function Field({ icon, placeholder, fieldKey, type, inputMode, maxLen, bo
           setRegProfile(p => ({ ...p, [fieldKey]: v }));
           clearAuthErr();
         }}
-        style={{ ...inputFlat, paddingLeft: 44 }}
+        style={{ ...inputFlat, background: flatBg(dark), color: dark ? '#fff' : inputFlat.color, paddingLeft: 44 }}
       />
       {bonus && filled && (
         <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 10, fontWeight: 800, color: BRAND_ORANGE, background: 'rgba(250,84,8,.1)', padding: '2px 8px', borderRadius: 8 }}>+{regOptional} pts</div>
@@ -79,7 +83,7 @@ export function Field({ icon, placeholder, fieldKey, type, inputMode, maxLen, bo
 }
 
 // Campo fecha: texto plano, abre el drum picker en bottom sheet
-export function DateField({ value, onOpen }) {
+export function DateField({ value, onOpen, dark }) {
   const formatDisplay = v => {
     if (!v || !v.includes('-')) return null;
     const [y, m, d] = v.split('-').map(Number);
@@ -89,10 +93,10 @@ export function DateField({ value, onOpen }) {
   };
   const display = formatDisplay(value);
   return (
-    <div onClick={onOpen} style={{ ...inputFlat, paddingLeft: 44, display: 'flex', alignItems: 'center', cursor: 'pointer', position: 'relative', color: display ? '#0D0D0D' : '#9E9E9E', userSelect: 'none' }}>
+    <div onClick={onOpen} style={{ ...inputFlat, background: flatBg(dark), paddingLeft: 44, display: 'flex', alignItems: 'center', cursor: 'pointer', position: 'relative', color: display ? (dark ? '#fff' : '#0D0D0D') : '#9E9E9E', userSelect: 'none' }}>
       <div style={{ position: 'absolute', left: 16, color: '#9E9E9E', display: 'flex' }}><Cake /></div>
       <span style={{ flex: 1 }}>{display || 'Fecha de nacimiento *'}</span>
-      <span style={{ color: '#BDBDBD', display: 'flex' }}><Chev /></span>
+      <span style={{ color: dark ? 'rgba(255,255,255,.4)' : '#BDBDBD', display: 'flex' }}><Chev /></span>
     </div>
   );
 }

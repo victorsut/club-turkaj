@@ -24,7 +24,7 @@ const shuffle = (arr) => {
 };
 
 export default function ClientRaffle(ctx) {
-  const { me, cfg, cTier, raffleCal, rafData, buyTickets, curMonth, custs } = ctx;
+  const { me, cfg, cTier, raffleCal, rafData, buyTickets, curMonth, custs, dark } = ctx;
   const [viewMonth, setViewMonth] = useState(curMonth);
   // Confirmación de compra de boletos (bottom sheet con cierre animado,
   // mismo patrón del sheet de canjes).
@@ -53,11 +53,11 @@ export default function ClientRaffle(ctx) {
   const isCurrent = viewMonth === curMonth;
   const isBlack = cTier?.name === 'BLACK';
 
-  const headerTxt = isBlack ? '#fff' : '#0D0D0D';
-  const subTxt = isBlack ? 'rgba(255,255,255,.55)' : '#6E6E73';
-  const surface = isBlack ? 'rgba(255,255,255,.06)' : '#fff';
-  const rowLine = isBlack ? 'rgba(255,255,255,.08)' : '#F0F0F0';
-  const good = isBlack ? '#7CD98F' : bento.green;
+  const headerTxt = dark ? '#fff' : '#0D0D0D';
+  const subTxt = dark ? 'rgba(255,255,255,.55)' : '#6E6E73';
+  const surface = dark ? 'rgba(255,255,255,.06)' : '#fff';
+  const rowLine = dark ? 'rgba(255,255,255,.08)' : '#F0F0F0';
+  const good = dark ? '#7CD98F' : bento.green;
 
   const myTickets = parts.find(p => p.cid === me.id)?.tickets || 0;
   const totalTickets = parts.reduce((s, p) => s + p.tickets, 0);
@@ -70,13 +70,13 @@ export default function ClientRaffle(ctx) {
   // a dónde ir — se leen como control, no como cuadro de información.
   const navBtn = (enabled) => ({
     width: 38, height: 38, border: 'none', background: 'none', padding: 0,
-    color: enabled ? BRAND_ORANGE : (isBlack ? 'rgba(255,255,255,.2)' : '#C7C7CC'),
+    color: enabled ? BRAND_ORANGE : (dark ? 'rgba(255,255,255,.2)' : '#C7C7CC'),
     cursor: enabled ? 'pointer' : 'default',
     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   });
 
   return (
-    <div style={{ paddingBottom: 100, minHeight: '100vh', background: isBlack ? 'transparent' : bento.pageBg }}>
+    <div style={{ paddingBottom: 100, minHeight: '100vh', background: dark ? 'transparent' : isBlack ? '#F7F7F9' : bento.pageBg }}>
 
       {/* Header compacto: navegación de meses integrada al título */}
       <div style={{ display: 'flex', alignItems: 'center', padding: '14px 12px 10px' }}>
@@ -126,7 +126,7 @@ export default function ClientRaffle(ctx) {
           winnerName ? (
             <div style={{
               display: 'inline-block', marginTop: 10, padding: '7px 14px', borderRadius: 12,
-              background: isBlack ? 'rgba(30,122,51,.25)' : 'rgba(30,122,51,.12)',
+              background: dark ? 'rgba(30,122,51,.25)' : 'rgba(30,122,51,.12)',
               fontSize: 12.5, fontWeight: 800, color: good,
             }}>
               GANADOR · {winnerName}
@@ -134,7 +134,7 @@ export default function ClientRaffle(ctx) {
           ) : (
             <div style={{
               display: 'inline-block', marginTop: 10, padding: '7px 14px', borderRadius: 12,
-              background: isBlack ? 'rgba(255,255,255,.06)' : '#F5F5F7',
+              background: dark ? 'rgba(255,255,255,.06)' : '#F5F5F7',
               fontSize: 12, fontWeight: 700, color: subTxt,
             }}>
               {totalTickets > 0 ? 'Sorteo pendiente' : 'Sin participantes este mes'}
@@ -174,11 +174,11 @@ export default function ClientRaffle(ctx) {
               return (
                 <button key={n} onClick={() => canBuy && setBuyConfirm({ n, cost: n * cfg.ticketPts })} disabled={!canBuy} style={{
                   flex: 1, padding: '12px 0', borderRadius: 12, border: 'none',
-                  background: canBuy ? BRAND_RED : (isBlack ? 'rgba(255,255,255,.05)' : '#ECECEE'),
+                  background: canBuy ? BRAND_RED : (dark ? 'rgba(255,255,255,.05)' : '#ECECEE'),
                   fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 800,
                   fontVariantNumeric: 'tabular-nums',
                   cursor: canBuy ? 'pointer' : 'default',
-                  color: canBuy ? '#fff' : (isBlack ? 'rgba(255,255,255,.25)' : '#BDBDBD'),
+                  color: canBuy ? '#fff' : (dark ? 'rgba(255,255,255,.25)' : '#BDBDBD'),
                 }}>+{n}</button>
               );
             })}
@@ -215,7 +215,7 @@ export default function ClientRaffle(ctx) {
                 }}>
                   <div style={{
                     width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
-                    background: isMe ? BRAND_RED : (isBlack ? 'rgba(255,255,255,.1)' : '#E5E5EA'),
+                    background: isMe ? BRAND_RED : (dark ? 'rgba(255,255,255,.1)' : '#E5E5EA'),
                     color: isMe ? '#fff' : subTxt,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 12, fontWeight: 800,
@@ -225,7 +225,7 @@ export default function ClientRaffle(ctx) {
                   <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{
                       fontSize: 13, fontWeight: isMe ? 800 : 700,
-                      color: isMe ? BRAND_RED : (isBlack ? '#E0E0E0' : '#0D0D0D'),
+                      color: isMe ? BRAND_RED : (dark ? '#E0E0E0' : '#0D0D0D'),
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>
                       {p.name}{isMe ? ' (Tú)' : ''}
@@ -233,7 +233,7 @@ export default function ClientRaffle(ctx) {
                     {isWinner && (
                       <span style={{
                         flexShrink: 0, padding: '2px 8px', borderRadius: 8,
-                        background: isBlack ? 'rgba(30,122,51,.25)' : 'rgba(30,122,51,.12)',
+                        background: dark ? 'rgba(30,122,51,.25)' : 'rgba(30,122,51,.12)',
                         fontSize: 9, fontWeight: 800, letterSpacing: 0.5, color: good,
                       }}>
                         GANADOR
@@ -259,12 +259,12 @@ export default function ClientRaffle(ctx) {
           animation: buyClosing ? 'ppFadeOut .22s ease forwards' : 'ppFade .2s ease',
         }}>
           <div onClick={e => e.stopPropagation()} style={{
-            background: isBlack ? '#101018' : '#fff',
+            background: dark ? '#101018' : '#fff',
             borderRadius: '24px 24px 0 0',
             width: '100%', maxWidth: 480, padding: '12px 24px 40px',
             animation: buyClosing ? 'slideDownOut .22s ease-in forwards' : 'slideUp .3s cubic-bezier(.32,1.2,.64,1)',
           }}>
-            <div style={{ width: 40, height: 4, borderRadius: 4, background: isBlack ? 'rgba(255,255,255,.2)' : '#E0E0E0', margin: '0 auto 20px' }} />
+            <div style={{ width: 40, height: 4, borderRadius: 4, background: dark ? 'rgba(255,255,255,.2)' : '#E0E0E0', margin: '0 auto 20px' }} />
 
             <div style={{ textAlign: 'center', marginBottom: 18 }}>
               <div style={{
@@ -280,7 +280,7 @@ export default function ClientRaffle(ctx) {
               </div>
             </div>
 
-            <div style={{ background: isBlack ? 'rgba(255,255,255,.05)' : '#F5F5F7', borderRadius: 16, padding: '16px 20px', marginBottom: 20 }}>
+            <div style={{ background: dark ? 'rgba(255,255,255,.05)' : '#F5F5F7', borderRadius: 16, padding: '16px 20px', marginBottom: 20 }}>
               {[
                 { l: 'Boletos', v: `${buyConfirm.n}`, bold: true },
                 { l: 'Costo', v: `${buyConfirm.cost} pts`, large: true, red: true },
@@ -290,7 +290,7 @@ export default function ClientRaffle(ctx) {
                 <div key={row.l} style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   paddingBottom: i < arr.length - 1 ? 12 : 0,
-                  borderBottom: i < arr.length - 1 ? `1px solid ${isBlack ? 'rgba(255,255,255,.06)' : '#ECECEE'}` : 'none',
+                  borderBottom: i < arr.length - 1 ? `1px solid ${dark ? 'rgba(255,255,255,.06)' : '#ECECEE'}` : 'none',
                   marginBottom: i < arr.length - 1 ? 12 : 0,
                 }}>
                   <span style={{ fontSize: 13, color: '#9E9E9E', fontWeight: 600 }}>{row.l}</span>
@@ -307,8 +307,8 @@ export default function ClientRaffle(ctx) {
             <div style={{ display: 'flex', gap: 12 }}>
               <button onClick={closeBuy} style={{
                 flex: 1, padding: 16, borderRadius: 14, border: 'none',
-                background: isBlack ? 'rgba(255,255,255,.08)' : '#F5F5F7',
-                color: isBlack ? '#ccc' : '#424242',
+                background: dark ? 'rgba(255,255,255,.08)' : '#F5F5F7',
+                color: dark ? '#ccc' : '#424242',
                 fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700, cursor: 'pointer',
               }}>Cancelar</button>
               <button onClick={() => {

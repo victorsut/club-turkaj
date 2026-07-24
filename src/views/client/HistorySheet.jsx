@@ -5,7 +5,7 @@
 // selector solo con los meses/años que tienen movimientos.
 // Entra desde su tile (container transform D35) y se guarda al cerrar.
 import { useState } from 'react';
-import { sMono, bento } from '../../constants/styles';
+import { sMono, bento, clientMainBg } from '../../constants/styles';
 import { ArrowLeft, Gift, Clock, Fuel, Ticket, Cake, Car, Clipboard, StarLine } from '../../components/ui/Icons';
 import RewardIcon, { rewardIconFor } from '../../components/ui/RewardIcon';
 import ChipScroller from '../../components/ui/ChipScroller';
@@ -42,8 +42,7 @@ const itemDay = (raw) => {
 // por nivel — homeColors); sin él cae a los tokens teal/orange de ORO.
 // `accentInk` = tinta sobre el acento (BLACK usa superficies claras u
 // oro con tinta oscura — referencia nivel black).
-export default function HistorySheet({ type, origin, tint, accent, accentInk, onClose, acts, redeemed, tierName, initialPending = false }) {
-  const isBlack = tierName === 'BLACK';
+export default function HistorySheet({ type, origin, tint, accent, accentInk, onClose, acts, redeemed, tierName, initialPending = false, dark = tierName === 'BLACK' }) {
   const isCompras = type === 'compras';
   const todayGT = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Guatemala' });
 
@@ -97,12 +96,12 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
     : items.reduce((s, rd) => s + (rd.cost || 0), 0);
 
   const TH = {
-    bg: isBlack ? '#040405' : '#F5F5F7',
-    surface: isBlack ? 'rgba(255,255,255,.05)' : '#fff',
-    header: isBlack ? '#fff' : '#0D0D0D',
-    txt: isBlack ? '#E0E0E0' : '#424242',
-    sub: isBlack ? 'rgba(255,255,255,.5)' : '#9E9E9E',
-    border: isBlack ? 'rgba(255,255,255,.08)' : '#EDEDED',
+    bg: dark ? clientMainBg(tierName, true) : '#F5F5F7',
+    surface: dark ? 'rgba(255,255,255,.05)' : '#fff',
+    header: dark ? '#fff' : '#0D0D0D',
+    txt: dark ? '#E0E0E0' : '#424242',
+    sub: dark ? 'rgba(255,255,255,.5)' : '#9E9E9E',
+    border: dark ? 'rgba(255,255,255,.08)' : '#EDEDED',
     chipOn: accent || (isCompras ? bento.orange : bento.teal),
     chipInk: accentInk || '#fff',
   };
@@ -263,8 +262,8 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
               const pts = parseInt(a.pts, 10) || 0;
               const pos = pts > 0;
               const ActIcon = actIconFor(a);
-              const good = isBlack ? '#7CD98F' : bento.green;
-              const bad = isBlack ? '#FF8A80' : bento.red;
+              const good = dark ? '#7CD98F' : bento.green;
+              const bad = dark ? '#FF8A80' : bento.red;
               return (
                 <div key={i} style={{
                   display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
@@ -307,17 +306,17 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
                   <div style={{ fontSize: 10, color: TH.sub, ...sMono, marginTop: 2 }}>{itemDay(rd.date)} · {rd.code}</div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: isBlack ? '#FF8A80' : bento.red }}>-{rd.cost} pts</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: dark ? '#FF8A80' : bento.red }}>-{rd.cost} pts</div>
                   <div style={{
                     display: 'inline-block', marginTop: 3,
                     padding: '3px 8px', borderRadius: 8,
                     fontSize: 9, fontWeight: 800, letterSpacing: 0.3,
                     background: rd.collected
-                      ? (isBlack ? 'rgba(30,122,51,.25)' : 'rgba(30,122,51,.12)')
-                      : (isBlack ? 'rgba(217,164,11,.22)' : '#FAF1DC'),
+                      ? (dark ? 'rgba(30,122,51,.25)' : 'rgba(30,122,51,.12)')
+                      : (dark ? 'rgba(217,164,11,.22)' : '#FAF1DC'),
                     color: rd.collected
-                      ? (isBlack ? '#7CD98F' : bento.green)
-                      : (isBlack ? '#FFD54F' : '#B58000'),
+                      ? (dark ? '#7CD98F' : bento.green)
+                      : (dark ? '#FFD54F' : '#B58000'),
                   }}>
                     {rd.collected ? 'RECOGIDO' : 'PENDIENTE'}
                   </div>

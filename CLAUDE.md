@@ -38,6 +38,7 @@ Turkaj I, II y III en Chichicastenango, Guatemala. PWA en producción activa.
 - **Persistencia obligatoria:** compras, canjes, rifas y encuestas escriben en las 18 tablas.
 - **Seguridad:** lógica sensible vive en RPCs (`register_purchase`, `redeem_reward`, `authenticate_operator`).
 - **Responsividad:** debe funcionar en navegadores in-app (WhatsApp, Instagram) y móvil.
+- **Modo claro/oscuro (24-jul-2026):** la vista cliente tiene ambos modos. `ctx.dark` (App.jsx) es la fuente de verdad; se elige con sol/luna en login y Menú (`ModeToggle`), persiste en localStorage `pp_mode`; sin elección: BLACK oscuro, ORO/PLATINO claro. Las SUPERFICIES (fondos, tarjetas, textos) se bifurcan por `dark`; la IDENTIDAD del tier (tierBand, galaxia de la tarjeta, paleta homeColors) NO cambia con el modo. Componentes nuevos del cliente deben soportar ambos modos.
 - **Estilo:** seguir patrones existentes en `src/constants/styles.js` (inputStyle, btnStyle, sMono, adminTheme, clientTheme).
 
 ## 4. Estructura del Proyecto

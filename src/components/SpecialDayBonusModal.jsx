@@ -40,15 +40,15 @@ export default function SpecialDayBonusModal({
   bonus,
   memberName,
   tier,
+  dark = tier?.name === 'BLACK',
   onClose,
 }) {
   useBackLayer(!!open, onClose);
   if (!open) return null;
 
-  const isBlack = tier?.name === 'BLACK';
-  const ink  = isBlack ? '#fff' : '#0D0D0D';
-  const sub  = isBlack ? 'rgba(255,255,255,.55)' : '#6E6E73';
-  const row  = isBlack ? 'rgba(255,255,255,.06)' : '#F5F5F7';
+  const ink  = dark ? '#fff' : '#0D0D0D';
+  const sub  = dark ? 'rgba(255,255,255,.55)' : '#6E6E73';
+  const row  = dark ? 'rgba(255,255,255,.06)' : '#F5F5F7';
 
   const isBirthday = events.some((e) => e.is_birthday);
   const firstName  = (memberName || '').trim().split(' ')[0] || 'cliente';
@@ -66,7 +66,7 @@ export default function SpecialDayBonusModal({
       }}
     >
       <div onClick={e => e.stopPropagation()} className="pp-grow" style={{
-        background: isBlack ? '#101018' : '#fff',
+        background: dark ? '#101018' : '#fff',
         borderRadius: 24, maxWidth: 380, width: '100%',
         overflow: 'hidden',
       }}>
@@ -125,7 +125,7 @@ export default function SpecialDayBonusModal({
 
           {/* Total (solo con más de un evento) */}
           {events.length > 1 && (
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 14, paddingTop: 12, borderTop: `1px solid ${isBlack ? 'rgba(255,255,255,.1)' : '#F0F0F0'}` }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 14, paddingTop: 12, borderTop: `1px solid ${dark ? 'rgba(255,255,255,.1)' : '#F0F0F0'}` }}>
               <span style={{ fontSize: 12, fontWeight: 800, color: sub, textTransform: 'uppercase', letterSpacing: 1 }}>Total</span>
               <span style={{ fontSize: 24, fontWeight: 900, color: bento.green, fontVariantNumeric: 'tabular-nums' }}>+{bonus} pts</span>
             </div>

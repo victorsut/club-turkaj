@@ -5,14 +5,19 @@
 // Admin y operador conservan su paleta propia.
 import { adminTheme, BRAND_ORANGE } from '../../constants/styles';
 
-export default function BottomNav({ items, current, onSelect, view, tierName }) {
+export default function BottomNav({ items, current, onSelect, view, tierName, dark = false }) {
   const isA = view === 'admin';
   const isC = view === 'client';
 
-  const barBg = isA ? adminTheme.bg : '#fff';
-  const borderColor = isA ? adminTheme.border : '#ECECEC';
+  // Cliente en modo oscuro: barra oscura y círculo QR invertido (blanco
+  // con trazo negro) para que contraste con la barra.
+  const dk = isC && dark;
+  const barBg = isA ? adminTheme.bg : dk ? '#101014' : '#fff';
+  const borderColor = isA ? adminTheme.border : dk ? 'rgba(255,255,255,.1)' : '#ECECEC';
   const activeColor = isC ? BRAND_ORANGE : '#FBBC04';
-  const inactiveColor = isA ? '#666' : '#1A1A1A';
+  const inactiveColor = isA ? '#666' : dk ? 'rgba(255,255,255,.85)' : '#1A1A1A';
+  const qrBg  = dk ? '#fff' : '#0D0D0D';
+  const qrInk = dk ? '#0D0D0D' : '#fff';
 
   return (
     <div style={{
@@ -38,19 +43,19 @@ export default function BottomNav({ items, current, onSelect, view, tierName }) 
             }}>
               <div style={{
                 width: 54, height: 54, borderRadius: '50%',
-                background: qrActive ? BRAND_ORANGE : '#0D0D0D',
+                background: qrActive ? BRAND_ORANGE : qrBg,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: '0 4px 14px rgba(0,0,0,.25)',
                 border: `3px solid ${barBg}`,
               }}>
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-                  <rect x="3" y="3" width="7" height="7" rx="1.2" stroke="#fff" strokeWidth="1.8" fill="none"/>
-                  <rect x="5" y="5" width="3" height="3" rx=".4" fill="#fff"/>
-                  <rect x="14" y="3" width="7" height="7" rx="1.2" stroke="#fff" strokeWidth="1.8" fill="none"/>
-                  <rect x="16" y="5" width="3" height="3" rx=".4" fill="#fff"/>
-                  <rect x="3" y="14" width="7" height="7" rx="1.2" stroke="#fff" strokeWidth="1.8" fill="none"/>
-                  <rect x="5" y="16" width="3" height="3" rx=".4" fill="#fff"/>
-                  <path d="M14 14h2v2h-2zM16 16h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z" fill="#fff"/>
+                  <rect x="3" y="3" width="7" height="7" rx="1.2" stroke={qrActive ? '#fff' : qrInk} strokeWidth="1.8" fill="none"/>
+                  <rect x="5" y="5" width="3" height="3" rx=".4" fill={qrActive ? '#fff' : qrInk}/>
+                  <rect x="14" y="3" width="7" height="7" rx="1.2" stroke={qrActive ? '#fff' : qrInk} strokeWidth="1.8" fill="none"/>
+                  <rect x="16" y="5" width="3" height="3" rx=".4" fill={qrActive ? '#fff' : qrInk}/>
+                  <rect x="3" y="14" width="7" height="7" rx="1.2" stroke={qrActive ? '#fff' : qrInk} strokeWidth="1.8" fill="none"/>
+                  <rect x="5" y="16" width="3" height="3" rx=".4" fill={qrActive ? '#fff' : qrInk}/>
+                  <path d="M14 14h2v2h-2zM16 16h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z" fill={qrActive ? '#fff' : qrInk}/>
                 </svg>
               </div>
               <span style={{

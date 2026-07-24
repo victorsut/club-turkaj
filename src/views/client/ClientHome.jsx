@@ -27,7 +27,7 @@ export default function ClientHome(ctx) {
     showSurveys, setShowSurveys, fire,
     pendingOpRating, setPendingOpRating, sbConnected,
     activityLog, custs, redeemedList, logout,
-    rafData, curMonth, setCScr, setNavOrigin } = ctx;
+    rafData, curMonth, setCScr, setNavOrigin, dark } = ctx;
 
   if (!me) return null;
 
@@ -117,7 +117,7 @@ export default function ClientHome(ctx) {
 
   // ── R1b: estado del home bento ────────────────────────────
   const isBlack = cTier.name === 'BLACK';
-  const headerTxt = isBlack ? '#fff' : '#0D0D0D';
+  const headerTxt = dark ? '#fff' : '#0D0D0D';
   // Pantallas cortas: tipografías y paddings compactos para caber sin scroll.
   const shortScr = useShortScreen();
   const firstName = (me.name || '').trim().split(' ')[0] || 'cliente';
@@ -182,7 +182,7 @@ export default function ClientHome(ctx) {
   }, [sbConnected, me.bday]);
 
   return (
-    <div style={{ background: isBlack ? 'transparent' : bento.pageBg }}>
+    <div style={{ background: dark ? 'transparent' : isBlack ? '#F7F7F9' : bento.pageBg }}>
       {/* Sección que llena la resolución del dispositivo; el disclaimer
           queda bajo el fold y aparece al scrollear (feedback IMG3) */}
       <div className="pp-home-fit" style={{ paddingBottom: 76 }}>
@@ -382,7 +382,7 @@ export default function ClientHome(ctx) {
           la zona de holgura de la nav (queda oculto tras la barra hasta
           scrollear, sigue bajo el fold) */}
       <div style={{ marginTop: -52 }}>
-        <LegalFooter color={isBlack ? 'rgba(255,255,255,.4)' : '#9E9E9E'} />
+        <LegalFooter color={dark ? 'rgba(255,255,255,.4)' : '#9E9E9E'} />
       </div>
       <div style={{ height: 72 }} />
 
@@ -392,11 +392,11 @@ export default function ClientHome(ctx) {
           lista de beneficios con iconos SVG. */}
       {showTierDetail && (
         <GrowModal onClose={() => setShowTierDetail(false)} origin={mOrigin} tint={mTint}
-          background={isBlack ? '#101018' : '#fff'} arrowColor="#fff">
+          background={dark ? '#101018' : '#fff'} arrowColor="#fff">
           {() => (<>
             {/* Banda de identidad del nivel (centrada — feedback 21-jul) */}
             <div style={{ background: tierTint, color: '#fff', padding: '22px 20px 18px', position: 'relative', overflow: 'hidden', textAlign: 'center' }}>
-              {isBlack && <GalaxyDust n={10} />}
+              {isBlack && dark && <GalaxyDust n={10} />}
               <div style={{ position: 'relative', zIndex: 2 }}>
                 <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.5, opacity: 0.85 }}>
                   Tu nivel
@@ -414,15 +414,15 @@ export default function ClientHome(ctx) {
               {bens.map((b, i) => (
                 <div key={i} style={{
                   display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0',
-                  borderBottom: i < bens.length - 1 ? `1px solid ${isBlack ? 'rgba(255,255,255,.08)' : '#F0F0F0'}` : 'none',
-                  fontSize: 13, fontWeight: 600, color: isBlack ? '#E0E0E0' : '#424242',
+                  borderBottom: i < bens.length - 1 ? `1px solid ${dark ? 'rgba(255,255,255,.08)' : '#F0F0F0'}` : 'none',
+                  fontSize: 13, fontWeight: 600, color: dark ? '#E0E0E0' : '#424242',
                 }}>
                   <span style={{ width: 24, display: 'flex', justifyContent: 'center', color: tierAccent, flexShrink: 0 }}>{b.icon}</span>
                   <span>{b.t}</span>
                 </div>
               ))}
               {cTier.next && (
-                <div style={{ marginTop: 12, fontSize: 11, fontWeight: 700, color: isBlack ? 'rgba(255,255,255,.45)' : '#9E9E9E', textAlign: 'center' }}>
+                <div style={{ marginTop: 12, fontSize: 11, fontWeight: 700, color: dark ? 'rgba(255,255,255,.45)' : '#9E9E9E', textAlign: 'center' }}>
                   Faltan {cTier.rem} galones para {cTier.next}
                 </div>
               )}
@@ -434,14 +434,14 @@ export default function ClientHome(ctx) {
       {/* WiFi (pase de acceso — la clave la entrega el operador) */}
       {showWifi && (
         <GrowModal onClose={() => setShowWifi(false)} origin={mOrigin} tint={mTint}
-          background={isBlack ? '#1A1A2E' : '#fff'} maxWidth={340}
-          arrowColor={isBlack ? '#fff' : '#0D0D0D'}
+          background={dark ? '#1A1A2E' : '#fff'} maxWidth={340}
+          arrowColor={dark ? '#fff' : '#0D0D0D'}
           style={{ padding: '30px 22px 26px', textAlign: 'center' }}>
           {() => (<>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
               <WifiIcon size={38} color={hp.wifi} />
             </div>
-            <div style={{ fontSize: 19, fontWeight: 900, color: isBlack ? '#fff' : '#0D0D0D' }}>WiFi Puntos Plus</div>
+            <div style={{ fontSize: 19, fontWeight: 900, color: dark ? '#fff' : '#0D0D0D' }}>WiFi Puntos Plus</div>
             <div style={{ fontSize: 11, fontWeight: 800, color: hp.wifi, marginTop: 2, textTransform: 'uppercase', letterSpacing: 1 }}>
               Beneficio {cTier.name}
             </div>
@@ -451,7 +451,7 @@ export default function ClientHome(ctx) {
             <div style={{
               ...sMono, fontSize: 18, fontWeight: 800, letterSpacing: 2,
               padding: '12px 0', borderRadius: 14,
-              background: isBlack ? 'rgba(255,255,255,.1)' : '#E9EAF6',
+              background: dark ? 'rgba(255,255,255,.1)' : '#E9EAF6',
               color: hp.wifi,
             }}>
               {displayCode}
@@ -472,12 +472,13 @@ export default function ClientHome(ctx) {
           acts={myActs}
           redeemed={myRedeemed}
           tierName={cTier.name}
+          dark={dark}
         />
       )}
       {/* Stations modal */}
       {showMap && (
         <GrowModal onClose={() => setShowMap(false)} origin={mOrigin} tint={mTint}
-          background={cTier.name === 'BLACK' ? '#16161A' : '#fff'} maxHeight="86vh"
+          background={dark ? '#16161A' : '#fff'} maxHeight="86vh"
           arrowColor={hp.locationInk || '#fff'}>
           {() => (<>
             {/* Banda de identidad (patrón banda+cuerpo — color sólido
@@ -503,7 +504,7 @@ export default function ClientHome(ctx) {
               <div key={s.id || s.name} style={{
                 display: 'flex', alignItems: 'flex-start', gap: 14,
                 padding: '13px 12px', marginBottom: 8, borderRadius: 16,
-                background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.05)' : '#F5F5F7',
+                background: dark ? 'rgba(255,255,255,.05)' : '#F5F5F7',
               }}>
                 <div style={{
                   width: 44, height: 44, borderRadius: 14, flexShrink: 0,
@@ -513,10 +514,10 @@ export default function ClientHome(ctx) {
                   <PinIcon size={24} color={hp.locationInk || '#fff'} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: cTier.name === 'BLACK' ? '#E0E0E0' : '#0D0D0D' }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: dark ? '#E0E0E0' : '#0D0D0D' }}>
                     {s.name}
                   </div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: cTier.name === 'BLACK' ? 'rgba(255,255,255,.5)' : '#6E6E73', marginTop: 3, lineHeight: 1.4 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: dark ? 'rgba(255,255,255,.5)' : '#6E6E73', marginTop: 3, lineHeight: 1.4 }}>
                     {s.address || 'Dirección no disponible'}
                   </div>
                   {/* Horario de atención (stations.schedule — dato de empresa) */}
@@ -524,7 +525,7 @@ export default function ClientHome(ctx) {
                     <div style={{
                       display: 'flex', alignItems: 'center', gap: 5, marginTop: 5,
                       fontSize: 11.5, fontWeight: 700,
-                      color: cTier.name === 'BLACK' ? 'rgba(255,255,255,.75)' : hp.location,
+                      color: dark ? 'rgba(255,255,255,.75)' : hp.location,
                     }}>
                       <Clock /> {s.schedule}
                     </div>
@@ -563,7 +564,7 @@ export default function ClientHome(ctx) {
       {/* Survey station selection modal */}
       {showSurveys && (
         <GrowModal onClose={() => setShowSurveys(false)} origin={mOrigin} tint={mTint}
-          background={cTier.name === 'BLACK' ? '#101018' : '#fff'} maxHeight="88vh"
+          background={dark ? '#101018' : '#fff'} maxHeight="88vh"
           arrowColor={hp.surveyInk}>
           {(close) => (<>
             {/* Banda de identidad (mismo formato del modal de nivel —
@@ -582,7 +583,7 @@ export default function ClientHome(ctx) {
             </div>
 
             <div style={{ padding: '14px 20px 20px' }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: cTier.name === 'BLACK' ? 'rgba(255,255,255,.5)' : '#6E6E73', textAlign: 'center', marginBottom: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: dark ? 'rgba(255,255,255,.5)' : '#6E6E73', textAlign: 'center', marginBottom: 12 }}>
               Seleccioná la estación donde cargaste combustible
             </div>
 
@@ -617,8 +618,8 @@ export default function ClientHome(ctx) {
                     cursor: surveyPending ? 'default' : 'pointer',
                     opacity: surveyPending ? (waitingThis ? 1 : 0.4) : 1,
                     background: isLast
-                      ? (cTier.name === 'BLACK' ? 'rgba(217,164,11,.14)' : '#FAF1DC')
-                      : (cTier.name === 'BLACK' ? 'rgba(255,255,255,.05)' : '#F5F5F7'),
+                      ? (dark ? 'rgba(217,164,11,.14)' : '#FAF1DC')
+                      : (dark ? 'rgba(255,255,255,.05)' : '#F5F5F7'),
                     transition: 'transform .15s',
                   }}>
                   <div style={{
@@ -631,14 +632,14 @@ export default function ClientHome(ctx) {
                   <div style={{ flex: 1 }}>
                     <div style={{
                       fontSize: 15, fontWeight: 800,
-                      color: cTier.name === 'BLACK' ? '#E0E0E0' : '#0D0D0D',
+                      color: dark ? '#E0E0E0' : '#0D0D0D',
                     }}>
                       {s.name}
                     </div>
                     {isLast && (
                       <div style={{
                         fontSize: 10, fontWeight: 800, marginTop: 3,
-                        color: cTier.name === 'BLACK' ? '#FFD54F' : '#B58000',
+                        color: dark ? '#FFD54F' : '#B58000',
                         display: 'flex', alignItems: 'center', gap: 4,
                       }}>
                         <Pin /> Última visita
@@ -649,8 +650,8 @@ export default function ClientHome(ctx) {
                       Promociones); esperando → círculo ámbar con reloj */}
                   <div style={{
                     width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
-                    background: waitingThis ? bento.amber : (cTier.name === 'BLACK' ? '#fff' : '#0D0D0D'),
-                    color: waitingThis ? '#fff' : (cTier.name === 'BLACK' ? '#0D0D0D' : '#fff'),
+                    background: waitingThis ? bento.amber : (dark ? '#fff' : '#0D0D0D'),
+                    color: waitingThis ? '#fff' : (dark ? '#0D0D0D' : '#fff'),
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
                     {waitingThis ? <Clock /> : <Chev />}
@@ -663,24 +664,24 @@ export default function ClientHome(ctx) {
             {/* Pending survey: countdown */}
             {surveyPending && (
               <div style={{
-                background: cTier.name === 'BLACK' ? 'rgba(217,164,11,.14)' : '#FAF1DC',
+                background: dark ? 'rgba(217,164,11,.14)' : '#FAF1DC',
                 borderRadius: 16, padding: 16, marginBottom: 8, textAlign: 'center',
               }}>
                 <div style={{
                   fontSize: 13, fontWeight: 700, marginBottom: 6,
-                  color: cTier.name === 'BLACK' ? '#FFD54F' : '#B58000',
+                  color: dark ? '#FFD54F' : '#B58000',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 }}>
                   <Clock /> Completá la encuesta de {surveyPending.stationName}
                 </div>
-                <div style={{ fontSize: 28, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D' }}>
+                <div style={{ fontSize: 28, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: dark ? '#fff' : '#0D0D0D' }}>
                   {Math.floor(surveyCountdown / 60)}:{String(surveyCountdown % 60).padStart(2, '0')}
                 </div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: cTier.name === 'BLACK' ? 'rgba(255,255,255,.5)' : '#6E6E73', marginTop: 4 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: dark ? 'rgba(255,255,255,.5)' : '#6E6E73', marginTop: 4 }}>
                   Permanecé en la página de Shell · Los puntos se asignan al volver
                 </div>
                 {/* Progress bar */}
-                <div style={{ height: 4, borderRadius: 2, overflow: 'hidden', background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.06)', marginTop: 10 }}>
+                <div style={{ height: 4, borderRadius: 2, overflow: 'hidden', background: dark ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.06)', marginTop: 10 }}>
                   <div style={{
                     height: '100%', borderRadius: 2, transition: 'width 1s linear',
                     width: `${((SURVEY_WAIT - surveyCountdown) / SURVEY_WAIT) * 100}%`,
@@ -695,10 +696,10 @@ export default function ClientHome(ctx) {
             {surveyPending && (
               <button onClick={() => { setSurveyPending(null); close(); }} style={{
                 width: '100%', marginTop: 8, padding: 14, borderRadius: 14,
-                background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.08)' : '#F5F5F7',
+                background: dark ? 'rgba(255,255,255,.08)' : '#F5F5F7',
                 border: 'none',
                 fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700,
-                color: cTier.name === 'BLACK' ? '#ccc' : '#424242',
+                color: dark ? '#ccc' : '#424242',
                 cursor: 'pointer',
               }}>
                 Cancelar
@@ -718,14 +719,14 @@ export default function ClientHome(ctx) {
           padding: 20, animation: 'fadeUp .3s ease',
         }}>
           <div style={{
-            background: isBlack ? '#101018' : '#fff',
+            background: dark ? '#101018' : '#fff',
             borderRadius: 24, maxWidth: 360, width: '100%', padding: '28px 24px',
             textAlign: 'center',
           }}>
             {savingRating ? (
               /* Saving state */
               <div style={{ padding: '24px 0', display: 'flex', justifyContent: 'center' }}>
-                <LogoSpinner size={44} dark={isBlack} label="Enviando calificación..." />
+                <LogoSpinner size={44} dark={dark} label="Enviando calificación..." />
               </div>
             ) : (
               <>
@@ -737,14 +738,14 @@ export default function ClientHome(ctx) {
                 }}>
                   <Fuel />
                 </div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: isBlack ? '#fff' : '#0D0D0D', marginBottom: 6 }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: dark ? '#fff' : '#0D0D0D', marginBottom: 6 }}>
                   ¡Compra registrada!
                 </div>
 
                 {/* PROMO-1: puntos de la compra + promo aplicada (llega por
                     fetchPurchasePromo tras el INSERT Realtime) */}
                 {pendingOpRating.points != null && (
-                  <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: isBlack ? '#7CD98F' : bento.green, marginBottom: pendingOpRating.promo ? 8 : 6 }}>
+                  <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: dark ? '#7CD98F' : bento.green, marginBottom: pendingOpRating.promo ? 8 : 6 }}>
                     +{pendingOpRating.points} pts
                     {pendingOpRating.amount != null && (
                       <span style={{ fontSize: 12, fontWeight: 700, color: '#9E9E9E' }}> · Q{+pendingOpRating.amount}</span>
@@ -754,9 +755,9 @@ export default function ClientHome(ctx) {
                 {pendingOpRating.promo && (
                   <div style={{
                     display: 'inline-block', padding: '8px 14px', borderRadius: 12,
-                    background: isBlack ? 'rgba(217,164,11,.18)' : '#FAF1DC',
+                    background: dark ? 'rgba(217,164,11,.18)' : '#FAF1DC',
                     fontSize: 12.5, fontWeight: 700, marginBottom: 10,
-                    color: isBlack ? '#FFD54F' : '#B58000',
+                    color: dark ? '#FFD54F' : '#B58000',
                   }}>
                     {pendingOpRating.promo.effectType === 'grant_reward' ? (
                       // PROMO-1b: premio regalado — ya está en tus canjes
@@ -779,7 +780,7 @@ export default function ClientHome(ctx) {
                 </div>
                 <div style={{
                   fontSize: 20, fontWeight: 800, marginBottom: 2,
-                  color: isBlack ? '#fff' : '#0D0D0D',
+                  color: dark ? '#fff' : '#0D0D0D',
                 }}>
                   {pendingOpRating.operatorName}
                 </div>
@@ -790,7 +791,7 @@ export default function ClientHome(ctx) {
                 )}
 
                 {/* Stars — tap to rate and auto-submit */}
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: isBlack ? '#E0E0E0' : '#424242', marginBottom: 12 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: dark ? '#E0E0E0' : '#424242', marginBottom: 12 }}>
                   Calificá la atención
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 18 }}>

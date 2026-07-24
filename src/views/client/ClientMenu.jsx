@@ -5,7 +5,8 @@
 // El botón físico de volver cierra la sección abierta (useBackLayer).
 import { useState } from 'react';
 import { sMono, bento } from '../../constants/styles';
-import { User, StarLine, Warn, Clipboard, Info, Door, Chev, ArrowLeft } from '../../components/ui/Icons';
+import { User, StarLine, Warn, Clipboard, Info, Door, Chev, ArrowLeft, Sun, Moon } from '../../components/ui/Icons';
+import ModeToggle from '../../components/ui/ModeToggle';
 import GalaxyDust from '../../components/ui/GalaxyDust';
 import LegalFooter from '../../components/ui/LegalFooter';
 import useBackLayer from '../../hooks/useBackLayer';
@@ -23,9 +24,9 @@ const MENU_ITEMS = [
 ];
 
 export default function ClientMenu(ctx) {
-  const { me, cfg, cTier, logout, setCScr } = ctx;
+  const { me, cfg, cTier, logout, setCScr, dark, setUiMode } = ctx;
   const tier = cTier?.name || 'ORO';
-  const TH = menuTheme(tier);
+  const TH = menuTheme(tier, dark);
 
   const [section, setSection] = useState(null);
   const closeSection = () => setSection(null);
@@ -106,6 +107,14 @@ export default function ClientMenu(ctx) {
             <span style={{ color: TH.sub, display: 'flex' }}><Chev /></span>
           </button>
         ))}
+
+        {/* Apariencia: elegir modo claro/oscuro (sol/luna) — misma
+            elección que ofrece el login; persiste en el dispositivo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderTop: `1px solid ${TH.divider}` }}>
+          <span style={{ display: 'flex', color: TH.header, flexShrink: 0 }}>{dark ? <Moon /> : <Sun />}</span>
+          <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: TH.header }}>Apariencia</span>
+          <ModeToggle dark={dark} setUiMode={setUiMode} />
+        </div>
       </div>
 
       {/* Cerrar sesión — tarjeta aparte en rojo, sin chevron (referencia) */}

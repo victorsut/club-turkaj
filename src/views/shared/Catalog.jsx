@@ -13,7 +13,10 @@ import { Clock } from '../../components/ui/Icons';
 import { originFromEvent } from '../../lib/motionOrigin';
 
 export default function Catalog(ctx) {
-  const { rewards, me, gT, cfg, cTier, catF, setCatF, redeem, setRedeemConfirm, client = true, redeemedList, activityLog } = ctx;
+  const { rewards, me, gT, cfg, cTier, catF, setCatF, redeem, setRedeemConfirm, client = true, redeemedList, activityLog, dark: modeDark } = ctx;
+  // El modo claro/oscuro solo aplica a la vista del cliente — en el
+  // panel admin el catálogo conserva su presentación clara actual.
+  const dark = client && !!modeDark;
   const t    = me ? gT(me.gallons) : gT(0);
   const cats = ['todos', ...Object.keys(CAT_LABELS)];
   const visible = (rewards || []).filter(r => r.active !== false);
@@ -27,13 +30,13 @@ export default function Catalog(ctx) {
   const myActs = me ? (activityLog?.[me.id] || []) : [];
 
   const isBlack = (cTier?.name || 'ORO') === 'BLACK';
-  const headerTxt = isBlack ? '#fff' : '#0D0D0D';
-  const subTxt = isBlack ? 'rgba(255,255,255,.55)' : '#6E6E73';
-  const surface = isBlack ? 'rgba(255,255,255,.06)' : '#fff';
-  const good = isBlack ? '#7CD98F' : bento.green;
+  const headerTxt = dark ? '#fff' : '#0D0D0D';
+  const subTxt = dark ? 'rgba(255,255,255,.55)' : '#6E6E73';
+  const surface = dark ? 'rgba(255,255,255,.06)' : '#fff';
+  const good = dark ? '#7CD98F' : bento.green;
 
   return (
-    <div style={{ paddingBottom: 100, minHeight: '100vh', background: isBlack ? 'transparent' : bento.pageBg }}>
+    <div style={{ paddingBottom: 100, minHeight: '100vh', background: dark ? 'transparent' : (client && isBlack) ? '#F7F7F9' : bento.pageBg }}>
       {/* Header centrado (formato de las ventanas del track) + reloj de
           canjes pendientes de usar arriba-derecha */}
       <div style={{ padding: '18px 16px 4px', textAlign: 'center', position: 'relative' }}>
@@ -76,8 +79,8 @@ export default function Catalog(ctx) {
           return (
             <button key={c} onClick={() => setCatF(c)} style={{
               padding: '8px 14px', borderRadius: 12, border: 'none', cursor: 'pointer',
-              background: on ? BRAND_RED : (isBlack ? 'rgba(255,255,255,.08)' : '#fff'),
-              color: on ? '#fff' : (isBlack ? 'rgba(255,255,255,.75)' : '#3A3A3C'),
+              background: on ? BRAND_RED : (dark ? 'rgba(255,255,255,.08)' : '#fff'),
+              color: on ? '#fff' : (dark ? 'rgba(255,255,255,.75)' : '#3A3A3C'),
               fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
               transition: 'background .2s, color .2s',
             }}>
@@ -111,14 +114,14 @@ export default function Catalog(ctx) {
               }}>
                 <RewardIcon reward={r} />
               </div>
-              <div style={{ fontSize: 12.5, fontWeight: 700, color: isBlack ? '#E0E0E0' : '#0D0D0D', marginBottom: 6, lineHeight: 1.3 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: dark ? '#E0E0E0' : '#0D0D0D', marginBottom: 6, lineHeight: 1.3 }}>
                 {r.name}
               </div>
               <div style={{ fontSize: 14, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: canAfford ? good : subTxt }}>
                 {cost} pts
               </div>
               {t.redeemDisc > 0 && cost < r.pts && (
-                <div style={{ fontSize: 10, color: isBlack ? '#90CAF9' : bento.blue, fontWeight: 700, marginTop: 2 }}>
+                <div style={{ fontSize: 10, color: dark ? '#90CAF9' : bento.blue, fontWeight: 700, marginTop: 2 }}>
                   -{Math.round(t.redeemDisc * 100)}% ({r.pts} pts)
                 </div>
               )}
@@ -146,6 +149,7 @@ export default function Catalog(ctx) {
           acts={myActs}
           redeemed={myRedeemed}
           tierName={cTier?.name || 'ORO'}
+          dark={dark}
         />
       )}
     </div>

@@ -10,7 +10,7 @@ const ITEM_H   = 48;
 const VISIBLE  = 5;
 const CENTER_Y = ITEM_H * Math.floor(VISIBLE / 2);
 
-function DrumPicker({ items, selectedIndex, onChange }) {
+function DrumPicker({ items, selectedIndex, onChange, dark }) {
   const indexToY = idx => CENTER_Y - idx * ITEM_H;
   const yToIndex = y   => Math.round((CENTER_Y - y) / ITEM_H);
 
@@ -64,13 +64,13 @@ function DrumPicker({ items, selectedIndex, onChange }) {
       <div style={{ position: 'absolute', top: CENTER_Y, left: 6, right: 6, height: ITEM_H, background: 'rgba(250,84,8,.06)', borderRadius: 10, borderTop: '1.5px solid rgba(250,84,8,.35)', borderBottom: '1.5px solid rgba(250,84,8,.35)', pointerEvents: 'none', zIndex: 2 }} />
       <div style={{ transform: `translateY(${displayY}px)`, transition: isSnapping ? 'transform .22s ease' : 'none', willChange: 'transform' }}>
         {items.map((item, i) => (
-          <div key={i} style={{ height: ITEM_H, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: i === selectedIndex ? 17 : 14, fontWeight: i === selectedIndex ? 800 : 400, color: i === selectedIndex ? '#0D0D0D' : '#BDBDBD', fontFamily: "'DM Sans'", userSelect: 'none' }}>
+          <div key={i} style={{ height: ITEM_H, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: i === selectedIndex ? 17 : 14, fontWeight: i === selectedIndex ? 800 : 400, color: i === selectedIndex ? (dark ? '#fff' : '#0D0D0D') : (dark ? 'rgba(255,255,255,.35)' : '#BDBDBD'), fontFamily: "'DM Sans'", userSelect: 'none' }}>
             {item.label}
           </div>
         ))}
       </div>
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: CENTER_Y, background: 'linear-gradient(to bottom, rgba(255,255,255,.97), rgba(255,255,255,0))', pointerEvents: 'none', zIndex: 3 }} />
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: CENTER_Y, background: 'linear-gradient(to top, rgba(255,255,255,.97), rgba(255,255,255,0))', pointerEvents: 'none', zIndex: 3 }} />
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: CENTER_Y, background: dark ? 'linear-gradient(to bottom, rgba(22,22,26,.97), rgba(22,22,26,0))' : 'linear-gradient(to bottom, rgba(255,255,255,.97), rgba(255,255,255,0))', pointerEvents: 'none', zIndex: 3 }} />
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: CENTER_Y, background: dark ? 'linear-gradient(to top, rgba(22,22,26,.97), rgba(22,22,26,0))' : 'linear-gradient(to top, rgba(255,255,255,.97), rgba(255,255,255,0))', pointerEvents: 'none', zIndex: 3 }} />
     </div>
   );
 }
@@ -78,7 +78,7 @@ function DrumPicker({ items, selectedIndex, onChange }) {
 const MONTHS      = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MONTH_ITEMS = MONTHS.map(m => ({ label: m }));
 
-export function DateDrumPicker({ value, onChange }) {
+export function DateDrumPicker({ value, onChange, dark }) {
   const maxYear = new Date().getFullYear() - 16;
   const years   = Array.from({ length: maxYear - 1930 + 1 }, (_, i) => ({ label: String(1930 + i) }));
 
@@ -112,28 +112,28 @@ export function DateDrumPicker({ value, onChange }) {
   const pickYear  = i => { const d = Math.min(di, daysIn(mi, i) - 1); setYi(i); setDi(d); emit(d, mi, i); };
 
   return (
-    <div style={{ display: 'flex', background: '#fff', borderRadius: 16, overflow: 'hidden' }}>
-      <DrumPicker items={dayItems}    selectedIndex={di} onChange={pickDay} />
-      <div style={{ width: 1, background: '#F0F0F0' }} />
-      <DrumPicker items={MONTH_ITEMS} selectedIndex={mi} onChange={pickMonth} />
-      <div style={{ width: 1, background: '#F0F0F0' }} />
-      <DrumPicker items={years}       selectedIndex={yi} onChange={pickYear} />
+    <div style={{ display: 'flex', background: dark ? '#16161A' : '#fff', borderRadius: 16, overflow: 'hidden' }}>
+      <DrumPicker items={dayItems}    selectedIndex={di} onChange={pickDay} dark={dark} />
+      <div style={{ width: 1, background: dark ? 'rgba(255,255,255,.08)' : '#F0F0F0' }} />
+      <DrumPicker items={MONTH_ITEMS} selectedIndex={mi} onChange={pickMonth} dark={dark} />
+      <div style={{ width: 1, background: dark ? 'rgba(255,255,255,.08)' : '#F0F0F0' }} />
+      <DrumPicker items={years}       selectedIndex={yi} onChange={pickYear} dark={dark} />
     </div>
   );
 }
 
 // Bottom sheet del drum picker (FORMATO GENERAL: flat, acción en rojo)
-export const DatePickerSheet = ({ tempDate, setTempDate, setShowDatePicker, setRegProfile }) => (
+export const DatePickerSheet = ({ tempDate, setTempDate, setShowDatePicker, setRegProfile, dark }) => (
   <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 500, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-    <div style={{ background: '#fff', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 480, padding: '0 0 32px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #f0f0f0' }}>
+    <div style={{ background: dark ? '#16161A' : '#fff', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 480, padding: '0 0 32px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: `1px solid ${dark ? 'rgba(255,255,255,.08)' : '#f0f0f0'}` }}>
         <button onClick={() => setShowDatePicker(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 700, color: '#9E9E9E', fontFamily: "'DM Sans'" }}>Cancelar</button>
-        <div style={{ fontSize: 15, fontWeight: 800, color: '#0D0D0D' }}>Fecha de nacimiento</div>
+        <div style={{ fontSize: 15, fontWeight: 800, color: dark ? '#fff' : '#0D0D0D' }}>Fecha de nacimiento</div>
         <button onClick={() => { setRegProfile(p => ({ ...p, bday: tempDate })); setShowDatePicker(false); }}
           style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 800, color: BRAND_ORANGE, fontFamily: "'DM Sans'" }}>Seleccionar</button>
       </div>
       <div style={{ padding: '12px 20px 0' }}>
-        <DateDrumPicker value={tempDate} onChange={setTempDate} />
+        <DateDrumPicker value={tempDate} onChange={setTempDate} dark={dark} />
       </div>
     </div>
   </div>

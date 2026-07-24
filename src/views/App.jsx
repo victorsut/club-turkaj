@@ -32,7 +32,7 @@ function utcToLocal(isoString) {
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
-import { clientTheme, adminTheme, sMono, GAL, bento, BRAND_RED, BRAND_ORANGE, CAT_LABELS, CAT_COLORS } from '../constants/styles';
+import { clientTheme, clientMainBg, adminTheme, sMono, GAL, bento, BRAND_RED, BRAND_ORANGE, CAT_LABELS, CAT_COLORS } from '../constants/styles';
 import useToast from '../hooks/useToast';
 
 // UI Components
@@ -117,6 +117,19 @@ export default function App() {
 
   const [authScreen, setAuthScreen] = useState(savedMe?.id ? 'logged' : 'login');
   const [me, setMe]                 = useState(savedMe);
+
+  // ===== MODO CLARO / OSCURO (24-jul-2026) =====
+  // '' = sin elección → modo efectivo por nivel (BLACK oscuro, resto
+  // claro). Se elige con sol/luna en el login o en el Menú y persiste.
+  const [uiMode, setUiMode] = useState(() => {
+    try { return localStorage.getItem('pp_mode') || ''; } catch { return ''; }
+  });
+  useEffect(() => {
+    try {
+      if (uiMode) localStorage.setItem('pp_mode', uiMode);
+      else localStorage.removeItem('pp_mode');
+    } catch { /* localStorage no disponible */ }
+  }, [uiMode]);
 
   const [authOp, setAuthOp]     = useState(savedOp ? 'logged' : 'login');
   const [loggedOp, setLoggedOp] = useState(savedOp);           // operator data after login
@@ -251,7 +264,11 @@ export default function App() {
   const isO = view === 'operator';
   const isC = view === 'client';
   const cTier = me ? gT(me.gallons) : gT(0);
-  const TH = clientTheme(cTier.name);
+  // Modo efectivo: elección del usuario o, sin ella, el histórico del
+  // nivel (BLACK oscuro, ORO/PLATINO claro). En login/registro (sin
+  // sesión) manda solo la elección; por defecto claro.
+  const dark = uiMode ? uiMode === 'dark' : cTier.name === 'BLACK';
+  const TH = clientTheme(cTier.name, dark);
   const isLoggedIn = (isC && authScreen === 'logged') || (isO && authOp === 'logged') || (isA && authAdmin === 'logged');
 
   // ===== SUPABASE WRITE HELPERS =====
@@ -1395,6 +1412,7 @@ export default function App() {
     adLoginEmail, setAdLoginEmail, adLoginPass, setAdLoginPass,
     // Helpers
     gT, cTier, TH, curMonth, fire,
+    dark, uiMode, setUiMode,
     sbConnected, sbLoading,
     logActivity,
     // Actions
@@ -1499,13 +1517,13 @@ export default function App() {
         maxWidth: 480, margin: '0 auto', minHeight: '100vh',
         background: isA ? adminTheme.bg
           : isO ? '#FAFAFA'
-          : cTier.name === 'BLACK' ? '#040405'
-          : cTier.name === 'PLATINO' ? '#E8E8E8' : '#fff',
+          : clientMainBg(cTier.name, dark),
         position: 'relative', overflowX: 'hidden',
         boxShadow: '0 0 60px rgba(0,0,0,.08)',
       }}>
         {/* BLACK: fondo galaxia con estrellas en deriva (CSS puro) */}
-        {isC && cTier.name === 'BLACK' && authScreen === 'logged' && <GalaxyStars />}
+        {/* Estrellas solo en BLACK oscuro — en BLACK claro el fondo es perla */}
+        {isC && cTier.name === 'BLACK' && dark && authScreen === 'logged' && <GalaxyStars />}
 
         {/* Active screen — el cliente entra con animación desde el origen presionado (D35) */}
         {isC && authScreen === 'logged'
@@ -1522,7 +1540,7 @@ export default function App() {
 
         {/* Bottom navigation */}
         {isLoggedIn && (
-          <BottomNav items={nav} current={cur} onSelect={handleNav} view={view} tierName={cTier.name} />
+          <BottomNav items={nav} current={cur} onSelect={handleNav} view={view} tierName={cTier.name} dark={dark} />
         )}
       </div>
 
@@ -1534,7 +1552,7 @@ export default function App() {
           padding: '0 24px',
         }}>
           <div style={{
-            background: cTier.name === 'BLACK' ? '#0D0D1A' : '#fff',
+            background: dark ? '#0D0D1A' : '#fff',
             borderRadius: 24, width: '100%', maxWidth: 400, padding: '32px 24px',
             boxShadow: '0 24px 80px rgba(0,0,0,.4)',
             animation: 'pop .3s cubic-bezier(.32,1.2,.64,1)',
@@ -1545,7 +1563,7 @@ export default function App() {
               <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', color: cTier.name === 'BLACK' ? '#FFD54F' : '#F0A500', marginBottom: 6 }}>
                 Solicitud de Canje
               </div>
-              <div style={{ fontSize: 20, fontWeight: 900, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D', lineHeight: 1.2 }}>
+              <div style={{ fontSize: 20, fontWeight: 900, color: dark ? '#fff' : '#0D0D0D', lineHeight: 1.2 }}>
                 ¿Confirmás este canje?
               </div>
               <div style={{ fontSize: 13, color: '#9E9E9E', marginTop: 8 }}>
@@ -1554,10 +1572,10 @@ export default function App() {
             </div>
 
             {/* Detalle */}
-            <div style={{ background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.06)' : '#F9F9F9', borderRadius: 16, padding: '16px 20px', marginBottom: 24 }}>
+            <div style={{ background: dark ? 'rgba(255,255,255,.06)' : '#F9F9F9', borderRadius: 16, padding: '16px 20px', marginBottom: 24 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
                 <span style={{ fontSize: 13, color: '#9E9E9E', fontWeight: 600 }}>Premio</span>
-                <span style={{ fontSize: 13, fontWeight: 900, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D' }}>{pendingRedeemConfirm.rewardName}</span>
+                <span style={{ fontSize: 13, fontWeight: 900, color: dark ? '#fff' : '#0D0D0D' }}>{pendingRedeemConfirm.rewardName}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: 13, color: '#9E9E9E', fontWeight: 600 }}>Puntos a descontar</span>
@@ -1573,8 +1591,8 @@ export default function App() {
                 fire('❌ Canje cancelado');
               }} style={{
                 flex: 1, padding: '14px 0', borderRadius: 14,
-                border: `2px solid ${cTier.name === 'BLACK' ? 'rgba(255,255,255,.1)' : '#eee'}`,
-                background: 'none', color: cTier.name === 'BLACK' ? '#9E9E9E' : '#424242',
+                border: `2px solid ${dark ? 'rgba(255,255,255,.1)' : '#eee'}`,
+                background: 'none', color: dark ? '#9E9E9E' : '#424242',
                 fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700, cursor: 'pointer',
               }}>✕ Cancelar</button>
               <button onClick={async () => {
@@ -1601,13 +1619,13 @@ export default function App() {
           animation: rcClosing ? 'ppFadeOut .22s ease forwards' : 'ppFade .2s ease',
         }}>
           <div onClick={e => e.stopPropagation()} style={{
-            background: cTier.name === 'BLACK' ? '#0D0D1A' : '#fff',
+            background: dark ? '#0D0D1A' : '#fff',
             borderRadius: '24px 24px 0 0',
             width: '100%', maxWidth: 480, padding: '12px 24px 40px',
             maxHeight: '88vh', overflowY: 'auto',
             animation: rcClosing ? 'slideDownOut .22s ease-in forwards' : 'slideUp .3s cubic-bezier(.32,1.2,.64,1)',
           }}>
-            <div style={{ width: 40, height: 4, borderRadius: 4, background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.2)' : '#E0E0E0', margin: '0 auto 20px' }} />
+            <div style={{ width: 40, height: 4, borderRadius: 4, background: dark ? 'rgba(255,255,255,.2)' : '#E0E0E0', margin: '0 auto 20px' }} />
 
             <div style={{ textAlign: 'center', marginBottom: 20 }}>
               {/* Ícono SVG del premio en cuadro de color de su categoría
@@ -1619,7 +1637,7 @@ export default function App() {
               }}>
                 <RewardIcon reward={redeemConfirm.reward} />
               </div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D', marginBottom: 4 }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: dark ? '#fff' : '#0D0D0D', marginBottom: 4 }}>
                 Confirmar Canje
               </div>
               <div style={{ fontSize: 13, fontWeight: 600, color: '#9E9E9E' }}>Revisá los detalles antes de confirmar</div>
@@ -1629,7 +1647,7 @@ export default function App() {
                 servicio o bien se adquiere con el canje) */}
             {redeemConfirm.reward.description && (
               <div style={{
-                background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.05)' : '#F5F5F7',
+                background: dark ? 'rgba(255,255,255,.05)' : '#F5F5F7',
                 borderRadius: 16, padding: '14px 16px', marginBottom: 12, textAlign: 'left',
               }}>
                 <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1, color: '#9E9E9E', marginBottom: 6 }}>
@@ -1638,14 +1656,14 @@ export default function App() {
                 <div style={{
                   maxHeight: 130, overflowY: 'auto',
                   fontSize: 12.5, fontWeight: 600, lineHeight: 1.6, whiteSpace: 'pre-line',
-                  color: cTier.name === 'BLACK' ? '#CFCFCF' : '#48484A',
+                  color: dark ? '#CFCFCF' : '#48484A',
                 }}>
                   {redeemConfirm.reward.description}
                 </div>
               </div>
             )}
 
-            <div style={{ background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.05)' : '#F5F5F7', borderRadius: 16, padding: '16px 20px', marginBottom: 20 }}>
+            <div style={{ background: dark ? 'rgba(255,255,255,.05)' : '#F5F5F7', borderRadius: 16, padding: '16px 20px', marginBottom: 20 }}>
               {[
                 { l: 'Premio',          v: redeemConfirm.reward.name, bold: true },
                 { l: 'Categoría',       v: CAT_LABELS[redeemConfirm.reward.cat] || redeemConfirm.reward.cat || '—' },
@@ -1656,7 +1674,7 @@ export default function App() {
                 <div key={row.l} style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   paddingBottom: i < arr.length - 1 ? 12 : 0,
-                  borderBottom: i < arr.length - 1 ? `1px solid ${cTier.name === 'BLACK' ? 'rgba(255,255,255,.06)' : '#ECECEE'}` : 'none',
+                  borderBottom: i < arr.length - 1 ? `1px solid ${dark ? 'rgba(255,255,255,.06)' : '#ECECEE'}` : 'none',
                   marginBottom: i < arr.length - 1 ? 12 : 0,
                 }}>
                   <span style={{ fontSize: 13, color: '#9E9E9E', fontWeight: 600 }}>{row.l}</span>
@@ -1664,7 +1682,7 @@ export default function App() {
                     fontSize: row.large ? 18 : 13,
                     fontWeight: row.bold || row.large ? 800 : 700,
                     fontVariantNumeric: 'tabular-nums',
-                    color: row.red ? bento.red : row.green ? bento.green : (cTier.name === 'BLACK' ? '#fff' : '#0D0D0D'),
+                    color: row.red ? bento.red : row.green ? bento.green : (dark ? '#fff' : '#0D0D0D'),
                   }}>{row.v}</span>
                 </div>
               ))}
@@ -1673,8 +1691,8 @@ export default function App() {
             <div style={{ display: 'flex', gap: 12 }}>
               <button onClick={closeRedeemConfirm} style={{
                 flex: 1, padding: 16, borderRadius: 14, border: 'none',
-                background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.08)' : '#F5F5F7',
-                color: cTier.name === 'BLACK' ? '#ccc' : '#424242',
+                background: dark ? 'rgba(255,255,255,.08)' : '#F5F5F7',
+                color: dark ? '#ccc' : '#424242',
                 fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700, cursor: 'pointer',
               }}>Cancelar</button>
               <button onClick={() => {
@@ -1774,7 +1792,7 @@ export default function App() {
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              background: cTier.name === 'BLACK' ? '#101018' : '#fff',
+              background: dark ? '#101018' : '#fff',
               borderRadius: '28px 28px 0 0',
               width: '100%', maxWidth: 480,
               padding: '12px 24px 44px',
@@ -1782,7 +1800,7 @@ export default function App() {
             }}
           >
             {/* Handle */}
-            <div style={{ width: 40, height: 4, borderRadius: 4, background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.2)' : '#E0E0E0', margin: '0 auto 18px' }} />
+            <div style={{ width: 40, height: 4, borderRadius: 4, background: dark ? 'rgba(255,255,255,.2)' : '#E0E0E0', margin: '0 auto 18px' }} />
 
             {/* Título */}
             <div style={{ textAlign: 'center', marginBottom: 18 }}>
@@ -1792,7 +1810,7 @@ export default function App() {
               }}>
                 Nivel {cTier.name}
               </div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D' }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: dark ? '#fff' : '#0D0D0D' }}>
                 Código QR
               </div>
             </div>
@@ -1822,16 +1840,16 @@ export default function App() {
               <div style={{ marginTop: 10 }}>
                 <div style={{
                   display: 'inline-block', padding: '8px 18px', borderRadius: 10,
-                  background: cTier.name === 'BLACK' ? 'rgba(255,255,255,.08)' : '#F5F5F7',
+                  background: dark ? 'rgba(255,255,255,.08)' : '#F5F5F7',
                   ...sMono, fontSize: 13, fontWeight: 800, letterSpacing: 1.5,
-                  color: cTier.name === 'BLACK' ? '#fff' : '#0D0D0D',
+                  color: dark ? '#fff' : '#0D0D0D',
                 }}>
                   {me.cardId || '—'}
                 </div>
               </div>
             </div>
 
-            <div style={{ textAlign: 'center', marginTop: 14, fontSize: 12.5, color: cTier.name === 'BLACK' ? 'rgba(255,255,255,.5)' : '#6E6E73', fontWeight: 600 }}>
+            <div style={{ textAlign: 'center', marginTop: 14, fontSize: 12.5, color: dark ? 'rgba(255,255,255,.5)' : '#6E6E73', fontWeight: 600 }}>
               Mostrá este código en cada carga de combustible
             </div>
           </div>
@@ -1839,14 +1857,14 @@ export default function App() {
       )}
 
       {/* Toast (FORMATO GENERAL — severidad e ícono en Toast.jsx) */}
-      <Toast toast={toast} />
+      <Toast toast={toast} dark={isC && dark} />
 
       {/* ── Modal de ganador de la rifa mensual (R1b.4) ── */}
       {raffleWin && isC && me && (
         <RaffleWinnerModal
           cal={raffleWin}
           name={me.name}
-          isBlack={cTier.name === 'BLACK'}
+          isBlack={dark}
           onClose={() => {
             try { localStorage.setItem(`pp_rafwin_${raffleWin.dbId}`, '1'); } catch { /* noop */ }
             setRaffleWin(null);
@@ -1861,6 +1879,7 @@ export default function App() {
         bonus={specialBonusModal.bonus}
         memberName={specialBonusModal.memberName}
         tier={me ? cTier : null}
+        dark={dark}
         onClose={() => setSpecialBonusModal(prev => ({ ...prev, open: false }))}
       />
 

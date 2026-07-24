@@ -136,14 +136,50 @@ export const CAT_COLORS = {
 export const GAL = 'radial-gradient(ellipse at 20% 30%, #0d0d1a 0%, #050508 40%, #000 100%)';
 export const GAL3 = 'radial-gradient(ellipse at 30% 40%, #0a0a15 0%, #04040a 50%, #000 100%)';
 
-// Client theme (dynamic based on tier)
-export function clientTheme(tierName) {
-  if (tierName === 'BLACK') return {
-    pri: '#FBBC04', accent: '#FFD54F',
+// ── MODO CLARO / OSCURO (24-jul-2026) ──────────────────────
+// El modo lo elige el usuario (sol/luna en el login y en el Menú) y se
+// persiste en localStorage 'pp_mode'. Sin elección explícita, el modo
+// EFECTIVO es el histórico de cada nivel: BLACK oscuro, ORO/PLATINO
+// claro. La identidad del tier (tierBand, galaxia de la tarjeta,
+// paleta homeColors) NO cambia con el modo — solo fondos y superficies.
+
+// Fondo principal de la app cliente por nivel y modo. BLACK claro usa
+// un claro casi blanco: los cuadros gris perla del tema BLACK (#E9E9EC)
+// deben seguir leyéndose como tarjetas sobre el fondo.
+export const clientMainBg = (tierName, dark) => {
+  if (dark) return tierName === 'BLACK' ? '#040405' : '#0E0E10';
+  return tierName === 'BLACK' ? '#F7F7F9' : tierName === 'PLATINO' ? '#E8E8E8' : '#fff';
+};
+
+// Superficies neutrales por modo (tarjetas, filas, textos) — la misma
+// familia que usa el menú; para vistas que tematizan por su cuenta.
+export const modeSurfaces = (dark) => dark ? {
+  surface: 'rgba(255,255,255,.07)', inset: 'rgba(255,255,255,.06)',
+  header: '#fff', text: '#E0E0E0', sub: 'rgba(255,255,255,.55)',
+  divider: 'rgba(255,255,255,.08)',
+} : {
+  surface: '#fff', inset: '#F5F5F7',
+  header: '#0D0D0D', text: '#424242', sub: '#9E9E9E',
+  divider: '#F2F2F4',
+};
+
+// Client theme (dynamic based on tier + modo claro/oscuro). El segundo
+// parámetro es opcional para compatibilidad: sin él, BLACK es oscuro.
+export function clientTheme(tierName, dark = tierName === 'BLACK') {
+  if (dark) return {
+    pri: '#FBBC04', accent: tierName === 'PLATINO' ? '#64B5F6' : '#FFD54F',
     cardBg: 'rgba(255,255,255,.05)', cardBorder: '1px solid rgba(255,255,255,.08)',
     histBg: 'rgba(255,255,255,.03)',
-    btnBg: GAL, btnTxt: '#FFD54F',
-    mainBg: '#040405', // galaxia más oscura y menos púrpura (23-jul)
+    btnBg: tierName === 'BLACK' ? GAL : '#FBBC04',
+    btnTxt: tierName === 'BLACK' ? '#FFD54F' : '#0D0D0D',
+    mainBg: clientMainBg(tierName, true),
+  };
+  if (tierName === 'BLACK') return { // BLACK claro: perla + dorado
+    pri: '#FBBC04', accent: '#B08A2E',
+    cardBg: '#fff', cardBorder: '1px solid #E0E0E3',
+    histBg: undefined,
+    btnBg: '#0D0D0D', btnTxt: '#D8A94E',
+    mainBg: clientMainBg('BLACK', false),
   };
   if (tierName === 'PLATINO') return {
     pri: '#1565C0', accent: '#1565C0',

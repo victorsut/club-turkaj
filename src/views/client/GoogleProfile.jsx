@@ -20,7 +20,15 @@ const btnPrimary = { ...btnStyle, background: BRAND_ORANGE, color: '#fff' };
 export default function GoogleProfile(ctx) {
   const { me, setMe, setCusts, cfg, googleStep, setGoogleStep,
     regProfile, setRegProfile, authError, setAuthError, clearAuthErr,
-    setAuthScreen, fire, sbConnected, logActivity } = ctx;
+    setAuthScreen, fire, sbConnected, logActivity, dark } = ctx;
+
+  // Paleta por modo claro/oscuro (elección hecha en el login, persiste)
+  const ink     = dark ? '#fff' : '#0D0D0D';
+  const card    = dark ? 'rgba(255,255,255,.07)' : '#F5F5F7'; // tarjetas
+  const chipBg  = dark ? 'rgba(255,255,255,.1)' : '#fff';     // superficies dentro de tarjeta
+  const selBg   = dark ? '#fff' : '#0D0D0D';                  // chip seleccionado
+  const selFg   = dark ? '#0D0D0D' : '#fff';
+  const fieldFlat = { ...inputFlat, background: dark ? 'rgba(255,255,255,.08)' : '#F5F5F7', color: ink };
 
   const [vehicles, setVehicles]           = useState([]);
   const [addingVehicle, setAddingVehicle] = useState(false);
@@ -53,7 +61,7 @@ export default function GoogleProfile(ctx) {
   const vehiclePts = vehicles.length * VEHICLE_PTS;
   const totalPts   = (cfg.regBase || 15) + optFields * regOptional + vehiclePts;
 
-  const fieldProps = { regProfile, setRegProfile, clearAuthErr, regOptional };
+  const fieldProps = { regProfile, setRegProfile, clearAuthErr, regOptional, dark };
 
   const [saving, setSaving] = useState(false);
 
@@ -141,7 +149,7 @@ export default function GoogleProfile(ctx) {
   };
 
   const errBox = authError ? (
-    <div style={{ background: '#FFEBEE', color: '#C62828', padding: '10px 14px', borderRadius: 12, fontSize: 12, fontWeight: 700, marginBottom: 16, textAlign: 'center' }}>{authError}</div>
+    <div style={{ background: dark ? 'rgba(214,40,26,.18)' : '#FFEBEE', color: dark ? '#FF8A80' : '#C62828', padding: '10px 14px', borderRadius: 12, fontSize: 12, fontWeight: 700, marginBottom: 16, textAlign: 'center' }}>{authError}</div>
   ) : null;
 
   // ══ PASO 1 — Datos personales (todos obligatorios, sin bonus) ═
@@ -179,11 +187,12 @@ export default function GoogleProfile(ctx) {
             setTempDate={setTempDate}
             setShowDatePicker={setShowDatePicker}
             setRegProfile={setRegProfile}
+            dark={dark}
           />
         )}
-        <WizardHeader step="step1" onBack={() => setAuthScreen('login')} />
+        <WizardHeader step="step1" onBack={() => setAuthScreen('login')} dark={dark} />
         <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 22, fontWeight: 900, color: '#0D0D0D', marginBottom: 4 }}>Datos personales</div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: ink, marginBottom: 4 }}>Datos personales</div>
           <div style={{ fontSize: 13, color: '#9E9E9E' }}>Todos los campos son obligatorios</div>
         </div>
         {errBox}
@@ -192,6 +201,7 @@ export default function GoogleProfile(ctx) {
           <DateField
             value={regProfile.bday}
             onOpen={() => { setTempDate(regProfile.bday || '2000-01-01'); setShowDatePicker(true); }}
+            dark={dark}
           />
           <Field {...fieldProps} icon={<IdCard />} placeholder="DPI — 13 dígitos *" fieldKey="dpi" inputMode="numeric" mask={dpiMask} />
           {/* Teléfono con prefijo */}
@@ -199,10 +209,10 @@ export default function GoogleProfile(ctx) {
             <div style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: '#9E9E9E', fontWeight: 700, zIndex: 1 }}>+502</div>
             <input placeholder="Teléfono 8 dígitos *" value={phoneMask.format(regProfile.phone || '')} inputMode="numeric"
               onChange={e => { setRegProfile(p => ({ ...p, phone: phoneMask.clean(e.target.value) })); clearAuthErr(); }}
-              style={{ ...inputFlat, paddingLeft: 62 }} />
+              style={{ ...fieldFlat, paddingLeft: 62 }} />
           </div>
         </div>
-        <PtsCard total={totalPts} base={cfg.regBase || 15} optional={optFields * regOptional} vehicles={vehiclePts} />
+        <PtsCard total={totalPts} base={cfg.regBase || 15} optional={optFields * regOptional} vehicles={vehiclePts} dark={dark} />
         <button onClick={next} disabled={checkingPhone} style={{ ...btnPrimary, opacity: checkingPhone ? .7 : 1 }}>
           {checkingPhone ? 'Verificando...' : 'Siguiente'}
         </button>
@@ -224,9 +234,9 @@ export default function GoogleProfile(ctx) {
     const typeInfo = k => VEHICLE_TYPES.find(t => t.k === k) || VEHICLE_TYPES[0];
     return (
       <div style={{ padding: '24px 24px 120px' }}>
-        <WizardHeader step="step2" onBack={() => { setGoogleStep('step1'); clearAuthErr(); }} />
+        <WizardHeader step="step2" onBack={() => { setGoogleStep('step1'); clearAuthErr(); }} dark={dark} />
         <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 22, fontWeight: 900, color: '#0D0D0D', marginBottom: 4 }}>Datos adicionales</div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: ink, marginBottom: 4 }}>Datos adicionales</div>
           <div style={{ fontSize: 13, color: '#9E9E9E' }}>Todo opcional — cada dato suma <strong style={{ color: BRAND_ORANGE }}>+{regOptional} pts</strong> y cada vehículo <strong style={{ color: BRAND_ORANGE }}>+{VEHICLE_PTS} pts</strong></div>
         </div>
         {errBox}
@@ -237,7 +247,7 @@ export default function GoogleProfile(ctx) {
           <Field {...fieldProps} icon={<Receipt />} placeholder="NIT (opcional)" fieldKey="nit" bonus />
         </div>
 
-        <div style={{ fontSize: 13, fontWeight: 800, color: '#0D0D0D', marginBottom: 10 }}>Tus vehículos</div>
+        <div style={{ fontSize: 13, fontWeight: 800, color: ink, marginBottom: 10 }}>Tus vehículos</div>
 
         {/* Vehículos registrados */}
         {vehicles.length > 0 && (
@@ -245,12 +255,12 @@ export default function GoogleProfile(ctx) {
             {vehicles.map((v, i) => {
               const t = typeInfo(v.type);
               return (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#F5F5F7', borderRadius: 16, padding: '12px 14px' }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 12, background: '#0D0D0D', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: card, borderRadius: 16, padding: '12px 14px' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: selBg, color: selFg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <t.Icon size={22} />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: '#0D0D0D' }}>{t.label}</div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: ink }}>{t.label}</div>
                     <div style={{ fontSize: 12, color: '#9E9E9E', fontFamily: "'JetBrains Mono', monospace", marginTop: 2 }}>{plateMask.format(v.plate)}</div>
                   </div>
                   <div style={{ fontSize: 11, fontWeight: 800, color: BRAND_ORANGE, background: 'rgba(250,84,8,.1)', padding: '3px 8px', borderRadius: 8, marginRight: 2 }}>+{VEHICLE_PTS} pts</div>
@@ -264,27 +274,27 @@ export default function GoogleProfile(ctx) {
 
         {/* Formulario agregar */}
         {addingVehicle ? (
-          <div style={{ background: '#F5F5F7', borderRadius: 20, padding: 16, marginBottom: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#0D0D0D', marginBottom: 12 }}>Tipo de vehículo</div>
+          <div style={{ background: card, borderRadius: 20, padding: 16, marginBottom: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: ink, marginBottom: 12 }}>Tipo de vehículo</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
               {VEHICLE_TYPES.map(t => (
-                <button key={t.k} onClick={() => setNewType(t.k)} style={{ padding: '10px 8px', borderRadius: 12, border: 'none', background: newType === t.k ? '#0D0D0D' : '#fff', color: newType === t.k ? '#fff' : '#757575', cursor: 'pointer', fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <button key={t.k} onClick={() => setNewType(t.k)} style={{ padding: '10px 8px', borderRadius: 12, border: 'none', background: newType === t.k ? selBg : chipBg, color: newType === t.k ? selFg : (dark ? '#C9C9CE' : '#757575'), cursor: 'pointer', fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                   <t.Icon size={18} />{t.label}
                 </button>
               ))}
             </div>
             <input placeholder="Placa (ej: P 123 ABC)" value={plateMask.format(newPlate)} autoCapitalize="characters"
               onChange={e => { setNewPlate(plateMask.clean(e.target.value)); clearAuthErr(); }}
-              style={{ ...inputFlat, marginBottom: 12, background: '#fff', fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, letterSpacing: 2 }} />
+              style={{ ...inputFlat, marginBottom: 12, background: chipBg, color: ink, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, letterSpacing: 2 }} />
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={() => { setAddingVehicle(false); setNewPlate(''); clearAuthErr(); }}
-                style={{ flex: 1, padding: 12, borderRadius: 12, border: 'none', background: '#fff', color: '#9E9E9E', fontFamily: "'DM Sans'", fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>Cancelar</button>
+                style={{ flex: 1, padding: 12, borderRadius: 12, border: 'none', background: chipBg, color: '#9E9E9E', fontFamily: "'DM Sans'", fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>Cancelar</button>
               <button onClick={addVehicle}
                 style={{ flex: 2, padding: 12, borderRadius: 12, border: 'none', background: BRAND_ORANGE, color: '#fff', fontFamily: "'DM Sans'", fontWeight: 800, cursor: 'pointer', fontSize: 13 }}>Agregar</button>
             </div>
           </div>
         ) : (
-          <button onClick={() => setAddingVehicle(true)} style={{ width: '100%', padding: 14, borderRadius: 16, border: '1.5px solid #ECECEE', background: '#fff', color: '#0D0D0D', fontFamily: "'DM Sans'", fontWeight: 800, fontSize: 14, cursor: 'pointer', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <button onClick={() => setAddingVehicle(true)} style={{ width: '100%', padding: 14, borderRadius: 16, border: `1.5px solid ${dark ? 'rgba(255,255,255,.14)' : '#ECECEE'}`, background: dark ? 'rgba(255,255,255,.07)' : '#fff', color: ink, fontFamily: "'DM Sans'", fontWeight: 800, fontSize: 14, cursor: 'pointer', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
             <span style={{ color: BRAND_ORANGE, display: 'flex' }}><Plus /></span>
             Agregar vehículo {vehicles.length > 0 && `(${vehicles.length} registrado${vehicles.length > 1 ? 's' : ''})`}
           </button>
@@ -294,7 +304,7 @@ export default function GoogleProfile(ctx) {
           <div style={{ textAlign: 'center', fontSize: 12, color: '#9E9E9E', marginBottom: 16 }}>Podés registrar tus vehículos más adelante si preferís.</div>
         )}
 
-        <PtsCard total={totalPts} base={cfg.regBase || 15} optional={optFields * regOptional} vehicles={vehiclePts} />
+        <PtsCard total={totalPts} base={cfg.regBase || 15} optional={optFields * regOptional} vehicles={vehiclePts} dark={dark} />
         <button onClick={() => { clearAuthErr(); setGoogleStep('step3'); }} style={btnPrimary}>
           Siguiente
         </button>
@@ -306,9 +316,9 @@ export default function GoogleProfile(ctx) {
   if (googleStep === 'step3') {
     return (
       <div style={{ padding: '24px 24px 120px' }}>
-        <WizardHeader step="step3" onBack={() => { setGoogleStep('step2'); clearAuthErr(); }} />
+        <WizardHeader step="step3" onBack={() => { setGoogleStep('step2'); clearAuthErr(); }} dark={dark} />
         <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 22, fontWeight: 900, color: '#0D0D0D', marginBottom: 4 }}>Crear contraseña</div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: ink, marginBottom: 4 }}>Crear contraseña</div>
           <div style={{ fontSize: 13, color: '#9E9E9E' }}>Usarás esta contraseña para acceder a tu cuenta</div>
         </div>
         {errBox}
@@ -320,7 +330,7 @@ export default function GoogleProfile(ctx) {
             <div style={{ position: 'relative' }}>
               <input type={showPass ? 'text' : 'password'} placeholder="Mínimo 6 caracteres" value={password}
                 onChange={e => { setPassword(e.target.value); clearAuthErr(); }}
-                style={{ ...inputFlat, paddingRight: 50 }} />
+                style={{ ...fieldFlat, paddingRight: 50 }} />
               <button type="button" onClick={() => setShowPass(p => !p)} aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                 style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9E9E9E', display: 'flex', padding: 2 }}>
                 {showPass ? <EyeOff /> : <Eye />}
@@ -334,7 +344,7 @@ export default function GoogleProfile(ctx) {
             <div style={{ position: 'relative' }}>
               <input type={showPassConfirm ? 'text' : 'password'} placeholder="Repetí tu contraseña" value={passConfirm}
                 onChange={e => { setPassConfirm(e.target.value); clearAuthErr(); }}
-                style={{ ...inputFlat, paddingRight: 50,
+                style={{ ...fieldFlat, paddingRight: 50,
                   borderColor: passConfirm && passConfirm !== password ? '#EF5350' : passConfirm && passConfirm === password ? BRAND_ORANGE : 'transparent' }} />
               <button type="button" onClick={() => setShowPassConfirm(p => !p)} aria-label={showPassConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                 style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9E9E9E', display: 'flex', padding: 2 }}>
@@ -355,7 +365,7 @@ export default function GoogleProfile(ctx) {
           <div style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
               {[1,2,3,4].map(i => (
-                <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: password.length >= i * 2 + 2 ? (password.length >= 10 ? '#0D0D0D' : BRAND_ORANGE) : '#ECECEE', transition: 'background .2s' }} />
+                <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: password.length >= i * 2 + 2 ? (password.length >= 10 ? (dark ? '#fff' : '#0D0D0D') : BRAND_ORANGE) : (dark ? 'rgba(255,255,255,.14)' : '#ECECEE'), transition: 'background .2s' }} />
               ))}
             </div>
             <div style={{ fontSize: 11, color: '#9E9E9E' }}>
@@ -364,8 +374,8 @@ export default function GoogleProfile(ctx) {
           </div>
         )}
 
-        <PtsCard total={totalPts} base={cfg.regBase || 15} optional={optFields * regOptional} vehicles={vehiclePts} />
-        <button onClick={doFinish} disabled={saving} style={{ ...btnPrimary, background: saving ? '#E0E0E0' : BRAND_ORANGE, color: saving ? '#9E9E9E' : '#fff', opacity: saving ? .8 : 1 }}>
+        <PtsCard total={totalPts} base={cfg.regBase || 15} optional={optFields * regOptional} vehicles={vehiclePts} dark={dark} />
+        <button onClick={doFinish} disabled={saving} style={{ ...btnPrimary, background: saving ? (dark ? 'rgba(255,255,255,.15)' : '#E0E0E0') : BRAND_ORANGE, color: saving ? '#9E9E9E' : '#fff', opacity: saving ? .8 : 1 }}>
           {saving ? 'Guardando...' : 'Finalizar registro (' + totalPts + ' pts)'}
         </button>
       </div>

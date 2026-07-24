@@ -24,10 +24,10 @@ const CHIPS = [
 ];
 
 export default function ClientPromos(ctx) {
-  const { cTier, activePromos, setCScr, setNavOrigin } = ctx;
+  const { cTier, activePromos, setCScr, setNavOrigin, dark } = ctx;
   const isBlack = cTier.name === 'BLACK';
-  const headerTxt = isBlack ? '#fff' : '#0D0D0D';
-  const subTxt = isBlack ? 'rgba(255,255,255,.55)' : '#6E6E73';
+  const headerTxt = dark ? '#fff' : '#0D0D0D';
+  const subTxt = dark ? 'rgba(255,255,255,.55)' : '#6E6E73';
 
   const [chip, setChip] = useState('todas');
   // Sin categoría → solo en "Todas" (promos anteriores a R1b.2).
@@ -36,7 +36,7 @@ export default function ClientPromos(ctx) {
     : activePromos.filter(p => p.category === chip);
 
   return (
-    <div style={{ minHeight: '100vh', background: isBlack ? 'transparent' : bento.pageBg, paddingBottom: 100 }}>
+    <div style={{ minHeight: '100vh', background: dark ? 'transparent' : isBlack ? '#F7F7F9' : bento.pageBg, paddingBottom: 100 }}>
       {/* Header: flecha suelta + título centrado (FORMATO GENERAL) */}
       <div style={{ display: 'flex', alignItems: 'center', padding: '18px 16px 10px' }}>
         <button onClick={() => setCScr('home')} aria-label="Volver" style={{
@@ -60,8 +60,8 @@ export default function ClientPromos(ctx) {
             <button key={c.v} onClick={() => setChip(c.v)} style={{
               flex: '1 1 0', minWidth: 0, padding: '10px 2px', borderRadius: 12,
               border: 'none', cursor: 'pointer', textAlign: 'center',
-              background: on ? BRAND_RED : (isBlack ? 'rgba(255,255,255,.08)' : '#fff'),
-              color: on ? '#fff' : (isBlack ? 'rgba(255,255,255,.75)' : '#3A3A3C'),
+              background: on ? BRAND_RED : (dark ? 'rgba(255,255,255,.08)' : '#fff'),
+              color: on ? '#fff' : (dark ? 'rgba(255,255,255,.75)' : '#3A3A3C'),
               fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
               transition: 'background .2s, color .2s',
             }}>
@@ -99,7 +99,7 @@ export default function ClientPromos(ctx) {
           style={{
             animationDelay: `${visible.length * 60}ms`,
             display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer',
-            background: isBlack ? 'rgba(255,255,255,.06)' : '#fff', borderRadius: 20,
+            background: dark ? 'rgba(255,255,255,.06)' : '#fff', borderRadius: 20,
             padding: '16px 16px', marginTop: 4,
           }}
         >
@@ -119,7 +119,7 @@ export default function ClientPromos(ctx) {
           </div>
           <div style={{
             width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
-            background: isBlack ? '#fff' : '#0D0D0D', color: isBlack ? '#0D0D0D' : '#fff',
+            background: dark ? '#fff' : '#0D0D0D', color: dark ? '#0D0D0D' : '#fff',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <Chev />

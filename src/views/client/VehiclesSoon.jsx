@@ -9,10 +9,9 @@ import { VEHICLE_TYPES } from '../../components/ui/VehicleIcons';
 import { plateMask } from '../../lib/inputMasks';
 
 export default function VehiclesSoon(ctx) {
-  const { cTier, setCScr, me } = ctx;
-  const isBlack = cTier.name === 'BLACK';
-  const header = isBlack ? '#fff' : '#0D0D0D';
-  const sub = isBlack ? 'rgba(255,255,255,.5)' : '#9E9E9E';
+  const { cTier, setCScr, me, dark } = ctx;
+  const header = dark ? '#fff' : '#0D0D0D';
+  const sub = dark ? 'rgba(255,255,255,.5)' : '#9E9E9E';
 
   const vehicles = Array.isArray(me?.vehicles) ? me.vehicles : [];
   const typeInfo = k => VEHICLE_TYPES.find(t => t.k === k) || VEHICLE_TYPES[0];
@@ -51,8 +50,8 @@ export default function VehiclesSoon(ctx) {
             {vehicles.map((v, i) => {
               const t = typeInfo(v.type);
               return (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: isBlack ? 'rgba(255,255,255,.08)' : '#F5F5F7', borderRadius: 16, padding: '12px 14px' }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 12, background: isBlack ? 'rgba(255,255,255,.12)' : '#0D0D0D', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: dark ? 'rgba(255,255,255,.08)' : '#F5F5F7', borderRadius: 16, padding: '12px 14px' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: dark ? 'rgba(255,255,255,.12)' : '#0D0D0D', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <t.Icon size={22} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -68,7 +67,7 @@ export default function VehiclesSoon(ctx) {
 
       <button onClick={() => setCScr('home')} style={{
         marginTop: 28, padding: '12px 28px', borderRadius: 14, border: 'none',
-        background: isBlack ? 'rgba(255,255,255,.1)' : '#0D0D0D', color: '#fff',
+        background: dark ? 'rgba(255,255,255,.1)' : '#0D0D0D', color: '#fff',
         fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 800, cursor: 'pointer',
       }}>
         Volver al inicio

@@ -142,6 +142,7 @@ export default function MenuAccount({ ctx, TH, onBack }) {
           setTempDate={setTempDate}
           setShowDatePicker={setShowBdayPicker}
           setRegProfile={(up) => { const r = up({}); if (r.bday) setForm(p => ({ ...p, bday: r.bday })); }}
+          dark={TH.isDark}
         />
       )}
       <SectionHeader title="Mi Cuenta" sub="Edita tus datos personales" onBack={onBack} TH={TH} />

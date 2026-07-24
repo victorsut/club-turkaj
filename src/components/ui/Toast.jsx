@@ -38,7 +38,7 @@ const SEV = {
   info:    { color: '#48484A',   Icon: Info },
 };
 
-export default function Toast({ toast }) {
+export default function Toast({ toast, dark = false }) {
   if (!toast) return null;
   const msg = typeof toast === 'string' ? toast : toast.msg;
   const explicit = typeof toast === 'object' ? toast.type : null;
@@ -47,7 +47,11 @@ export default function Toast({ toast }) {
   return (
     <div style={{
       position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)',
-      background: '#0D0D0D', color: '#fff', padding: '10px 18px 10px 10px',
+      // En modo oscuro la píldora negra se perdería sobre el fondo —
+      // sube un tono y gana un filo sutil.
+      background: dark ? '#2A2A30' : '#0D0D0D', color: '#fff',
+      border: dark ? '1px solid rgba(255,255,255,.12)' : 'none',
+      padding: '10px 18px 10px 10px',
       borderRadius: 16, zIndex: 300, maxWidth: '90%',
       animation: 'fadeUp .3s', display: 'flex', alignItems: 'center', gap: 10,
       fontFamily: "'DM Sans'", fontSize: 13.5, fontWeight: 700, lineHeight: 1.35,

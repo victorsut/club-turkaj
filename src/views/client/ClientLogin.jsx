@@ -10,14 +10,18 @@ import { GoogleLogo, Phone, Lock, Mail, Chev } from '../../components/ui/Icons';
 import { phoneMask } from '../../lib/inputMasks';
 import Wordmark from '../../components/ui/Wordmark';
 import LegalFooter from '../../components/ui/LegalFooter';
+import ModeToggle from '../../components/ui/ModeToggle';
 import useBackLayer from '../../hooks/useBackLayer';
 
 export default function ClientLogin(ctx) {
   const { loginPhone, setLoginPhone, loginPass, setLoginPass, authError, setAuthError,
-    clearAuthErr, setAuthScreen, setMe, setRegProfile, setGoogleStep, custs, fire, cTier } = ctx;
+    clearAuthErr, setAuthScreen, setMe, setRegProfile, setGoogleStep, custs, fire,
+    dark, setUiMode } = ctx;
 
-  const isDark = cTier?.name === 'BLACK';
-  const ink = isDark ? '#fff' : '#0D0D0D';
+  const ink = dark ? '#fff' : '#0D0D0D';
+  const sub = dark ? 'rgba(255,255,255,.55)' : '#9E9E9E';
+  // Campos rellenos: versión oscura del inputFlat (#F5F5F7 en claro)
+  const field = { ...inputFlat, background: dark ? 'rgba(255,255,255,.08)' : '#F5F5F7', color: ink };
 
   // "¿Olvidaste tu contraseña?" aparece unos segundos después de
   // escribir el teléfono completo (8 dígitos).
@@ -84,20 +88,24 @@ export default function ClientLogin(ctx) {
 
   return (
     <div style={{ padding: '48px 24px 120px', position: 'relative', zIndex: 1 }}>
-      {/* Header — como el saludo del home: logo arriba, tipografía grande a la izquierda */}
+      {/* Header — como el saludo del home: logo arriba, tipografía grande a la
+          izquierda; sol/luna arriba a la derecha (modo claro/oscuro). */}
       <div style={{ marginBottom: 36 }}>
-        <img src="/logo.png" alt="Puntos Plus" style={{ width: 64, height: 64, borderRadius: 16, display: 'block', marginBottom: 20 }} />
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
+          <img src="/logo.png" alt="Puntos Plus" style={{ width: 64, height: 64, borderRadius: 16, display: 'block' }} />
+          <ModeToggle dark={dark} setUiMode={setUiMode} />
+        </div>
         <div style={{ fontSize: 24, fontWeight: 900, color: ink, lineHeight: 1.15 }}>Bienvenido a</div>
         <div style={{ lineHeight: 1.1, marginBottom: 10 }}>
           <Wordmark size={38} color={ink} accent={BRAND_ORANGE} />
         </div>
-        <div style={{ fontSize: 14, color: '#9E9E9E' }}>Inicia sesión para continuar</div>
+        <div style={{ fontSize: 14, color: sub }}>Inicia sesión para continuar</div>
       </div>
 
       {/* Error */}
       {authError && (
         <div style={{
-          background: '#FFEBEE', color: '#C62828', padding: '10px 14px',
+          background: dark ? 'rgba(214,40,26,.18)' : '#FFEBEE', color: dark ? '#FF8A80' : '#C62828', padding: '10px 14px',
           borderRadius: 12, fontSize: 12, fontWeight: 700, marginBottom: 16, textAlign: 'center',
         }}>
           {authError}
@@ -109,12 +117,12 @@ export default function ClientLogin(ctx) {
         <div style={{ position: 'relative' }}>
           <div style={iconBox}><Phone /></div>
           <input placeholder="Número de teléfono" value={phoneMask.format(loginPhone || '')} inputMode="numeric"
-            onChange={e => { setLoginPhone(phoneMask.clean(e.target.value)); clearAuthErr(); }} style={{ ...inputFlat, paddingLeft: 44 }} />
+            onChange={e => { setLoginPhone(phoneMask.clean(e.target.value)); clearAuthErr(); }} style={{ ...field, paddingLeft: 44 }} />
         </div>
         <div style={{ position: 'relative' }}>
           <div style={iconBox}><Lock /></div>
           <input placeholder="Contraseña" type="password" value={loginPass}
-            onChange={e => { setLoginPass(e.target.value); clearAuthErr(); }} style={{ ...inputFlat, paddingLeft: 44 }} />
+            onChange={e => { setLoginPass(e.target.value); clearAuthErr(); }} style={{ ...field, paddingLeft: 44 }} />
         </div>
         {showForgot && (
           <button onClick={() => setFpSheet(true)}
@@ -129,14 +137,17 @@ export default function ClientLogin(ctx) {
 
       {/* Divider */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0' }}>
-        <div style={{ flex: 1, height: 1, background: isDark ? 'rgba(255,255,255,.12)' : '#F0F0F0' }} />
-        <span style={{ fontSize: 12, color: '#9E9E9E', fontWeight: 600 }}>o continuar con</span>
-        <div style={{ flex: 1, height: 1, background: isDark ? 'rgba(255,255,255,.12)' : '#F0F0F0' }} />
+        <div style={{ flex: 1, height: 1, background: dark ? 'rgba(255,255,255,.12)' : '#F0F0F0' }} />
+        <span style={{ fontSize: 12, color: sub, fontWeight: 600 }}>o continuar con</span>
+        <div style={{ flex: 1, height: 1, background: dark ? 'rgba(255,255,255,.12)' : '#F0F0F0' }} />
       </div>
 
       {/* OAuth */}
       <button onClick={doGoogle} style={{
-        ...btnStyle, background: '#fff', border: '1.5px solid #ECECEE', color: '#333',
+        ...btnStyle,
+        background: dark ? 'rgba(255,255,255,.08)' : '#fff',
+        border: dark ? '1.5px solid rgba(255,255,255,.14)' : '1.5px solid #ECECEE',
+        color: dark ? '#fff' : '#333',
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 24,
       }}>
         <GoogleLogo /> Continuar con Google
@@ -144,7 +155,7 @@ export default function ClientLogin(ctx) {
 
       {/* Registro — link de texto, directo al wizard */}
       <div style={{ textAlign: 'center' }}>
-        <span style={{ fontSize: 13, color: '#9E9E9E' }}>¿No tienes cuenta? </span>
+        <span style={{ fontSize: 13, color: sub }}>¿No tienes cuenta? </span>
         <button onClick={startRegister}
           style={{ background: 'none', border: 'none', color: BRAND_ORANGE, fontWeight: 800, fontSize: 13, cursor: 'pointer', fontFamily: "'DM Sans'", padding: 0 }}>
           Regístrate
@@ -159,21 +170,21 @@ export default function ClientLogin(ctx) {
         <div onClick={closeFpSheet}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 500, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', animation: fpClosing ? 'ppFadeOut .2s ease forwards' : 'fadeIn .2s ease' }}>
           <div onClick={e => e.stopPropagation()}
-            style={{ background: '#fff', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 480, padding: '24px 20px 36px', animation: fpClosing ? 'slideDownOut .22s ease forwards' : 'slideUp .25s ease' }}>
-            <div style={{ fontSize: 18, fontWeight: 900, color: '#0D0D0D', marginBottom: 4 }}>Recuperar contraseña</div>
-            <div style={{ fontSize: 13, color: '#9E9E9E', marginBottom: 18 }}>Elige cómo quieres recuperar el acceso a tu cuenta</div>
+            style={{ background: dark ? '#16161A' : '#fff', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 480, padding: '24px 20px 36px', animation: fpClosing ? 'slideDownOut .22s ease forwards' : 'slideUp .25s ease' }}>
+            <div style={{ fontSize: 18, fontWeight: 900, color: ink, marginBottom: 4 }}>Recuperar contraseña</div>
+            <div style={{ fontSize: 13, color: sub, marginBottom: 18 }}>Elige cómo quieres recuperar el acceso a tu cuenta</div>
             {[
-              { k: 'sms',   icon: <Phone />, bg: BRAND_ORANGE, title: 'Mensaje al teléfono', desc: 'Te enviaremos un código por SMS' },
-              { k: 'email', icon: <Mail />,  bg: '#0D0D0D',    title: 'Correo electrónico',  desc: 'Recibirás un enlace de recuperación' },
+              { k: 'sms',   icon: <Phone />, bg: BRAND_ORANGE, fg: '#fff', title: 'Mensaje al teléfono', desc: 'Te enviaremos un código por SMS' },
+              { k: 'email', icon: <Mail />,  bg: dark ? '#fff' : '#0D0D0D', fg: dark ? '#0D0D0D' : '#fff', title: 'Correo electrónico', desc: 'Recibirás un enlace de recuperación' },
             ].map(o => (
               <button key={o.k} onClick={() => pickRecovery(o.k)}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, background: '#F5F5F7', border: 'none', borderRadius: 16, padding: '14px 16px', marginBottom: 10, cursor: 'pointer', fontFamily: "'DM Sans'", textAlign: 'left' }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: o.bg, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{o.icon}</div>
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, background: dark ? 'rgba(255,255,255,.07)' : '#F5F5F7', border: 'none', borderRadius: 16, padding: '14px 16px', marginBottom: 10, cursor: 'pointer', fontFamily: "'DM Sans'", textAlign: 'left' }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: o.bg, color: o.fg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{o.icon}</div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: '#0D0D0D' }}>{o.title}</div>
-                  <div style={{ fontSize: 12, color: '#9E9E9E', marginTop: 2 }}>{o.desc}</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: ink }}>{o.title}</div>
+                  <div style={{ fontSize: 12, color: sub, marginTop: 2 }}>{o.desc}</div>
                 </div>
-                <span style={{ color: '#BDBDBD', display: 'flex' }}><Chev /></span>
+                <span style={{ color: dark ? 'rgba(255,255,255,.4)' : '#BDBDBD', display: 'flex' }}><Chev /></span>
               </button>
             ))}
           </div>
