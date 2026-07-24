@@ -110,9 +110,26 @@ body {
    al 200% baja -50% y los dos campos idénticos hacen el loop invisible */
 @keyframes ppStarScroll { from { transform: translateY(0); } to { transform: translateY(-50%); } }
 .pp-star-scroll { animation: ppStarScroll 160s linear infinite; will-change: transform; }
-/* Confetti festivo (modal de bonus): piezas que flotan suavemente */
-@keyframes ppConfetti { from { transform: translateY(-3px) rotate(-8deg); } to { transform: translateY(5px) rotate(18deg); } }
-.pp-confetti { position: absolute; animation: ppConfetti 1.8s ease-in-out infinite alternate; }
+/* Confetti festivo (modal de bonus): papelitos que CAEN atravesando la
+   banda — el span exterior cae y se mece a los lados (ppConfettiFall) y
+   el <i> interior voltea en 3D como papel (ppConfettiFlip). Los delays
+   NEGATIVOS dejan la lluvia ya en curso al abrir el modal, y como los
+   extremos del recorrido quedan fuera de la banda (overflow hidden), el
+   reinicio del loop nunca se ve. Con reduced motion las piezas quedan
+   quietas en su left/top disperso (el look estático original). */
+@keyframes ppConfettiFall {
+  0%   { transform: translate3d(0, -120px, 0); }
+  25%  { transform: translate3d(9px, -60px, 0); }
+  50%  { transform: translate3d(-7px, 0, 0); }
+  75%  { transform: translate3d(8px, 60px, 0); }
+  100% { transform: translate3d(0, 120px, 0); }
+}
+@keyframes ppConfettiFlip {
+  from { transform: rotate3d(1, .5, .3, 0turn); }
+  to   { transform: rotate3d(1, .5, .3, 1turn); }
+}
+.pp-confetti { position: absolute; animation: ppConfettiFall 3.4s ease-in-out infinite; will-change: transform; }
+.pp-confetti i { display: block; animation: ppConfettiFlip 1.3s linear infinite; }
 
 .pp-tile {
   animation: ppTileIn .4s cubic-bezier(.34, 1.3, .64, 1) backwards;
@@ -139,7 +156,7 @@ body {
   .pp-tint-in { animation-duration: .1s; }
   .pp-tile:active { transform: none; }
   .pp-bar-fill { animation: none; }
-  .pp-confetti { animation: none; }
+  .pp-confetti, .pp-confetti i { animation: none; }
   .pp-star-scroll { animation: none; }
 }
 
