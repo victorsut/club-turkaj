@@ -110,6 +110,16 @@ export const homeColors = (tier) => {
   };
 };
 
+// Identidad visual por nivel — acento de iconos y banda de encabezado
+// (modal de nivel del home, menú y tarjetas de beneficios). Central
+// aquí para que también las vistas admin (Rules/MemberDetail) la usen.
+export const tierAccent = (tier) =>
+  tier === 'BLACK' ? '#FBBC04' : tier === 'PLATINO' ? '#6B767D' : bento.gold;
+
+export const tierBand = (tier) =>
+  tier === 'BLACK' ? 'radial-gradient(ellipse at 20% 30%, #0d0d1a 0%, #050508 40%, #000 100%)'
+    : tier === 'PLATINO' ? '#9EA7AD' : bento.gold;
+
 // Color sólido por categoría de premio (FORMATO GENERAL — flat, para
 // el cuadro del ícono en catálogo y confirmación de canje)
 export const CAT_COLORS = {

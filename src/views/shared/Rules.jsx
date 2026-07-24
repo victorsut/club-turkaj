@@ -1,84 +1,69 @@
 // src/views/shared/Rules.jsx
-import TierCard from '../../components/ui/TierCard';
+// Reglas del Programa — hoy solo se llega desde el panel admin
+// (Ajustes → "Ver Reglas"); el cliente ve esta información en el Menú
+// (Niveles/Inactividad). Tema oscuro del admin y tarjetas de nivel del
+// FORMATO GENERAL (TierBenefitsCard: banda por tier + iconos SVG, sin
+// emojis ni "invitar amigo").
+import { adminTheme as AT, bento, BRAND_ORANGE } from '../../constants/styles';
+import TierBenefitsCard from '../../components/ui/TierBenefitsCard';
 import { makeTier } from '../../lib/tierSystem';
-import { sMono } from '../../constants/styles';
+import { Back, Warn } from '../../components/ui/Icons';
 
 export default function Rules(ctx) {
-  const { cfg, cTier, me } = ctx;
-  const memberGal = me?.gallons || 0;
-  const tiers = [0, 150, 500].map(g => makeTier(g, cfg));
+  const { cfg, cTier, me, setScr } = ctx;
+  const ptGal = cfg.tiers?.platino?.gal ?? 150;
+  const bkGal = cfg.tiers?.black?.gal ?? 500;
+  const tiers = [0, ptGal, bkGal].map(g => makeTier(g, cfg));
 
-  const tier      = cTier?.name || 'ORO';
-  const isDark    = tier === 'BLACK';
-  const isPlatino = tier === 'PLATINO';
-
-  const TH = {
-    bg:      isDark ? '#06060C' : isPlatino ? '#E8E8E8' : '#fff',
-    header:  isDark ? '#fff' : '#0D0D0D',
-    text:    isDark ? '#E0E0E0' : '#424242',
-    sub:     isDark ? '#aaa' : '#616161',
-    accent:  isDark ? '#FFD54F' : isPlatino ? '#1565C0' : '#FBBC04',
-    warnTxt: isDark ? '#EF5350' : '#C62828',
-    warnHdr: isDark ? '#FFB74D' : '#E65100',
-    warnBg:  isDark ? 'rgba(255,255,255,.05)' : isPlatino ? 'rgba(21,101,192,.08)' : '#FFF3E0',
-    border:  isDark ? 'rgba(255,255,255,.08)' : isPlatino ? '#BDBDBD' : '#eee',
-  };
+  const secHdr = { display: 'flex', alignItems: 'center', gap: 8, padding: '18px 20px 12px', fontSize: 13, fontWeight: 800, color: '#E0E0E0', textTransform: 'uppercase', letterSpacing: 1.5 };
 
   return (
-    <div style={{ paddingBottom: 90, minHeight: '100vh', background: TH.bg }}>
-      <div style={{ padding: '16px 20px 8px', fontSize: 20, fontWeight: 800, color: TH.header }}>
-        📋 Reglas del Programa
+    <div style={{ paddingBottom: 90, minHeight: '100vh', background: AT.bg }}>
+      {/* Header (mismo patrón de MemberDetail) */}
+      <div style={{ padding: '14px 20px', borderBottom: `1px solid ${AT.border}`, background: '#252525', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <button onClick={() => setScr('cfg')} style={{ background: 'none', border: 'none', color: '#9E9E9E', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 600 }}><Back /> Ajustes</button>
+        <div style={{ fontSize: 17, fontWeight: 700, color: '#fff' }}>Reglas del Programa</div>
+        <div style={{ width: 80 }} />
       </div>
 
-      {/* Tarjetas de nivel */}
-      {tiers.map((t, i) => {
-        const isCurrentTier = me && cTier?.name === t.name;
-        const galForCard    = isCurrentTier ? memberGal : [0, 150, 500][i];
-        return (
-          <div key={t.name} style={{ position: 'relative' }}>
-            {isCurrentTier && (
-              <div style={{
-                position: 'absolute', top: 6, right: 26, zIndex: 10,
-                background: t.name === 'BLACK' ? 'rgba(255,215,79,.9)'
-                  : t.name === 'PLATINO' ? '#1565C0' : 'rgba(0,0,0,.75)',
-                color: t.name === 'BLACK' ? '#000' : '#fff',
-                fontSize: 10, fontWeight: 800, padding: '4px 10px', borderRadius: 8, letterSpacing: .5,
-              }}>
-                📍 TU NIVEL · {memberGal.toFixed(0)} gal
-              </div>
-            )}
-            <TierCard t={t} gal={galForCard} small cfg={cfg} />
-          </div>
-        );
-      })}
+      {/* Niveles y beneficios */}
+      <div style={{ padding: '16px 20px 0', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {tiers.map(t => (
+          <TierBenefitsCard
+            key={t.name} t={t} cfg={cfg}
+            surface={AT.card} ink={AT.txt}
+            pill={me && cTier?.name === t.name ? `Tu nivel · ${(me.gallons || 0).toFixed(0)} gal` : null}
+          />
+        ))}
+      </div>
 
       {/* Reglas de inactividad */}
-      <div style={{ padding: '16px 20px' }}>
-        <div style={{ fontSize: 14, fontWeight: 800, color: TH.warnTxt, marginBottom: 12 }}>
-          ⚠️ Reglas de Inactividad
-        </div>
+      <div style={secHdr}>
+        <span style={{ color: bento.amber, display: 'flex' }}><Warn /></span>
+        Reglas de Inactividad
+      </div>
+      <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         {(cfg.degrad || []).map((d, i) => (
-          <div key={i} style={{ marginBottom: 12, background: TH.warnBg, borderRadius: 14, padding: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 6, color: TH.warnHdr }}>{d.tier}</div>
+          <div key={i} style={{ background: AT.card, borderRadius: 16, padding: '14px 16px' }}>
+            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: bento.amber }}>{d.tier}</div>
             {d.rules.map((r, j) => (
-              <div key={j} style={{ fontSize: 12, color: TH.sub, marginBottom: 4 }}>
-                • {r.days} días → {r.effect}
+              <div key={j} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 6 }}>
+                <div style={{ width: 20, height: 20, borderRadius: '50%', background: bento.amber, color: '#fff', fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>{j + 1}</div>
+                <div style={{ fontSize: 12.5, color: AT.txt, lineHeight: 1.5 }}><strong>{r.days} días</strong> sin actividad → {r.effect}</div>
               </div>
             ))}
           </div>
         ))}
       </div>
 
-      {/* Términos de uso */}
-      <div style={{ padding: '0 20px 16px' }}>
-        <div style={{ fontSize: 14, fontWeight: 800, color: TH.header, marginBottom: 10 }}>
-          📜 Términos de Uso
-        </div>
+      {/* Términos de uso (numeración naranja — patrón del menú) */}
+      <div style={secHdr}>Términos de Uso</div>
+      <div style={{ margin: '0 20px', background: AT.card, borderRadius: 16, padding: '14px 16px' }}>
         {(cfg.termsUse || []).map((t, i) => (
-          <div key={i} style={{
-            fontSize: 12, color: TH.sub, marginBottom: 6,
-            paddingLeft: 12, borderLeft: `2px solid ${TH.accent}`,
-          }}>{t}</div>
+          <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
+            <span style={{ fontSize: 12, fontWeight: 800, color: BRAND_ORANGE, flexShrink: 0, width: 18 }}>{i + 1}.</span>
+            <span style={{ fontSize: 12.5, color: AT.txt, lineHeight: 1.6 }}>{t}</span>
+          </div>
         ))}
       </div>
     </div>

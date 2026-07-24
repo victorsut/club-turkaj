@@ -20,14 +20,9 @@ export const menuTheme = (tier) => {
   };
 };
 
-// Acento por identidad de nivel (mismos valores que el modal del home)
-export const tierAccent = (tier) =>
-  tier === 'BLACK' ? '#FBBC04' : tier === 'PLATINO' ? '#6B767D' : bento.gold;
-
-// Fondo con la identidad del tier (banda de Niveles y header del menú)
-export const tierBand = (tier) =>
-  tier === 'BLACK' ? 'radial-gradient(ellipse at 20% 30%, #0d0d1a 0%, #050508 40%, #000 100%)'
-    : tier === 'PLATINO' ? '#9EA7AD' : bento.gold;
+// Acento y banda por identidad de nivel: ahora viven en styles.js (los
+// comparten Rules/MemberDetail del admin) — re-export para los usos del menú.
+export { tierAccent, tierBand } from '../../../constants/styles';
 
 // Encabezado de sección: flecha suelta + título centrado (patrón Promociones)
 export function SectionHeader({ title, sub, onBack, TH }) {

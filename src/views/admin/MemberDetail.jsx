@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { sMono, adminTheme as AT, btnYellow, btnDark, inputStyle } from '../../constants/styles';
 import Badge from '../../components/ui/Badge';
-import TierCard from '../../components/ui/TierCard';
+import TierBenefitsCard from '../../components/ui/TierBenefitsCard';
 import InactivityWarning from '../../components/ui/InactivityWarning';
 import { Back } from '../../components/ui/Icons';
 import ReasonModal from '../../components/ui/ReasonModal';
@@ -234,7 +234,7 @@ export default function MemberDetail(ctx) {
     const { edited: ed, memberId } = pendingChanges;
     // Normalizar campos numericos: los inputs type="number" devuelven
     // strings ("45.5"), y al hacer spread pisarian points/gallons con
-    // strings, rompiendo componentes que usan .toFixed() (TierCard, etc).
+    // strings, rompiendo componentes que usan .toFixed() (tarjeta de nivel, etc).
     const edN = { ...ed, points: +ed.points || 0, gallons: +ed.gallons || 0 };
     setCusts(prev => prev.map(m => m.id === memberId ? { ...m, ...edN } : m));
     setFreshMember(prev => (prev && prev.id === memberId ? { ...prev, ...edN } : prev));
@@ -343,8 +343,12 @@ export default function MemberDetail(ctx) {
         <button onClick={() => setEditMember({ ...c })} style={{ ...btnDark, flex: 1, padding: 14, borderRadius: 14, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>✏️ Editar</button>
       </div>
 
-      {/* Tier Card */}
-      <TierCard t={t} gal={c.gallons} small cfg={cfg} />
+      {/* Tarjeta de nivel del miembro (FORMATO GENERAL) */}
+      <TierBenefitsCard
+        t={t} cfg={cfg} surface={AT.card} ink={AT.txt}
+        pill={`Nivel actual · ${c.gallons.toFixed(0)} gal`}
+        style={{ margin: '0 20px' }}
+      />
 
       {/* Activity Log */}
       <div style={{ padding: '20px 20px 8px', fontSize: 12, fontWeight: 800, color: '#9E9E9E', textTransform: 'uppercase', letterSpacing: 2 }}>Historial de Actividad</div>
