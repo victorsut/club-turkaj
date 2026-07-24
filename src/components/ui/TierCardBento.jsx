@@ -5,13 +5,27 @@
 // nivel + barra de progreso + galones acumulados; puntos en grande a la
 // derecha. Doble zona táctil: área general → detalle del nivel; área de
 // puntos → pestaña Canjes. Número de puntos con count-up (D35).
+import { useState } from 'react';
 import { bento } from '../../constants/styles';
 import { tierProgress } from '../../lib/tierSystem';
 import GalaxyDust from './GalaxyDust';
 import useCountUp from '../../hooks/useCountUp';
 import useShortScreen from '../../hooks/useShortScreen';
 
+// D35 matizada (mismo criterio que useCountUp): la barra se llena con
+// animación UNA sola vez por sesión. El componente se REMONTA cada vez
+// que se vuelve al inicio desde otra pestaña (y en los remontajes al
+// abrir la app), y el replay del llenado hacía que la barra volviera a
+// animarse desde cero una y otra vez; en montajes posteriores arranca
+// ya en su ancho y los cambios reales los suaviza la transition de width.
+let barFilled = false;
+
 export default function TierCardBento({ me, cTier, onOpenDetail, onPointsTap }) {
+  const [fillAnim] = useState(() => {
+    if (barFilled) return false;
+    barFilled = true;
+    return true;
+  });
   const isBlack = cTier.name === 'BLACK';
   const isPlat = cTier.name === 'PLATINO';
   const pg = tierProgress(me.gallons, cTier);
@@ -48,7 +62,7 @@ export default function TierCardBento({ me, cTier, onOpenDetail, onPointsTap }) 
             <span style={{ fontWeight: 800 }}>{cTier.name}</span>
           </div>
           <div style={{ height: 7, borderRadius: 4, overflow: 'hidden', background: barBg, marginTop: shortScr ? 9 : 12 }}>
-            <div className="pp-bar-fill" style={{ height: '100%', borderRadius: 4, width: `${pg}%`, background: barFill, transition: 'width 1s ease' }} />
+            <div className={fillAnim ? 'pp-bar-fill' : undefined} style={{ height: '100%', borderRadius: 4, width: `${pg}%`, background: barFill, transition: 'width 1s ease' }} />
           </div>
           <div style={{ fontSize: 12.5, fontWeight: 700, opacity: 0.9, marginTop: shortScr ? 6 : 8 }}>
             {(cTier.next || me.gallons < cTier.target)
