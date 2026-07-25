@@ -484,7 +484,7 @@ export default function App() {
           const cal = months.map((m, i) => ({
             m, p: '—', name: null, icon: null, img: null, detail: null,
             v: 'Q0', cost: 0, dbId: null, month: i + 1, year: yr,
-            winnerId: null, drawnAt: null,
+            winnerId: null, drawnAt: null, ticketPts: null,
           }));
           rcRes.data.filter(r => !r.year || r.year === yr).forEach(r => {
             cal[r.month - 1] = {
@@ -494,6 +494,8 @@ export default function App() {
               v: `Q${r.prize_value}`, cost: r.prize_value, dbId: r.id,
               month: r.month, year: r.year || yr,
               winnerId: r.winner_id || null, drawnAt: r.drawn_at || null,
+              // Costo del boleto de ESTA rifa; null = global cfg.ticketPts.
+              ticketPts: r.ticket_points ?? null,
             };
           });
           setRaffleCal(cal);

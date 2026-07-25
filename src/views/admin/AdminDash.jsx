@@ -132,7 +132,7 @@ export default function AdminDash(ctx) {
         <div style={{ fontSize: 32 }}>{(rm.p || '').split(' ')[0]}</div>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 800, fontSize: 15 }}>{rm.p}</div>
-          <div style={{ fontSize: 12, opacity: .6 }}>{cfg.ticketPts} pts = 1 boleto</div>
+          <div style={{ fontSize: 12, opacity: .6 }}>{rm.ticketPts ?? cfg.ticketPts} pts = 1 boleto</div>
         </div>
         <div style={{ fontSize: 18, opacity: .4 }}>→</div>
       </div>

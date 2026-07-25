@@ -51,6 +51,9 @@ export default function ClientRaffle(ctx) {
 
   const rm = raffleCal[viewMonth] || { m: 'Mes', name: null, icon: null, img: null, v: 'Q0', winnerId: null };
   const isCurrent = viewMonth === curMonth;
+  // Costo del boleto: configurable por rifa (raffle_calendar.ticket_points);
+  // si la rifa no define uno, rige el global cfg.ticketPts.
+  const tPts = rm.ticketPts ?? cfg.ticketPts;
   const isBlack = cTier?.name === 'BLACK';
 
   const headerTxt = dark ? '#fff' : '#0D0D0D';
@@ -166,13 +169,13 @@ export default function ClientRaffle(ctx) {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <span style={{ fontSize: 12, color: subTxt, fontWeight: 600 }}>Tus puntos</span>
             <span style={{ fontSize: 15, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: headerTxt }}>{me.points}</span>
-            <span style={{ fontSize: 11, color: subTxt, fontWeight: 600 }}>{cfg.ticketPts} pts/boleto</span>
+            <span style={{ fontSize: 11, color: subTxt, fontWeight: 600 }}>{tPts} pts/boleto</span>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             {[1, 3, 5, 10].map(n => {
-              const canBuy = me.points >= n * cfg.ticketPts;
+              const canBuy = me.points >= n * tPts;
               return (
-                <button key={n} onClick={() => canBuy && setBuyConfirm({ n, cost: n * cfg.ticketPts })} disabled={!canBuy} style={{
+                <button key={n} onClick={() => canBuy && setBuyConfirm({ n, cost: n * tPts })} disabled={!canBuy} style={{
                   flex: 1, padding: '12px 0', borderRadius: 12, border: 'none',
                   background: canBuy ? BRAND_ORANGE : (dark ? 'rgba(255,255,255,.05)' : '#ECECEE'),
                   fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 800,

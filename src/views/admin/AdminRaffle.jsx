@@ -14,7 +14,10 @@ export default function AdminRaffle(ctx) {
   const rm = raffleCal[rafMonth] || { m: '—', p: '—', v: 'Q0' };
   const rd = rafData[rafMonth] || { participants: [] };
   const totalTickets = rd.participants.reduce((s, p) => s + p.tickets, 0);
-  const totalPts = totalTickets * cfg.ticketPts;
+  // Costo por rifa (ticket_points) con fallback al global. Aproximación:
+  // si el costo cambió a mitad de mes, los boletos viejos se valoran al
+  // costo actual (el gasto exacto vive en raffle_tickets.points_spent).
+  const totalPts = totalTickets * (rm.ticketPts ?? cfg.ticketPts);
   const totalClients = rd.participants.length;
   const ptsToQ = +(totalPts * 0.25).toFixed(2);
   const covers = ptsToQ >= (rm.cost || 0);

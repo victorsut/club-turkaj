@@ -149,7 +149,7 @@ export default function Settings(ctx) {
           <span style={{ color: '#FBBC04', fontWeight: 800, ...sMono }}>Q{cfg.qPerPt}</span>
         </div>
         <div style={row}>
-          <span style={{ color: '#9E9E9E', fontWeight: 600 }}>Puntos por boleto rifa</span>
+          <span style={{ color: '#9E9E9E', fontWeight: 600 }}>Pts por boleto rifa (global)</span>
           <span style={{ color: '#FBBC04', fontWeight: 800, ...sMono }}>{cfg.ticketPts} pts</span>
         </div>
         <div style={row}>

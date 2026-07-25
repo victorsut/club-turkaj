@@ -21,6 +21,9 @@ export default function OpRaffle(ctx) {
   const rm = raffleCal[curMonth];
   const rd = rafData[curMonth] || { participants: [] };
   const totalTickets = rd.participants.reduce((s, p) => s + p.tickets, 0);
+  // Costo del boleto: el de la rifa del mes (raffle_calendar.ticket_points)
+  // o el global cfg.ticketPts si la rifa no define uno.
+  const tPts = rm?.ticketPts ?? cfg.ticketPts;
 
   // Scan card simulation (TODO: replace with real QR/NFC)
   const scanCard = () => {
@@ -228,7 +231,7 @@ export default function OpRaffle(ctx) {
           {/* Ticket selector */}
           <div style={{ background: '#fff', borderRadius: 18, padding: 20, border: '1px solid #E0E0E0', marginBottom: 16 }}>
             <div style={{ fontSize: 13, color: '#9E9E9E', marginBottom: 14, textAlign: 'center' }}>
-              Precio: <strong style={{ color: '#2E7D32', ...sMono }}>{cfg.ticketPts} pts</strong> por boleto
+              Precio: <strong style={{ color: '#2E7D32', ...sMono }}>{tPts} pts</strong> por boleto
             </div>
 
             {/* Quantity buttons */}
@@ -249,18 +252,18 @@ export default function OpRaffle(ctx) {
               <span style={{ fontSize: 12, fontWeight: 700, color: '#757575' }}>Costo total:</span>
               <span style={{
                 fontSize: 16, fontWeight: 800, ...sMono,
-                color: cl.points >= opRafQty * cfg.ticketPts ? '#2E7D32' : '#C62828',
-              }}>{opRafQty * cfg.ticketPts} pts</span>
+                color: cl.points >= opRafQty * tPts ? '#2E7D32' : '#C62828',
+              }}>{opRafQty * tPts} pts</span>
             </div>
 
             {/* Buy button */}
             <button onClick={() => doBuy(opRafQty)}
-              disabled={opRafQty * cfg.ticketPts > cl.points}
+              disabled={opRafQty * tPts > cl.points}
               style={{
                 width: '100%', padding: 16, borderRadius: 14, border: 'none',
                 background: '#FBBC04', fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 800,
                 cursor: 'pointer', color: '#0D0D0D',
-                opacity: cl.points >= opRafQty * cfg.ticketPts ? 1 : .5,
+                opacity: cl.points >= opRafQty * tPts ? 1 : .5,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               }}>
               🎟️ Comprar {opRafQty} boleto{opRafQty > 1 ? 's' : ''}
