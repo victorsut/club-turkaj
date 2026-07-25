@@ -33,6 +33,11 @@ export default function OpRedeem(ctx) {
   const [pendingList, setPending]       = useState([]);
   const [loadingPending, setLoadingPending] = useState(false);
   const [confirmItem, setConfirmItem]   = useState(null);
+  // Escaneo DIRECTO del QR del premio (25-jul): el cliente del canje
+  // vive acá — NO se abre la lista de pendientes (client queda null) y
+  // el modal de confirmación se muestra solo, sobre la vista principal.
+  // Cancelar limpia ambos → se vuelve de una vez a la pestaña.
+  const [confirmClient, setConfirmClient] = useState(null);
   const [readyToPrint, setReadyToPrint] = useState(null);
   const [waitingConfirm, setWaitingConfirm] = useState(null);
   const [confirmResult, setConfirmResult]   = useState(null);
@@ -118,9 +123,9 @@ export default function OpRedeem(ctx) {
   }, [sbConnected, redeemedList, fire]);
 
   // Escaneo del QR de un CANJE (25-jul): el codigo TK-XXXXXX del
-  // premio salta directo a ese canje — carga al cliente, sus pendientes
-  // y abre la confirmacion con los datos de cliente y premio. El flujo
-  // de confirmacion en tiempo real (el cliente confirma en su
+  // premio abre SOLO el detalle de ese canje (datos de cliente y
+  // premio) — sin pasar por la lista de pendientes del cliente. El
+  // flujo de confirmacion en tiempo real (el cliente confirma en su
   // dispositivo) no cambia.
   const loadFromRedemption = useCallback(async (code) => {
     if (!sb || !sbConnected) { fire('Sin conexion'); return; }
@@ -133,15 +138,14 @@ export default function OpRedeem(ctx) {
     if (data.collected) { fire('Este canje ya fue entregado'); return; }
     const cust = custs.find(c => c.id === data.member_id);
     if (!cust) { fire('No se encontro al cliente de este canje'); return; }
-    await loadPending(cust);
+    setConfirmClient(cust);
     setConfirmItem({
       id: data.id, memberId: data.member_id,
       reward: { name: data.rewards?.name || 'Premio', icon: data.rewards?.icon || '', cat: data.rewards?.category || '' },
       cost: data.points_spent, date: utcToLocal(data.created_at) || '',
       code: data.redemption_code, collected: false,
     });
-    fire('OK ' + cust.name + ' | ' + (data.rewards?.name || 'Premio'));
-  }, [sbConnected, custs, fire, loadPending]);
+  }, [sbConnected, custs, fire]);
 
   const handleScan = useCallback((code) => {
     setScanning(false);
@@ -164,6 +168,9 @@ export default function OpRedeem(ctx) {
   const requestConfirm = useCallback(async (item) => {
     setConfirmItem(null);
     if (!sb || !sbConnected) { fire('Sin conexion'); return; }
+    // Cliente del flujo activo: la lista (client) o el escaneo directo
+    // del premio (confirmClient).
+    const clName = (client || confirmClient)?.name;
     const { error } = await sb.from('redemptions')
       .update({ confirm_status: 'pending' }).eq('id', item.id);
     if (error) { fire('Error: ' + error.message); return; }
@@ -181,15 +188,16 @@ export default function OpRedeem(ctx) {
         setPending(p => p.filter(x => x.id !== item.id));
         setRedeemedList(p => p.map(x => x.id === item.id ? { ...x, collected: true } : x));
         setWaitingConfirm(null);
+        setConfirmClient(null);
         setConfirmResult('confirmed');
         fire('Confirmado: ' + item.reward.name + ' entregado');
         logActivity(item.memberId, 'entrega', 'Premio entregado: ' + item.reward.name, 0);
-        setReadyToPrint({ item, clientName: client?.name, opName: loggedOp?.name, auto: autoPrint });
+        setReadyToPrint({ item, clientName: clName, opName: loggedOp?.name, auto: autoPrint });
         // FA-lite: auto-print al confirmar (iframe, sin gesto del operador).
-        if (autoPrint) doPrint(item, client?.name, 'auto');
+        if (autoPrint) doPrint(item, clName, 'auto');
         // Agregar al historial del dia
         setTodayHistory(p => [{
-          id: item.id, memberName: client?.name || '-',
+          id: item.id, memberName: clName || '-',
           reward: item.reward, cost: item.cost,
           code: item.code, date: new Date().toISOString(),
         }, ...p]);
@@ -198,6 +206,7 @@ export default function OpRedeem(ctx) {
         clearInterval(interval);
         await sb.from('redemptions').update({ confirm_status: 'none' }).eq('id', item.id);
         setWaitingConfirm(null);
+        setConfirmClient(null);
         setConfirmResult('cancelled');
         fire('El cliente cancelo el canje');
         setTimeout(() => setConfirmResult(null), 3000);
@@ -205,12 +214,94 @@ export default function OpRedeem(ctx) {
         clearInterval(interval);
         await sb.from('redemptions').update({ confirm_status: 'none' }).eq('id', item.id);
         setWaitingConfirm(null);
+        setConfirmClient(null);
         fire('Tiempo de espera agotado');
       }
     }, 2000);
-  }, [sbConnected, fire, logActivity, setRedeemedList, client, loggedOp, setReadyToPrint, autoPrint, doPrint]);
+  }, [sbConnected, fire, logActivity, setRedeemedList, client, confirmClient, loggedOp, setReadyToPrint, autoPrint, doPrint]);
 
   const tier = client ? gT(client.gallons) : null;
+
+  // Cliente del flujo de confirmación en curso (lista o escaneo directo).
+  const activeClient = client || confirmClient;
+
+  // Modales del flujo de confirmación — compartidos entre la vista de
+  // lista (client) y la vista principal (escaneo directo del premio,
+  // donde NO se abre la lista de pendientes).
+  const overlays = (
+    <>
+      {/* Modal confirmacion */}
+      {confirmItem && !waitingConfirm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 400, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: '24px 24px 0 0', width: '100%', maxWidth: 480, padding: '12px 24px 40px', animation: 'slideUp .3s ease' }}>
+            <div style={{ width: 40, height: 4, background: '#E0E0E0', borderRadius: 4, margin: '0 auto 20px' }} />
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{ fontSize: 48, marginBottom: 8 }}>{confirmItem.reward.icon}</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: '#0D0D0D' }}>Solicitar confirmacion</div>
+              <div style={{ fontSize: 13, color: '#9E9E9E', marginTop: 4 }}>Se enviara una solicitud al dispositivo del cliente</div>
+            </div>
+            <div style={{ background: '#F9F9F9', borderRadius: 14, padding: '14px 18px', marginBottom: 20 }}>
+              {[
+                { l: 'Premio',  v: confirmItem.reward.name, bold: true },
+                { l: 'Cliente', v: activeClient?.name || '-' },
+                { l: 'Codigo',  v: confirmItem.code, mono: true },
+                { l: 'Fecha',   v: confirmItem.date },
+              ].map((row, i, arr) => (
+                <div key={row.l} style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: i < arr.length - 1 ? 10 : 0, borderBottom: i < arr.length - 1 ? '1px solid #eee' : 'none', marginBottom: i < arr.length - 1 ? 10 : 0 }}>
+                  <span style={{ fontSize: 12, color: '#9E9E9E', fontWeight: 600 }}>{row.l}</span>
+                  <span style={{ fontSize: 13, fontWeight: row.bold ? 900 : 700, color: '#0D0D0D', fontFamily: row.mono ? 'monospace' : "'DM Sans'" }}>{row.v}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button onClick={() => { setConfirmItem(null); setConfirmClient(null); }} style={{ flex: 1, padding: 16, borderRadius: 14, border: '2px solid #eee', background: '#fff', color: '#424242', fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Cancelar</button>
+              <button onClick={() => requestConfirm(confirmItem)} style={{ flex: 2, padding: 16, borderRadius: 14, border: 'none', background: '#FBBC04', color: '#0D0D0D', fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 900, cursor: 'pointer' }}>Enviar al cliente</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: canje confirmado - imprimir */}
+      {readyToPrint && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 24, padding: 28, maxWidth: 340, width: '100%', textAlign: 'center' }}>
+            <div style={{ fontSize: 52, marginBottom: 12 }}>OK</div>
+            <div style={{ fontSize: 18, fontWeight: 900, color: '#1B5E20', marginBottom: 6 }}>Canje confirmado</div>
+            <div style={{ fontSize: 14, color: '#555', marginBottom: 4 }}>{readyToPrint.item.reward.name}</div>
+            <div style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>
+              {readyToPrint.auto ? 'Comprobante enviado a impresión automáticamente' : 'Cliente confirmo desde su dispositivo'}
+            </div>
+            <button onClick={() => doPrint(readyToPrint.item, readyToPrint.clientName, readyToPrint.auto ? 'reprint' : 'manual')} style={{ width: '100%', padding: 16, borderRadius: 14, border: 'none', background: '#1976D2', color: '#fff', fontFamily: "'DM Sans'", fontSize: 16, fontWeight: 900, cursor: 'pointer', marginBottom: 10 }}>
+              {readyToPrint.auto ? 'Reimprimir comprobante' : 'Imprimir comprobante'}
+            </button>
+            <button onClick={() => setReadyToPrint(null)} style={{ width: '100%', padding: 12, borderRadius: 14, border: '1px solid #ddd', background: '#f5f5f5', fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700, cursor: 'pointer', color: '#555' }}>
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Pantalla de espera */}
+      {waitingConfirm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px' }}>
+          <div style={{ background: '#fff', borderRadius: 24, width: '100%', maxWidth: 400, padding: '40px 28px', textAlign: 'center' }}>
+            <div style={{ fontSize: 56, marginBottom: 16 }}>{waitingConfirm.reward.icon}</div>
+            <div style={{ fontSize: 18, fontWeight: 900, color: '#0D0D0D', marginBottom: 8 }}>Esperando al cliente</div>
+            <div style={{ fontSize: 13, color: '#9E9E9E', marginBottom: 28 }}>
+              Se envio la solicitud a <strong style={{ color: '#0D0D0D' }}>{activeClient?.name}</strong>. Pedile que confirme en su dispositivo.
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 28 }}>
+              {[0,1,2].map(i => <div key={i} style={{ width: 12, height: 12, borderRadius: '50%', background: '#FBBC04', animation: 'bounce .9s ' + (i * 0.2) + 's infinite' }} />)}
+            </div>
+            <div style={{ fontSize: 12, color: '#BDBDBD', marginBottom: 20 }}>Premio: {waitingConfirm.reward.name} | Codigo: {waitingConfirm.code}</div>
+            <button onClick={async () => { await sb.from('redemptions').update({ confirm_status: 'none' }).eq('id', waitingConfirm.id); setWaitingConfirm(null); setConfirmClient(null); fire('Solicitud cancelada'); }} style={{ padding: '10px 24px', borderRadius: 12, border: '1px solid #eee', background: 'none', color: '#9E9E9E', fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+              Cancelar solicitud
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
 
   // -- QR Scanner ---------------------------------------
   if (scanning) return <QRScanner onScan={handleScan} onClose={() => setScanning(false)} acceptRedemptions />;
@@ -266,76 +357,7 @@ export default function OpRedeem(ctx) {
           ))}
         </div>
 
-        {/* Modal confirmacion */}
-        {confirmItem && !waitingConfirm && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 400, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-            <div style={{ background: '#fff', borderRadius: '24px 24px 0 0', width: '100%', maxWidth: 480, padding: '12px 24px 40px', animation: 'slideUp .3s ease' }}>
-              <div style={{ width: 40, height: 4, background: '#E0E0E0', borderRadius: 4, margin: '0 auto 20px' }} />
-              <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                <div style={{ fontSize: 48, marginBottom: 8 }}>{confirmItem.reward.icon}</div>
-                <div style={{ fontSize: 18, fontWeight: 900, color: '#0D0D0D' }}>Solicitar confirmacion</div>
-                <div style={{ fontSize: 13, color: '#9E9E9E', marginTop: 4 }}>Se enviara una solicitud al dispositivo del cliente</div>
-              </div>
-              <div style={{ background: '#F9F9F9', borderRadius: 14, padding: '14px 18px', marginBottom: 20 }}>
-                {[
-                  { l: 'Premio',  v: confirmItem.reward.name, bold: true },
-                  { l: 'Cliente', v: client.name },
-                  { l: 'Codigo',  v: confirmItem.code, mono: true },
-                  { l: 'Fecha',   v: confirmItem.date },
-                ].map((row, i, arr) => (
-                  <div key={row.l} style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: i < arr.length - 1 ? 10 : 0, borderBottom: i < arr.length - 1 ? '1px solid #eee' : 'none', marginBottom: i < arr.length - 1 ? 10 : 0 }}>
-                    <span style={{ fontSize: 12, color: '#9E9E9E', fontWeight: 600 }}>{row.l}</span>
-                    <span style={{ fontSize: 13, fontWeight: row.bold ? 900 : 700, color: '#0D0D0D', fontFamily: row.mono ? 'monospace' : "'DM Sans'" }}>{row.v}</span>
-                  </div>
-                ))}
-              </div>
-              <div style={{ display: 'flex', gap: 12 }}>
-                <button onClick={() => setConfirmItem(null)} style={{ flex: 1, padding: 16, borderRadius: 14, border: '2px solid #eee', background: '#fff', color: '#424242', fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Cancelar</button>
-                <button onClick={() => requestConfirm(confirmItem)} style={{ flex: 2, padding: 16, borderRadius: 14, border: 'none', background: '#FBBC04', color: '#0D0D0D', fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 900, cursor: 'pointer' }}>Enviar al cliente</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Modal: canje confirmado - imprimir */}
-        {readyToPrint && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-            <div style={{ background: '#fff', borderRadius: 24, padding: 28, maxWidth: 340, width: '100%', textAlign: 'center' }}>
-              <div style={{ fontSize: 52, marginBottom: 12 }}>OK</div>
-              <div style={{ fontSize: 18, fontWeight: 900, color: '#1B5E20', marginBottom: 6 }}>Canje confirmado</div>
-              <div style={{ fontSize: 14, color: '#555', marginBottom: 4 }}>{readyToPrint.item.reward.name}</div>
-              <div style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>
-                {readyToPrint.auto ? 'Comprobante enviado a impresión automáticamente' : 'Cliente confirmo desde su dispositivo'}
-              </div>
-              <button onClick={() => doPrint(readyToPrint.item, readyToPrint.clientName, readyToPrint.auto ? 'reprint' : 'manual')} style={{ width: '100%', padding: 16, borderRadius: 14, border: 'none', background: '#1976D2', color: '#fff', fontFamily: "'DM Sans'", fontSize: 16, fontWeight: 900, cursor: 'pointer', marginBottom: 10 }}>
-                {readyToPrint.auto ? 'Reimprimir comprobante' : 'Imprimir comprobante'}
-              </button>
-              <button onClick={() => setReadyToPrint(null)} style={{ width: '100%', padding: 12, borderRadius: 14, border: '1px solid #ddd', background: '#f5f5f5', fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700, cursor: 'pointer', color: '#555' }}>
-                Cerrar
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Pantalla de espera */}
-        {waitingConfirm && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px' }}>
-            <div style={{ background: '#fff', borderRadius: 24, width: '100%', maxWidth: 400, padding: '40px 28px', textAlign: 'center' }}>
-              <div style={{ fontSize: 56, marginBottom: 16 }}>{waitingConfirm.reward.icon}</div>
-              <div style={{ fontSize: 18, fontWeight: 900, color: '#0D0D0D', marginBottom: 8 }}>Esperando al cliente</div>
-              <div style={{ fontSize: 13, color: '#9E9E9E', marginBottom: 28 }}>
-                Se envio la solicitud a <strong style={{ color: '#0D0D0D' }}>{client?.name}</strong>. Pedile que confirme en su dispositivo.
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 28 }}>
-                {[0,1,2].map(i => <div key={i} style={{ width: 12, height: 12, borderRadius: '50%', background: '#FBBC04', animation: 'bounce .9s ' + (i * 0.2) + 's infinite' }} />)}
-              </div>
-              <div style={{ fontSize: 12, color: '#BDBDBD', marginBottom: 20 }}>Premio: {waitingConfirm.reward.name} | Codigo: {waitingConfirm.code}</div>
-              <button onClick={async () => { await sb.from('redemptions').update({ confirm_status: 'none' }).eq('id', waitingConfirm.id); setWaitingConfirm(null); fire('Solicitud cancelada'); }} style={{ padding: '10px 24px', borderRadius: 12, border: '1px solid #eee', background: 'none', color: '#9E9E9E', fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
-                Cancelar solicitud
-              </button>
-            </div>
-          </div>
-        )}
+        {overlays}
       </div>
     );
   }
@@ -399,6 +421,8 @@ export default function OpRedeem(ctx) {
           );
         })}
       </div>
+
+      {overlays}
     </div>
   );
 }
