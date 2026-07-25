@@ -8,7 +8,7 @@ import TierBenefitsCard from '../../components/ui/TierBenefitsCard';
 import InactivityWarning from '../../components/ui/InactivityWarning';
 import { Back } from '../../components/ui/Icons';
 import ReasonModal from '../../components/ui/ReasonModal';
-import { updateMemberWithAudit } from '../../services/rpcServices';
+import { updateMemberWithAudit, adminResetMemberPassword } from '../../services/rpcServices';
 import { plateMask } from '../../lib/inputMasks';
 
 // Tipos de vehículo (espejo de VEHICLE_TYPES del cliente — el admin
@@ -33,6 +33,9 @@ export default function MemberDetail(ctx) {
   // Edición INDIVIDUAL de vehículos (25-jul, pedido del dueño):
   // { idx: null (nuevo) | número (editar), type, plate }
   const [vehModal, setVehModal] = useState(null);
+  // Restablecer contraseña del miembro (25-jul): única vía de
+  // recuperación mientras no exista el flujo por SMS/correo.
+  const [pwModal, setPwModal] = useState(null); // { pass, confirm } | null
 
   if (!sel) { setScr('mem'); return null; }
 
@@ -219,6 +222,19 @@ export default function MemberDetail(ctx) {
       reasonText: reason,
     };
 
+    // Restablecer contraseña: RPC propia (bcrypt server-side; la
+    // contraseña no se guarda en la auditoría).
+    if (pendingChanges.isPassword) {
+      const { ok, error } = await adminResetMemberPassword(
+        pendingChanges.memberId, pendingChanges.newPassword, audit,
+      );
+      setShowReasonModal(false);
+      setPendingChanges(null);
+      if (!ok) { fire('Error: ' + (error?.message || 'no se pudo restablecer')); return; }
+      fire('Contraseña restablecida — entregala al cliente');
+      return;
+    }
+
     const result = await updateMemberWithAudit(
       pendingChanges.memberId,
       audit,
@@ -286,6 +302,16 @@ export default function MemberDetail(ctx) {
     queueVehicleChange(updated);
   };
   const deleteVehicle = (i) => queueVehicleChange(vList.filter((_, j) => j !== i));
+
+  // ── Restablecer contraseña del miembro (auditado) ───────────
+  const submitPwReset = () => {
+    if (!loggedAdmin?.id) { fire('Error: sesion admin no disponible. Cerra sesion y volve a ingresar.'); return; }
+    if (!pwModal?.pass || pwModal.pass.length < 6) { fire('La contraseña debe tener al menos 6 caracteres'); return; }
+    if (pwModal.pass !== pwModal.confirm) { fire('Las contraseñas no coinciden'); return; }
+    setPendingChanges({ memberId: c.id, isPassword: true, newPassword: pwModal.pass });
+    setPwModal(null);
+    setShowReasonModal(true);
+  };
 
   const sLbl = { display: 'block', fontSize: 12, fontWeight: 700, color: '#757575', marginBottom: 6, textTransform: 'uppercase', letterSpacing: .8 };
   if (loadingDetail && !freshMember) return (
@@ -385,9 +411,15 @@ export default function MemberDetail(ctx) {
       </div>
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: 10, padding: '0 20px', marginBottom: 16 }}>
+      <div style={{ display: 'flex', gap: 10, padding: '0 20px', marginBottom: 10 }}>
         <button onClick={() => { setSel(c); setModal('buy'); }} style={{ ...btnYellow, flex: 1, padding: 14, borderRadius: 14, fontSize: 14 }}>⛽ Compra</button>
         <button onClick={() => setEditMember({ ...c })} style={{ ...btnDark, flex: 1, padding: 14, borderRadius: 14, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>✏️ Editar</button>
+      </div>
+      <div style={{ padding: '0 20px', marginBottom: 16 }}>
+        <button onClick={() => setPwModal({ pass: '', confirm: '' })}
+          style={{ width: '100%', padding: 12, borderRadius: 14, border: `1px solid ${AT.border}`, background: 'transparent', color: '#CE93D8', fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+          🔑 Restablecer contraseña
+        </button>
       </div>
 
       {/* Tarjeta de nivel del miembro (FORMATO GENERAL) */}
@@ -511,6 +543,44 @@ export default function MemberDetail(ctx) {
         </div>
       )}
 
+      {/* Modal: restablecer contraseña del miembro (25-jul) — pasa por
+          ReasonModal → admin_reset_member_password (bcrypt server-side;
+          la contraseña no se guarda en la auditoría) */}
+      {pwModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', backdropFilter: 'blur(6px)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => setPwModal(null)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '28px 28px 0 0', padding: '28px 24px 32px', maxWidth: 480, width: '100%', maxHeight: '85vh', overflowY: 'auto' }}>
+            <div style={{ width: 40, height: 4, background: '#E0E0E0', borderRadius: 2, margin: '0 auto 20px' }} />
+            <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>🔑 Restablecer contraseña</div>
+            <div style={{ fontSize: 12.5, color: '#757575', marginBottom: 18, lineHeight: 1.5 }}>
+              Se asignará una contraseña nueva a <strong>{c.name}</strong> ({c.phone}). Entregásela al cliente y pedile que la cambie desde Mi Cuenta.
+            </div>
+            {[
+              { k: 'pass', l: 'Nueva contraseña' },
+              { k: 'confirm', l: 'Confirmar contraseña' },
+            ].map(f => (
+              <div key={f.k} style={{ marginBottom: 12 }}>
+                <label style={sLbl}>{f.l}</label>
+                <input
+                  type="text"
+                  autoComplete="off"
+                  placeholder="Mínimo 6 caracteres"
+                  value={pwModal[f.k]}
+                  onChange={e => setPwModal(p => ({ ...p, [f.k]: e.target.value }))}
+                  style={{ ...inputStyle, fontSize: 14, padding: '10px 12px' }}
+                />
+              </div>
+            ))}
+            {pwModal.confirm && pwModal.confirm !== pwModal.pass && (
+              <div style={{ color: '#ef4444', fontSize: 12, marginBottom: 10 }}>Las contraseñas no coinciden</div>
+            )}
+            <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
+              <button onClick={() => setPwModal(null)} style={{ ...btnDark, flex: 1 }}>Cancelar</button>
+              <button onClick={submitPwReset} style={{ ...btnYellow, flex: 2 }}>Restablecer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal: agregar/editar UN vehículo (25-jul) — pasa por el mismo
           flujo auditado (ReasonModal → update_member_with_audit) */}
       {vehModal && (
@@ -563,7 +633,11 @@ export default function MemberDetail(ctx) {
           setPendingChanges(null);
         }}
         onConfirm={confirmEditWithReason}
-        actionLabel="Guardar cambios del cliente"
+        actionLabel={pendingChanges?.isPassword
+          ? `Restablecer contraseña de ${c.name}`
+          : pendingChanges?.isVehicles
+            ? 'Actualizar vehículos del cliente'
+            : 'Guardar cambios del cliente'}
         loading={false}
       />
     </div>

@@ -238,6 +238,33 @@ export async function logAdminAction({
 }
 
 // ──────────────────────────────────────────────
+// 7b. MIEMBROS — admin_reset_member_password (25-jul-2026)
+// ──────────────────────────────────────────────
+/**
+ * Restablece la contraseña de un miembro desde el panel admin.
+ * bcrypt server-side + auditoría obligatoria (la contraseña NO
+ * se guarda en el log). Vía de recuperación mientras no exista el
+ * flujo autónomo por SMS/correo.
+ * @returns {Promise<{ok: boolean, error: object|null}>}
+ */
+export async function adminResetMemberPassword(memberId, newPassword, audit = {}) {
+  if (!sb) return { ok: false, error: { message: 'Sin conexión al servidor' } };
+  const { data, error } = await sb.rpc('admin_reset_member_password', {
+    p_member_id: memberId,
+    p_new_password: newPassword,
+    p_admin_id: audit.adminId,
+    p_admin_name: audit.adminName,
+    p_admin_email: audit.adminEmail,
+    p_reason_text: audit.reasonText,
+  });
+  if (error) {
+    console.error('[RPC:admin_reset_member_password]', error.message);
+    return { ok: false, error };
+  }
+  return { ok: data?.ok === true, error: null };
+}
+
+// ──────────────────────────────────────────────
 // 8. MIEMBROS — update_member_with_audit (F0.3.8)
 // ──────────────────────────────────────────────
 /**
