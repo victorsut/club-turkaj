@@ -1,13 +1,40 @@
 // src/views/admin/Settings.jsx
 // Admin settings — program config, fuel prices, tier thresholds
 import { useState, useEffect } from 'react';
+import { sb } from '../../lib/supabaseClient';
 import { sMono, adminTheme as AT, inputStyleDark } from '../../constants/styles';
 import { Back } from '../../components/ui/Icons';
 import { updateFuelPrices } from '../../services/rpcServices';
 import ReasonModal from '../../components/ui/ReasonModal';
 
 export default function Settings(ctx) {
-  const { cfg, setCfg, setScr, fire, operators, setScr: navTo, loggedAdmin } = ctx;
+  const { cfg, setCfg, setScr, fire, operators, setScr: navTo, loggedAdmin, stations, setStations } = ctx;
+
+  // ─── WiFi por estación (25-jul): SSID + clave editables ───
+  // Escritura directa a stations (política RLS abierta, igual que
+  // schedule). Vacío = la estación no ofrece WiFi por app y el modal
+  // del cliente cae al pase con el operador.
+  const [wifiForm, setWifiForm] = useState([]);
+  const [savingWifi, setSavingWifi] = useState(null); // id en guardado
+  useEffect(() => {
+    setWifiForm((stations || []).map(s => ({ id: s.id, name: s.name, ssid: s.wifiSsid || '', pass: s.wifiPassword || '' })));
+  }, [stations]);
+
+  const saveWifi = async (row) => {
+    if (!sb) { fire('Sin conexión', 'error'); return; }
+    setSavingWifi(row.id);
+    const ssid = row.ssid.trim() || null;
+    const pass = row.pass.trim() || null;
+    const { error } = await sb.from('stations')
+      .update({ wifi_ssid: ssid, wifi_password: pass })
+      .eq('id', row.id);
+    setSavingWifi(null);
+    if (error) { fire('Error: ' + error.message, 'error'); return; }
+    if (setStations) {
+      setStations(p => p.map(s => s.id === row.id ? { ...s, wifiSsid: ssid, wifiPassword: pass } : s));
+    }
+    fire(`WiFi de ${row.name} actualizado`, 'success');
+  };
 
   // ─── Modal: edición de precios de combustible ───
   const [showPriceModal, setShowPriceModal] = useState(false);
@@ -194,6 +221,49 @@ export default function Settings(ctx) {
         >
           ✏️ Editar precios
         </button>
+      </div>
+
+      {/* WiFi por estación */}
+      <div style={aSec}>WiFi de Estaciones</div>
+      <div style={aCard}>
+        <div style={{ fontSize: 11, color: '#777', marginBottom: 12, lineHeight: 1.5 }}>
+          El cliente PLATINO/BLACK que esté en la estación (detección por ubicación) ve esta red y clave en su app. Vacío = la clave la entrega el operador.
+        </div>
+        {wifiForm.length === 0 && (
+          <div style={{ fontSize: 12, color: '#777', textAlign: 'center', padding: 8 }}>Cargando estaciones...</div>
+        )}
+        {wifiForm.map((w, i) => (
+          <div key={w.id} style={{ marginBottom: i < wifiForm.length - 1 ? 18 : 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#64B5F6', marginBottom: 8 }}>{w.name}</div>
+            <input
+              value={w.ssid}
+              onChange={e => setWifiForm(p => p.map(x => x.id === w.id ? { ...x, ssid: e.target.value } : x))}
+              placeholder="Nombre de la red (SSID)"
+              style={{ ...inputStyleDark, marginBottom: 8 }}
+            />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                value={w.pass}
+                onChange={e => setWifiForm(p => p.map(x => x.id === w.id ? { ...x, pass: e.target.value } : x))}
+                placeholder="Contraseña"
+                style={{ ...inputStyleDark, flex: 1, ...sMono, fontSize: 13 }}
+              />
+              <button
+                onClick={() => saveWifi(w)}
+                disabled={savingWifi === w.id}
+                style={{
+                  padding: '0 18px', borderRadius: 12, border: 'none',
+                  background: savingWifi === w.id ? '#3A3A3A' : '#FBBC04',
+                  color: savingWifi === w.id ? '#777' : '#0D0D0D',
+                  fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 800,
+                  cursor: savingWifi === w.id ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {savingWifi === w.id ? '...' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Tiers */}

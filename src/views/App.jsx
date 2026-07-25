@@ -444,6 +444,7 @@ export default function App() {
             id: s.id, name: s.name, address: s.address || '',
             lat: s.lat, lng: s.lng, active: s.active !== false,
             schedule: s.schedule || null,
+            wifiSsid: s.wifi_ssid || null, wifiPassword: s.wifi_password || null,
           })));
           console.log('[Puntos Plus] Estaciones cargadas:', stRes.data.length);
         }
@@ -1400,7 +1401,7 @@ export default function App() {
     sortDir, setSortDir, memSort, setMemSort,
     stationFilter, setStationFilter, stationMode, setStationMode,
     // Auth
-    authScreen, setAuthScreen, authOp, setAuthOp, loggedOp, setLoggedOp, opScanMode, setOpScanMode, opRedeemScan, setOpRedeemScan, stations, authAdmin, setAuthAdmin, loggedAdmin, setLoggedAdmin,
+    authScreen, setAuthScreen, authOp, setAuthOp, loggedOp, setLoggedOp, opScanMode, setOpScanMode, opRedeemScan, setOpRedeemScan, stations, setStations, authAdmin, setAuthAdmin, loggedAdmin, setLoggedAdmin,
     opRafClient, setOpRafClient, opRafScan, setOpRafScan, opRafQty, setOpRafQty, opSearch, setOpSearch,
     authError, setAuthError, clearAuthErr,
     loginPhone, setLoginPhone, loginPass, setLoginPass,

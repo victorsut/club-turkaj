@@ -12,7 +12,8 @@ import TierCardBento from '../../components/ui/TierCardBento';
 import InactivityWarning from '../../components/ui/InactivityWarning';
 import HistorySheet from './HistorySheet';
 import useShortScreen from '../../hooks/useShortScreen';
-import { Menu, Fuel, Tag, Wifi, Door, Cake, Pin, Clock, Chev, StarRate } from '../../components/ui/Icons';
+import { Menu, Fuel, Tag, Wifi, Door, Cake, Pin, Clock, Chev, StarRate, Check } from '../../components/ui/Icons';
+import { getPosition, nearestStation } from '../../lib/geo';
 import LogoSpinner from '../../components/ui/LogoSpinner';
 import GalaxyDust from '../../components/ui/GalaxyDust';
 import GrowModal from '../../components/ui/GrowModal';
@@ -159,6 +160,56 @@ export default function ClientHome(ctx) {
   const tierAccent = isBlack ? '#FBBC04' : cTier.name === 'PLATINO' ? '#6B767D' : bento.gold;
   // Paleta del bento según el nivel (ORO cálida / PLATINO fría / BLACK oscura)
   const hp = homeColors(cTier.name);
+
+  // ── WiFi por estación (25-jul): al abrir el modal se pide la
+  // ubicación; a <300 m de una estación con red configurada se muestra
+  // su SSID y clave. Permiso negado / GPS mudo (in-app browsers) /
+  // lejos → pase actual (el operador entrega la clave).
+  const [wifiLoc, setWifiLoc] = useState(null); // null|'locating'|'far'|{station,distance}
+  const [wifiCopied, setWifiCopied] = useState(false);
+  useEffect(() => {
+    if (!showWifi) { setWifiLoc(null); setWifiCopied(false); return; }
+    let alive = true;
+    setWifiLoc('locating');
+    getPosition()
+      .then(({ lat, lng }) => {
+        if (!alive) return;
+        const hit = nearestStation(stations, lat, lng);
+        setWifiLoc(hit?.station?.wifiSsid && hit?.station?.wifiPassword ? hit : 'far');
+      })
+      .catch(() => { if (alive) setWifiLoc('far'); });
+    return () => { alive = false; };
+  }, [showWifi, stations]);
+
+  const copyWifiPass = async (pass) => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(pass);
+      } else {
+        // Fallback para navegadores in-app sin Clipboard API
+        const ta = document.createElement('textarea');
+        ta.value = pass;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      setWifiCopied(true);
+      setTimeout(() => setWifiCopied(false), 2500);
+      fire('Contraseña copiada', 'success');
+    } catch {
+      fire('No se pudo copiar la contraseña', 'error');
+    }
+  };
+
+  // Colores del modal WiFi: en BLACK claro hp.wifi es gris perla
+  // (invisible sobre blanco) → el acento pasa a la tinta wifiInk.
+  const wifiFg = (!dark && hp.wifiInk) ? hp.wifiInk : hp.wifi;
+  const wifiBoxBg = dark ? 'rgba(255,255,255,.1)' : (hp.wifiInk ? hp.wifi : '#E9EAF6');
+  const wifiBoxFg = dark ? '#fff' : wifiFg;
+  const wifiSubFg = dark ? 'rgba(255,255,255,.5)' : (hp.wifiInk ? 'rgba(20,20,23,.55)' : '#8A8FB8');
 
   // Saludo festivo (D34): special_days de hoy (hora de Guatemala) o cumpleaños.
   const [festivo, setFestivo] = useState(null);
@@ -431,7 +482,9 @@ export default function ClientHome(ctx) {
         </GrowModal>
       )}
 
-      {/* WiFi (pase de acceso — la clave la entrega el operador) */}
+      {/* WiFi — geolocalización: en la estación muestra red y clave de
+          ESA estación con botón de copiar; sin ubicación o lejos, cae
+          al pase de acceso (la clave la entrega el operador). */}
       {showWifi && (
         <GrowModal onClose={() => setShowWifi(false)} origin={mOrigin} tint={mTint}
           background={dark ? '#1A1A2E' : '#fff'} maxWidth={340}
@@ -439,23 +492,60 @@ export default function ClientHome(ctx) {
           style={{ padding: '30px 22px 26px', textAlign: 'center' }}>
           {() => (<>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-              <WifiIcon size={38} color={hp.wifi} />
+              <WifiIcon size={38} color={wifiFg} />
             </div>
             <div style={{ fontSize: 19, fontWeight: 900, color: dark ? '#fff' : '#0D0D0D' }}>WiFi Puntos Plus</div>
-            <div style={{ fontSize: 11, fontWeight: 800, color: hp.wifi, marginTop: 2, textTransform: 'uppercase', letterSpacing: 1 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: wifiFg, marginTop: 2, textTransform: 'uppercase', letterSpacing: 1 }}>
               Beneficio {cTier.name}
             </div>
-            <div style={{ fontSize: 13, color: '#9E9E9E', lineHeight: 1.6, margin: '14px 0' }}>
-              Mostrá esta pantalla al operador de la estación para recibir la clave WiFi.
-            </div>
-            <div style={{
-              ...sMono, fontSize: 18, fontWeight: 800, letterSpacing: 2,
-              padding: '12px 0', borderRadius: 14,
-              background: dark ? 'rgba(255,255,255,.1)' : '#E9EAF6',
-              color: hp.wifi,
-            }}>
-              {displayCode}
-            </div>
+
+            {wifiLoc === 'locating' && (
+              <div style={{ padding: '22px 0 6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <LogoSpinner size={30} dark={dark} />
+                </div>
+                <div style={{ fontSize: 13, color: '#9E9E9E', marginTop: 12 }}>Detectando tu estación...</div>
+              </div>
+            )}
+
+            {wifiLoc?.station && (
+              <>
+                <div style={{ fontSize: 13, color: '#9E9E9E', lineHeight: 1.6, margin: '14px 0' }}>
+                  Estás en <strong style={{ color: dark ? '#fff' : '#0D0D0D' }}>{wifiLoc.station.name}</strong>. Conectate a esta red:
+                </div>
+                <div style={{ background: wifiBoxBg, borderRadius: 14, padding: '14px 16px', textAlign: 'left' }}>
+                  <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: wifiSubFg }}>Red</div>
+                  <div style={{ fontSize: 14.5, fontWeight: 800, color: wifiBoxFg, marginTop: 2 }}>{wifiLoc.station.wifiSsid}</div>
+                  <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: wifiSubFg, marginTop: 12 }}>Contraseña</div>
+                  <div style={{ ...sMono, fontSize: 17, fontWeight: 800, letterSpacing: 1.5, color: wifiBoxFg, marginTop: 2, wordBreak: 'break-all' }}>
+                    {wifiLoc.station.wifiPassword}
+                  </div>
+                </div>
+                <button onClick={() => copyWifiPass(wifiLoc.station.wifiPassword)} style={{
+                  width: '100%', marginTop: 12, padding: 14, borderRadius: 14, border: 'none',
+                  background: wifiFg, color: (dark && hp.wifiInk) ? '#141417' : '#fff',
+                  fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 800, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                }}>
+                  {wifiCopied ? (<><Check /> Copiada</>) : 'Copiar contraseña'}
+                </button>
+              </>
+            )}
+
+            {wifiLoc === 'far' && (
+              <>
+                <div style={{ fontSize: 13, color: '#9E9E9E', lineHeight: 1.6, margin: '14px 0' }}>
+                  No pudimos confirmar que estés en una estación. Mostrá esta pantalla al operador para recibir la clave WiFi.
+                </div>
+                <div style={{
+                  ...sMono, fontSize: 18, fontWeight: 800, letterSpacing: 2,
+                  padding: '12px 0', borderRadius: 14,
+                  background: wifiBoxBg, color: wifiBoxFg,
+                }}>
+                  {displayCode}
+                </div>
+              </>
+            )}
           </>)}
         </GrowModal>
       )}
