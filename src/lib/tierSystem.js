@@ -6,10 +6,11 @@
 
 import { DEFAULT_CONFIG, GALAXY_BG } from '../constants/config';
 
-// Meta de la barra de progreso al llegar a BLACK (decisión 23-jul-2026):
-// sin nivel siguiente, la barra sigue siendo un atractivo avanzando de
-// 500 hacia 1500 galones. Al superarla, la barra queda llena.
-const BLACK_GOAL_GAL = 1500;
+// Meta de la barra de progreso al llegar a BLACK (23-jul-2026; ajustada
+// a 1000 el 25-jul-2026 por el dueño): sin nivel siguiente, la barra
+// sigue siendo un atractivo avanzando de 500 hacia la meta. Al
+// superarla, la barra queda llena.
+const BLACK_GOAL_GAL = 1000;
 
 /**
  * Calcula el objeto de nivel completo a partir de galones y config.
@@ -82,8 +83,8 @@ export function makeTier(gal, cfg = DEFAULT_CONFIG) {
  * Progreso porcentual hacia el siguiente nivel
  */
 export function tierProgress(gal, tier) {
-  // Sin nivel siguiente pero con meta (BLACK → 1500 gal): la barra
-  // sigue avanzando; sin meta, llena.
+  // Sin nivel siguiente pero con meta (BLACK → BLACK_GOAL_GAL): la
+  // barra sigue avanzando; sin meta, llena.
   if (!tier.next && tier.target <= tier.base) return 100;
   return Math.min(((gal - tier.base) / (tier.target - tier.base)) * 100, 100);
 }
