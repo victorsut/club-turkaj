@@ -332,8 +332,8 @@ export default function MemberDetail(ctx) {
 
       {/* fix 25-jul: la prop se llamaba `last` (el componente espera
           `lastBuy`) y la fecha iba formateada es-GT — el aviso jamás
-          aparecía en el admin. */}
-      <InactivityWarning lastBuy={c.lastBuyRaw || null} tierName={t.name} />
+          aparecía en el admin. Solo con el motor de degradación activo. */}
+      {cfg.degradEnabled && <InactivityWarning lastBuy={c.lastBuyRaw || null} tierName={t.name} />}
 
       {/* Info rows */}
       <div style={{ margin: '0 20px', padding: 16, background: AT.card, borderRadius: 18, border: `1px solid ${AT.border}`, marginBottom: 12 }}>

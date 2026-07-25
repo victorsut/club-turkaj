@@ -468,6 +468,11 @@ export default function App() {
             const deg = cfgMap.degradation ? (typeof cfgMap.degradation === 'string' ? JSON.parse(cfgMap.degradation) : cfgMap.degradation) : [];
             const tu = cfgMap.terms_use ? (typeof cfgMap.terms_use === 'string' ? JSON.parse(cfgMap.terms_use) : cfgMap.terms_use) : [];
             const tc = cfgMap.terms_canje ? (typeof cfgMap.terms_canje === 'string' ? JSON.parse(cfgMap.terms_canje) : cfgMap.terms_canje) : [];
+            // Interruptor del motor de degradación (25-jul): apagado
+            // hasta el lanzamiento oficial; se enciende en admin Settings.
+            const degEn = cfgMap.degradation_enabled
+              ? (typeof cfgMap.degradation_enabled === 'string' ? JSON.parse(cfgMap.degradation_enabled) : cfgMap.degradation_enabled)
+              : {};
             let fp;
             if (cfgMap.fuel_prices) {
               fp = typeof cfgMap.fuel_prices === 'string' ? JSON.parse(cfgMap.fuel_prices) : cfgMap.fuel_prices;
@@ -482,6 +487,8 @@ export default function App() {
               surveyDaily: gen.surveyDaily || 5, tiers: trs, degrad: deg,
               termsUse: tu, termsCanje: tc,
               fuelPrices: fp,
+              degradEnabled: degEn.enabled === true,
+              degradEnabledAt: degEn.enabled_at || null,
             });
           }
         }

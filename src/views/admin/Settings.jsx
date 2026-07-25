@@ -10,6 +10,31 @@ import ReasonModal from '../../components/ui/ReasonModal';
 export default function Settings(ctx) {
   const { cfg, setCfg, setScr, fire, operators, setScr: navTo, loggedAdmin, stations, setStations } = ctx;
 
+  // ─── Interruptor del motor de degradación (25-jul) ───
+  // Apagado hasta el lanzamiento oficial. Al encender, el servidor
+  // estampa enabled_at y el contador de inactividad de TODOS arranca
+  // desde ese momento (nadie arrastra inactividad previa).
+  const [savingDegrad, setSavingDegrad] = useState(false);
+  const toggleDegrad = async () => {
+    if (!sb) { fire('Sin conexión'); return; }
+    if (!loggedAdmin?.id) { fire('Error: sesion admin no disponible. Cerra sesion y volve a ingresar.'); return; }
+    const next = !cfg.degradEnabled;
+    setSavingDegrad(true);
+    const { data, error } = await sb.rpc('set_degradation_enabled', {
+      p_enabled: next,
+      p_admin_id: loggedAdmin.id,
+      p_admin_name: loggedAdmin.name,
+      p_admin_email: loggedAdmin.email,
+      p_reason_text: null,
+    });
+    setSavingDegrad(false);
+    if (error) { fire('Error: ' + error.message); return; }
+    setCfg(p => ({ ...p, degradEnabled: next, degradEnabledAt: data?.enabled_at || p.degradEnabledAt }));
+    fire(next
+      ? 'Motor de degradación ACTIVADO — el contador de todos arranca desde hoy'
+      : 'Motor de degradación desactivado');
+  };
+
   // ─── WiFi por estación (25-jul): SSID + clave editables ───
   // Escritura directa a stations (política RLS abierta, igual que
   // schedule). Vacío = la estación no ofrece WiFi por app y el modal
@@ -301,6 +326,27 @@ export default function Settings(ctx) {
       {/* Degradation */}
       <div style={aSec}>Degradación por Inactividad</div>
       <div style={aCard}>
+        {/* Interruptor del motor (lanzamiento oficial) */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#E0E0E0' }}>Motor de degradación</div>
+            <div style={{ fontSize: 11, color: '#777', marginTop: 2 }}>
+              {cfg.degradEnabled
+                ? `Activo — contando inactividad desde ${cfg.degradEnabledAt ? new Date(cfg.degradEnabledAt).toLocaleDateString('es-GT') : 'la activación'}`
+                : 'Apagado — las reglas se muestran pero NO se aplican'}
+            </div>
+          </div>
+          <button onClick={toggleDegrad} disabled={savingDegrad} style={{
+            padding: '8px 16px', borderRadius: 20, border: 'none',
+            background: savingDegrad ? '#3A3A3A' : cfg.degradEnabled ? 'rgba(46,125,50,.25)' : 'rgba(255,255,255,.08)',
+            color: savingDegrad ? '#777' : cfg.degradEnabled ? '#69F0AE' : '#9E9E9E',
+            fontFamily: "'DM Sans'", fontWeight: 800, fontSize: 12,
+            cursor: savingDegrad ? 'not-allowed' : 'pointer',
+          }}>
+            {savingDegrad ? '...' : cfg.degradEnabled ? 'ACTIVADO' : 'APAGADO'}
+          </button>
+        </div>
+        <div style={{ height: 1, background: AT.border, margin: '8px 0 12px' }} />
         {(cfg.degrad || []).map((d, i) => (
           <div key={i} style={{ marginBottom: i < (cfg.degrad || []).length - 1 ? 12 : 0 }}>
             <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 6, color: d.tier === 'BLACK' ? '#CE93D8' : d.tier === 'PLATINO' ? '#64B5F6' : '#FFB74D' }}>{d.tier}</div>

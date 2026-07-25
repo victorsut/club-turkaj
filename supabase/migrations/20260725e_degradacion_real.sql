@@ -6,8 +6,11 @@
 -- de members.gallons y nada los tocaba.
 --
 -- Algoritmo firmado por el dueño (25-jul-2026):
---   · 15 días de gracia desde la última compra (cualquier compra
---     resetea el ciclo).
+--   · ACTIVIDAD que reinicia el contador: compra de combustible,
+--     encuesta completada, compra de boletos de rifa, canje creado y
+--     uso (entrega) de un canje pendiente. Fuente: activity_log +
+--     members.last_buy.
+--   · 15 días de gracia desde la última actividad.
 --   · Día 1 de degradación (día 16 de inactividad): los galones caen
 --     a UMBRAL − 1 ("rozando el límite superior" — una compra lo
 --     recupera). Día 2: umbral − 3 (1+2). Día 3: −6 (3+3). Día n:
@@ -22,28 +25,40 @@
 --     descendido a ORO: BLACK → día 75 de inactividad; PLATINO →
 --     día 60; ORO nativo → día 45.
 --
+-- INTERRUPTOR (lanzamiento oficial): el motor nace APAGADO
+-- (program_config 'degradation_enabled'). Se enciende desde Admin →
+-- Configuración vía set_degradation_enabled (auditado). Al activarlo
+-- se estampa enabled_at y el contador de TODOS cuenta desde
+-- GREATEST(última actividad, enabled_at) → nadie arrastra inactividad
+-- previa al encendido (protege las cuentas viejas). Re-activar
+-- vuelve a estampar enabled_at (reinicio limpio).
+--
 -- Motor: RPC perezoso (patrón draw_due_raffles) que corre en cada
 -- apertura de la app ANTES de leer members. Idempotente: los galones
 -- objetivo son función PURA de (tier de origen, días de inactividad);
 -- FOR UPDATE SKIP LOCKED evita carreras entre aperturas simultáneas.
 --
 -- Estado por miembro:
---   · degrade_base_gal: galones al iniciar el ciclo (define el tier
---     de ORIGEN; auditoría de cuánto tenía).
+--   · degrade_base_gal: galones al iniciar el ciclo (tier de ORIGEN).
 --   · degrade_stage: 0 activo · 1 bajó BLACK→PLATINO · 2 bajó a ORO
 --     · 3 reiniciado. Controla los registros en activity_log (una
 --     vez por transición) y la idempotencia del reinicio.
---   · Compra posterior (días < 16 en el siguiente barrido) → el ciclo
---     se cierra (stage 0, base NULL) SIN tocar register_purchase.
+--   · Actividad posterior (días < 16 en el siguiente barrido) → el
+--     ciclo se cierra (stage 0, base NULL) sin tocar otras RPCs.
 -- ============================================================
 
 ALTER TABLE members ADD COLUMN IF NOT EXISTS degrade_stage smallint NOT NULL DEFAULT 0;
 ALTER TABLE members ADD COLUMN IF NOT EXISTS degrade_base_gal numeric;
 
 COMMENT ON COLUMN members.degrade_stage IS
-'Etapa de degradación por inactividad: 0 activo · 1 bajó BLACK→PLATINO · 2 bajó a ORO · 3 cuenta reiniciada. Se limpia al volver a comprar.';
+'Etapa de degradación por inactividad: 0 activo · 1 bajó BLACK→PLATINO · 2 bajó a ORO · 3 cuenta reiniciada. Se limpia al volver a tener actividad.';
 COMMENT ON COLUMN members.degrade_base_gal IS
 'Galones al iniciar el ciclo de degradación (tier de origen). NULL = sin ciclo activo.';
+
+-- Interruptor: nace APAGADO (se enciende en el lanzamiento oficial).
+INSERT INTO program_config (key, value)
+VALUES ('degradation_enabled', '{"enabled": false, "enabled_at": null}'::jsonb)
+ON CONFLICT (key) DO NOTHING;
 
 CREATE OR REPLACE FUNCTION public.apply_due_degradations()
  RETURNS jsonb
@@ -52,9 +67,12 @@ CREATE OR REPLACE FUNCTION public.apply_due_degradations()
  SET search_path TO 'public', 'extensions'
 AS $function$
 DECLARE
+  v_cfg       jsonb;
+  v_enabled_at timestamptz;
   v_black_gal numeric := 500;
   v_plat_gal  numeric := 150;
   r           RECORD;
+  v_ref       timestamptz;
   v_days      integer;
   v_base      numeric;
   v_base_tier text;
@@ -66,6 +84,19 @@ DECLARE
   v_processed integer := 0;
   v_changed   integer := 0;
 BEGIN
+  -- ── Interruptor: sin activar, el motor es un no-op ──
+  SELECT value INTO v_cfg FROM program_config WHERE key = 'degradation_enabled';
+  IF v_cfg IS NULL OR COALESCE((v_cfg ->> 'enabled')::boolean, false) IS NOT TRUE THEN
+    RETURN jsonb_build_object('enabled', false);
+  END IF;
+  v_enabled_at := COALESCE((v_cfg ->> 'enabled_at')::timestamptz, now());
+
+  -- Los primeros 15 días tras el encendido nada puede degradar
+  -- (el contador de todos arranca, como mínimo, en enabled_at).
+  IF now() - v_enabled_at <= interval '15 days' THEN
+    RETURN jsonb_build_object('enabled', true, 'processed', 0, 'changed', 0);
+  END IF;
+
   SELECT COALESCE((value -> 'black'   ->> 'gal')::numeric, 500),
          COALESCE((value -> 'platino' ->> 'gal')::numeric, 150)
     INTO v_black_gal, v_plat_gal
@@ -75,19 +106,31 @@ BEGIN
   PERFORM set_config('app.allow_points_write', 'true', true);
 
   FOR r IN
-    SELECT id, points, gallons, degrade_stage, degrade_base_gal,
-           COALESCE(last_buy, created_at) AS ref_ts
+    SELECT id, points, gallons, degrade_stage, degrade_base_gal, last_buy, created_at
     FROM members
-    WHERE (now() - COALESCE(last_buy, created_at)) > interval '15 days'
-       OR degrade_stage > 0
-       OR degrade_base_gal IS NOT NULL
     FOR UPDATE SKIP LOCKED
   LOOP
     v_processed := v_processed + 1;
-    v_days := floor(extract(epoch FROM (now() - r.ref_ts)) / 86400)::integer;
 
-    -- Volvió a comprar: cerrar el ciclo (los galones quedan donde
-    -- estén — la compra ya los subió por register_purchase).
+    -- Última ACTIVIDAD del miembro: compra (last_buy) o cualquier
+    -- acción del cliente en activity_log — encuesta, canje creado,
+    -- entrega de canje, compra de boletos ('rifa' con puntos
+    -- negativos: excluye el premio del sorteo, que es pasivo).
+    -- Piso: enabled_at (nadie arrastra inactividad previa al motor).
+    SELECT GREATEST(
+      COALESCE(r.last_buy, r.created_at),
+      COALESCE((
+        SELECT max(created_at) FROM activity_log
+        WHERE member_id = r.id
+          AND (activity_type IN ('compra', 'encuesta', 'canje', 'entrega')
+               OR (activity_type = 'rifa' AND COALESCE(points_change, 0) < 0))
+      ), '-infinity'::timestamptz),
+      v_enabled_at
+    ) INTO v_ref;
+
+    v_days := floor(extract(epoch FROM (now() - v_ref)) / 86400)::integer;
+
+    -- Tuvo actividad reciente: cerrar el ciclo si estaba abierto.
     IF v_days < 16 THEN
       IF r.degrade_stage > 0 OR r.degrade_base_gal IS NOT NULL THEN
         UPDATE members SET degrade_stage = 0, degrade_base_gal = NULL, updated_at = now()
@@ -161,17 +204,73 @@ BEGIN
     END IF;
   END LOOP;
 
-  RETURN jsonb_build_object('processed', v_processed, 'changed', v_changed);
+  RETURN jsonb_build_object('enabled', true, 'processed', v_processed, 'changed', v_changed);
 END;
 $function$;
 
 COMMENT ON FUNCTION public.apply_due_degradations() IS
 'Degradación perezosa por inactividad (corre al abrir la app, idempotente).
-15 días de gracia; luego los galones caen a UMBRAL − n(n+1)/2 por día de
-descenso (día 1 = umbral−1, "rozando el límite"). BLACK: 500→ desde día 16,
-150→ desde día 31; PLATINO: 150→ desde día 16. Reinicio total (puntos y
-galones 0) 45 días después de caer a ORO: BLACK día 75 · PLATINO día 60 ·
-ORO día 45. Cualquier compra cierra el ciclo (stage 0) en el siguiente barrido.';
+No-op mientras program_config degradation_enabled esté apagado. Actividad =
+compra, encuesta, canje, entrega o compra de boletos; el contador cuenta
+desde GREATEST(última actividad, enabled_at). 15 días de gracia; luego los
+galones caen a UMBRAL − n(n+1)/2 por día ("rozando el límite" el día 1).
+BLACK: 500→ desde día 16, 150→ desde día 31; PLATINO: 150→ desde día 16.
+Reinicio total 45 días después de caer a ORO (BLACK d75 · PLATINO d60 ·
+ORO d45).';
+
+-- ── Interruptor auditado (program_config es solo-lectura para el
+--    cliente — el toggle del admin pasa por acá) ──
+CREATE OR REPLACE FUNCTION public.set_degradation_enabled(
+  p_enabled boolean,
+  p_admin_id uuid,
+  p_admin_name text,
+  p_admin_email text,
+  p_reason_text text DEFAULT NULL
+)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'extensions'
+AS $function$
+DECLARE
+  v_old   jsonb;
+  v_value jsonb;
+BEGIN
+  IF p_enabled IS NULL THEN
+    RAISE EXCEPTION 'enabled es obligatorio' USING ERRCODE = '22023';
+  END IF;
+  IF p_admin_id IS NULL THEN
+    RAISE EXCEPTION 'admin_id es obligatorio' USING ERRCODE = '22023';
+  END IF;
+
+  SELECT value INTO v_old FROM program_config WHERE key = 'degradation_enabled';
+
+  -- Encender estampa enabled_at = ahora (contador limpio para todos);
+  -- apagar conserva el enabled_at histórico (irrelevante mientras esté off).
+  v_value := jsonb_build_object(
+    'enabled', p_enabled,
+    'enabled_at', CASE WHEN p_enabled THEN to_jsonb(now())
+                       ELSE COALESCE(v_old -> 'enabled_at', 'null'::jsonb) END
+  );
+
+  INSERT INTO program_config (key, value) VALUES ('degradation_enabled', v_value)
+  ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
+
+  PERFORM public.log_admin_action(
+    p_admin_id    => p_admin_id,
+    p_admin_name  => p_admin_name,
+    p_admin_email => p_admin_email,
+    p_action      => CASE WHEN p_enabled THEN 'enable_degradation' ELSE 'disable_degradation' END,
+    p_entity_type => 'config',
+    p_entity_id   => 'degradation_enabled',
+    p_reason_text => p_reason_text,
+    p_old_value   => v_old,
+    p_new_value   => v_value
+  );
+
+  RETURN v_value;
+END;
+$function$;
 
 -- ── Textos de reglas mostrados en la app (Ajustes/Menú/Reglas) ──
 UPDATE program_config SET value = '[

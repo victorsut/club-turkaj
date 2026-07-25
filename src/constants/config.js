@@ -32,6 +32,10 @@ export const DEFAULT_CONFIG = {
   // gracia; desde el día 16 los galones caen a UMBRAL − n(n+1)/2 por
   // día (−1, −3, −6, −10…). Reinicio total 45 días después de caer a
   // ORO. Motor: RPC apply_due_degradations (perezoso, al abrir la app).
+  // APAGADO hasta el lanzamiento oficial — interruptor en admin
+  // Settings (program_config 'degradation_enabled').
+  degradEnabled: false,
+  degradEnabledAt: null,
   degrad: [
     {
       tier: 'BLACK',

@@ -238,7 +238,8 @@ export default function ClientHome(ctx) {
           queda bajo el fold y aparece al scrollear (feedback IMG3) */}
       <div className="pp-home-fit" style={{ paddingBottom: 76 }}>
       {/* Inactivity warning */}
-      <InactivityWarning lastBuy={me.lastBuy} tierName={cTier.name} />
+      {/* Aviso de inactividad — solo con el motor de degradación ACTIVO */}
+      {cfg.degradEnabled && <InactivityWarning lastBuy={me.lastBuy} tierName={cTier.name} />}
 
       {/* Header + saludo (FORMATO GENERAL). En pantallas cortas se OMITE
           el logo (decisión del dueño 23-jul): solo saludo compacto +
