@@ -29,6 +29,7 @@ const MES_CORTO = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep'
 const monthLabel = (ym) => `${MES_CORTO[parseInt(ym.slice(5, 7), 10) - 1] || '?'} ${ym.slice(0, 4)}`;
 
 // Fecha del item normalizada a 'YYYY-MM-DD' en hora de Guatemala.
+// Formato INTERNO: los filtros de período recortan por slice — no cambiar.
 const itemDay = (raw) => {
   if (!raw) return '';
   const s = String(raw);
@@ -37,6 +38,11 @@ const itemDay = (raw) => {
     return new Date(s).toLocaleDateString('en-CA', { timeZone: 'America/Guatemala' });
   } catch { return s.slice(0, 10); }
 };
+
+// Fecha VISIBLE en las filas: día/mes/año (pedido del dueño 25-jul).
+const fmtDay = (iso) => iso && iso.length === 10
+  ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`
+  : iso;
 
 // `accent` = color del cuadro del home que abrió el historial (paleta
 // por nivel — homeColors); sin él cae a los tokens teal/orange de ORO.
@@ -280,7 +286,7 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 700, color: TH.txt, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.desc}</div>
-                    <div style={{ fontSize: 10, color: TH.sub, ...sMono, marginTop: 2 }}>{day}</div>
+                    <div style={{ fontSize: 10, color: TH.sub, ...sMono, marginTop: 2 }}>{fmtDay(day)}</div>
                   </div>
                   <div style={{ fontSize: 13, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: pos ? good : bad, flexShrink: 0 }}>
                     {pos ? '+' : ''}{pts}
@@ -303,7 +309,7 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: TH.txt, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rd.reward?.name || 'Premio'}</div>
-                  <div style={{ fontSize: 10, color: TH.sub, ...sMono, marginTop: 2 }}>{itemDay(rd.date)} · {rd.code}</div>
+                  <div style={{ fontSize: 10, color: TH.sub, ...sMono, marginTop: 2 }}>{fmtDay(itemDay(rd.date))} · {rd.code}</div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: dark ? '#FF8A80' : bento.red }}>-{rd.cost} pts</div>
