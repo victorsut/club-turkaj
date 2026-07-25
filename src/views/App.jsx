@@ -230,11 +230,15 @@ export default function App() {
 
   // R1b.4 Rifa — modal de ganador: si el sorteo (draw_due_raffles) me
   // marcó ganador de una rifa que aún no he visto, felicitar UNA vez.
+  // La marca de "visto" vive en el SERVIDOR (winner_seen_at — fix
+  // 25-jul: con solo localStorage reaparecía en cada dispositivo);
+  // localStorage queda como guarda instantánea secundaria.
   const [raffleWin, setRaffleWin] = useState(null);
   useEffect(() => {
     if (!me?.id || !raffleCal.length) return;
     try {
       const win = raffleCal.find(r => r?.winnerId === me.id && r.drawnAt && r.dbId
+        && !r.winnerSeenAt
         && !localStorage.getItem(`pp_rafwin_${r.dbId}`));
       if (win) setRaffleWin(win);
     } catch { /* localStorage no disponible */ }
@@ -485,7 +489,7 @@ export default function App() {
           const cal = months.map((m, i) => ({
             m, p: '—', name: null, icon: null, img: null, detail: null,
             v: 'Q0', cost: 0, dbId: null, month: i + 1, year: yr,
-            winnerId: null, drawnAt: null, ticketPts: null,
+            winnerId: null, drawnAt: null, winnerSeenAt: null, ticketPts: null,
           }));
           rcRes.data.filter(r => !r.year || r.year === yr).forEach(r => {
             cal[r.month - 1] = {
@@ -495,6 +499,7 @@ export default function App() {
               v: `Q${r.prize_value}`, cost: r.prize_value, dbId: r.id,
               month: r.month, year: r.year || yr,
               winnerId: r.winner_id || null, drawnAt: r.drawn_at || null,
+              winnerSeenAt: r.winner_seen_at || null,
               // Costo del boleto de ESTA rifa; null = global cfg.ticketPts.
               ticketPts: r.ticket_points ?? null,
             };
@@ -1891,7 +1896,18 @@ export default function App() {
           name={me.name}
           isBlack={dark}
           onClose={() => {
+            // Marca de visto en el SERVIDOR (cross-device) + localStorage
+            // como guarda instantánea. Reflejar en raffleCal local para
+            // que el efecto no lo re-encuentre antes del próximo fetch.
             try { localStorage.setItem(`pp_rafwin_${raffleWin.dbId}`, '1'); } catch { /* noop */ }
+            if (sb) {
+              sb.from('raffle_calendar')
+                .update({ winner_seen_at: new Date().toISOString() })
+                .eq('id', raffleWin.dbId)
+                .then(({ error }) => { if (error) console.error('[Rifa] winner_seen_at:', error.message); });
+            }
+            setRaffleCal(p => p.map(r => r?.dbId === raffleWin.dbId
+              ? { ...r, winnerSeenAt: new Date().toISOString() } : r));
             setRaffleWin(null);
           }}
         />
