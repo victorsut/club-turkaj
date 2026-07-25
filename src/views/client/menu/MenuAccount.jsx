@@ -4,7 +4,7 @@
 // iconos SVG (alta Y baja persisten en members) y cambio de contraseña.
 import { useState, useEffect } from 'react';
 import { sb } from '../../../lib/supabaseClient';
-import { inputFlat, btnStyle, bento, BRAND_RED } from '../../../constants/styles';
+import { inputFlat, btnStyle, bento, BRAND_ORANGE } from '../../../constants/styles';
 import { User, Phone, Mail, Receipt, IdCard, Cake, Lock, Key, Eye, EyeOff, Plus, XMark, Chev } from '../../../components/ui/Icons';
 import { VEHICLE_TYPES } from '../../../components/ui/VehicleIcons';
 import { DatePickerSheet } from '../../../components/ui/DrumDatePicker';
@@ -60,7 +60,7 @@ export default function MenuAccount({ ctx, TH, onBack }) {
   const field = { ...inputFlat, background: TH.isDark ? 'rgba(255,255,255,.08)' : '#fff', color: TH.header, paddingLeft: 44 };
   const label = { fontSize: 11, fontWeight: 800, color: TH.sub, marginBottom: 6, textTransform: 'uppercase', letterSpacing: .5 };
   const iconL = { position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: TH.sub, display: 'flex', zIndex: 1 };
-  const btnPrimary = { ...btnStyle, background: BRAND_RED, color: '#fff' };
+  const btnPrimary = { ...btnStyle, background: BRAND_ORANGE, color: '#fff' };
 
   // ── Guardar datos de cuenta ──────────────────────────────
   const saveAccount = async () => {
@@ -254,12 +254,12 @@ export default function MenuAccount({ ctx, TH, onBack }) {
             <button onClick={() => { setAddingV(false); setNewVPlate(''); }}
               style={{ flex: 1, padding: 12, borderRadius: 12, border: 'none', background: TH.inset, color: TH.sub, fontFamily: "'DM Sans'", fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>Cancelar</button>
             <button onClick={addVehicle}
-              style={{ flex: 2, padding: 12, borderRadius: 12, border: 'none', background: BRAND_RED, color: '#fff', fontFamily: "'DM Sans'", fontWeight: 800, cursor: 'pointer', fontSize: 13 }}>Agregar</button>
+              style={{ flex: 2, padding: 12, borderRadius: 12, border: 'none', background: BRAND_ORANGE, color: '#fff', fontFamily: "'DM Sans'", fontWeight: 800, cursor: 'pointer', fontSize: 13 }}>Agregar</button>
           </div>
         </div>
       ) : (
         <button onClick={() => setAddingV(true)} style={{ width: '100%', padding: 14, borderRadius: 16, border: 'none', background: TH.surface, color: TH.header, fontFamily: "'DM Sans'", fontWeight: 800, fontSize: 14, cursor: 'pointer', marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          <span style={{ color: BRAND_RED, display: 'flex' }}><Plus /></span>
+          <span style={{ color: BRAND_ORANGE, display: 'flex' }}><Plus /></span>
           Agregar vehículo
         </button>
       )}

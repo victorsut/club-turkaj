@@ -32,7 +32,7 @@ function utcToLocal(isoString) {
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
-import { clientTheme, clientMainBg, adminTheme, sMono, GAL, bento, BRAND_RED, BRAND_ORANGE, CAT_LABELS, CAT_COLORS } from '../constants/styles';
+import { clientTheme, clientMainBg, adminTheme, sMono, GAL, bento, BRAND_ORANGE, CAT_LABELS, CAT_COLORS } from '../constants/styles';
 import useToast from '../hooks/useToast';
 
 // UI Components
@@ -1709,7 +1709,7 @@ export default function App() {
                 redeem(reward);
               }} style={{
                 flex: 2, padding: 16, borderRadius: 14, border: 'none',
-                background: BRAND_RED, color: '#fff',
+                background: BRAND_ORANGE, color: '#fff',
                 fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 800, cursor: 'pointer',
               }}>Confirmar Canje</button>
             </div>

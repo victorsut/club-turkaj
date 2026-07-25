@@ -10,7 +10,7 @@
 // Se llega tocando el cuadro de Promociones del home; no es pestaña
 // del bottom nav.
 import { useState } from 'react';
-import { bento, BRAND_RED } from '../../constants/styles';
+import { bento, BRAND_ORANGE } from '../../constants/styles';
 import PromoCard from '../../components/ui/PromoCard';
 import { GiftIcon } from '../../components/ui/BentoIcons';
 import { ArrowLeft, Chev } from '../../components/ui/Icons';
@@ -60,7 +60,7 @@ export default function ClientPromos(ctx) {
             <button key={c.v} onClick={() => setChip(c.v)} style={{
               flex: '1 1 0', minWidth: 0, padding: '10px 2px', borderRadius: 12,
               border: 'none', cursor: 'pointer', textAlign: 'center',
-              background: on ? BRAND_RED : (dark ? 'rgba(255,255,255,.08)' : '#fff'),
+              background: on ? BRAND_ORANGE : (dark ? 'rgba(255,255,255,.08)' : '#fff'),
               color: on ? '#fff' : (dark ? 'rgba(255,255,255,.75)' : '#3A3A3C'),
               fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
               transition: 'background .2s, color .2s',

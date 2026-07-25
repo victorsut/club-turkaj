@@ -43,13 +43,14 @@ export const adminTheme = {
   sub: '#9E9E9E',
 };
 
-// Rojo heredado (D30) — sigue vivo en CTAs/chips/stats mientras el dueño
-// no pida migrarlos; los ÍCONOS y el wordmark ya son naranja (23-jul).
+// Rojo heredado (D30) — SIN consumidores desde el 25-jul-2026 (el dueño
+// pidió migrar también CTAs/chips/stats a naranja); se conserva solo por
+// compatibilidad. El rojo semántico (errores, montos negativos) es bento.red.
 export const BRAND_RED = '#E02020';
 
 // Naranja del logo oficial — paleta de marca naranja/negro/blanco.
-// Acento de íconos (nav activa, spinner, QR) y de la palabra "Plus"
-// (decisión del dueño 23-jul-2026), además de login/registro.
+// ÚNICO acento de marca de la app (dueño, 25-jul-2026): íconos, palabra
+// "Plus", login/registro y todos los CTAs/chips/stats.
 export const BRAND_ORANGE = '#FA5408';
 
 // Input flat sin borde visible (FORMATO GENERAL — login/registro).

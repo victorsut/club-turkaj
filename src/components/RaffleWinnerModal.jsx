@@ -5,7 +5,7 @@
 // que el ganador abre la app tras el sorteo — típicamente al día
 // siguiente del cierre del mes. FORMATO GENERAL: flat, sin emojis;
 // imagen real del premio si existe, si no el ícono SVG adecuado.
-import { bento, BRAND_RED } from '../constants/styles';
+import { BRAND_ORANGE } from '../constants/styles';
 import { rewardIconFor } from './ui/RewardIcon';
 import useBackLayer from '../hooks/useBackLayer';
 
@@ -28,7 +28,7 @@ export default function RaffleWinnerModal({ cal, name, isBlack = false, onClose 
         textAlign: 'center',
       }}>
         {/* Banda kicker de celebración */}
-        <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, color: BRAND_RED }}>
+        <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, color: BRAND_ORANGE }}>
           Rifa de {cal.m}
         </div>
         <div style={{ fontSize: 22, fontWeight: 800, color: isBlack ? '#fff' : '#0D0D0D', marginTop: 4 }}>
@@ -38,7 +38,7 @@ export default function RaffleWinnerModal({ cal, name, isBlack = false, onClose 
           Ganaste el sorteo de este mes
         </div>
 
-        {/* Premio: imagen real o ícono SVG en cuadro rojo */}
+        {/* Premio: imagen real o ícono SVG en cuadro naranja */}
         {cal.img ? (
           <img src={cal.img} alt={cal.name || 'Premio'} style={{
             width: '100%', maxWidth: 240, aspectRatio: '4 / 3', objectFit: 'cover',
@@ -47,7 +47,7 @@ export default function RaffleWinnerModal({ cal, name, isBlack = false, onClose 
         ) : (
           <div style={{
             width: 64, height: 64, borderRadius: 18, margin: '0 auto 12px',
-            background: bento.red, color: '#fff',
+            background: BRAND_ORANGE, color: '#fff',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <div style={{ transform: 'scale(1.6)', lineHeight: 0 }}><PrizeIcon /></div>
@@ -95,7 +95,7 @@ export default function RaffleWinnerModal({ cal, name, isBlack = false, onClose 
 
         <button onClick={onClose} style={{
           width: '100%', padding: 15, borderRadius: 14, border: 'none',
-          background: BRAND_RED, color: '#fff',
+          background: BRAND_ORANGE, color: '#fff',
           fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 800, cursor: 'pointer',
         }}>
           Entendido

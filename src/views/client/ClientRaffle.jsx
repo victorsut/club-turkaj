@@ -9,7 +9,7 @@
 // El sorteo es automático al cierre del mes (draw_due_raffles, ponderado
 // por boletos); acá solo se muestra el resultado.
 import { useState, useMemo } from 'react';
-import { bento, BRAND_RED, BRAND_ORANGE } from '../../constants/styles';
+import { bento, BRAND_ORANGE } from '../../constants/styles';
 import { Back, Chev, TicketStar } from '../../components/ui/Icons';
 import { rewardIconFor } from '../../components/ui/RewardIcon';
 import useBackLayer from '../../hooks/useBackLayer';
@@ -148,7 +148,7 @@ export default function ClientRaffle(ctx) {
           borderTop: `1px solid ${rowLine}`,
         }}>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 24, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: BRAND_RED }}>{myTickets}</div>
+            <div style={{ fontSize: 24, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: BRAND_ORANGE }}>{myTickets}</div>
             <div style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: subTxt, marginTop: 1 }}>Mis boletos</div>
           </div>
           <div style={{ width: 1, background: rowLine }} />
@@ -160,7 +160,7 @@ export default function ClientRaffle(ctx) {
       </div>
 
       {/* ── Comprar boletos (solo mes en curso) — UNA tarjeta; los
-          botones son ROJOS sólidos para diferenciarse de la info ── */}
+          botones son NARANJAS sólidos para diferenciarse de la info ── */}
       {isCurrent && (
         <div style={{ margin: '0 16px 14px', padding: '12px 14px', borderRadius: 20, background: surface }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
@@ -174,7 +174,7 @@ export default function ClientRaffle(ctx) {
               return (
                 <button key={n} onClick={() => canBuy && setBuyConfirm({ n, cost: n * cfg.ticketPts })} disabled={!canBuy} style={{
                   flex: 1, padding: '12px 0', borderRadius: 12, border: 'none',
-                  background: canBuy ? BRAND_RED : (dark ? 'rgba(255,255,255,.05)' : '#ECECEE'),
+                  background: canBuy ? BRAND_ORANGE : (dark ? 'rgba(255,255,255,.05)' : '#ECECEE'),
                   fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 800,
                   fontVariantNumeric: 'tabular-nums',
                   cursor: canBuy ? 'pointer' : 'default',
@@ -215,7 +215,7 @@ export default function ClientRaffle(ctx) {
                 }}>
                   <div style={{
                     width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
-                    background: isMe ? BRAND_RED : (dark ? 'rgba(255,255,255,.1)' : '#E5E5EA'),
+                    background: isMe ? BRAND_ORANGE : (dark ? 'rgba(255,255,255,.1)' : '#E5E5EA'),
                     color: isMe ? '#fff' : subTxt,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 12, fontWeight: 800,
@@ -225,7 +225,7 @@ export default function ClientRaffle(ctx) {
                   <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{
                       fontSize: 13, fontWeight: isMe ? 800 : 700,
-                      color: isMe ? BRAND_RED : (dark ? '#E0E0E0' : '#0D0D0D'),
+                      color: isMe ? BRAND_ORANGE : (dark ? '#E0E0E0' : '#0D0D0D'),
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>
                       {p.name}{isMe ? ' (Tú)' : ''}
@@ -317,7 +317,7 @@ export default function ClientRaffle(ctx) {
                 buyTickets(n);
               }} style={{
                 flex: 2, padding: 16, borderRadius: 14, border: 'none',
-                background: BRAND_RED, color: '#fff',
+                background: BRAND_ORANGE, color: '#fff',
                 fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 800, cursor: 'pointer',
               }}>Comprar boletos</button>
             </div>

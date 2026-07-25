@@ -5,7 +5,7 @@
 // sin borde con el ícono SVG del premio (RewardIcon — sin emojis) sobre
 // un cuadro de color sólido por categoría. BLACK conserva su galaxia.
 import { useState } from 'react';
-import { bento, BRAND_RED, CAT_LABELS, CAT_COLORS, homeColors } from '../../constants/styles';
+import { bento, BRAND_ORANGE, CAT_LABELS, CAT_COLORS, homeColors } from '../../constants/styles';
 import RewardIcon from '../../components/ui/RewardIcon';
 import ChipScroller from '../../components/ui/ChipScroller';
 import HistorySheet from '../client/HistorySheet';
@@ -79,7 +79,7 @@ export default function Catalog(ctx) {
           return (
             <button key={c} onClick={() => setCatF(c)} style={{
               padding: '8px 14px', borderRadius: 12, border: 'none', cursor: 'pointer',
-              background: on ? BRAND_RED : (dark ? 'rgba(255,255,255,.08)' : '#fff'),
+              background: on ? BRAND_ORANGE : (dark ? 'rgba(255,255,255,.08)' : '#fff'),
               color: on ? '#fff' : (dark ? 'rgba(255,255,255,.75)' : '#3A3A3C'),
               fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
               transition: 'background .2s, color .2s',

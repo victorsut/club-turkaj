@@ -2,7 +2,7 @@
 // Main client dashboard: tier card, stats, survey, QR, promo carousel, history
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { sb } from '../../lib/supabaseClient';
-import { sMono, bento, BRAND_RED, homeColors } from '../../constants/styles';
+import { sMono, bento, BRAND_ORANGE, homeColors } from '../../constants/styles';
 import PromoCard from '../../components/ui/PromoCard';
 import { CARD_PREFIX } from '../../constants/config';
 import Wordmark from '../../components/ui/Wordmark';
@@ -238,7 +238,7 @@ export default function ClientHome(ctx) {
 
       {/* Saludo festivo vía special_days (D34) */}
       {festivo && (
-        <div style={{ padding: '4px 20px 0', fontSize: 12, fontWeight: 800, color: BRAND_RED }}>
+        <div style={{ padding: '4px 20px 0', fontSize: 12, fontWeight: 800, color: BRAND_ORANGE }}>
           {festivo.icon} {festivo.bday ? `¡Feliz cumpleaños, ${firstName}!` : `¡Feliz ${festivo.name}!`}
         </div>
       )}
