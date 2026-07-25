@@ -30,6 +30,15 @@ export function isValidCardCode(code) {
   return CARD_CODE_REGEX.test(normalize(code));
 }
 
+// Código de canje (redemptions.redemption_code): "TK-XXXXXX"
+// (6 hex generados por redeem_reward/grant_reward; margen 4–10 por
+// si el formato crece). Es el contenido del QR del canje pendiente.
+const REDEMPTION_CODE_REGEX = /^TK-[A-Z0-9]{4,10}$/;
+
+export function isValidRedemptionCode(code) {
+  return REDEMPTION_CODE_REGEX.test(normalize(code));
+}
+
 export function parseCardCode(code) {
   const normalized = normalize(code);
   if (!CARD_CODE_REGEX.test(normalized)) {

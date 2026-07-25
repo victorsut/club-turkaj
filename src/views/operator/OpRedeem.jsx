@@ -213,7 +213,7 @@ export default function OpRedeem(ctx) {
   const tier = client ? gT(client.gallons) : null;
 
   // -- QR Scanner ---------------------------------------
-  if (scanning) return <QRScanner onScan={handleScan} onClose={() => setScanning(false)} />;
+  if (scanning) return <QRScanner onScan={handleScan} onClose={() => setScanning(false)} acceptRedemptions />;
 
   // -- Vista con cliente seleccionado -------------------
   if (client) {

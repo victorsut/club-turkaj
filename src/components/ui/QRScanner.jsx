@@ -1,10 +1,12 @@
 // src/components/ui/QRScanner.jsx
 // Full-screen QR scanner overlay using html5-qrcode.
-// Valida formato CT[OPB]D-NNNNN antes de emitir onScan.
+// Valida formato CT[OPB]D-NNNNN antes de emitir onScan; con
+// `acceptRedemptions` también acepta códigos de canje TK-XXXXXX
+// (QR del premio en OpRedeem).
 // Permite ingreso manual como fallback (cámara denegada o QR raspado).
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { isValidCardCode } from '../../lib/cardCodes';
+import { isValidCardCode, isValidRedemptionCode } from '../../lib/cardCodes';
 
 const HEADER_BTN = {
   background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 12,
@@ -12,8 +14,16 @@ const HEADER_BTN = {
   cursor: 'pointer', fontFamily: "'DM Sans'",
 };
 
-export default function QRScanner({ onScan, onClose }) {
+export default function QRScanner({ onScan, onClose, acceptRedemptions = false }) {
   const [mode, setMode] = useState('scanning'); // 'scanning' | 'manual'
+  // Validación según el caller: tarjeta siempre; canje TK solo si el
+  // caller lo pide (OpRedeem). Ref para el callback estable del scanner.
+  const isAccepted = useCallback(
+    (t) => isValidCardCode(t) || (acceptRedemptions && isValidRedemptionCode(t)),
+    [acceptRedemptions],
+  );
+  const isAcceptedRef = useRef(isAccepted);
+  useEffect(() => { isAcceptedRef.current = isAccepted; }, [isAccepted]);
   const [error, setError] = useState('');
   const [hasFlash, setHasFlash] = useState(false);
   const [flashOn, setFlashOn] = useState(false);
@@ -64,7 +74,7 @@ export default function QRScanner({ onScan, onClose }) {
             // en frame y se re-detecta a 10 fps).
             if (invalidLockRef.current) return;
 
-            if (isValidCardCode(decodedText)) {
+            if (isAcceptedRef.current(decodedText)) {
               if (navigator.vibrate) navigator.vibrate(200);
               onScanRef.current?.(decodedText);
             } else {
@@ -133,12 +143,12 @@ export default function QRScanner({ onScan, onClose }) {
 
   const handleManualConfirm = () => {
     const trimmed = manualInput.trim().toUpperCase();
-    if (!isValidCardCode(trimmed)) return; // botón ya estaba deshabilitado
+    if (!isAccepted(trimmed)) return; // botón ya estaba deshabilitado
     if (navigator.vibrate) navigator.vibrate(200);
     onScan(trimmed);
   };
 
-  const manualValid = isValidCardCode(manualInput);
+  const manualValid = isAccepted(manualInput);
 
   return (
     <div style={{
@@ -201,7 +211,7 @@ export default function QRScanner({ onScan, onClose }) {
                 textAlign: 'center', color: 'rgba(255,255,255,.7)',
                 fontSize: 13, fontWeight: 600, fontFamily: "'DM Sans'",
               }}>
-                Apuntá la cámara al código QR del miembro
+                {acceptRedemptions ? 'Apuntá la cámara al QR del miembro o del premio' : 'Apuntá la cámara al código QR del miembro'}
               </div>
             )}
 
@@ -243,12 +253,12 @@ export default function QRScanner({ onScan, onClose }) {
               color: '#fff', fontSize: 16, fontWeight: 800,
               fontFamily: "'DM Sans'", textAlign: 'center', marginBottom: 4,
             }}>
-              Ingresá el código de la tarjeta
+              {acceptRedemptions ? 'Ingresá el código de la tarjeta o del canje' : 'Ingresá el código de la tarjeta'}
             </div>
             <input
               value={manualInput}
               onChange={(e) => setManualInput(e.target.value.toUpperCase())}
-              placeholder="CTOD-12345"
+              placeholder={acceptRedemptions ? 'CTOD-12345 o TK-ABC123' : 'CTOD-12345'}
               autoFocus
               autoCapitalize="characters"
               autoComplete="off"
@@ -291,7 +301,9 @@ export default function QRScanner({ onScan, onClose }) {
               fontSize: 11, color: 'rgba(255,255,255,.4)',
               textAlign: 'center', fontFamily: "'DM Sans'", marginTop: 4,
             }}>
-              Formato: CTOD/CTPD/CTBD seguido de 5 dígitos
+              {acceptRedemptions
+                ? 'Tarjeta: CTOD/CTPD/CTBD + 5 dígitos · Canje: TK + código'
+                : 'Formato: CTOD/CTPD/CTBD seguido de 5 dígitos'}
             </div>
           </div>
         )}
