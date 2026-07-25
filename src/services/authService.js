@@ -37,25 +37,28 @@ export async function signInWithApple() {
 }
 
 // ──────────────────────────────────────────────
-// CLIENTES — Teléfono + Contraseña
-// (Busca directamente en tabla `members`)
+// CLIENTES — Teléfono + Contraseña (SEC-lite, 25-jul-2026)
 // ──────────────────────────────────────────────
-// TODO: migrar a una RPC `authenticate_member` con bcrypt,
-// igual que operadores y admins, para no exponer password_hash al cliente.
+// RPC `authenticate_member`: verificación bcrypt SERVER-SIDE (acepta
+// hashes legados y los auto-migra). La contraseña nunca se compara en
+// el cliente. Devuelve { ok, memberId, name } o { ok:false, error }.
 export async function signInWithPhone(phone, password) {
-  const { data, error } = await sb
-    .from('members')
-    .select('*, physical_cards!assigned_to(card_code)')
-    .eq('phone', phone)
-    .single();
-
-  if (error || !data) {
-    return { data: null, error: { message: 'Número no registrado' } };
+  if (!sb) return { ok: false, error: 'Sin conexión al servidor' };
+  try {
+    const { data, error } = await sb.rpc('authenticate_member', {
+      p_phone: (phone || '').trim(),
+      p_password: password || '',
+    });
+    if (error) {
+      console.error('[Auth:member] RPC error:', error.message);
+      return { ok: false, error: 'Error de conexión, intenta de nuevo' };
+    }
+    if (data?.error) return { ok: false, error: data.error };
+    return { ok: true, memberId: data.member_id, name: data.name };
+  } catch (err) {
+    console.error('[Auth:member] Unexpected:', err);
+    return { ok: false, error: 'Error inesperado' };
   }
-  if (data.password_hash !== password) {
-    return { data: null, error: { message: 'Contraseña incorrecta' } };
-  }
-  return { data, error: null };
 }
 
 // ──────────────────────────────────────────────

@@ -53,7 +53,7 @@ export default function MenuAccount({ ctx, TH, onBack }) {
   const [newVPlate, setNewVPlate] = useState('');
 
   const [showPassSec, setShowPassSec] = useState(false);
-  const [passForm, setPassForm]       = useState({ newPass: '', confirm: '' });
+  const [passForm, setPassForm]       = useState({ current: '', newPass: '', confirm: '' });
   const [showP, setShowP]             = useState({ n: false, cf: false });
   const [savingPass, setSavingPass]   = useState(false);
 
@@ -107,19 +107,24 @@ export default function MenuAccount({ ctx, TH, onBack }) {
     fire('Vehículo eliminado', 'success');
   };
 
-  // ── Contraseña ───────────────────────────────────────────
+  // ── Contraseña (SEC-lite 25-jul): RPC con bcrypt server-side,
+  // verificando la contraseña ACTUAL — ya no se escribe password_hash
+  // desde el cliente ni se usa el formato reversible 'pw:'+btoa. ──
   const savePassword = async () => {
+    if (!passForm.current) { fire('Ingresa tu contraseña actual', 'error'); return; }
     if (!passForm.newPass || passForm.newPass.length < 6) { fire('La contraseña debe tener al menos 6 caracteres', 'error'); return; }
     if (passForm.newPass !== passForm.confirm) { fire('Las contraseñas no coinciden', 'error'); return; }
+    if (!sb || !sbConnected) { fire('Sin conexión', 'error'); return; }
     setSavingPass(true);
-    const hashed = 'pw:' + btoa(passForm.newPass);
-    if (sbConnected && sb) {
-      const { error } = await sb.from('members').update({ password_hash: hashed }).eq('id', me.id);
-      if (error) { fire('Error: ' + error.message, 'error'); setSavingPass(false); return; }
-    }
-    setMe(p => ({ ...p, password_hash: hashed }));
+    const { data, error } = await sb.rpc('update_member_password', {
+      p_member_id: me.id,
+      p_current_password: passForm.current,
+      p_new_password: passForm.newPass,
+    });
     setSavingPass(false);
-    setPassForm({ newPass: '', confirm: '' });
+    if (error) { fire('Error: ' + error.message, 'error'); return; }
+    if (data?.error) { fire(data.error, 'error'); return; }
+    setPassForm({ current: '', newPass: '', confirm: '' });
     setShowPassSec(false);
     fire('Contraseña actualizada', 'success');
   };
@@ -277,13 +282,14 @@ export default function MenuAccount({ ctx, TH, onBack }) {
       {showPassSec && (
         <div style={{ background: TH.surface, borderRadius: 20, padding: 16 }}>
           {[
-            { k: 'newPass', l: 'Nueva contraseña',     pk: 'n' },
-            { k: 'confirm', l: 'Confirmar contraseña', pk: 'cf' },
+            { k: 'current', l: 'Contraseña actual',    pk: 'cu', ph: 'Tu contraseña de hoy' },
+            { k: 'newPass', l: 'Nueva contraseña',     pk: 'n',  ph: 'Mínimo 6 caracteres' },
+            { k: 'confirm', l: 'Confirmar contraseña', pk: 'cf', ph: 'Mínimo 6 caracteres' },
           ].map(f => (
             <div key={f.k} style={{ marginBottom: 12 }}>
               <div style={label}>{f.l}</div>
               <div style={{ position: 'relative' }}>
-                <input type={showP[f.pk] ? 'text' : 'password'} placeholder="Mínimo 6 caracteres" value={passForm[f.k]}
+                <input type={showP[f.pk] ? 'text' : 'password'} placeholder={f.ph} value={passForm[f.k]}
                   onChange={e => setPassForm(p => ({ ...p, [f.k]: e.target.value }))}
                   style={{ ...field, paddingLeft: 16, paddingRight: 50, background: TH.isDark ? 'rgba(255,255,255,.08)' : '#F5F5F7',
                     borderColor: f.k === 'confirm' && passForm.confirm

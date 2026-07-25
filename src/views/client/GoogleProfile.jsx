@@ -91,9 +91,17 @@ export default function GoogleProfile(ctx) {
       if (sb && sbConnected) {
         const provider   = me?.authProvider || 'manual';
         const providerId = me?.id?.startsWith('temp-') ? null : me?.id;
+        // SEC-lite (25-jul): hash bcrypt SERVER-SIDE. Fallback al formato
+        // legado solo si el RPC falla — authenticate_member lo acepta y
+        // lo auto-migra a bcrypt en el primer login.
+        let pwHash = 'pw:' + btoa(password);
+        try {
+          const { data: h, error: hErr } = await sb.rpc('hash_member_password', { p_password: password });
+          if (!hErr && h) pwHash = h;
+        } catch { /* fallback legado */ }
         const memberData = {
           phone:            regProfile.phone?.trim() || (provider === 'google' ? 'goog_' + (me?.id || '').substring(0, 12) : null),
-          password_hash:    'pw:' + btoa(password),
+          password_hash:    pwHash,
           auth_provider:    provider,
           auth_provider_id: providerId,
           name:             regProfile.name,

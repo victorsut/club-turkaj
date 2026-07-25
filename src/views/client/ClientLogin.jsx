@@ -8,6 +8,7 @@ import { sb } from '../../lib/supabaseClient';
 import { inputFlat, btnStyle, BRAND_ORANGE } from '../../constants/styles';
 import { GoogleLogo, Phone, Lock, Mail, Chev } from '../../components/ui/Icons';
 import { phoneMask } from '../../lib/inputMasks';
+import { signInWithPhone } from '../../services/authService';
 import Wordmark from '../../components/ui/Wordmark';
 import LegalFooter from '../../components/ui/LegalFooter';
 import ModeToggle from '../../components/ui/ModeToggle';
@@ -53,12 +54,24 @@ export default function ClientLogin(ctx) {
       : 'Muy pronto podrás recuperar tu contraseña por correo', 'info');
   };
 
-  const doLogin = () => {
+  // SEC-lite (25-jul): la contraseña se verifica en el SERVIDOR
+  // (RPC authenticate_member, bcrypt). Antes solo se buscaba el
+  // teléfono en la lista local — cualquier contraseña entraba.
+  const [loggingIn, setLoggingIn] = useState(false);
+  const doLogin = async () => {
+    if (loggingIn) return;
     clearAuthErr();
     if (!loginPhone || !loginPass) { setAuthError('Ingresa teléfono y contraseña'); return; }
-    const found = custs.find(c => c.phone === loginPhone);
-    if (!found) { setAuthError('Número no registrado'); return; }
-    setMe(found); setAuthScreen('logged'); fire('Bienvenido ' + found.name, 'success');
+    setLoggingIn(true);
+    try {
+      const res = await signInWithPhone(loginPhone, loginPass);
+      if (!res.ok) { setAuthError(res.error); return; }
+      const found = custs.find(c => c.id === res.memberId);
+      if (!found) { setAuthError('No se pudo cargar tu perfil. Recargá la app e intentá de nuevo.'); return; }
+      setMe(found); setAuthScreen('logged'); fire('Bienvenido ' + found.name, 'success');
+    } finally {
+      setLoggingIn(false);
+    }
   };
 
   const doGoogle = () => {
@@ -130,8 +143,8 @@ export default function ClientLogin(ctx) {
             ¿Olvidaste tu contraseña?
           </button>
         )}
-        <button onClick={doLogin} style={{ ...btnStyle, background: BRAND_ORANGE, color: '#fff' }}>
-          Iniciar sesión
+        <button onClick={doLogin} disabled={loggingIn} style={{ ...btnStyle, background: BRAND_ORANGE, color: '#fff', opacity: loggingIn ? .7 : 1 }}>
+          {loggingIn ? 'Ingresando...' : 'Iniciar sesión'}
         </button>
       </div>
 

@@ -87,46 +87,10 @@ export async function updateOperator(id, updates) {
   return { data: data?.[0], error };
 }
 
-// Autenticar operador contra la tabla `operators` en Supabase
-export async function authenticateOperator({ gafete, dpi, username, password }) {
-  const { data, error } = await sb
-    .from('operators')
-    .select('*')
-    .eq('gafete', gafete)
-    .eq('dpi', dpi)
-    .eq('username', username)
-    .eq('active', true)
-    .single();
-
-  if (error || !data) return { data: null, error: error || { message: 'Operador no encontrado' } };
-  // TODO: En producción, usar bcrypt-compare vía función RPC
-  // Por ahora comparamos password_hash directamente (temporal)
-  if (data.password_hash !== password) {
-    return { data: null, error: { message: 'Contraseña incorrecta' } };
-  }
-  return { data, error: null };
-}
-
-// ──────────────────────────────────────────────
-// ADMINISTRADORES (admins)
-// ──────────────────────────────────────────────
-export async function authenticateAdmin({ dpi, gafete, email, password }) {
-  const { data, error } = await sb
-    .from('admins')
-    .select('*')
-    .eq('dpi', dpi)
-    .eq('gafete', gafete)
-    .eq('email', email)
-    .eq('active', true)
-    .single();
-
-  if (error || !data) return { data: null, error: error || { message: 'Admin no encontrado' } };
-  // TODO: En producción, usar bcrypt-compare vía función RPC
-  if (data.password_hash !== password) {
-    return { data: null, error: { message: 'Contraseña incorrecta' } };
-  }
-  return { data, error: null };
-}
+// (SEC-lite 25-jul: se eliminaron los autenticadores LEGADOS de
+// operador/admin que comparaban password_hash en texto plano en el
+// cliente — eran código muerto; los logins reales viven en
+// operatorAuthService.js y adminAuthService.js vía RPCs con bcrypt.)
 
 // ──────────────────────────────────────────────
 // PREMIOS (rewards)
