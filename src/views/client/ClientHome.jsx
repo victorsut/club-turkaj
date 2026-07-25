@@ -24,7 +24,7 @@ export default function ClientHome(ctx) {
   const { me, gT, cfg, cTier, TH, activePromos, promoIdx, setPromoIdx,
     mySurveyCount, doSurvey, showHist, setShowHist,
     showInvite, setShowInvite, showRedeemed, setShowRedeemed,
-    showWifi, setShowWifi, showMap, setShowMap, stations,
+    showWifi, setShowWifi, showMap, setShowMap, stations, showQR,
     showSurveys, setShowSurveys, fire,
     pendingOpRating, setPendingOpRating, sbConnected,
     activityLog, custs, redeemedList, logout,
@@ -563,6 +563,7 @@ export default function ClientHome(ctx) {
           redeemed={myRedeemed}
           tierName={cTier.name}
           dark={dark}
+          qrOverlayOpen={showQR}
         />
       )}
       {/* Stations modal */}

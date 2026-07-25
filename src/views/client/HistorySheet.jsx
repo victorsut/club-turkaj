@@ -4,7 +4,7 @@
 // "Hoy" solo aparece si hay movimientos hoy; "Mes" y "Año" abren un
 // selector solo con los meses/años que tienen movimientos.
 // Entra desde su tile (container transform D35) y se guarda al cerrar.
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { sMono, bento, BRAND_ORANGE, clientMainBg } from '../../constants/styles';
 import { ArrowLeft, Gift, Clock, Fuel, Ticket, Cake, Car, Clipboard, StarLine } from '../../components/ui/Icons';
 import RewardIcon, { rewardIconFor } from '../../components/ui/RewardIcon';
@@ -49,7 +49,7 @@ const fmtDay = (iso) => iso && iso.length === 10
 // por nivel — homeColors); sin él cae a los tokens teal/orange de ORO.
 // `accentInk` = tinta sobre el acento (BLACK usa superficies claras u
 // oro con tinta oscura — referencia nivel black).
-export default function HistorySheet({ type, origin, tint, accent, accentInk, onClose, acts, redeemed, tierName, initialPending = false, dark = tierName === 'BLACK' }) {
+export default function HistorySheet({ type, origin, tint, accent, accentInk, onClose, acts, redeemed, tierName, initialPending = false, dark = tierName === 'BLACK', qrOverlayOpen = false }) {
   const isCompras = type === 'compras';
   const todayGT = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Guatemala' });
 
@@ -85,6 +85,12 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
     setTimeout(() => { setQrItem(null); setQrClosing(false); }, 220);
   };
   useBackLayer(!!qrItem, closeQr);
+  // Si el cliente abre su Código QR principal (botón central de la
+  // barra) con el QR del premio abierto, cerrar este para no encimar
+  // dos códigos (pedido del dueño 25-jul).
+  useEffect(() => {
+    if (qrOverlayOpen) { setQrItem(null); setQrClosing(false); }
+  }, [qrOverlayOpen]);
 
   // D35: al cerrar, la ventana "se guarda" en el cuadro de origen.
   const close = () => {
@@ -371,7 +377,10 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
           <div onClick={e => e.stopPropagation()} style={{
             background: dark ? '#101018' : '#fff',
             borderRadius: '24px 24px 0 0',
-            width: '100%', maxWidth: 480, padding: '12px 24px 36px',
+            // paddingBottom alto: este sheet vive DENTRO de HistorySheet
+            // (zIndex 90, bajo la BottomNav 100) — el círculo QR central
+            // sobresale encima, así que el contenido debe librarlo.
+            width: '100%', maxWidth: 480, padding: '12px 24px 104px',
             animation: qrClosing ? 'slideDownOut .22s ease-in forwards' : 'slideUp .3s cubic-bezier(.32,1.2,.64,1)',
             textAlign: 'center',
           }}>

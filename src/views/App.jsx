@@ -969,6 +969,10 @@ export default function App() {
         console.log('[Realtime] purchase insert:', p.id, 'op_id:', opId, 'station_id:', stId);
         // Sin operador no hay a quién calificar; el modal es solo de la vista cliente.
         if (!opId || viewRef.current !== 'client') return;
+        // El cliente suele tener su Código QR abierto (se lo mostró al
+        // operador para la compra): cerrarlo para que el modal de
+        // calificación quede al frente (pedido del dueño 25-jul).
+        setShowQR(false); setQrClosing(false);
         const stationName = stations.find(s => s.id === stId)?.name || '';
         // PROMO-1: el modal muestra los puntos de la compra y la promo aplicada.
         const base = {
