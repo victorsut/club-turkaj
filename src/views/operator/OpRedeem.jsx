@@ -117,10 +117,40 @@ export default function OpRedeem(ctx) {
     })));
   }, [sbConnected, redeemedList, fire]);
 
+  // Escaneo del QR de un CANJE (25-jul): el codigo TK-XXXXXX del
+  // premio salta directo a ese canje — carga al cliente, sus pendientes
+  // y abre la confirmacion con los datos de cliente y premio. El flujo
+  // de confirmacion en tiempo real (el cliente confirma en su
+  // dispositivo) no cambia.
+  const loadFromRedemption = useCallback(async (code) => {
+    if (!sb || !sbConnected) { fire('Sin conexion'); return; }
+    const { data, error } = await sb.from('redemptions')
+      .select('*, rewards(name, icon, category)')
+      .eq('redemption_code', code)
+      .maybeSingle();
+    if (error) { fire('Error: ' + error.message); return; }
+    if (!data) { fire('Canje no encontrado: ' + code); return; }
+    if (data.collected) { fire('Este canje ya fue entregado'); return; }
+    const cust = custs.find(c => c.id === data.member_id);
+    if (!cust) { fire('No se encontro al cliente de este canje'); return; }
+    await loadPending(cust);
+    setConfirmItem({
+      id: data.id, memberId: data.member_id,
+      reward: { name: data.rewards?.name || 'Premio', icon: data.rewards?.icon || '', cat: data.rewards?.category || '' },
+      cost: data.points_spent, date: utcToLocal(data.created_at) || '',
+      code: data.redemption_code, collected: false,
+    });
+    fire('OK ' + cust.name + ' | ' + (data.rewards?.name || 'Premio'));
+  }, [sbConnected, custs, fire, loadPending]);
+
   const handleScan = useCallback((code) => {
     setScanning(false);
-    const match = code.match(/^CT[OPB]D-(\d+)$/);
-    if (!match) { fire('Codigo no reconocido: ' + code); return; }
+    const raw = String(code || '').trim();
+    // QR del premio (canje pendiente)
+    if (/^TK-[A-Z0-9]+$/i.test(raw)) { loadFromRedemption(raw.toUpperCase()); return; }
+    // QR de la tarjeta del cliente
+    const match = raw.match(/^CT[OPB]D-(\d+)$/);
+    if (!match) { fire('Codigo no reconocido: ' + raw); return; }
     const correlative = match[1];
     const found = custs.find(c => {
       if (!c.cardId) return false;
@@ -128,8 +158,8 @@ export default function OpRedeem(ctx) {
       return cm && cm[1] === correlative;
     });
     if (found) { fire('OK ' + found.name); loadPending(found); }
-    else fire('Miembro no encontrado para: ' + code);
-  }, [custs, fire, loadPending]);
+    else fire('Miembro no encontrado para: ' + raw);
+  }, [custs, fire, loadPending, loadFromRedemption]);
 
   const requestConfirm = useCallback(async (item) => {
     setConfirmItem(null);
@@ -318,7 +348,7 @@ export default function OpRedeem(ctx) {
 
         {/* Boton escanear QR */}
         <button onClick={() => setScanning(true)} style={{ ...btnYellow, marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontSize: 16 }}>
-          Escanear codigo QR del cliente
+          Escanear QR del cliente o del premio
         </button>
 
         {/* FA-lite: toggle de impresión automática (por dispositivo) */}

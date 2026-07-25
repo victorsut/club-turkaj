@@ -5,10 +5,11 @@
 // selector solo con los meses/años que tienen movimientos.
 // Entra desde su tile (container transform D35) y se guarda al cerrar.
 import { useState } from 'react';
-import { sMono, bento, clientMainBg } from '../../constants/styles';
+import { sMono, bento, BRAND_ORANGE, clientMainBg } from '../../constants/styles';
 import { ArrowLeft, Gift, Clock, Fuel, Ticket, Cake, Car, Clipboard, StarLine } from '../../components/ui/Icons';
 import RewardIcon, { rewardIconFor } from '../../components/ui/RewardIcon';
 import ChipScroller from '../../components/ui/ChipScroller';
+import QRCode from '../../components/ui/QRCode';
 import useBackLayer from '../../hooks/useBackLayer';
 
 const CLOSE_MS = 200; // duración de ppGrowOut (+ margen) antes de desmontar
@@ -71,6 +72,19 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
   // cuándo se hizo. initialPending: abrir ya filtrado (reloj de CANJES).
   const [pendingOnly, setPendingOnly] = useState(initialPending && type !== 'compras');
   const pendingCount = isCompras ? 0 : base.filter(x => !x.collected).length;
+
+  // QR del canje pendiente (25-jul): tocar una fila PENDIENTE abre un
+  // bottom sheet con los detalles del canje y su QR único
+  // (redemption_code) para que el operador lo escanee. La entrega
+  // sigue confirmándose en este dispositivo (Realtime, sin cambios).
+  const [qrItem, setQrItem] = useState(null);
+  const [qrClosing, setQrClosing] = useState(false);
+  const closeQr = () => {
+    if (qrClosing) return;
+    setQrClosing(true);
+    setTimeout(() => { setQrItem(null); setQrClosing(false); }, 220);
+  };
+  useBackLayer(!!qrItem, closeQr);
 
   // D35: al cerrar, la ventana "se guarda" en el cuadro de origen.
   const close = () => {
@@ -295,11 +309,14 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
               );
             })
           : items.map((rd, i) => (
-              <div key={rd.id || i} style={{
-                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
-                background: TH.surface, borderRadius: 16, marginBottom: 8,
-                animation: `slideIn .3s ${Math.min(i, 10) * 0.03}s both`,
-              }}>
+              <div key={rd.id || i}
+                onClick={() => { if (!rd.collected) setQrItem(rd); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
+                  background: TH.surface, borderRadius: 16, marginBottom: 8,
+                  animation: `slideIn .3s ${Math.min(i, 10) * 0.03}s both`,
+                  cursor: rd.collected ? 'default' : 'pointer',
+                }}>
                 <div style={{
                   width: 40, height: 40, borderRadius: 12, flexShrink: 0,
                   background: accent || bento.teal, color: TH.chipInk,
@@ -326,10 +343,83 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
                   }}>
                     {rd.collected ? 'RECOGIDO' : 'PENDIENTE'}
                   </div>
+                  {!rd.collected && (
+                    <div style={{
+                      fontSize: 9, fontWeight: 800, marginTop: 4, letterSpacing: 0.5,
+                      color: dark ? '#FFD54F' : '#B58000',
+                    }}>
+                      VER QR ›
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
       </div>
+
+      {/* ── Bottom sheet: QR único del canje pendiente (25-jul) ──
+          El operador escanea este código (TK-XXXXXX) y le aparecen los
+          datos del cliente y del premio; la entrega se confirma después
+          en este dispositivo (flujo Realtime intacto). El panel del QR
+          es SIEMPRE blanco (escaneabilidad) con esquinas de escáner en
+          BRAND_ORANGE — mismo lenguaje del sheet Código QR. */}
+      {qrItem && (
+        <div onClick={closeQr} style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)',
+          zIndex: 400, display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          animation: qrClosing ? 'ppFadeOut .22s ease forwards' : 'ppFade .2s ease',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: dark ? '#101018' : '#fff',
+            borderRadius: '24px 24px 0 0',
+            width: '100%', maxWidth: 480, padding: '12px 24px 36px',
+            animation: qrClosing ? 'slideDownOut .22s ease-in forwards' : 'slideUp .3s cubic-bezier(.32,1.2,.64,1)',
+            textAlign: 'center',
+          }}>
+            <div style={{ width: 40, height: 4, borderRadius: 4, background: dark ? 'rgba(255,255,255,.2)' : '#E0E0E0', margin: '0 auto 18px' }} />
+
+            <div style={{
+              fontSize: 10.5, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase',
+              color: dark ? '#FFD54F' : '#B58000', marginBottom: 8,
+            }}>
+              Canje pendiente
+            </div>
+            <div style={{
+              width: 56, height: 56, borderRadius: 16, margin: '0 auto 10px',
+              background: TH.chipOn, color: TH.chipInk,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <div style={{ transform: 'scale(1.4)', lineHeight: 0 }}><RewardIcon reward={qrItem.reward} /></div>
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: TH.header }}>{qrItem.reward?.name || 'Premio'}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: TH.sub, marginTop: 3 }}>
+              {fmtDay(itemDay(qrItem.date))} · -{qrItem.cost} pts
+            </div>
+
+            {/* QR sobre panel blanco con esquinas de escáner */}
+            <div style={{ position: 'relative', width: 194, margin: '18px auto 12px', padding: 12, background: '#fff', borderRadius: 16 }}>
+              {[
+                { top: -6, left: -6, borderTop: `3px solid ${BRAND_ORANGE}`, borderLeft: `3px solid ${BRAND_ORANGE}`, borderTopLeftRadius: 14 },
+                { top: -6, right: -6, borderTop: `3px solid ${BRAND_ORANGE}`, borderRight: `3px solid ${BRAND_ORANGE}`, borderTopRightRadius: 14 },
+                { bottom: -6, left: -6, borderBottom: `3px solid ${BRAND_ORANGE}`, borderLeft: `3px solid ${BRAND_ORANGE}`, borderBottomLeftRadius: 14 },
+                { bottom: -6, right: -6, borderBottom: `3px solid ${BRAND_ORANGE}`, borderRight: `3px solid ${BRAND_ORANGE}`, borderBottomRightRadius: 14 },
+              ].map((s, ci) => <div key={ci} style={{ position: 'absolute', width: 28, height: 28, ...s }} />)}
+              <QRCode code={qrItem.code} sz={170} />
+            </div>
+
+            <div style={{
+              ...sMono, display: 'inline-block', fontSize: 13, fontWeight: 800, letterSpacing: 1.5,
+              padding: '8px 14px', borderRadius: 10,
+              background: dark ? 'rgba(255,255,255,.08)' : '#F5F5F7',
+              color: TH.header,
+            }}>
+              {qrItem.code}
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: TH.sub, lineHeight: 1.6, marginTop: 12, padding: '0 8px' }}>
+              Mostrá este código al operador para recibir tu premio. Después de que lo escanee, confirmás la entrega en este dispositivo.
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
