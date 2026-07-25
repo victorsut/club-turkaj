@@ -224,7 +224,11 @@ export default function GoogleProfile(ctx) {
   // (antes eran dos pasos separados — se fusionaron para acortar el
   // registro: decisión de optimización 22-jul)
   if (googleStep === 'step2') {
+    // Máximo 5 vehículos DURANTE EL REGISTRO (regla del dueño 25-jul);
+    // desde el Menú del cliente puede agregar cuantos quiera.
+    const REG_MAX_VEHICLES = 5;
     const addVehicle = () => {
+      if (vehicles.length >= REG_MAX_VEHICLES) { setAuthError(`Máximo ${REG_MAX_VEHICLES} vehículos durante el registro`); return; }
       if (!newPlate.trim()) { setAuthError('Ingresa la placa del vehículo'); return; }
       if (!plateMask.complete(newPlate)) { setAuthError('Placa incompleta — formato: P 123 ABC'); return; }
       clearAuthErr();
@@ -272,8 +276,12 @@ export default function GoogleProfile(ctx) {
           </div>
         )}
 
-        {/* Formulario agregar */}
-        {addingVehicle ? (
+        {/* Formulario agregar — oculto al llegar al tope del registro */}
+        {vehicles.length >= REG_MAX_VEHICLES ? (
+          <div style={{ textAlign: 'center', fontSize: 12, fontWeight: 600, color: '#9E9E9E', marginBottom: 16, lineHeight: 1.5 }}>
+            Máximo {REG_MAX_VEHICLES} vehículos durante el registro.<br />Podrás agregar más desde el Menú de tu cuenta.
+          </div>
+        ) : addingVehicle ? (
           <div style={{ background: card, borderRadius: 20, padding: 16, marginBottom: 16 }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: ink, marginBottom: 12 }}>Tipo de vehículo</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>

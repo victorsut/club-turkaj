@@ -9,6 +9,13 @@ import InactivityWarning from '../../components/ui/InactivityWarning';
 import { Back } from '../../components/ui/Icons';
 import ReasonModal from '../../components/ui/ReasonModal';
 import { updateMemberWithAudit } from '../../services/rpcServices';
+import { plateMask } from '../../lib/inputMasks';
+
+// Tipos de vehículo (espejo de VEHICLE_TYPES del cliente — el admin
+// conserva por ahora su lenguaje visual con emojis).
+const V_ICONS = { camion: '🚛', camion_ligero: '🚚', picop: '🛻', microbus: '🚌', liviano: '🚗', mototaxi: '🛺', moto: '🏍️', otro: '🔧' };
+const V_LABELS = { camion: 'Camión', camion_ligero: 'Camión ligero', picop: 'Picop', microbus: 'Micro Bus', liviano: 'Vehículo liviano', mototaxi: 'Moto Taxi', moto: 'Motocicleta', otro: 'Otros' };
+const parseV = (v) => { if (!v) return []; if (Array.isArray(v)) return v; try { return JSON.parse(v); } catch { return []; } };
 
 export default function MemberDetail(ctx) {
   const {
@@ -23,6 +30,9 @@ export default function MemberDetail(ctx) {
   const [showReasonModal, setShowReasonModal] = useState(false);
   const [pendingChanges, setPendingChanges] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
+  // Edición INDIVIDUAL de vehículos (25-jul, pedido del dueño):
+  // { idx: null (nuevo) | número (editar), type, plate }
+  const [vehModal, setVehModal] = useState(null);
 
   if (!sel) { setScr('mem'); return null; }
 
@@ -67,6 +77,7 @@ export default function MemberDetail(ctx) {
           cardId: m.physical_cards?.card_code || m.card_id || '—',
           registered: m.created_at ? new Date(m.created_at).toLocaleDateString('es-GT') : '—',
           lastBuy: m.last_buy ? new Date(m.last_buy).toLocaleDateString('es-GT') : 'Sin compras',
+          vehicles: m.vehicles || [],
         });
       }
     });
@@ -223,7 +234,8 @@ export default function MemberDetail(ctx) {
       fire('Error: ' + errMsg);
       // Errores corregibles (validacion 22023 / UNIQUE 23505): reabrir el
       // form con lo editado intacto para que el admin pueda corregir.
-      if (result.error?.code === '23505' || result.error?.code === '22023') {
+      // Los cambios de VEHÍCULOS no usan ese form — no reabrir nada.
+      if (!pendingChanges.isVehicles && (result.error?.code === '23505' || result.error?.code === '22023')) {
         setEditMember(pendingChanges.edited);
       }
       setPendingChanges(null);
@@ -246,6 +258,33 @@ export default function MemberDetail(ctx) {
     const n = result.data?.categories_updated?.length || 0;
     fire('✅ Cliente actualizado (' + n + ' cambio' + (n === 1 ? '' : 's') + ')');
   };
+
+  // ── Vehículos: edición INDIVIDUAL auditada (25-jul) ─────────
+  // Cada operación (agregar/editar/eliminar) manda la lista RESULTANTE
+  // por el mismo RPC auditado (profile.vehicles + plate legacy = placa
+  // del primer vehículo, convención de Mi Cuenta del cliente).
+  const vList = parseV(c.vehicles);
+  const queueVehicleChange = (updated) => {
+    if (!loggedAdmin?.id) { fire('Error: sesion admin no disponible. Cerra sesion y volve a ingresar.'); return; }
+    setPendingChanges({
+      memberId: c.id,
+      isVehicles: true,
+      changes: { profile: { vehicles: updated, plate: updated[0]?.plate || '' } },
+      edited: { ...c, vehicles: updated, plate: updated[0]?.plate || '' },
+    });
+    setVehModal(null);
+    setShowReasonModal(true);
+  };
+  const saveVehModal = () => {
+    if (!vehModal) return;
+    if (!plateMask.complete(vehModal.plate)) { fire('Placa incompleta — formato: P 123 ABC'); return; }
+    const entry = { type: vehModal.type, plate: vehModal.plate };
+    const updated = vehModal.idx == null
+      ? [...vList, entry]
+      : vList.map((v, i) => (i === vehModal.idx ? entry : v));
+    queueVehicleChange(updated);
+  };
+  const deleteVehicle = (i) => queueVehicleChange(vList.filter((_, j) => j !== i));
 
   const sLbl = { display: 'block', fontSize: 12, fontWeight: 700, color: '#757575', marginBottom: 6, textTransform: 'uppercase', letterSpacing: .8 };
   if (loadingDetail && !freshMember) return (
@@ -314,28 +353,32 @@ export default function MemberDetail(ctx) {
         ))}
       </div>
 
-      {/* Vehículos */}
-      {(() => {
-        const parseV = (v) => { if (!v) return []; if (Array.isArray(v)) return v; try { return JSON.parse(v); } catch { return []; } };
-        const vList = parseV(c.vehicles || freshMember?.vehicles);
-        if (vList.length === 0) return null;
-        const ICONS = { camion:'🚛', camion_ligero:'🚚', picop:'🛻', microbus:'🚌', liviano:'🚗', mototaxi:'🛺', moto:'🏍️', otro:'🔧' };
-        const LABELS = { camion:'Camión', camion_ligero:'Camión ligero', picop:'Picop', microbus:'Micro Bus', liviano:'Vehículo liviano', mototaxi:'Moto Taxi', moto:'Motocicleta', otro:'Otros' };
-        return (
-          <div style={{ margin: '0 20px 12px', padding: 16, background: AT.card, borderRadius: 18, border: `1px solid ${AT.border}` }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#9E9E9E', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>🚗 Vehículos</div>
-            {vList.map((v, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: i < vList.length - 1 ? `1px solid ${AT.border}` : 'none' }}>
-                <span style={{ fontSize: 22 }}>{ICONS[v.type] || '🚗'}</span>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#E0E0E0' }}>{v.plate}</div>
-                  <div style={{ fontSize: 11, color: '#777' }}>{LABELS[v.type] || v.type}</div>
-                </div>
-              </div>
-            ))}
+      {/* Vehículos — edición INDIVIDUAL, aparte del form de datos (25-jul) */}
+      <div style={{ margin: '0 20px 12px', padding: 16, background: AT.card, borderRadius: 18, border: `1px solid ${AT.border}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: '#9E9E9E', textTransform: 'uppercase', letterSpacing: 1 }}>🚗 Vehículos ({vList.length})</div>
+          <button onClick={() => setVehModal({ idx: null, type: 'liviano', plate: '' })}
+            style={{ padding: '6px 12px', borderRadius: 10, border: `1px solid ${AT.border}`, background: 'transparent', color: '#FBBC04', fontFamily: "'DM Sans'", fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>
+            + Agregar
+          </button>
+        </div>
+        {vList.length === 0 && (
+          <div style={{ fontSize: 12, color: '#777', textAlign: 'center', padding: '8px 0' }}>Sin vehículos registrados</div>
+        )}
+        {vList.map((v, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: i < vList.length - 1 ? `1px solid ${AT.border}` : 'none' }}>
+            <span style={{ fontSize: 22 }}>{V_ICONS[v.type] || '🚗'}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#E0E0E0', ...sMono }}>{(v.plate || '').length === 7 ? plateMask.format(v.plate) : v.plate}</div>
+              <div style={{ fontSize: 11, color: '#777' }}>{V_LABELS[v.type] || v.type}</div>
+            </div>
+            <button onClick={() => setVehModal({ idx: i, type: v.type || 'liviano', plate: v.plate || '' })}
+              style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: 'transparent', color: '#64B5F6', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans'", flexShrink: 0 }}>Editar</button>
+            <button onClick={() => deleteVehicle(i)}
+              style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: 'transparent', color: '#EF5350', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans'", flexShrink: 0 }}>Eliminar</button>
           </div>
-        );
-      })()}
+        ))}
+      </div>
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 10, padding: '0 20px', marginBottom: 16 }}>
@@ -464,13 +507,55 @@ export default function MemberDetail(ctx) {
         </div>
       )}
 
+      {/* Modal: agregar/editar UN vehículo (25-jul) — pasa por el mismo
+          flujo auditado (ReasonModal → update_member_with_audit) */}
+      {vehModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', backdropFilter: 'blur(6px)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => setVehModal(null)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '28px 28px 0 0', padding: '28px 24px 32px', maxWidth: 480, width: '100%', maxHeight: '85vh', overflowY: 'auto' }}>
+            <div style={{ width: 40, height: 4, background: '#E0E0E0', borderRadius: 2, margin: '0 auto 20px' }} />
+            <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 16 }}>
+              {vehModal.idx == null ? '🚗 Agregar Vehículo' : '🚗 Editar Vehículo'}
+            </div>
+            <label style={sLbl}>Tipo de vehículo</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
+              {Object.keys(V_LABELS).map(k => (
+                <button key={k} onClick={() => setVehModal(p => ({ ...p, type: k }))} style={{
+                  padding: '10px 8px', borderRadius: 12, cursor: 'pointer',
+                  border: vehModal.type === k ? '2px solid #FBBC04' : '2px solid #eee',
+                  background: vehModal.type === k ? '#FFF8E1' : '#fff',
+                  fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 12, color: '#424242',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                }}>
+                  <span style={{ fontSize: 16 }}>{V_ICONS[k]}</span>{V_LABELS[k]}
+                </button>
+              ))}
+            </div>
+            <label style={sLbl}>Placa</label>
+            <input
+              placeholder="Placa (ej: P 123 ABC)"
+              value={plateMask.format(vehModal.plate)}
+              autoCapitalize="characters"
+              onChange={e => setVehModal(p => ({ ...p, plate: plateMask.clean(e.target.value) }))}
+              style={{ ...inputStyle, marginBottom: 16, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, letterSpacing: 2 }}
+            />
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setVehModal(null)} style={{ ...btnDark, flex: 1 }}>Cancelar</button>
+              <button onClick={saveVehModal} style={{ ...btnYellow, flex: 2 }}>
+                {vehModal.idx == null ? 'Agregar' : 'Guardar cambios'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* F0.3.8.4: motivo obligatorio para auditar la edicion del miembro */}
       <ReasonModal
         open={showReasonModal}
         onClose={() => {
           setShowReasonModal(false);
-          // Reabrir el modal de edicion con lo editado intacto si cancela.
-          if (pendingChanges?.edited) setEditMember(pendingChanges.edited);
+          // Reabrir el modal de edicion con lo editado intacto si cancela
+          // (solo para el form de datos — los vehículos no lo usan).
+          if (pendingChanges?.edited && !pendingChanges.isVehicles) setEditMember(pendingChanges.edited);
           setPendingChanges(null);
         }}
         onConfirm={confirmEditWithReason}
