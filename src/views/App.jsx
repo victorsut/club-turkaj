@@ -931,6 +931,7 @@ export default function App() {
             redemptionId: rd.id,
             rewardName:   reward?.name  || 'Premio',
             rewardIcon:   reward?.icon  || '🎁',
+            reward:       reward || null, // objeto completo → RewardIcon + color de categoría
             cost:         rd.points_spent || 0,
           });
         } else if (rd.confirm_status === 'confirmed' || rd.confirm_status === 'cancelled') {
@@ -1555,68 +1556,77 @@ export default function App() {
         )}
       </div>
 
-      {/* ── Modal confirmación de canje desde operador (dispositivo del MIEMBRO) ── */}
+      {/* ── Modal confirmación de canje desde operador (dispositivo del
+          MIEMBRO) — FORMATO GENERAL: flat sin sombra, RewardIcon en
+          cuadro de su categoría, kicker naranja, CTA BRAND_ORANGE ── */}
       {pendingRedeemConfirm && isC && me && (
         <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)',
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.65)',
           zIndex: 600, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '0 24px',
+          padding: '0 24px', animation: 'ppFade .25s ease',
         }}>
           <div style={{
-            background: dark ? '#0D0D1A' : '#fff',
-            borderRadius: 24, width: '100%', maxWidth: 400, padding: '32px 24px',
-            boxShadow: '0 24px 80px rgba(0,0,0,.4)',
+            background: dark ? '#101018' : '#fff',
+            borderRadius: 24, width: '100%', maxWidth: 400, padding: '28px 22px',
             animation: 'pop .3s cubic-bezier(.32,1.2,.64,1)',
           }}>
-            {/* Icono y título */}
-            <div style={{ textAlign: 'center', marginBottom: 24 }}>
-              <div style={{ fontSize: 56, marginBottom: 12 }}>{pendingRedeemConfirm.rewardIcon}</div>
-              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', color: cTier.name === 'BLACK' ? '#FFD54F' : '#F0A500', marginBottom: 6 }}>
+            {/* Héroe: ícono SVG del premio en cuadro de su categoría */}
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{
+                width: 56, height: 56, borderRadius: 16, margin: '0 auto 12px',
+                background: CAT_COLORS[pendingRedeemConfirm.reward?.cat] || '#5E5E63', color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <RewardIcon reward={pendingRedeemConfirm.reward || { name: pendingRedeemConfirm.rewardName }} />
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', color: BRAND_ORANGE, marginBottom: 4 }}>
                 Solicitud de Canje
               </div>
-              <div style={{ fontSize: 20, fontWeight: 900, color: dark ? '#fff' : '#0D0D0D', lineHeight: 1.2 }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: dark ? '#fff' : '#0D0D0D', lineHeight: 1.2 }}>
                 ¿Confirmás este canje?
               </div>
-              <div style={{ fontSize: 13, color: '#9E9E9E', marginTop: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#9E9E9E', marginTop: 6 }}>
                 El operador está listo para entregarte este premio
               </div>
             </div>
 
-            {/* Detalle */}
-            <div style={{ background: dark ? 'rgba(255,255,255,.06)' : '#F9F9F9', borderRadius: 16, padding: '16px 20px', marginBottom: 24 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+            {/* Detalle — filas flat con divisor */}
+            <div style={{ background: dark ? 'rgba(255,255,255,.05)' : '#F5F5F7', borderRadius: 16, padding: '14px 18px', marginBottom: 20 }}>
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                paddingBottom: 12, marginBottom: 12,
+                borderBottom: `1px solid ${dark ? 'rgba(255,255,255,.06)' : '#ECECEE'}`,
+              }}>
                 <span style={{ fontSize: 13, color: '#9E9E9E', fontWeight: 600 }}>Premio</span>
-                <span style={{ fontSize: 13, fontWeight: 900, color: dark ? '#fff' : '#0D0D0D' }}>{pendingRedeemConfirm.rewardName}</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: dark ? '#fff' : '#0D0D0D' }}>{pendingRedeemConfirm.rewardName}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 13, color: '#9E9E9E', fontWeight: 600 }}>Puntos a descontar</span>
-                <span style={{ fontSize: 16, fontWeight: 900, color: '#C62828' }}>-{pendingRedeemConfirm.cost} pts</span>
+                <span style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: dark ? '#FF8A80' : bento.red }}>-{pendingRedeemConfirm.cost} pts</span>
               </div>
             </div>
 
-            {/* Botones */}
+            {/* Botones — acción sólida naranja, cancelar flat */}
             <div style={{ display: 'flex', gap: 12 }}>
               <button onClick={async () => {
                 await sb.from('redemptions').update({ confirm_status: 'cancelled' }).eq('id', pendingRedeemConfirm.redemptionId);
                 setPendingRedeemConfirm(null);
-                fire('❌ Canje cancelado');
+                fire('Canje cancelado', 'info');
               }} style={{
-                flex: 1, padding: '14px 0', borderRadius: 14,
-                border: `2px solid ${dark ? 'rgba(255,255,255,.1)' : '#eee'}`,
-                background: 'none', color: dark ? '#9E9E9E' : '#424242',
+                flex: 1, padding: 16, borderRadius: 14, border: 'none',
+                background: dark ? 'rgba(255,255,255,.08)' : '#F5F5F7',
+                color: dark ? '#ccc' : '#424242',
                 fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700, cursor: 'pointer',
-              }}>✕ Cancelar</button>
+              }}>Cancelar</button>
               <button onClick={async () => {
                 await sb.from('redemptions').update({ confirm_status: 'confirmed' }).eq('id', pendingRedeemConfirm.redemptionId);
                 setPendingRedeemConfirm(null);
-                fire('✅ ¡Canje confirmado!');
+                fire('¡Canje confirmado!', 'success');
               }} style={{
-                flex: 2, padding: '14px 0', borderRadius: 14, border: 'none',
-                background: cTier.name === 'BLACK' ? '#FFD54F' : cTier.name === 'PLATINO' ? '#1565C0' : '#FBBC04',
-                color: cTier.name === 'PLATINO' ? '#fff' : '#0D0D0D',
-                fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 900, cursor: 'pointer',
-                boxShadow: '0 4px 16px rgba(251,188,4,.3)',
-              }}>✓ Confirmar</button>
+                flex: 2, padding: 16, borderRadius: 14, border: 'none',
+                background: BRAND_ORANGE, color: '#fff',
+                fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 800, cursor: 'pointer',
+              }}>Confirmar</button>
             </div>
           </div>
         </div>
