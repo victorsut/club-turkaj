@@ -77,6 +77,7 @@ export default function MemberDetail(ctx) {
           cardId: m.physical_cards?.card_code || m.card_id || '—',
           registered: m.created_at ? new Date(m.created_at).toLocaleDateString('es-GT') : '—',
           lastBuy: m.last_buy ? new Date(m.last_buy).toLocaleDateString('es-GT') : 'Sin compras',
+          lastBuyRaw: m.last_buy || null, // fecha cruda para daysInactive (lastBuy va formateada)
           vehicles: m.vehicles || [],
         });
       }
@@ -329,7 +330,10 @@ export default function MemberDetail(ctx) {
         </div>
       </div>
 
-      <InactivityWarning last={c.lastBuy} />
+      {/* fix 25-jul: la prop se llamaba `last` (el componente espera
+          `lastBuy`) y la fecha iba formateada es-GT — el aviso jamás
+          aparecía en el admin. */}
+      <InactivityWarning lastBuy={c.lastBuyRaw || null} tierName={t.name} />
 
       {/* Info rows */}
       <div style={{ margin: '0 20px', padding: 16, background: AT.card, borderRadius: 18, border: `1px solid ${AT.border}`, marginBottom: 12 }}>

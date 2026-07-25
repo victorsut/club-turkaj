@@ -98,21 +98,6 @@ export function daysInactive(lastBuyDate) {
 }
 
 /**
- * Mensaje de advertencia de degradación
- */
-export function getDegradationWarning(lastBuyDate) {
-  const d = daysInactive(lastBuyDate);
-  if (d < 20) return null;
-
-  if (d >= 90) return { color: '#C62828', message: '💀 Puntos perdidos por inactividad', severity: 'critical' };
-  if (d >= 75) return { color: '#C62828', message: `🔴 ¡Puntos se pierden en ${90 - d} días!`, severity: 'danger' };
-  if (d >= 55) return { color: '#E65100', message: `🚨 Nivel baja a ORO en ${60 - d} días`, severity: 'warning' };
-  if (d >= 25) return { color: '#F57F17', message: `⚠️ Nivel baja en ${30 - d} días`, severity: 'caution' };
-
-  return null;
-}
-
-/**
  * Estilos visuales por nivel
  */
 export function tierShadow(tierName) {

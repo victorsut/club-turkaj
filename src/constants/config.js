@@ -28,26 +28,30 @@ export const DEFAULT_CONFIG = {
     platino: { gal: 150, discGal: 0.15, discRedeem: 0.10, evtPts: 60 },
     black: { gal: 500, discGal: 0.25, discRedeem: 0.15, evtPts: 70 },
   },
+  // Degradación real (25-jul-2026, algoritmo del dueño): 15 días de
+  // gracia; desde el día 16 los galones caen a UMBRAL − n(n+1)/2 por
+  // día (−1, −3, −6, −10…). Reinicio total 45 días después de caer a
+  // ORO. Motor: RPC apply_due_degradations (perezoso, al abrir la app).
   degrad: [
     {
       tier: 'BLACK',
       rules: [
-        { days: 15, effect: 'Baja a PLATINO' },
-        { days: 30, effect: 'Baja a ORO' },
-        { days: 45, effect: 'Pierde TODOS los puntos' },
+        { days: 15, effect: 'Baja a PLATINO y pierde galones cada día (−1, −3, −6…)' },
+        { days: 30, effect: 'Baja a ORO y sigue perdiendo galones' },
+        { days: 75, effect: 'Reinicio total: puntos y galones en 0' },
       ],
     },
     {
       tier: 'PLATINO',
       rules: [
-        { days: 15, effect: 'Baja a ORO' },
-        { days: 45, effect: 'Pierde TODOS los puntos' },
+        { days: 15, effect: 'Baja a ORO y pierde galones cada día (−1, −3, −6…)' },
+        { days: 60, effect: 'Reinicio total: puntos y galones en 0' },
       ],
     },
     {
       tier: 'ORO',
       rules: [
-        { days: 45, effect: 'Pierde TODOS los puntos' },
+        { days: 45, effect: 'Reinicio total: puntos y galones en 0' },
       ],
     },
   ],

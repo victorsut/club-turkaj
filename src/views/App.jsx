@@ -409,6 +409,12 @@ export default function App() {
         // para que winner_id/drawn_at lleguen frescos.
         try { await sb.rpc('draw_due_raffles'); } catch (e) { console.warn('[Raffle] draw_due_raffles:', e?.message); }
 
+        // Degradación perezosa por inactividad (25-jul): mismo patrón que
+        // el sorteo — corre ANTES de leer members para que los galones
+        // (y por tanto el NIVEL, que deriva de ellos) lleguen frescos.
+        // Ver migration 20260725e_degradacion_real.
+        try { await sb.rpc('apply_due_degradations'); } catch (e) { console.warn('[Degrad] apply_due_degradations:', e?.message); }
+
         const [rwRes, prRes, stRes, cfgRes, rcRes] = await Promise.all([
           sb.from('rewards').select('*').order('sort_order'),
           sb.from('promotions').select('*').order('sort_order'),

@@ -1,22 +1,30 @@
 // src/components/ui/InactivityWarning.jsx
 // Aviso de degradación por inactividad (FORMATO GENERAL): flat sin
 // emojis ni borde — disco de color por severidad con icono Warn SVG.
+// Umbrales alineados al motor real (25-jul, apply_due_degradations):
+// 15 días de gracia; desde el día 16 los galones bajan a diario
+// (−1, −3, −6… desde el umbral del nivel); ORO nativo solo pierde
+// todo a los 45 días.
 import { Warn } from './Icons';
 import { daysInactive } from '../../lib/tierSystem';
 
-export default function InactivityWarning({ lastBuy }) {
+export default function InactivityWarning({ lastBuy, tierName = 'ORO' }) {
   const d = daysInactive(lastBuy);
-  if (d < 20) return null;
+  if (!lastBuy || d < 10) return null;
 
-  const col = d >= 75 ? '#C62828' : d >= 55 ? '#E65100' : d >= 25 ? '#F57F17' : '#757575';
-  const soft = d >= 75 ? '#FFEBEE' : d >= 55 ? '#FFF3E0' : '#FFF8E1';
-  const msg = d >= 90 ? 'Puntos perdidos por inactividad'
-    : d >= 75 ? `¡Tus puntos se pierden en ${90 - d} días!`
-    : d >= 55 ? `Tu nivel baja a ORO en ${60 - d} días`
-    : d >= 25 ? `Tu nivel baja en ${30 - d} días`
-    : '';
-
-  if (!msg) return null;
+  let col, soft, msg;
+  if (tierName === 'ORO') {
+    // Sin nivel que perder: solo el reinicio de los 45 días.
+    if (d < 35 || d >= 45) return null;
+    col = '#C62828'; soft = '#FFEBEE';
+    msg = `Tus puntos se pierden en ${45 - d} día${45 - d === 1 ? '' : 's'} por inactividad`;
+  } else if (d >= 16) {
+    col = '#C62828'; soft = '#FFEBEE';
+    msg = 'Estás perdiendo nivel y galones por inactividad — cualquier compra lo detiene';
+  } else {
+    col = '#F57F17'; soft = '#FFF8E1';
+    msg = `Tu nivel empieza a bajar en ${16 - d} día${16 - d === 1 ? '' : 's'} por inactividad`;
+  }
 
   return (
     <div style={{
