@@ -1,0 +1,9 @@
+{
+  "appId": "com.puntosplus.app",
+  "appName": "Puntos Plus",
+  "webDir": "dist",
+  "server": {
+    "url": "https://puntosplus.vercel.app",
+    "androidScheme": "https"
+  }
+}

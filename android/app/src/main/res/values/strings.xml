@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Puntos Plus</string>
+    <string name="title_activity_main">Puntos Plus</string>
+    <string name="package_name">com.puntosplus.app</string>
+    <string name="custom_url_scheme">com.puntosplus.app</string>
+</resources>

@@ -1,0 +1,57 @@
+# ============================================================
+# Puntos Plus — APK Android de depuración (Capacitor)
+# ============================================================
+# Compila el APK en GitHub Actions: NO hace falta Android Studio
+# ni SDK local. Descarga: pestaña Actions → esta corrida →
+# Artifacts → puntos-plus-debug-apk (zip con el .apk adentro).
+# El APK de prueba carga la app viva de puntosplus.vercel.app
+# (server.url en capacitor.config.json): cada deploy web se ve
+# en la app sin recompilar el APK.
+name: APK Android (debug)
+
+on:
+  workflow_dispatch:        # botón "Run workflow" manual
+  push:
+    branches: [main]
+    paths:
+      - 'android/**'
+      - 'capacitor.config.json'
+      - '.github/workflows/android-apk.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Build web
+        run: npm run build
+
+      - name: Sincronizar Capacitor
+        run: npx cap sync android
+
+      - name: Compilar APK de depuración
+        run: |
+          chmod +x android/gradlew
+          cd android
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Publicar APK como artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: puntos-plus-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
