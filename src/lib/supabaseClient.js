@@ -23,7 +23,7 @@ export const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     storage: globalThis.localStorage,
   },
   global: {
-    headers: { 'x-app-name': 'club-turkaj' },
+    headers: { 'x-app-name': 'puntos-plus' },
   },
   realtime: {
     params: { eventsPerSecond: 2 },

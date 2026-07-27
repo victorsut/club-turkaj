@@ -42,7 +42,7 @@ npx vercel --prod
 
 ## Estructura del proyecto
 ```
-club-turkaj/
+puntos-plus/
 ├── index.html          ← Entry HTML (Vite)
 ├── package.json        ← Deps: React 18 + Supabase
 ├── vite.config.js      ← Vite config + chunk splitting

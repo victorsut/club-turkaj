@@ -1709,10 +1709,7 @@ quedó **RESUELTO** aparte (commit `5270f98`).
 - **Nota:** la BD ya tiene infraestructura parcial (`referral_count`, `referred_by`, `referral_bonus_paid`) sin lógica completa. Cuando se priorice, hay base existente.
 
 **Cambio de URL y nombre de repo**
-- `club-turkaj.vercel.app` → `puntos-plus.vercel.app` o similar (slug D30).
-- Renombrar repo de GitHub.
-- Cuándo: después del track R1b (rebranding visual completo). Requiere plan de transición: rompe redirect URIs de Google OAuth y PWAs instaladas → mantener redirect desde el dominio viejo.
-- Esfuerzo: 1-2 horas + actualización de referencias externas.
+- ✅ **EJECUTADO 27-jul-2026:** `club-turkaj.vercel.app` → `puntos-plus.vercel.app`, repo renombrado a `victorsut/puntos-plus`, nombre formalizado en código y documentos. Transición hecha en fase de pruebas (pre-lanzamiento) precisamente para no romper PWAs instaladas a escala.
 
 **Fase de notificaciones (campana + inbox in-app)**
 - La campana del header de la referencia visual se pospuso (D34): en su lugar va el botón de menú de usuario.

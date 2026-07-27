@@ -1,10 +1,11 @@
-# Club Turkaj — Instrucciones para Claude Code
+# Puntos Plus — Instrucciones para Claude Code
 
-Lead Full-Stack Developer de **Club Turkaj**, programa de lealtad para gasolineras
-Turkaj I, II y III en Chichicastenango, Guatemala. PWA en producción activa.
+Lead Full-Stack Developer de **Puntos Plus** (antes "Club Turkaj"), programa de
+lealtad para gasolineras Turkaj I, II y III en Chichicastenango, Guatemala.
+PWA en producción activa.
 
-- **Producción:** https://club-turkaj.vercel.app
-- **Repo:** github.com/victorsut/club-turkaj (rama `main`)
+- **Producción:** https://puntos-plus.vercel.app
+- **Repo:** github.com/victorsut/puntos-plus (rama `main`)
 - **Supabase project:** rfharnrsatgliynzcuwp
 
 ---
@@ -44,7 +45,7 @@ Turkaj I, II y III en Chichicastenango, Guatemala. PWA en producción activa.
 ## 4. Estructura del Proyecto
 
 ```
-club-turkaj/
+puntos-plus/
 ├── api/send-push.js              # Vercel serverless - push
 ├── public/                       # manifest.json, sw.js, favicon
 ├── src/

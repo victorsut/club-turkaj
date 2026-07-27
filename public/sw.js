@@ -1,7 +1,7 @@
-// public/sw.js — Club Turkaj Service Worker
+// public/sw.js — Puntos Plus Service Worker
 // Push Notifications + Cache Offline
 
-const CACHE_NAME = 'club-turkaj-__BUILD_HASH__';
+const CACHE_NAME = 'puntos-plus-__BUILD_HASH__';
 const OFFLINE_URLS = [
   '/',
   '/index.html',
@@ -118,7 +118,7 @@ self.addEventListener('push', (event) => {
     icon: data.icon || '/logo.png',
     badge: '/favicon.png',
     vibrate: [200, 100, 200],
-    tag: data.tag || 'club-turkaj',
+    tag: data.tag || 'puntos-plus',
     renotify: true,
     data: {
       url: data.url || '/',

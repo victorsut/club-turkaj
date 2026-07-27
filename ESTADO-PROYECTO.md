@@ -16,7 +16,7 @@
 ## Stack Técnico
 - **Frontend:** React 18 (JSX), Vite 6
 - **Backend:** Supabase (PostgreSQL + Auth + Realtime + RLS)
-- **Deploy:** GitHub (`victorsut/club-turkaj`) → Vercel (`club-turkaj.vercel.app`)
+- **Deploy:** GitHub (`victorsut/puntos-plus`) → Vercel (`puntos-plus.vercel.app`)
 - **Dependencias:** `react`, `react-dom`, `@supabase/supabase-js`, `html5-qrcode`, `web-push`
 
 ---
@@ -24,7 +24,7 @@
 ## Estructura de Archivos (57 archivos)
 
 ```
-club-turkaj/
+puntos-plus/
 ├── api/
 │   └── send-push.js              # Serverless function - push notifications
 ├── public/
@@ -93,9 +93,9 @@ club-turkaj/
 ---
 
 ## Acceso por URL (Sin switcher visible)
-- **Miembro:** `club-turkaj.vercel.app` (Google OAuth)
-- **Operador:** `club-turkaj.vercel.app/?rol=operador`
-- **Admin:** `club-turkaj.vercel.app/?rol=admin`
+- **Miembro:** `puntos-plus.vercel.app` (Google OAuth)
+- **Operador:** `puntos-plus.vercel.app/?rol=operador`
+- **Admin:** `puntos-plus.vercel.app/?rol=admin`
 
 ---
 

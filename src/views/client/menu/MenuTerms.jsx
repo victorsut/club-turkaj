@@ -8,7 +8,7 @@ import { SectionHeader } from './menuUi';
 const SECS = [
   {
     title: 'OBJETO',
-    body: 'Los presentes Términos y Condiciones regulan el uso del programa de fidelización Puntos Plus ("el Programa"), disponible a través de la aplicación web progresiva accesible en club-turkaj.vercel.app, y la relación entre el operador del Programa y el usuario. Puntos Plus es una plataforma de fidelización independiente en la que Gasolineras Turkaj I, II y III de Chichicastenango participan como comercio afiliado. Al acceder y utilizar el Programa, el usuario acepta expresamente haber leído, comprendido y adherirse a los presentes términos, así como a las leyes vigentes de la República de Guatemala.',
+    body: 'Los presentes Términos y Condiciones regulan el uso del programa de fidelización Puntos Plus ("el Programa"), disponible a través de la aplicación web progresiva accesible en puntos-plus.vercel.app, y la relación entre el operador del Programa y el usuario. Puntos Plus es una plataforma de fidelización independiente en la que Gasolineras Turkaj I, II y III de Chichicastenango participan como comercio afiliado. Al acceder y utilizar el Programa, el usuario acepta expresamente haber leído, comprendido y adherirse a los presentes términos, así como a las leyes vigentes de la República de Guatemala.',
   },
   {
     title: 'DESCRIPCIÓN DEL PROGRAMA',
