@@ -10,6 +10,7 @@ import { DatePickerSheet } from '../../components/ui/DrumDatePicker';
 import { VEHICLE_TYPES } from '../../components/ui/VehicleIcons';
 import { WizardHeader, PtsCard, Field, DateField } from './registerUi';
 import AddressPicker, { EMPTY_ADDRESS } from '../../components/ui/AddressPicker';
+import { isAddressComplete, packAddress } from '../../constants/geoGt';
 import { phoneMask, dpiMask, plateMask, capWords } from '../../lib/inputMasks';
 import { getNextCardCode } from '../../services/dataService';
 
@@ -59,7 +60,8 @@ export default function GoogleProfile(ctx) {
   // Email, nit y dirección (cantón elegido) dan puntos opcionales
   const regOptional = cfg.regOptional || 2;
   const addr = regProfile.addr || EMPTY_ADDRESS;
-  const addrDone = !!(addr.dept && addr.muni && addr.canton?.trim());
+  // Completa = dep+muni; cantón solo exigible en Chichicastenango
+  const addrDone = isAddressComplete(addr);
   const optFields  = ['email', 'nit'].filter(k => regProfile[k]?.trim()).length + (addrDone ? 1 : 0);
   const vehiclePts = vehicles.length * VEHICLE_PTS;
   const totalPts   = (cfg.regBase || 15) + optFields * regOptional + vehiclePts;
@@ -84,8 +86,8 @@ export default function GoogleProfile(ctx) {
       const bdayRaw = regProfile.bday || '';
       const bdayStored = /^\d{4}-\d{2}-\d{2}$/.test(bdayRaw) ? bdayRaw : '';
 
-      // Dirección solo si eligió cantón (no inventar datos con los preseleccionados)
-      const addressStored = addrDone ? { dept: addr.dept, muni: addr.muni, canton: addr.canton.trim() } : null;
+      // Dirección solo si está completa (los preseleccionados sin cantón no se guardan)
+      const addressStored = packAddress(addr);
 
       const updated = { ...me, name: regProfile.name, phone: regProfile.phone || '', dpi: regProfile.dpi || '', plate: firstPlate, email: regProfile.email || me?.email || '', bday: bdayStored, nit: regProfile.nit || '', address: addressStored, points: totalPts, cardId: fallbackCard };
       setMe(updated);

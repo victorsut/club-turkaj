@@ -191,8 +191,24 @@ export const munisOf = dept =>
 export const cantonesOf = (dept, muni) =>
   (dept === DEFAULT_DEPT && muni === DEFAULT_MUNI) ? CANTONES_CHICHI : null;
 
-// Dirección legible: "Chulumal II, Chichicastenango, Quiché"
+// Dirección legible: "Chulumal Segundo, Chichicastenango, Quiché"
 export const fmtAddress = a => {
   if (!a) return '';
   return [a.canton, a.muni, a.dept].filter(Boolean).join(', ');
+};
+
+// Dirección COMPLETA (regla del dueño 27-jul): departamento + municipio
+// siempre; el cantón solo es exigible en Chichicastenango (único
+// municipio con lista). En el resto el cantón es texto libre opcional.
+export const isAddressComplete = a =>
+  !!(a?.dept && a?.muni && (cantonesOf(a.dept, a.muni) ? a.canton?.trim() : true));
+
+// Objeto a persistir en members.address — null si está incompleta
+// (los preseleccionados Quiché/Chichi sin cantón NO se guardan: no se
+// inventan datos); el cantón solo se incluye si viene.
+export const packAddress = a => {
+  if (!isAddressComplete(a)) return null;
+  const out = { dept: a.dept, muni: a.muni };
+  if (a.canton?.trim()) out.canton = a.canton.trim();
+  return out;
 };

@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { inputFlat, BRAND_ORANGE } from '../../constants/styles';
 import { Pin, House, Chev, Check, Search, XMark } from './Icons';
-import { DEPT_NAMES, munisOf, cantonesOf, DEFAULT_DEPT, DEFAULT_MUNI } from '../../constants/geoGt';
+import { DEPT_NAMES, munisOf, cantonesOf, isAddressComplete, DEFAULT_DEPT, DEFAULT_MUNI } from '../../constants/geoGt';
 
 export const EMPTY_ADDRESS = { dept: DEFAULT_DEPT, muni: DEFAULT_MUNI, canton: '' };
 
@@ -90,7 +90,9 @@ export default function AddressPicker({ value, onChange, dark, bonusPts, fieldBg
   const [sheet, setSheet] = useState(null); // 'dept' | 'muni' | 'canton' | null
   const bg = fieldBg || (dark ? 'rgba(255,255,255,.08)' : '#F5F5F7');
   const cantones = cantonesOf(v.dept, v.muni);
-  const bonusChip = bonusPts && v.canton?.trim() ? (
+  // El chip de bonus acompaña al campo que COMPLETA la dirección:
+  // en Chichicastenango el cantón; en el resto, el municipio elegido.
+  const bonusChip = bonusPts && isAddressComplete(v) ? (
     <div style={{ fontSize: 10, fontWeight: 800, color: BRAND_ORANGE, background: 'rgba(250,84,8,.1)', padding: '2px 8px', borderRadius: 8, flexShrink: 0 }}>+{bonusPts} pts</div>
   ) : null;
 
@@ -115,7 +117,8 @@ export default function AddressPicker({ value, onChange, dark, bonusPts, fieldBg
       <PickRow label="Departamento" valueTxt={v.dept} placeholder="Seleccionar departamento"
         icon={<Pin />} onOpen={() => setSheet('dept')} dark={dark} fieldBg={bg} />
       <PickRow label="Municipio" valueTxt={v.muni} placeholder="Seleccionar municipio"
-        icon={<Pin />} onOpen={() => setSheet('muni')} disabled={!v.dept} dark={dark} fieldBg={bg} />
+        icon={<Pin />} onOpen={() => setSheet('muni')} disabled={!v.dept}
+        chip={cantones ? null : bonusChip} dark={dark} fieldBg={bg} />
       {cantones ? (
         <PickRow label="Cantón" valueTxt={v.canton} placeholder="Seleccionar cantón"
           icon={<House />} onOpen={() => setSheet('canton')} disabled={!v.muni} chip={bonusChip} dark={dark} fieldBg={bg} />
@@ -124,10 +127,7 @@ export default function AddressPicker({ value, onChange, dark, bonusPts, fieldBg
           <div style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: '#9E9E9E', display: 'flex', zIndex: 1 }}><House /></div>
           <input placeholder="Cantón, aldea o zona (opcional)" value={v.canton || ''} disabled={!v.muni}
             onChange={e => onChange({ ...v, canton: e.target.value })}
-            style={{ ...inputFlat, background: bg, color: dark ? '#fff' : inputFlat.color, paddingLeft: 44, paddingRight: bonusChip ? 74 : 14 }} />
-          {bonusChip && (
-            <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }}>{bonusChip}</div>
-          )}
+            style={{ ...inputFlat, background: bg, color: dark ? '#fff' : inputFlat.color, paddingLeft: 44 }} />
         </div>
       )}
     </div>

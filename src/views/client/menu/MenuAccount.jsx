@@ -10,6 +10,7 @@ import { VEHICLE_TYPES } from '../../../components/ui/VehicleIcons';
 import { DatePickerSheet } from '../../../components/ui/DrumDatePicker';
 import { phoneMask, dpiMask, plateMask, capWords } from '../../../lib/inputMasks';
 import AddressPicker, { EMPTY_ADDRESS } from '../../../components/ui/AddressPicker';
+import { packAddress } from '../../../constants/geoGt';
 import { SectionHeader } from './menuUi';
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -71,10 +72,9 @@ export default function MenuAccount({ ctx, TH, onBack }) {
     if (!form.name?.trim()) { fire('El nombre es obligatorio', 'error'); return; }
     if (form.phone && !/^\d{8}$/.test(form.phone.trim())) { fire('El teléfono debe tener 8 dígitos', 'error'); return; }
     setSaving(true);
-    // Dirección solo si hay cantón elegido (sin cantón → null, no se
-    // inventan datos con los valores preseleccionados)
-    const addressStored = (addr.dept && addr.muni && addr.canton?.trim())
-      ? { dept: addr.dept, muni: addr.muni, canton: addr.canton.trim() } : null;
+    // Completa = dep+muni (cantón solo exigible en Chichicastenango);
+    // incompleta → null (no se inventan datos con los preseleccionados)
+    const addressStored = packAddress(addr);
     const updates = {
       name: form.name.trim(), phone: form.phone?.trim() || me.phone, email: form.email?.trim() || null, nit: form.nit?.trim() || null,
       address: addressStored,

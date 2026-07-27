@@ -369,7 +369,7 @@ export default function MemberDetail(ctx) {
           { l: '🪪 DPI', v: c.dpi || '—' },
           { l: '📧 Email', v: c.email || '—' },
           { l: '🧾 NIT', v: c.nit || '—' },
-          { l: '🏠 Dirección', v: c.address ? `${c.address.canton}, ${c.address.muni}` : '—' },
+          { l: '🏠 Dirección', v: c.address ? [c.address.canton, c.address.muni].filter(Boolean).join(', ') : '—' },
           { l: '🎂 Cumpleaños', v: c.bday || '—' },
           { l: '💳 Tarjeta', v: c.cardId || '—' },
           { l: '📅 Registro', v: c.registered || '—' },
