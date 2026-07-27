@@ -8,21 +8,35 @@
 export const DEFAULT_DEPT = 'Quiché';
 export const DEFAULT_MUNI = 'Chichicastenango';
 
-// Cantones de Chichicastenango (más el casco urbano). Revisar/ajustar
-// numerales con el conocimiento local del negocio.
+// Cantones de Chichicastenango — lista oficial de 90 cantones provista
+// por el negocio (27-jul-2026) + el casco urbano al inicio = 91.
 export const CANTONES_CHICHI = [
-  'Casco urbano (Santo Tomás)',
-  'Camanchaj', 'Chicabracán I', 'Chicabracán II', 'Chicuá I', 'Chicuá II',
-  'Chijtinimit', 'Chilimá', 'Chontalá', 'Chuabaj', 'Chucalibal I',
-  'Chucalibal II', 'Chugüexá I', 'Chugüexá II', 'Chugüexá III', 'Chujupén',
-  'Chulumal I', 'Chulumal II', 'Chulumal III', 'Chumanzana', 'Chupol',
-  'Lacamá I', 'Lacamá II', 'Lacamá III', 'Mactzul I', 'Mactzul II',
-  'Mactzul III', 'Mactzul IV', 'Mactzul V', 'Mactzul VI', 'Mucubaltzip',
-  'Pachoj', 'Panimaché I', 'Panimaché II', 'Panimaché III', 'Panimaché IV',
-  'Panimaché V', 'Paquixic', 'Patzibal', 'Paxot I', 'Paxot II', 'Paxot III',
-  'Pocohil I', 'Pocohil II', 'Quiejel', 'Sacpulup', 'Saquillá I',
-  'Saquillá II', 'Semejá I', 'Semejá II', 'Semejá III', 'Xalbaquiej',
-  'Xepocol',
+  'Chichicastenango (Casco Urbano)',
+  'Agua Escondida', 'Agua Viva', 'Antiguo Xepocol', 'Camanchaj',
+  'Camanibal', 'Chicuá Primero', 'Chicuá Segundo', 'Chicuá Tercero',
+  'Chijtinimit', 'Chilimá', 'Chipacá Primero', 'Chontalá', 'Chuabaj',
+  'Chucalibal Primero', 'Chucalibal Segundo', 'Chucám',
+  'Chuchipacá Segundo', 'Chucojom', 'Chugüexá Primero',
+  'Chugüexá Segundo "A"', 'Chugüexá Segundo "B"', 'Chugüexá Tercero',
+  'Chugüexá Cuarto', 'Chujulimul Primero', 'Chujulimul Segundo',
+  'Chujupén', 'Chulumal Primero', 'Chulumal Segundo', 'Chulumal Tercero',
+  'Chulumal Cuarto', 'Chumanzana', 'Chunimá', 'Chupol',
+  'Chutzorop Primero', 'Chutzorop Segundo', 'Chutzorop Tercero',
+  'Lacamá Primero', 'Lacamá Segundo', 'Lacamá Tercero', 'Las Trampas',
+  'Mactzul Primero', 'Mactzul Segundo', 'Mactzul Tercero',
+  'Mactzul Cuarto', 'Mactzul Quinto', 'Mactzul Sexto', 'Mactzul Séptimo',
+  'Mirador Chontalá', 'Mucubaltzip', 'Pacamán', 'Pachoj', 'Pajuliboy',
+  'Panimaché Primero', 'Panimaché Segundo', 'Panimaché Tercero',
+  'Panimaché Cuarto', 'Panimaché Quinto Alto', 'Panimaché Quinto Bajo',
+  'Panquiac', 'Paquixic', 'Patulup Primero', 'Patulup Segundo',
+  'Patzibal', 'Paxot Primero', 'Paxot Segundo', 'Paxot Tercero',
+  'Pocohil Primero', 'Pocohil Segundo, Primer Centro',
+  'Pocohil Segundo, Segundo Centro', 'Quiejel', 'Río Camanibal',
+  'Río Mactzul', 'Río Xajil', 'Sacbichol', 'Sacpulup',
+  'Saquilla Primero', 'Saquilla Segundo', 'Semejá Primero',
+  'Semejá Segundo', 'Semejá Tercero', 'Sepelá', 'Tzanimicabaj',
+  'Xabillaguach', 'Xalbaquiej', 'Xeabaj Primero', 'Xeabaj Segundo',
+  'Xecalibal', 'Xecojá', 'Xepocol', 'Xepol',
 ];
 
 // 22 departamentos con sus municipios (oficiales a la fecha).
