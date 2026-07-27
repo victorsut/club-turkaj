@@ -138,21 +138,37 @@ export default function MenuAccount({ ctx, TH, onBack }) {
   };
 
   // ── Vehículos (alta y baja persisten en members) ─────────
+  // persistVehicles DEVUELVE el error de la BD (antes se tragaba el
+  // fallo y el cliente celebraba éxito con la lista sin guardar —
+  // bug reportado por el dueño 27-jul); solo refleja en `me` si guardó.
   const persistVehicles = async (updated) => {
     if (sb && sbConnected) {
-      await sb.from('members').update({ plate: updated[0]?.plate || '', vehicles: updated }).eq('id', me.id);
+      const { error } = await sb.from('members')
+        .update({ plate: updated[0]?.plate || '', vehicles: updated }).eq('id', me.id);
+      if (error) { console.error('[Vehicles]', error); return error; }
     }
     setMe(p => ({ ...p, vehicles: updated, plate: updated[0]?.plate || '' }));
+    return null;
+  };
+  // El log de actividad es rastro secundario: si falla no revierte la
+  // operación (solo consola) — el CHECK lo permite desde 20260727e.
+  const logVehicleActivity = async (desc) => {
+    if (!sb || !sbConnected) return;
+    const { error } = await sb.from('activity_log').insert({
+      member_id: me.id, activity_type: 'vehiculo', description: desc, points_change: 0,
+    });
+    if (error) console.error('[Vehicles] activity_log:', error);
   };
   const addVehicle = async () => {
     if (!newVPlate.trim()) { fire('Ingresa la placa del vehículo', 'error'); return; }
     if (!plateMask.complete(newVPlate)) { fire('Placa incompleta — formato: P 123 ABC', 'error'); return; }
-    const updated = [...vehicles, { type: newVType, plate: newVPlate }];
+    const prev = vehicles;
+    const added = { type: newVType, plate: newVPlate };
+    const updated = [...prev, added];
     setVehicles(updated); setAddingV(false); setNewVPlate(''); setNewVType('liviano');
-    await persistVehicles(updated);
-    if (sb && sbConnected) {
-      await sb.from('activity_log').insert({ member_id: me.id, activity_type: 'vehiculo', description: `Vehículo agregado: ${typeInfo(newVType).label} ${plateMask.format(newVPlate)}`, points_change: 0 });
-    }
+    const err = await persistVehicles(updated);
+    if (err) { setVehicles(prev); fire('No se pudo guardar el vehículo: ' + err.message, 'error'); return; }
+    await logVehicleActivity(`Vehículo agregado: ${typeInfo(added.type).label} ${plateMask.format(added.plate)}`);
     fire('Vehículo agregado', 'success');
   };
   // Eliminar vehículo pide CONFIRMACIÓN (pedido del dueño 27-jul):
@@ -170,14 +186,14 @@ export default function MenuAccount({ ctx, TH, onBack }) {
     if (!delVehicle || deleting) return;
     setDeleting(true);
     const { v, i } = delVehicle;
-    const updated = vehicles.filter((_, j) => j !== i);
+    const prev = vehicles;
+    const updated = prev.filter((_, j) => j !== i);
     setVehicles(updated);
-    await persistVehicles(updated);
-    if (sb && sbConnected) {
-      await sb.from('activity_log').insert({ member_id: me.id, activity_type: 'vehiculo', description: `Vehículo eliminado: ${typeInfo(v.type).label} ${plateMask.format(plateMask.clean(v.plate || '')) || v.plate}`, points_change: 0 });
-    }
+    const err = await persistVehicles(updated);
     setDeleting(false);
     closeDelSheet();
+    if (err) { setVehicles(prev); fire('No se pudo eliminar el vehículo: ' + err.message, 'error'); return; }
+    await logVehicleActivity(`Vehículo eliminado: ${typeInfo(v.type).label} ${plateMask.format(plateMask.clean(v.plate || '')) || v.plate}`);
     fire('Vehículo eliminado', 'success');
   };
 

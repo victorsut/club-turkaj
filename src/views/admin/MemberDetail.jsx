@@ -92,6 +92,7 @@ export default function MemberDetail(ctx) {
     compra: '#2E7D32', canje: '#1565C0', evento: '#FBBC04',
     rifa: '#7B1FA2', encuesta: '#FBBC04', referido: '#FBBC04',
     registro: '#FBBC04', wifi: '#9E9E9E', degradacion: '#C62828',
+    vehiculo: '#6A4FA8', registro_vehiculos: '#6A4FA8',
   };
 
   const PROFILE_FIELDS = ['name', 'phone', 'dpi', 'plate', 'email', 'nit', 'birthday'];
