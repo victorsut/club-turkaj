@@ -35,9 +35,10 @@ export async function biometricsAvailable() {
 export const isUserCancel = (err) =>
   err?.name === 'NotAllowedError' || err?.name === 'AbortError';
 
-// Activar en este dispositivo (exige la contraseña actual del miembro)
-export async function registerBiometric(memberId, password) {
-  const options = await post({ action: 'register-options', memberId, password });
+// Activar en este dispositivo. `auth` = { password } para cuentas de
+// teléfono, o { oauthToken } (sesión de Supabase Auth) para Google.
+export async function registerBiometric(memberId, auth) {
+  const options = await post({ action: 'register-options', memberId, ...auth });
   const response = await startRegistration({ optionsJSON: options });
   return post({
     action: 'register-verify', memberId, response,

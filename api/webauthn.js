@@ -78,21 +78,31 @@ export default async function handler(req, res) {
     await sb.from('webauthn_challenges').delete()
       .lt('created_at', new Date(Date.now() - CHALLENGE_TTL_MS).toISOString());
 
-    // ── Registro: opciones (exige contraseña del miembro) ──
+    // ── Registro: opciones (exige contraseña O sesión de Google) ──
     if (action === 'register-options') {
-      const { memberId, password } = req.body;
-      if (!memberId || !password) return res.status(400).json({ error: 'Faltan datos' });
+      const { memberId, password, oauthToken } = req.body;
+      if (!memberId || (!password && !oauthToken)) return res.status(400).json({ error: 'Faltan datos' });
 
       const { data: member } = await sb.from('members')
-        .select('id, name, phone').eq('id', memberId).maybeSingle();
+        .select('id, name, phone, auth_provider_id').eq('id', memberId).maybeSingle();
       if (!member) return res.status(404).json({ error: 'Miembro no encontrado' });
 
-      // Re-autenticación real: sin la contraseña correcta no hay registro
-      const { data: auth, error: authErr } = await sb.rpc('authenticate_member', {
-        p_phone: member.phone, p_password: password,
-      });
-      if (authErr || !auth?.ok || auth.member_id !== member.id) {
-        return res.status(401).json({ error: 'Contraseña incorrecta' });
+      // Re-autenticación real: contraseña (bcrypt server-side) o el
+      // token de Supabase Auth de la sesión de Google — verificado en
+      // servidor y atado al auth_provider_id de ESTE miembro.
+      if (oauthToken) {
+        const { data: userData, error: uErr } = await sb.auth.getUser(oauthToken);
+        const uid = userData?.user?.id;
+        if (uErr || !uid || uid !== member.auth_provider_id) {
+          return res.status(401).json({ error: 'Sesión de Google inválida — volvé a iniciar sesión' });
+        }
+      } else {
+        const { data: auth, error: authErr } = await sb.rpc('authenticate_member', {
+          p_phone: member.phone, p_password: password,
+        });
+        if (authErr || !auth?.ok || auth.member_id !== member.id) {
+          return res.status(401).json({ error: 'Contraseña incorrecta' });
+        }
       }
 
       const { data: existing } = await sb.from('member_credentials')

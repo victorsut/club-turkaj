@@ -63,6 +63,19 @@ export default function MenuAccount({ ctx, TH, onBack }) {
   const [showP, setShowP]             = useState({ n: false, cf: false });
   const [savingPass, setSavingPass]   = useState(false);
 
+  // Sesión de Supabase Auth (solo cuentas Google): prueba de identidad
+  // alternativa a la contraseña — para establecer contraseña sin
+  // conocer la actual y para activar la huella sin contraseña.
+  const [gSession, setGSession] = useState(null);
+  useEffect(() => {
+    if (sb && me?.authProvider === 'google') {
+      sb.auth.getSession().then(({ data }) => setGSession(data?.session || null));
+    }
+  }, [me?.authProvider]);
+  const googleAuth = me?.authProvider === 'google' && !!gSession;
+  // Modo "establecer sin contraseña actual" (RPC set_member_password_oauth)
+  const [oauthPassMode, setOauthPassMode] = useState(false);
+
   // ── Biometría (passkey en ESTE dispositivo) ──
   const [bioAvail, setBioAvail]   = useState(false);
   const [showBioSec, setShowBioSec] = useState(false);
@@ -76,10 +89,14 @@ export default function MenuAccount({ ctx, TH, onBack }) {
 
   const activateBio = async () => {
     if (bioBusy) return;
-    if (!bioPass) { fire('Ingresa tu contraseña para activar', 'error'); return; }
+    if (!googleAuth && !bioPass) { fire('Ingresa tu contraseña para activar', 'error'); return; }
     setBioBusy(true);
     try {
-      await registerBiometric(me.id, bioPass);
+      // Google con sesión activa → el token prueba la identidad;
+      // cuentas de teléfono → contraseña actual.
+      await registerBiometric(me.id, googleAuth
+        ? { oauthToken: gSession.access_token }
+        : { password: bioPass });
       try { localStorage.setItem(`pp_bio_${me.id}`, '1'); } catch { /* sin storage */ }
       setBioDone(true); setBioPass(''); setShowBioSec(false);
       fire('Huella activada — ya podés usarla al iniciar sesión', 'success');
@@ -148,22 +165,26 @@ export default function MenuAccount({ ctx, TH, onBack }) {
   // verificando la contraseña ACTUAL — ya no se escribe password_hash
   // desde el cliente ni se usa el formato reversible 'pw:'+btoa. ──
   const savePassword = async () => {
-    if (!passForm.current) { fire('Ingresa tu contraseña actual', 'error'); return; }
+    if (!oauthPassMode && !passForm.current) { fire('Ingresa tu contraseña actual', 'error'); return; }
     if (!passForm.newPass || passForm.newPass.length < 6) { fire('La contraseña debe tener al menos 6 caracteres', 'error'); return; }
     if (passForm.newPass !== passForm.confirm) { fire('Las contraseñas no coinciden', 'error'); return; }
     if (!sb || !sbConnected) { fire('Sin conexión', 'error'); return; }
     setSavingPass(true);
-    const { data, error } = await sb.rpc('update_member_password', {
-      p_member_id: me.id,
-      p_current_password: passForm.current,
-      p_new_password: passForm.newPass,
-    });
+    // Con sesión de Google: establecer sin conocer la actual (el RPC
+    // verifica auth.uid contra auth_provider_id — SEC oauth 27-jul)
+    const { data, error } = oauthPassMode
+      ? await sb.rpc('set_member_password_oauth', { p_new_password: passForm.newPass })
+      : await sb.rpc('update_member_password', {
+          p_member_id: me.id,
+          p_current_password: passForm.current,
+          p_new_password: passForm.newPass,
+        });
     setSavingPass(false);
     if (error) { fire('Error: ' + error.message, 'error'); return; }
     if (data?.error) { fire(data.error, 'error'); return; }
     setPassForm({ current: '', newPass: '', confirm: '' });
-    setShowPassSec(false);
-    fire('Contraseña actualizada', 'success');
+    setShowPassSec(false); setOauthPassMode(false);
+    fire(oauthPassMode ? 'Contraseña establecida' : 'Contraseña actualizada', 'success');
   };
 
   const editFields = [
@@ -329,8 +350,13 @@ export default function MenuAccount({ ctx, TH, onBack }) {
 
       {showPassSec && (
         <div style={{ background: TH.surface, borderRadius: 20, padding: 16 }}>
+          {oauthPassMode && (
+            <div style={{ fontSize: 12, color: TH.sub, lineHeight: 1.55, marginBottom: 12 }}>
+              Tu sesión de Google confirma tu identidad — solo elegí tu contraseña nueva.
+            </div>
+          )}
           {[
-            { k: 'current', l: 'Contraseña actual',    pk: 'cu', ph: 'Tu contraseña de hoy' },
+            ...(oauthPassMode ? [] : [{ k: 'current', l: 'Contraseña actual', pk: 'cu', ph: 'Tu contraseña de hoy' }]),
             { k: 'newPass', l: 'Nueva contraseña',     pk: 'n',  ph: 'Mínimo 6 caracteres' },
             { k: 'confirm', l: 'Confirmar contraseña', pk: 'cf', ph: 'Mínimo 6 caracteres' },
           ].map(f => (
@@ -353,8 +379,16 @@ export default function MenuAccount({ ctx, TH, onBack }) {
             <div style={{ fontSize: 11, color: bento.green, fontWeight: 700, marginBottom: 10 }}>Las contraseñas coinciden</div>
           )}
           <button onClick={savePassword} disabled={savingPass} style={{ ...btnPrimary, padding: 14, borderRadius: 12, fontSize: 14, opacity: savingPass ? .7 : 1 }}>
-            {savingPass ? 'Guardando...' : 'Actualizar contraseña'}
+            {savingPass ? 'Guardando...' : oauthPassMode ? 'Establecer contraseña' : 'Actualizar contraseña'}
           </button>
+          {/* Cuentas Google: pueden establecer contraseña SIN conocer la
+              actual (su sesión de Google es la prueba de identidad) */}
+          {googleAuth && (
+            <button onClick={() => { setOauthPassMode(p => !p); setPassForm({ current: '', newPass: '', confirm: '' }); }}
+              style={{ width: '100%', marginTop: 10, padding: 6, background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 700, color: BRAND_ORANGE }}>
+              {oauthPassMode ? 'Prefiero usar mi contraseña actual' : '¿No sabés tu contraseña? Establecela con tu cuenta de Google'}
+            </button>
+          )}
         </div>
       )}
 
@@ -380,18 +414,23 @@ export default function MenuAccount({ ctx, TH, onBack }) {
               <div style={{ fontSize: 12, color: TH.sub, lineHeight: 1.55, marginBottom: 12 }}>
                 Tu celular usará su propio desbloqueo (huella, rostro, PIN o patrón).
                 Tu información biométrica nunca sale del dispositivo.
+                {googleAuth ? ' Tu sesión de Google confirma tu identidad.' : ''}
                 {bioDone ? ' Podés volver a configurarla cuando quieras.' : ''}
               </div>
-              <div style={label}>Contraseña actual</div>
-              <div style={{ position: 'relative', marginBottom: 12 }}>
-                <input type={showBioPass ? 'text' : 'password'} placeholder="Confirma tu identidad" value={bioPass}
-                  onChange={e => setBioPass(e.target.value)}
-                  style={{ ...field, paddingLeft: 16, paddingRight: 50, background: TH.isDark ? 'rgba(255,255,255,.08)' : '#F5F5F7' }} />
-                <button type="button" onClick={() => setShowBioPass(p => !p)} aria-label={showBioPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                  style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: TH.sub, display: 'flex', padding: 2 }}>
-                  {showBioPass ? <EyeOff /> : <Eye />}
-                </button>
-              </div>
+              {/* Cuentas de teléfono: la contraseña actual confirma la
+                  identidad; Google con sesión activa no la necesita. */}
+              {!googleAuth && (<>
+                <div style={label}>Contraseña actual</div>
+                <div style={{ position: 'relative', marginBottom: 12 }}>
+                  <input type={showBioPass ? 'text' : 'password'} placeholder="Confirma tu identidad" value={bioPass}
+                    onChange={e => setBioPass(e.target.value)}
+                    style={{ ...field, paddingLeft: 16, paddingRight: 50, background: TH.isDark ? 'rgba(255,255,255,.08)' : '#F5F5F7' }} />
+                  <button type="button" onClick={() => setShowBioPass(p => !p)} aria-label={showBioPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: TH.sub, display: 'flex', padding: 2 }}>
+                    {showBioPass ? <EyeOff /> : <Eye />}
+                  </button>
+                </div>
+              </>)}
               <button onClick={activateBio} disabled={bioBusy} style={{ ...btnPrimary, padding: 14, borderRadius: 12, fontSize: 14, opacity: bioBusy ? .7 : 1 }}>
                 {bioBusy ? 'Esperando tu celular...' : bioDone ? 'Volver a configurar' : 'Activar en este dispositivo'}
               </button>
