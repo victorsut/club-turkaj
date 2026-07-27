@@ -120,6 +120,7 @@ export default function GoogleProfile(ctx) {
           email:            regProfile.email || me?.email || null,
           birthday:         bdayStored || null,
           address:          addressStored,
+          avatar_url:       me?.avatar || null,
           points:           totalPts,
           gallons: 0, spent: 0, visits: 0, tickets: 0, redeemed_count: 0, referral_count: 0,
         };

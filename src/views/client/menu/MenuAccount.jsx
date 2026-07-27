@@ -13,6 +13,7 @@ import { phoneMask, dpiMask, plateMask, capWords } from '../../../lib/inputMasks
 import AddressPicker, { EMPTY_ADDRESS } from '../../../components/ui/AddressPicker';
 import { packAddress } from '../../../constants/geoGt';
 import { SectionHeader } from './menuUi';
+import useBackLayer from '../../../hooks/useBackLayer';
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 // Fecha legible desde 'YYYY-MM-DD' (completa) o 'MM-DD' (registros viejos)
@@ -154,10 +155,29 @@ export default function MenuAccount({ ctx, TH, onBack }) {
     }
     fire('Vehículo agregado', 'success');
   };
-  const removeVehicle = async (i) => {
+  // Eliminar vehículo pide CONFIRMACIÓN (pedido del dueño 27-jul):
+  // borra el dato guardado y todo lo relacionado a ese vehículo.
+  const [delVehicle, setDelVehicle] = useState(null); // { v, i } | null
+  const [delClosing, setDelClosing] = useState(false);
+  const [deleting, setDeleting]     = useState(false);
+  const closeDelSheet = () => {
+    setDelClosing(true);
+    setTimeout(() => { setDelVehicle(null); setDelClosing(false); }, 200);
+  };
+  useBackLayer(!!delVehicle, closeDelSheet);
+
+  const confirmRemoveVehicle = async () => {
+    if (!delVehicle || deleting) return;
+    setDeleting(true);
+    const { v, i } = delVehicle;
     const updated = vehicles.filter((_, j) => j !== i);
     setVehicles(updated);
     await persistVehicles(updated);
+    if (sb && sbConnected) {
+      await sb.from('activity_log').insert({ member_id: me.id, activity_type: 'vehiculo', description: `Vehículo eliminado: ${typeInfo(v.type).label} ${plateMask.format(plateMask.clean(v.plate || '')) || v.plate}`, points_change: 0 });
+    }
+    setDeleting(false);
+    closeDelSheet();
     fire('Vehículo eliminado', 'success');
   };
 
@@ -296,7 +316,7 @@ export default function MenuAccount({ ctx, TH, onBack }) {
               <div style={{ fontSize: 13, fontWeight: 800, color: TH.header }}>{t.label}</div>
               <div style={{ fontSize: 12, color: TH.sub, fontFamily: "'JetBrains Mono', monospace", marginTop: 2 }}>{plateMask.format(plateMask.clean(v.plate || '')) || v.plate}</div>
             </div>
-            <button onClick={() => removeVehicle(i)} aria-label="Quitar vehículo"
+            <button onClick={() => setDelVehicle({ v, i })} aria-label="Quitar vehículo"
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: TH.sub, padding: 4, display: 'flex' }}><XMark /></button>
           </div>
         );
@@ -438,6 +458,43 @@ export default function MenuAccount({ ctx, TH, onBack }) {
           )}
         </>
       )}
+
+      {/* ── Confirmación de eliminación de vehículo (bottom sheet) ── */}
+      {delVehicle && (() => {
+        const t = typeInfo(delVehicle.v.type);
+        const plateTxt = plateMask.format(plateMask.clean(delVehicle.v.plate || '')) || delVehicle.v.plate;
+        return (
+          <div onClick={closeDelSheet}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 500, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', animation: delClosing ? 'ppFadeOut .2s ease forwards' : 'fadeIn .2s ease' }}>
+            <div onClick={e => e.stopPropagation()}
+              style={{ background: TH.isDark ? '#16161A' : '#fff', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 480, padding: '24px 20px 36px', animation: delClosing ? 'slideDownOut .22s ease forwards' : 'slideUp .25s ease' }}>
+              <div style={{ fontSize: 18, fontWeight: 900, color: TH.header, marginBottom: 4 }}>¿Eliminar este vehículo?</div>
+              <div style={{ fontSize: 13, color: TH.sub, lineHeight: 1.5, marginBottom: 16 }}>
+                Se eliminará de tu cuenta junto con todos sus datos relacionados. Esta acción no se puede deshacer.
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: TH.isDark ? 'rgba(255,255,255,.07)' : '#F5F5F7', borderRadius: 16, padding: '12px 14px', marginBottom: 18 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: bento.red, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <t.Icon size={22} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: TH.header }}>{t.label}</div>
+                  <div style={{ fontSize: 12, color: TH.sub, fontFamily: "'JetBrains Mono', monospace", marginTop: 2 }}>{plateTxt}</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={closeDelSheet}
+                  style={{ flex: 1, padding: 14, borderRadius: 14, border: 'none', background: TH.isDark ? 'rgba(255,255,255,.08)' : '#F5F5F7', color: TH.sub, fontFamily: "'DM Sans'", fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
+                  Cancelar
+                </button>
+                <button onClick={confirmRemoveVehicle} disabled={deleting}
+                  style={{ flex: 1, padding: 14, borderRadius: 14, border: 'none', background: bento.red, color: '#fff', fontFamily: "'DM Sans'", fontWeight: 800, cursor: 'pointer', fontSize: 14, opacity: deleting ? .7 : 1 }}>
+                  {deleting ? 'Eliminando...' : 'Eliminar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </>
   );
 }

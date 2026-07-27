@@ -531,7 +531,7 @@ export default function App() {
 
         function mapMember(m) {
           return {
-            id: m.id, name: m.name, email: m.email || '',
+            id: m.id, name: m.name, email: m.email || '', avatar: m.avatar_url || '',
             phone: m.phone || '', dpi: m.dpi || '', plate: m.plate || '',
             vehicles: (() => { const v = m.vehicles; if (!v) return []; if (Array.isArray(v)) return v; if (typeof v === 'object') return Object.values(v); try { return JSON.parse(v); } catch { return []; } })(),
             nit: m.nit || '', bday: m.birthday || '',
@@ -675,7 +675,7 @@ export default function App() {
     function buildExisting(m) {
       const parseV = (v) => { if (!v) return []; if (Array.isArray(v)) return v; if (typeof v === 'object') return Object.values(v); try { return JSON.parse(v); } catch { return []; } };
       return {
-        id: m.id, name: m.name, email: m.email || email, avatar,
+        id: m.id, name: m.name, email: m.email || email, avatar: avatar || m.avatar_url || '',
         phone: m.phone || '', dpi: m.dpi || '', plate: m.plate || '',
         nit: m.nit || '', bday: m.birthday || '',
         address: m.address || null,
@@ -700,6 +700,12 @@ export default function App() {
         if (data?.length > 0) {
           console.log('[Auth] \u2705 Existing member found:', data[0].name, '\u2192 logged in');
           const existing = buildExisting(data[0]);
+          // Persistir la foto de Google: los logins por tel\u00e9fono/huella
+          // la leen de members.avatar_url (antes solo viv\u00eda en la sesi\u00f3n)
+          if (avatar && data[0].avatar_url !== avatar) {
+            sb.from('members').update({ avatar_url: avatar }).eq('id', data[0].id)
+              .then(({ error }) => { if (error) console.warn('[Auth] avatar_url:', error.message); });
+          }
           setMe(existing);
           setCusts(p => p.find(c => c.id === existing.id) ? p : [...p, existing]);
           setAuthScreen('logged'); setView('client');
@@ -768,7 +774,7 @@ export default function App() {
         .then(res => {
           if (res.data?.length > 0) {
             setCusts(res.data.map(m => ({
-              id: m.id, name: m.name, email: m.email || '',
+              id: m.id, name: m.name, email: m.email || '', avatar: m.avatar_url || '',
               phone: m.phone || '', dpi: m.dpi || '', plate: m.plate || '',
             vehicles: (() => { const v = m.vehicles; if (!v) return []; if (Array.isArray(v)) return v; if (typeof v === 'object') return Object.values(v); try { return JSON.parse(v); } catch { return []; } })(),
               nit: m.nit || '', bday: m.birthday || '',

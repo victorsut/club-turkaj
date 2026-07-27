@@ -26,6 +26,7 @@ export function mapMember(m) {
     id: m.id,
     name: m.name,
     email: m.email || '',
+    avatar: m.avatar_url || '',
     phone: m.phone || '',
     dpi: m.dpi || '',
     plate: m.plate || '',
