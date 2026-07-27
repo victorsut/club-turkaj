@@ -994,6 +994,7 @@ export default function App() {
         const stationName = stations.find(s => s.id === stId)?.name || '';
         // PROMO-1: el modal muestra los puntos de la compra y la promo aplicada.
         const base = {
+          purchaseId: p.id,
           operatorId: opId,
           stationName,
           points: p.points_earned ?? null,

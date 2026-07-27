@@ -1,10 +1,11 @@
 // src/views/client/ClientHome.jsx
 // Main client dashboard: tier card, stats, survey, QR, promo carousel, history
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { sMono, bento, BRAND_ORANGE, homeColors } from '../../constants/styles';
 import PromoCard from '../../components/ui/PromoCard';
-import { CARD_PREFIX } from '../../constants/config';
+import { CARD_PREFIX, SHELL_SURVEYS, SURVEY_WAIT } from '../../constants/config';
+import OpRatingModal from '../../components/OpRatingModal';
 import Wordmark from '../../components/ui/Wordmark';
 import LegalFooter from '../../components/ui/LegalFooter';
 import BentoTile from '../../components/ui/BentoTile';
@@ -12,7 +13,7 @@ import TierCardBento from '../../components/ui/TierCardBento';
 import InactivityWarning from '../../components/ui/InactivityWarning';
 import HistorySheet from './HistorySheet';
 import useShortScreen from '../../hooks/useShortScreen';
-import { Menu, Fuel, Tag, Wifi, Door, Cake, Pin, Clock, Chev, StarRate, Check } from '../../components/ui/Icons';
+import { Menu, Fuel, Tag, Wifi, Door, Cake, Pin, Clock, Chev, Check } from '../../components/ui/Icons';
 import { getPosition, nearestStation } from '../../lib/geo';
 import LogoSpinner from '../../components/ui/LogoSpinner';
 import GalaxyDust from '../../components/ui/GalaxyDust';
@@ -36,33 +37,10 @@ export default function ClientHome(ctx) {
   const currentMonthTickets = (rafData?.[curMonth]?.participants || [])
     .find(p => p.cid === me.id)?.tickets || 0;
 
-  // Operator rating from member device — auto-submit on tap
-  const [savingRating, setSavingRating] = useState(false);
-
-  const submitOpRating = useCallback(async (starCount) => {
-    if (!pendingOpRating || starCount < 1 || savingRating) return;
-    setSavingRating(true);
-    if (sb && sbConnected) {
-      const { error } = await sb.from('operator_ratings').insert({
-        operator_id: pendingOpRating.operatorId,
-        member_id: me.id,
-        stars: starCount,
-      });
-      if (error) console.error('[Rating]', error);
-      else fire(`¡Gracias! Calificación enviada: ${starCount}/5`, 'success');
-    }
-    setSavingRating(false);
-    setPendingOpRating(null);
-  }, [pendingOpRating, me?.id, sbConnected, savingRating, fire, setPendingOpRating]);
-
-  const dismissRating = useCallback(() => {
-    setPendingOpRating(null);
-  }, [setPendingOpRating]);
-
-  // Survey timer: wait 90 seconds before granting points
+  // Survey timer: wait 90 seconds before granting points.
+  // Compartido entre el modal de encuestas y OpRatingModal (paso 2).
   const [surveyPending, setSurveyPending] = useState(null); // { openedAt, stationName }
   const [surveyCountdown, setSurveyCountdown] = useState(0);
-  const SURVEY_WAIT = 90; // 1.5 minutes in seconds
 
   useEffect(() => {
     if (!surveyPending) { setSurveyCountdown(0); return; }
@@ -690,11 +668,7 @@ export default function ClientHome(ctx) {
               const fromId = (stations || []).find(st => st.id === raw)?.name || '';
               const lastName = fromId || raw;
 
-              return [
-                { name: 'Turkaj I', url: 'https://tellshell.shell.com/GTM?source=smartQR&s=10700531' },
-                { name: 'Turkaj II', url: 'https://tellshell.shell.com/GTM?source=smartQR&s=10700717' },
-                { name: 'Turkaj III', url: 'https://tellshell.shell.com/GTM?source=smartQR&s=10700211' },
-              ].map((s) => {
+              return SHELL_SURVEYS.map((s) => {
                 const isLast = lastName && lastName === s.name;
                 const waitingThis = surveyPending?.stationName === s.name;
                 return (
@@ -802,115 +776,26 @@ export default function ClientHome(ctx) {
         </GrowModal>
       )}
 
-      {/* Operator Rating Modal — triggered by Realtime after purchase
-          (FORMATO GENERAL: flat, sin emojis, spinner de marca) */}
+      {/* Modal post-compra (Realtime): estrellas + invitación a la
+          encuesta Shell de la estación de la compra. key = nueva compra
+          reinicia el paso interno del modal. */}
       {pendingOpRating && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)',
-          zIndex: 250, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: 20, animation: 'fadeUp .3s ease',
-        }}>
-          <div style={{
-            background: dark ? '#101018' : '#fff',
-            borderRadius: 24, maxWidth: 360, width: '100%', padding: '28px 24px',
-            textAlign: 'center',
-          }}>
-            {savingRating ? (
-              /* Saving state */
-              <div style={{ padding: '24px 0', display: 'flex', justifyContent: 'center' }}>
-                <LogoSpinner size={44} dark={dark} label="Enviando calificación..." />
-              </div>
-            ) : (
-              <>
-                {/* Header: surtidor blanco en cuadro verde sólido */}
-                <div style={{
-                  width: 56, height: 56, borderRadius: 16, margin: '0 auto 12px',
-                  background: bento.green, color: '#fff',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <Fuel />
-                </div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: dark ? '#fff' : '#0D0D0D', marginBottom: 6 }}>
-                  ¡Compra registrada!
-                </div>
-
-                {/* PROMO-1: puntos de la compra + promo aplicada (llega por
-                    fetchPurchasePromo tras el INSERT Realtime) */}
-                {pendingOpRating.points != null && (
-                  <div style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: dark ? '#7CD98F' : bento.green, marginBottom: pendingOpRating.promo ? 8 : 6 }}>
-                    +{pendingOpRating.points} pts
-                    {pendingOpRating.amount != null && (
-                      <span style={{ fontSize: 12, fontWeight: 700, color: '#9E9E9E' }}> · Q{+pendingOpRating.amount}</span>
-                    )}
-                  </div>
-                )}
-                {pendingOpRating.promo && (
-                  <div style={{
-                    display: 'inline-block', padding: '8px 14px', borderRadius: 12,
-                    background: dark ? 'rgba(217,164,11,.18)' : '#FAF1DC',
-                    fontSize: 12.5, fontWeight: 700, marginBottom: 10,
-                    color: dark ? '#FFD54F' : '#B58000',
-                  }}>
-                    {pendingOpRating.promo.effectType === 'grant_reward' ? (
-                      // PROMO-1b: premio regalado — ya está en tus canjes
-                      <>{pendingOpRating.promo.name} · ¡{pendingOpRating.promo.rewardName} gratis!
-                        <div style={{ fontSize: 10.5, fontWeight: 700, opacity: .85, marginTop: 2 }}>
-                          Ya está en tus canjes pendientes — retiralo en estación
-                        </div>
-                      </>
-                    ) : (
-                      <>{pendingOpRating.promo.name}
-                        {pendingOpRating.promo.effectType === 'points_multiplier' && ` x${+pendingOpRating.promo.effectValue}`}
-                        {' '}· +{pendingOpRating.promo.extraPoints} pts extra
-                      </>
-                    )}
-                  </div>
-                )}
-
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#9E9E9E', marginBottom: 2 }}>
-                  Fuiste atendido por
-                </div>
-                <div style={{
-                  fontSize: 20, fontWeight: 800, marginBottom: 2,
-                  color: dark ? '#fff' : '#0D0D0D',
-                }}>
-                  {pendingOpRating.operatorName}
-                </div>
-                {pendingOpRating.stationName && (
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#9E9E9E', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                    <Pin /> {pendingOpRating.stationName}
-                  </div>
-                )}
-
-                {/* Stars — tap to rate and auto-submit */}
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: dark ? '#E0E0E0' : '#424242', marginBottom: 12 }}>
-                  Calificá la atención
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 18 }}>
-                  {[1, 2, 3, 4, 5].map(s => (
-                    <button key={s} onClick={() => submitOpRating(s)} aria-label={`${s} estrellas`} style={{
-                      background: 'none', border: 'none', cursor: 'pointer',
-                      color: bento.amber, padding: 2, lineHeight: 0,
-                      transition: 'transform .1s',
-                    }}>
-                      <StarRate size={36} />
-                    </button>
-                  ))}
-                </div>
-
-                {/* Skip */}
-                <button onClick={dismissRating} style={{
-                  width: '100%', padding: 12, borderRadius: 14,
-                  background: 'none', border: 'none',
-                  fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 600,
-                  color: '#9E9E9E', cursor: 'pointer',
-                }}>
-                  Omitir
-                </button>
-              </>
-            )}
-          </div>
-        </div>
+        <OpRatingModal
+          key={pendingOpRating.purchaseId || 'compra'}
+          data={pendingOpRating}
+          onClose={() => setPendingOpRating(null)}
+          dark={dark}
+          memberId={me.id}
+          sbConnected={sbConnected}
+          fire={fire}
+          cfg={cfg}
+          mySurveyCount={mySurveyCount}
+          accent={hp.survey}
+          accentInk={hp.surveyInk || '#fff'}
+          surveyPending={surveyPending}
+          setSurveyPending={setSurveyPending}
+          surveyCountdown={surveyCountdown}
+        />
       )}
 
     </div>

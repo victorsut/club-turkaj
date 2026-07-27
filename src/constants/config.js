@@ -87,6 +87,19 @@ export const SPECIAL_EVENTS = [
 ];
 
 // ──────────────────────────────────────────────
+// Encuestas Shell por estación (tellshell oficial).
+// `name` debe coincidir EXACTO con stations.name — es la llave
+// que une la compra (Realtime) y el modal de encuestas con su URL.
+// ──────────────────────────────────────────────
+export const SURVEY_WAIT = 90; // segundos mínimos en la página de Shell
+
+export const SHELL_SURVEYS = [
+  { name: 'Turkaj I',   url: 'https://tellshell.shell.com/GTM?source=smartQR&s=10700531' },
+  { name: 'Turkaj II',  url: 'https://tellshell.shell.com/GTM?source=smartQR&s=10700717' },
+  { name: 'Turkaj III', url: 'https://tellshell.shell.com/GTM?source=smartQR&s=10700211' },
+];
+
+// ──────────────────────────────────────────────
 // Nombres de meses
 // ──────────────────────────────────────────────
 export const MONTH_NAMES = [
