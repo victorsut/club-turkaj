@@ -74,6 +74,7 @@ export default function MemberDetail(ctx) {
           name: m.name, phone: m.phone || '—', dpi: m.dpi || '—',
           plate: m.plate || '—', email: m.email || '—',
           nit: m.nit || '—', bday: m.birthday || '—',
+          address: m.address || null,
           points: m.points || 0, gallons: parseFloat(m.gallons) || 0,
           spent: parseFloat(m.spent) || 0, visits: m.visits || 0,
           tickets: m.tickets || 0, redeemed: m.redeemed_count || 0,
@@ -368,6 +369,7 @@ export default function MemberDetail(ctx) {
           { l: '🪪 DPI', v: c.dpi || '—' },
           { l: '📧 Email', v: c.email || '—' },
           { l: '🧾 NIT', v: c.nit || '—' },
+          { l: '🏠 Dirección', v: c.address ? `${c.address.canton}, ${c.address.muni}` : '—' },
           { l: '🎂 Cumpleaños', v: c.bday || '—' },
           { l: '💳 Tarjeta', v: c.cardId || '—' },
           { l: '📅 Registro', v: c.registered || '—' },
@@ -375,8 +377,8 @@ export default function MemberDetail(ctx) {
           { l: '🏪 Visitas', v: c.visits || 0 },
           { l: '🎁 Canjes', v: c.redeemed || 0 },
           { l: '🎟️ Boletos', v: c.tickets || 0 },
-        ].map((r, i) => (
-          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: i < 11 ? `1px solid ${AT.border}` : 'none', fontSize: 13 }}>
+        ].map((r, i, arr) => (
+          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: i < arr.length - 1 ? `1px solid ${AT.border}` : 'none', fontSize: 13 }}>
             <span style={{ color: '#9E9E9E', fontWeight: 600 }}>{r.l}</span>
             <span style={{ color: '#E0E0E0', fontWeight: 700, ...sMono, fontSize: 12 }}>{r.v}</span>
           </div>

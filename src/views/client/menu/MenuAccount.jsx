@@ -9,6 +9,7 @@ import { User, Phone, Mail, Receipt, IdCard, Cake, Lock, Key, Eye, EyeOff, Plus,
 import { VEHICLE_TYPES } from '../../../components/ui/VehicleIcons';
 import { DatePickerSheet } from '../../../components/ui/DrumDatePicker';
 import { phoneMask, dpiMask, plateMask, capWords } from '../../../lib/inputMasks';
+import AddressPicker, { EMPTY_ADDRESS } from '../../../components/ui/AddressPicker';
 import { SectionHeader } from './menuUi';
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -35,6 +36,9 @@ export default function MenuAccount({ ctx, TH, onBack }) {
   const [form, setForm] = useState({
     name: me?.name || '', phone: me?.phone || '', email: me?.email || '', nit: me?.nit || '', bday: '',
   });
+  // Dirección en cascada (dep → muni → cantón); sin dato guardado
+  // arranca con Quiché/Chichicastenango preseleccionados
+  const [addr, setAddr] = useState(me?.address || EMPTY_ADDRESS);
   const [saving, setSaving] = useState(false);
 
   // Fecha de nacimiento: los registros viejos solo guardan 'MM-DD' —
@@ -67,8 +71,13 @@ export default function MenuAccount({ ctx, TH, onBack }) {
     if (!form.name?.trim()) { fire('El nombre es obligatorio', 'error'); return; }
     if (form.phone && !/^\d{8}$/.test(form.phone.trim())) { fire('El teléfono debe tener 8 dígitos', 'error'); return; }
     setSaving(true);
+    // Dirección solo si hay cantón elegido (sin cantón → null, no se
+    // inventan datos con los valores preseleccionados)
+    const addressStored = (addr.dept && addr.muni && addr.canton?.trim())
+      ? { dept: addr.dept, muni: addr.muni, canton: addr.canton.trim() } : null;
     const updates = {
       name: form.name.trim(), phone: form.phone?.trim() || me.phone, email: form.email?.trim() || null, nit: form.nit?.trim() || null,
+      address: addressStored,
       ...(form.bday ? { birthday: form.bday } : {}),
     };
     if (sbConnected && sb) {
@@ -170,6 +179,17 @@ export default function MenuAccount({ ctx, TH, onBack }) {
           </div>
         </div>
       ))}
+
+      {/* ── Dirección (cascada dep → muni → cantón) ── */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={label}>Dirección</div>
+        <AddressPicker
+          value={addr}
+          onChange={setAddr}
+          dark={TH.isDark}
+          fieldBg={TH.isDark ? 'rgba(255,255,255,.08)' : '#fff'}
+        />
+      </div>
 
       {readonlyFields.map(f => (
         <div key={f.l} style={{ marginBottom: 14 }}>

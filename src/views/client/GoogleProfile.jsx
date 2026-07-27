@@ -9,6 +9,7 @@ import { User, IdCard, Mail, Receipt, Eye, EyeOff, Plus, XMark } from '../../com
 import { DatePickerSheet } from '../../components/ui/DrumDatePicker';
 import { VEHICLE_TYPES } from '../../components/ui/VehicleIcons';
 import { WizardHeader, PtsCard, Field, DateField } from './registerUi';
+import AddressPicker, { EMPTY_ADDRESS } from '../../components/ui/AddressPicker';
 import { phoneMask, dpiMask, plateMask, capWords } from '../../lib/inputMasks';
 import { getNextCardCode } from '../../services/dataService';
 
@@ -55,9 +56,11 @@ export default function GoogleProfile(ctx) {
     return !!data;
   };
 
-  // Solo email y nit dan puntos opcionales
+  // Email, nit y dirección (cantón elegido) dan puntos opcionales
   const regOptional = cfg.regOptional || 2;
-  const optFields  = ['email', 'nit'].filter(k => regProfile[k]?.trim()).length;
+  const addr = regProfile.addr || EMPTY_ADDRESS;
+  const addrDone = !!(addr.dept && addr.muni && addr.canton?.trim());
+  const optFields  = ['email', 'nit'].filter(k => regProfile[k]?.trim()).length + (addrDone ? 1 : 0);
   const vehiclePts = vehicles.length * VEHICLE_PTS;
   const totalPts   = (cfg.regBase || 15) + optFields * regOptional + vehiclePts;
 
@@ -81,7 +84,10 @@ export default function GoogleProfile(ctx) {
       const bdayRaw = regProfile.bday || '';
       const bdayStored = /^\d{4}-\d{2}-\d{2}$/.test(bdayRaw) ? bdayRaw : '';
 
-      const updated = { ...me, name: regProfile.name, phone: regProfile.phone || '', dpi: regProfile.dpi || '', plate: firstPlate, email: regProfile.email || me?.email || '', bday: bdayStored, nit: regProfile.nit || '', points: totalPts, cardId: fallbackCard };
+      // Dirección solo si eligió cantón (no inventar datos con los preseleccionados)
+      const addressStored = addrDone ? { dept: addr.dept, muni: addr.muni, canton: addr.canton.trim() } : null;
+
+      const updated = { ...me, name: regProfile.name, phone: regProfile.phone || '', dpi: regProfile.dpi || '', plate: firstPlate, email: regProfile.email || me?.email || '', bday: bdayStored, nit: regProfile.nit || '', address: addressStored, points: totalPts, cardId: fallbackCard };
       setMe(updated);
       setCusts(p => [...p, updated]);
       setAuthScreen('logged');
@@ -111,6 +117,7 @@ export default function GoogleProfile(ctx) {
           nit:              regProfile.nit || null,
           email:            regProfile.email || me?.email || null,
           birthday:         bdayStored || null,
+          address:          addressStored,
           points:           totalPts,
           gallons: 0, spent: 0, visits: 0, tickets: 0, redeemed_count: 0, referral_count: 0,
         };
@@ -257,6 +264,18 @@ export default function GoogleProfile(ctx) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 22 }}>
           <Field {...fieldProps} icon={<Mail />} placeholder="Correo electrónico (opcional)" fieldKey="email" type="email" bonus />
           <Field {...fieldProps} icon={<Receipt />} placeholder="NIT (opcional)" fieldKey="nit" bonus />
+        </div>
+
+        {/* Dirección: departamento → municipio → cantón (Quiché y
+            Chichicastenango preseleccionados — solo elige su cantón) */}
+        <div style={{ fontSize: 13, fontWeight: 800, color: ink, marginBottom: 10 }}>Tu dirección <span style={{ fontWeight: 600, color: '#9E9E9E' }}>(opcional)</span></div>
+        <div style={{ marginBottom: 22 }}>
+          <AddressPicker
+            value={addr}
+            onChange={a => { setRegProfile(p => ({ ...p, addr: a })); clearAuthErr(); }}
+            dark={dark}
+            bonusPts={regOptional}
+          />
         </div>
 
         <div style={{ fontSize: 13, fontWeight: 800, color: ink, marginBottom: 10 }}>Tus vehículos</div>

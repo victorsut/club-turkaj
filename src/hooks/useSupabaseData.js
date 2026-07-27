@@ -31,6 +31,7 @@ export function mapMember(m) {
     plate: m.plate || '',
     nit: m.nit || '',
     bday: m.birthday || '',
+    address: m.address || null,
     points: m.points || 0,
     gallons: parseFloat(m.gallons) || 0,
     spent: parseFloat(m.spent) || 0,
