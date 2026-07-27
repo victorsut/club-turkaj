@@ -150,15 +150,10 @@ export default function MenuAccount({ ctx, TH, onBack }) {
     setMe(p => ({ ...p, vehicles: updated, plate: updated[0]?.plate || '' }));
     return null;
   };
-  // El log de actividad es rastro secundario: si falla no revierte la
-  // operación (solo consola) — el CHECK lo permite desde 20260727e.
-  const logVehicleActivity = async (desc) => {
-    if (!sb || !sbConnected) return;
-    const { error } = await sb.from('activity_log').insert({
-      member_id: me.id, activity_type: 'vehiculo', description: desc, points_change: 0,
-    });
-    if (error) console.error('[Vehicles] activity_log:', error);
-  };
+  // Alta/baja de vehículos NO se registran en activity_log (decisión
+  // del dueño 27-jul: no mueven puntos — el historial de vehículos
+  // vivirá en la pestaña VEHÍCULOS, F6). Solo el bonus del wizard de
+  // registro persiste ahí porque sí suma puntos.
   const addVehicle = async () => {
     if (!newVPlate.trim()) { fire('Ingresa la placa del vehículo', 'error'); return; }
     if (!plateMask.complete(newVPlate)) { fire('Placa incompleta — formato: P 123 ABC', 'error'); return; }
@@ -168,7 +163,6 @@ export default function MenuAccount({ ctx, TH, onBack }) {
     setVehicles(updated); setAddingV(false); setNewVPlate(''); setNewVType('liviano');
     const err = await persistVehicles(updated);
     if (err) { setVehicles(prev); fire('No se pudo guardar el vehículo: ' + err.message, 'error'); return; }
-    await logVehicleActivity(`Vehículo agregado: ${typeInfo(added.type).label} ${plateMask.format(added.plate)}`);
     fire('Vehículo agregado', 'success');
   };
   // Eliminar vehículo pide CONFIRMACIÓN (pedido del dueño 27-jul):
@@ -185,7 +179,7 @@ export default function MenuAccount({ ctx, TH, onBack }) {
   const confirmRemoveVehicle = async () => {
     if (!delVehicle || deleting) return;
     setDeleting(true);
-    const { v, i } = delVehicle;
+    const { i } = delVehicle;
     const prev = vehicles;
     const updated = prev.filter((_, j) => j !== i);
     setVehicles(updated);
@@ -193,7 +187,6 @@ export default function MenuAccount({ ctx, TH, onBack }) {
     setDeleting(false);
     closeDelSheet();
     if (err) { setVehicles(prev); fire('No se pudo eliminar el vehículo: ' + err.message, 'error'); return; }
-    await logVehicleActivity(`Vehículo eliminado: ${typeInfo(v.type).label} ${plateMask.format(plateMask.clean(v.plate || '')) || v.plate}`);
     fire('Vehículo eliminado', 'success');
   };
 
