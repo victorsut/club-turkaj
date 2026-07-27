@@ -5,7 +5,8 @@
 import { useState, useEffect } from 'react';
 import { sb } from '../../../lib/supabaseClient';
 import { inputFlat, btnStyle, bento, BRAND_ORANGE } from '../../../constants/styles';
-import { User, Phone, Mail, Receipt, IdCard, Cake, Lock, Key, Eye, EyeOff, Plus, XMark, Chev } from '../../../components/ui/Icons';
+import { User, Phone, Mail, Receipt, IdCard, Cake, Lock, Key, Eye, EyeOff, Plus, XMark, Chev, Fingerprint, Check } from '../../../components/ui/Icons';
+import { biometricsAvailable, registerBiometric, isUserCancel } from '../../../lib/webauthnClient';
 import { VEHICLE_TYPES } from '../../../components/ui/VehicleIcons';
 import { DatePickerSheet } from '../../../components/ui/DrumDatePicker';
 import { phoneMask, dpiMask, plateMask, capWords } from '../../../lib/inputMasks';
@@ -61,6 +62,33 @@ export default function MenuAccount({ ctx, TH, onBack }) {
   const [passForm, setPassForm]       = useState({ current: '', newPass: '', confirm: '' });
   const [showP, setShowP]             = useState({ n: false, cf: false });
   const [savingPass, setSavingPass]   = useState(false);
+
+  // ── Biometría (passkey en ESTE dispositivo) ──
+  const [bioAvail, setBioAvail]   = useState(false);
+  const [showBioSec, setShowBioSec] = useState(false);
+  const [bioPass, setBioPass]     = useState('');
+  const [showBioPass, setShowBioPass] = useState(false);
+  const [bioBusy, setBioBusy]     = useState(false);
+  const [bioDone, setBioDone]     = useState(() => {
+    try { return localStorage.getItem(`pp_bio_${me?.id}`) === '1'; } catch { return false; }
+  });
+  useEffect(() => { biometricsAvailable().then(setBioAvail); }, []);
+
+  const activateBio = async () => {
+    if (bioBusy) return;
+    if (!bioPass) { fire('Ingresa tu contraseña para activar', 'error'); return; }
+    setBioBusy(true);
+    try {
+      await registerBiometric(me.id, bioPass);
+      try { localStorage.setItem(`pp_bio_${me.id}`, '1'); } catch { /* sin storage */ }
+      setBioDone(true); setBioPass(''); setShowBioSec(false);
+      fire('Huella activada — ya podés usarla al iniciar sesión', 'success');
+    } catch (err) {
+      if (!isUserCancel(err)) fire(err.message || 'No se pudo activar la biometría', 'error');
+    } finally {
+      setBioBusy(false);
+    }
+  };
 
   const field = { ...inputFlat, background: TH.isDark ? 'rgba(255,255,255,.08)' : '#fff', color: TH.header, paddingLeft: 44 };
   const label = { fontSize: 11, fontWeight: 800, color: TH.sub, marginBottom: 6, textTransform: 'uppercase', letterSpacing: .5 };
@@ -328,6 +356,48 @@ export default function MenuAccount({ ctx, TH, onBack }) {
             {savingPass ? 'Guardando...' : 'Actualizar contraseña'}
           </button>
         </div>
+      )}
+
+      {/* ── Biometría: activar huella/rostro en este dispositivo.
+          Solo si el navegador soporta autenticador de plataforma
+          (in-app browsers de WhatsApp/Instagram no lo muestran). ── */}
+      {bioAvail && (
+        <>
+          <button onClick={() => setShowBioSec(p => !p)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderRadius: 16, border: 'none', background: TH.surface, fontFamily: "'DM Sans'", cursor: 'pointer', marginTop: 12, marginBottom: showBioSec ? 12 : 0, textAlign: 'left' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: TH.iconBox, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Fingerprint /></div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: TH.header }}>Huella o rostro</div>
+              <div style={{ fontSize: 11, color: TH.sub, marginTop: 2 }}>
+                {bioDone ? 'Activada en este dispositivo' : 'Inicia sesión con la seguridad de tu celular'}
+              </div>
+            </div>
+            {bioDone && <span style={{ display: 'flex', color: bento.green }}><Check /></span>}
+            <span style={{ color: TH.sub, display: 'flex', transform: showBioSec ? 'rotate(90deg)' : 'none', transition: 'transform .2s' }}><Chev /></span>
+          </button>
+
+          {showBioSec && (
+            <div style={{ background: TH.surface, borderRadius: 20, padding: 16 }}>
+              <div style={{ fontSize: 12, color: TH.sub, lineHeight: 1.55, marginBottom: 12 }}>
+                Tu celular usará su propio desbloqueo (huella, rostro, PIN o patrón).
+                Tu información biométrica nunca sale del dispositivo.
+                {bioDone ? ' Podés volver a configurarla cuando quieras.' : ''}
+              </div>
+              <div style={label}>Contraseña actual</div>
+              <div style={{ position: 'relative', marginBottom: 12 }}>
+                <input type={showBioPass ? 'text' : 'password'} placeholder="Confirma tu identidad" value={bioPass}
+                  onChange={e => setBioPass(e.target.value)}
+                  style={{ ...field, paddingLeft: 16, paddingRight: 50, background: TH.isDark ? 'rgba(255,255,255,.08)' : '#F5F5F7' }} />
+                <button type="button" onClick={() => setShowBioPass(p => !p)} aria-label={showBioPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: TH.sub, display: 'flex', padding: 2 }}>
+                  {showBioPass ? <EyeOff /> : <Eye />}
+                </button>
+              </div>
+              <button onClick={activateBio} disabled={bioBusy} style={{ ...btnPrimary, padding: 14, borderRadius: 12, fontSize: 14, opacity: bioBusy ? .7 : 1 }}>
+                {bioBusy ? 'Esperando tu celular...' : bioDone ? 'Volver a configurar' : 'Activar en este dispositivo'}
+              </button>
+            </div>
+          )}
+        </>
       )}
     </>
   );

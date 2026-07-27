@@ -290,6 +290,17 @@ export const StarRate = ({ size = 34 }) => (
   </svg>
 );
 
+// Huella digital (login/activación biométrica)
+export const Fingerprint = () => (
+  <svg {...s}>
+    <path d="M12 11a3 3 0 0 1 3 3c0 2.5-.5 4.5-1.2 6.2" />
+    <path d="M9.4 20.4c.9-1.8 1.6-3.9 1.6-6.4a1 1 0 0 1 1-1" />
+    <path d="M6.8 18.5c1.1-1.9 1.7-4 1.7-6.5a3.5 3.5 0 0 1 5.3-3" />
+    <path d="M5 15.5c.6-1.4 1-2.9 1-4.5a6 6 0 0 1 9.3-5" />
+    <path d="M17.8 8.5A6 6 0 0 1 18 11c0 1.2-.1 2.4-.3 3.5" />
+  </svg>
+);
+
 // Recargar (banner de nueva versión)
 export const Refresh = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -448,5 +459,5 @@ export const Car = () => (
   </svg>
 );
 
-const IC = { Fuel, Users, Gift, Ticket, Star, Plus, Search, Back, ArrowLeft, Check, Chev, Pin, Clock, Warn, XMark, Info, QR, Gear, Logout, GoogleLogo, FacebookLogo, Megaphone, Menu, Percent, Tag, Wifi, Door, Cake, House, TicketStar, Car, Coffee, Soda, Drops, Shirt, Gamepad, Headphones, Tv, Speaker, Key, Ball, Utensils, Clipboard, StarLine, StarRate, Refresh, User, IdCard, Mail, Receipt, Phone, Lock, Eye, EyeOff };
+const IC = { Fuel, Users, Gift, Ticket, Star, Plus, Search, Back, ArrowLeft, Check, Chev, Pin, Clock, Warn, XMark, Info, QR, Gear, Logout, GoogleLogo, FacebookLogo, Megaphone, Menu, Percent, Tag, Wifi, Door, Cake, House, TicketStar, Car, Coffee, Soda, Drops, Shirt, Gamepad, Headphones, Tv, Speaker, Key, Ball, Utensils, Clipboard, StarLine, StarRate, Refresh, User, IdCard, Mail, Receipt, Phone, Lock, Eye, EyeOff, Fingerprint };
 export default IC;

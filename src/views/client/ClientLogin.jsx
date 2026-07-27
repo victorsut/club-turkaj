@@ -6,9 +6,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { inputFlat, btnStyle, BRAND_ORANGE } from '../../constants/styles';
-import { GoogleLogo, Phone, Lock, Mail, Chev } from '../../components/ui/Icons';
+import { GoogleLogo, Phone, Lock, Mail, Chev, Fingerprint } from '../../components/ui/Icons';
 import { phoneMask } from '../../lib/inputMasks';
 import { signInWithPhone } from '../../services/authService';
+import { biometricsAvailable, loginBiometric, isUserCancel } from '../../lib/webauthnClient';
 import Wordmark from '../../components/ui/Wordmark';
 import LegalFooter from '../../components/ui/LegalFooter';
 import ModeToggle from '../../components/ui/ModeToggle';
@@ -77,6 +78,28 @@ export default function ClientLogin(ctx) {
   const doGoogle = () => {
     if (sb) sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
     else setAuthError('Supabase no disponible');
+  };
+
+  // ── Biometría (passkeys): el botón solo aparece si el navegador
+  // soporta autenticador de plataforma (in-app browsers no) ──
+  const [bioAvail, setBioAvail] = useState(false);
+  const [bioBusy, setBioBusy]   = useState(false);
+  useEffect(() => { biometricsAvailable().then(setBioAvail); }, []);
+
+  const doBiometric = async () => {
+    if (bioBusy) return;
+    clearAuthErr();
+    setBioBusy(true);
+    try {
+      const res = await loginBiometric();
+      const found = custs.find(c => c.id === res.memberId);
+      if (!found) { setAuthError('No se pudo cargar tu perfil. Recargá la app e intentá de nuevo.'); return; }
+      setMe(found); setAuthScreen('logged'); fire('Bienvenido ' + found.name, 'success');
+    } catch (err) {
+      if (!isUserCancel(err)) setAuthError(err.message || 'No se pudo verificar tu identidad');
+    } finally {
+      setBioBusy(false);
+    }
   };
 
   // Registro directo al wizard: crea el usuario temporal y abre el paso 1
@@ -165,6 +188,21 @@ export default function ClientLogin(ctx) {
       }}>
         <GoogleLogo /> Continuar con Google
       </button>
+
+      {/* Biometría (passkey): huella / rostro / patrón del celular */}
+      {bioAvail && (
+        <button onClick={doBiometric} disabled={bioBusy} style={{
+          ...btnStyle,
+          background: dark ? 'rgba(255,255,255,.08)' : '#fff',
+          border: dark ? '1.5px solid rgba(255,255,255,.14)' : '1.5px solid #ECECEE',
+          color: dark ? '#fff' : '#333',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          marginTop: -14, marginBottom: 24, opacity: bioBusy ? .7 : 1,
+        }}>
+          <span style={{ color: BRAND_ORANGE, display: 'flex' }}><Fingerprint /></span>
+          {bioBusy ? 'Verificando...' : 'Usar huella o rostro'}
+        </button>
+      )}
 
       {/* Registro — link de texto, directo al wizard */}
       <div style={{ textAlign: 'center' }}>

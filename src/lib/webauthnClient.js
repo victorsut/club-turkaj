@@ -1,0 +1,53 @@
+// src/lib/webauthnClient.js
+// Biometría con passkeys (huella / rostro / patrón del celular).
+// El navegador habla con el chip seguro del teléfono; este módulo
+// solo orquesta contra /api/webauthn. La biometría NUNCA sale del
+// dispositivo — solo viajan firmas criptográficas.
+import {
+  startRegistration,
+  startAuthentication,
+  browserSupportsWebAuthn,
+  platformAuthenticatorIsAvailable,
+} from '@simplewebauthn/browser';
+
+const post = async (body) => {
+  const r = await fetch('/api/webauthn', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || 'Error de conexión');
+  return data;
+};
+
+// ¿Este navegador/celular puede usar biometría? (in-app browsers de
+// WhatsApp/Instagram suelen NO soportarla → el botón no se muestra)
+export async function biometricsAvailable() {
+  try {
+    return browserSupportsWebAuthn() && await platformAuthenticatorIsAvailable();
+  } catch {
+    return false;
+  }
+}
+
+// Cancelación del usuario en el diálogo del sistema (no es un error)
+export const isUserCancel = (err) =>
+  err?.name === 'NotAllowedError' || err?.name === 'AbortError';
+
+// Activar en este dispositivo (exige la contraseña actual del miembro)
+export async function registerBiometric(memberId, password) {
+  const options = await post({ action: 'register-options', memberId, password });
+  const response = await startRegistration({ optionsJSON: options });
+  return post({
+    action: 'register-verify', memberId, response,
+    label: (navigator.userAgent || '').slice(0, 120),
+  });
+}
+
+// Iniciar sesión con la llave del dispositivo → { ok, memberId, name }
+export async function loginBiometric() {
+  const options = await post({ action: 'login-options' });
+  const response = await startAuthentication({ optionsJSON: options });
+  return post({ action: 'login-verify', response });
+}
