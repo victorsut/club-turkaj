@@ -135,9 +135,35 @@ self.addEventListener('push', (event) => {
   event.waitUntil((async () => {
     if (data.type === 'purchase' || data.type === 'reward') {
       const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      // Suprimida con la app a la vista: ni notificación NI registro en
+      // el inbox (el cliente ya vio el modal — no pasó nada que avisar).
       if (wins.some(w => w.visibilityState === 'visible')) return;
     }
     await self.registration.showNotification(data.title, options);
+    // Registrar en el inbox SOLO lo realmente mostrado (tipos con
+    // logOnDisplay; los demás se registran en el servidor al enviar).
+    if (data.logOnDisplay && data.notifId && data.memberId) {
+      try {
+        await fetch('/api/log-notification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: data.notifId,
+            member_id: data.memberId,
+            type: data.type,
+            title: data.title,
+            body: data.body,
+            data: {
+              operatorId: data.operatorId || null,
+              purchaseId: data.purchaseId || null,
+              rewardName: data.rewardName || null,
+            },
+          }),
+        });
+      } catch (e) {
+        console.log('[SW] log-notification failed (sin red):', e && e.message);
+      }
+    }
   })());
 });
 
@@ -158,21 +184,31 @@ function urlForNotification(data) {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const data = event.notification.data || {};
-  let url = urlForNotification(data);
-
   if (event.action === 'dismiss') return;
+  const data = event.notification.data || {};
+  const url = urlForNotification(data);
 
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url.includes(self.location.origin) && 'focus' in client) {
-          client.focus();
-          client.postMessage({ type: 'NOTIFICATION_CLICK', data });
-          return;
-        }
+  // VISIBLE → postMessage (la página está viva y abre el modal sin
+  // recargar). OCULTA/CONGELADA → postMessage se PIERDE (Android congela
+  // o descarta la página en segundo plano): navegar recarga la app con
+  // el deep-link y el efecto de URL abre el modal. Sin ventanas → abrir.
+  event.waitUntil((async () => {
+    const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const win = wins.find(w => w.url.includes(self.location.origin) && 'focus' in w);
+    console.log('[SW] notificationclick', data.type, 'win:', !!win, win && win.visibilityState);
+    if (win) {
+      if (win.visibilityState === 'visible') {
+        await win.focus();
+        win.postMessage({ type: 'NOTIFICATION_CLICK', data });
+        return;
       }
-      return clients.openWindow(url);
-    })
-  );
+      try {
+        const navigated = await win.navigate(url);
+        if (navigated) { await navigated.focus(); return; }
+      } catch (e) {
+        console.log('[SW] navigate falló, openWindow:', e && e.message);
+      }
+    }
+    await self.clients.openWindow(url);
+  })());
 });

@@ -836,7 +836,19 @@ export default function App() {
       return;
     }
     fetchNotifications(me.id).then(setMyNotifs);
-    if (!sb || !sbConnected) return;
+    // Al volver la app al frente, refrescar: el canal Realtime se
+    // suspende en segundo plano y los registros que el SW hizo mientras
+    // tanto (push de compra/premio mostrado) no llegarían al badge.
+    const mid = me.id;
+    const onVis = () => {
+      if (document.visibilityState === 'visible') {
+        fetchNotifications(mid).then(setMyNotifs);
+      }
+    };
+    document.addEventListener('visibilitychange', onVis);
+    if (!sb || !sbConnected) {
+      return () => document.removeEventListener('visibilitychange', onVis);
+    }
     const ch = sb.channel(`notifications-${me.id}`)
       .on('postgres_changes', {
         event: 'INSERT',
@@ -844,10 +856,13 @@ export default function App() {
         table: 'notifications',
         filter: `member_id=eq.${me.id}`,
       }, (payload) => {
-        setMyNotifs(p => [payload.new, ...p]);
+        setMyNotifs(p => p.some(n => n.id === payload.new.id) ? p : [payload.new, ...p]);
       })
       .subscribe();
-    return () => sb.removeChannel(ch);
+    return () => {
+      document.removeEventListener('visibilitychange', onVis);
+      sb.removeChannel(ch);
+    };
   }, [me?.id, authScreen, sbConnected]);
 
   // Marca todas como leídas (al abrir el inbox); el badge se apaga al
