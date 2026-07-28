@@ -13,7 +13,8 @@ import TierCardBento from '../../components/ui/TierCardBento';
 import InactivityWarning from '../../components/ui/InactivityWarning';
 import HistorySheet from './HistorySheet';
 import useShortScreen from '../../hooks/useShortScreen';
-import { Menu, Fuel, Tag, Wifi, Door, Cake, Pin, Clock, Chev, Check } from '../../components/ui/Icons';
+import { Menu, Bell, Fuel, Tag, Wifi, Door, Cake, Pin, Clock, Chev, Check } from '../../components/ui/Icons';
+import NotificationsSheet from './NotificationsSheet';
 import { getPosition, nearestStation } from '../../lib/geo';
 import LogoSpinner from '../../components/ui/LogoSpinner';
 import GalaxyDust from '../../components/ui/GalaxyDust';
@@ -29,7 +30,34 @@ export default function ClientHome(ctx) {
     showSurveys, setShowSurveys, fire,
     pendingOpRating, setPendingOpRating, sbConnected,
     activityLog, custs, redeemedList, logout,
-    rafData, curMonth, setCScr, setNavOrigin, dark } = ctx;
+    rafData, curMonth, setCScr, setNavOrigin, dark,
+    myNotifs, markNotifsRead } = ctx;
+
+  // Campana de notificaciones (28-jul): badge con las sin leer; abre
+  // el inbox (NotificationsSheet) con container transform desde el ícono.
+  const [showNotifs, setShowNotifs] = useState(null); // { origin } | null
+  const unreadN = (myNotifs || []).filter(n => !n.read_at).length;
+  const bellBtn = (extraStyle) => (
+    <button onClick={(e) => setShowNotifs({ origin: originFromEvent(e) })} aria-label="Notificaciones" style={{
+      width: 42, height: 42, border: 'none', cursor: 'pointer',
+      background: 'none', color: headerTxt, position: 'relative',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      flexShrink: 0, padding: 0, ...extraStyle,
+    }}>
+      <Bell />
+      {unreadN > 0 && (
+        <span style={{
+          position: 'absolute', top: 4, right: 4,
+          minWidth: 16, height: 16, borderRadius: 8, padding: '0 4px',
+          background: bento.red, color: '#fff',
+          fontSize: 9.5, fontWeight: 800, lineHeight: '16px',
+          fontFamily: "'DM Sans'", boxSizing: 'border-box',
+        }}>
+          {unreadN > 9 ? '9+' : unreadN}
+        </span>
+      )}
+    </button>
+  );
 
   if (!me) return null;
 
@@ -233,6 +261,7 @@ export default function ClientHome(ctx) {
               <Wordmark size={28} color={headerTxt} />
             </div>
           </div>
+          {bellBtn({ alignSelf: 'flex-start' })}
           <button onClick={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('menu'); }} aria-label="Menú" style={{
             width: 42, height: 42, border: 'none', cursor: 'pointer',
             background: 'none', color: headerTxt,
@@ -247,6 +276,7 @@ export default function ClientHome(ctx) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 18px 0' }}>
             <img src="/logo.png" alt="Puntos Plus" style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0 }} />
             <div style={{ flex: 1 }} />
+            {bellBtn()}
             <button onClick={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('menu'); }} aria-label="Menú" style={{
               width: 42, height: 42, border: 'none', cursor: 'pointer',
               background: 'none', color: headerTxt,
@@ -795,6 +825,19 @@ export default function ClientHome(ctx) {
           surveyPending={surveyPending}
           setSurveyPending={setSurveyPending}
           surveyCountdown={surveyCountdown}
+        />
+      )}
+
+      {/* Inbox de la campana: notificaciones del motor, se marcan
+          leídas al abrir (el badge se apaga al instante). */}
+      {showNotifs && (
+        <NotificationsSheet
+          origin={showNotifs.origin}
+          onClose={() => setShowNotifs(null)}
+          notifs={myNotifs}
+          markRead={markNotifsRead}
+          tierName={cTier.name}
+          dark={dark}
         />
       )}
 

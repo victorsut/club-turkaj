@@ -399,3 +399,28 @@ export async function fetchMemberByCardCode(code) {
     error: null,
   };
 }
+
+// ──────────────────────────────────────────────
+// NOTIFICACIONES (notifications) — inbox de la campana
+// ──────────────────────────────────────────────
+export async function fetchNotifications(memberId, limit = 50) {
+  const { data, error } = await sb
+    .from('notifications')
+    .select('id, type, title, body, data, sent_at, read_at')
+    .eq('member_id', memberId)
+    .order('sent_at', { ascending: false })
+    .limit(limit);
+  if (error) console.error('[Data:notifications]', error.message);
+  return data || [];
+}
+
+// Marca TODAS las no leídas del miembro (el grant de columna solo
+// permite tocar read_at — el resto de la fila es solo del motor).
+export async function markNotificationsRead(memberId) {
+  const { error } = await sb
+    .from('notifications')
+    .update({ read_at: new Date().toISOString() })
+    .eq('member_id', memberId)
+    .is('read_at', null);
+  if (error) console.error('[Data:notificationsRead]', error.message);
+}

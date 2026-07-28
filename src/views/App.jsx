@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { sb } from '../lib/supabaseClient';
 import { makeTier, daysInactive } from '../lib/tierSystem';
 import { CFG_INIT, FUEL_LABELS } from '../constants/config';
-import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey, grantSpecialDayBonus, fetchPurchasePromo } from '../services';
+import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey, grantSpecialDayBonus, fetchPurchasePromo, fetchNotifications, markNotificationsRead } from '../services';
 import { logoutOperator, logoutAdmin } from '../services'; // SEC.B.4: logout delega el subconjunto de localStorage (ct_op/ct_admin + token de rol)
 import { getOperatorToken, getAdminToken } from '../services/sessionTokens'; // SEC.B.6.4: chequeo de token vivo para el cierre proactivo de sesión expirada
 import { setSessionExpiredHandler } from '../services/sessionExpiry'; // SEC.B.8.2: registro del handler que dispara expireSession ante rechazo 28000 del server
@@ -198,6 +198,8 @@ export default function App() {
   // Señal (contador) para que Catalog abra sus canjes PENDIENTES al
   // llegar por deep-link de notificación de premio (type 'reward').
   const [catPendingSignal, setCatPendingSignal] = useState(0);
+  // Inbox de la campana del inicio: notificaciones del miembro logueado.
+  const [myNotifs, setMyNotifs] = useState([]);
   const [rQty, setRQty] = useState(1);
   const [showHist, setShowHist] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
@@ -826,6 +828,36 @@ export default function App() {
       console.log('[Push] Subscription result:', ok ? '✅ OK' : '⚠️ Failed/Denied');
     });
   }, [me?.id, authScreen]);
+
+  // ===== NOTIFICACIONES: inbox de la campana (carga + realtime) =====
+  useEffect(() => {
+    if (!me?.id || authScreen !== 'logged' || viewRef.current !== 'client') {
+      setMyNotifs([]);
+      return;
+    }
+    fetchNotifications(me.id).then(setMyNotifs);
+    if (!sb || !sbConnected) return;
+    const ch = sb.channel(`notifications-${me.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+        filter: `member_id=eq.${me.id}`,
+      }, (payload) => {
+        setMyNotifs(p => [payload.new, ...p]);
+      })
+      .subscribe();
+    return () => sb.removeChannel(ch);
+  }, [me?.id, authScreen, sbConnected]);
+
+  // Marca todas como leídas (al abrir el inbox); el badge se apaga al
+  // instante y el servidor estampa read_at en segundo plano.
+  const markNotifsRead = useCallback(() => {
+    if (!me?.id) return;
+    const now = new Date().toISOString();
+    setMyNotifs(p => p.map(n => n.read_at ? n : { ...n, read_at: now }));
+    markNotificationsRead(me.id);
+  }, [me?.id]);
 
   // ===== SERVICE WORKER: Listen for notification clicks =====
   useEffect(() => {
@@ -1477,6 +1509,7 @@ export default function App() {
     opRatings, setOpRatings, redeemedList, setRedeemedList,
     sel, setSel, q, setQ, modal, setModal, amt, setAmt, fuel, setFuel,
     catF, setCatF, catPendingSignal, rQty, setRQty,
+    myNotifs, markNotifsRead,
     showHist, setShowHist, showInvite, setShowInvite,
     showRedeemed, setShowRedeemed, showWifi, setShowWifi,
     showMap, setShowMap, showTerms, setShowTerms,
