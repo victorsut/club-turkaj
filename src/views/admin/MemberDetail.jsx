@@ -10,6 +10,7 @@ import { Back } from '../../components/ui/Icons';
 import ReasonModal from '../../components/ui/ReasonModal';
 import { updateMemberWithAudit, adminResetMemberPassword } from '../../services/rpcServices';
 import { plateMask } from '../../lib/inputMasks';
+import { stripEmojis } from '../../lib/text';
 
 // Tipos de vehículo (espejo de VEHICLE_TYPES del cliente — el admin
 // conserva por ahora su lenguaje visual con emojis).
@@ -446,7 +447,7 @@ export default function MemberDetail(ctx) {
           <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '12px 20px', borderBottom: `1px solid ${AT.border}` }}>
             <div style={{ width: 10, height: 10, borderRadius: '50%', marginRight: 14, flexShrink: 0, background: col }} />
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#E0E0E0' }}>{a.desc}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#E0E0E0' }}>{stripEmojis(a.desc)}</div>
               <div style={{ fontSize: 11, color: '#777', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
                 {dd}
                 {a.station && <span style={{ fontSize: 9, background: 'rgba(255,255,255,.08)', padding: '2px 6px', borderRadius: 6, fontWeight: 700, color: '#aaa' }}>{a.station}</span>}

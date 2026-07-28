@@ -866,6 +866,9 @@ export default function App() {
       if (event.data?.type === 'NOTIFICATION_CLICK') {
         const d = event.data.data || {};
         if (d.type === 'purchase' && d.operatorId) {
+          // El modal vive en ClientHome: volver al inicio si la app
+          // quedó en otra pestaña (Rifa, Menú...) al tocar el aviso.
+          setCScr('home');
           setPendingOpRating({
             purchaseId: d.purchaseId || null,
             operatorId: d.operatorId,
@@ -898,6 +901,7 @@ export default function App() {
     const rateOpId = params.get('rate');
     if (rateOpId && me?.id) {
       const purchaseId = params.get('purchaseId') || null;
+      setCScr('home'); // el modal vive en ClientHome
       setPendingOpRating({
         purchaseId,
         operatorId: rateOpId,

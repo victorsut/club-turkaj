@@ -7,14 +7,7 @@
 // explícita: fire('Guardado', 'success') | 'error' | 'warn' | 'info'.
 import { bento } from '../../constants/styles';
 import { Check, Warn, XMark, Info } from './Icons';
-
-// Quita todo pictograma (emoji + variation selectors + ZWJ) del texto.
-const stripEmojis = (s) =>
-  String(s)
-    .replace(/[\p{Extended_Pictographic}️‍]/gu, '')
-    .replace(/\s{2,}/g, ' ')
-    .replace(/^[·\s]+|[·\s]+$/g, '')
-    .trim();
+import { stripEmojis } from '../../lib/text';
 
 // Severidad por emoji inicial (contrato histórico de los fire()).
 const fromEmoji = (s) => {

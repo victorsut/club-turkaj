@@ -11,6 +11,7 @@ import RewardIcon, { rewardIconFor } from '../../components/ui/RewardIcon';
 import ChipScroller from '../../components/ui/ChipScroller';
 import QRCode from '../../components/ui/QRCode';
 import useBackLayer from '../../hooks/useBackLayer';
+import { stripEmojis } from '../../lib/text';
 
 const CLOSE_MS = 200; // duración de ppGrowOut (+ margen) antes de desmontar
 
@@ -305,7 +306,7 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
                     <ActIcon />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 700, color: TH.txt, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.desc}</div>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: TH.txt, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{stripEmojis(a.desc)}</div>
                     <div style={{ fontSize: 10, color: TH.sub, ...sMono, marginTop: 2 }}>{fmtDay(day)}</div>
                   </div>
                   <div style={{ fontSize: 13, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: pos ? good : bad, flexShrink: 0 }}>
@@ -331,7 +332,7 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
                   <RewardIcon reward={rd.reward} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: TH.txt, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rd.reward?.name || 'Premio'}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: TH.txt, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{stripEmojis(rd.reward?.name) || 'Premio'}</div>
                   <div style={{ fontSize: 10, color: TH.sub, ...sMono, marginTop: 2 }}>{fmtDay(itemDay(rd.date))} · {rd.code}</div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -399,7 +400,7 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
             }}>
               <div style={{ transform: 'scale(1.4)', lineHeight: 0 }}><RewardIcon reward={qrItem.reward} /></div>
             </div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: TH.header }}>{qrItem.reward?.name || 'Premio'}</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: TH.header }}>{stripEmojis(qrItem.reward?.name) || 'Premio'}</div>
             <div style={{ fontSize: 12, fontWeight: 700, color: TH.sub, marginTop: 3 }}>
               {fmtDay(itemDay(qrItem.date))} · -{qrItem.cost} pts
             </div>
