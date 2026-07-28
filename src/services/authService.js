@@ -14,6 +14,7 @@
 
 import { sb } from '../lib/supabaseClient';
 import { fetchMemberByAuthId, fetchMemberByEmail } from './dataService';
+import { setMemberToken, getMemberToken, clearMemberToken } from './sessionTokens';
 
 // ──────────────────────────────────────────────
 // CLIENTES — OAuth (Google / Apple)
@@ -54,11 +55,56 @@ export async function signInWithPhone(phone, password) {
       return { ok: false, error: 'Error de conexión, intenta de nuevo' };
     }
     if (data?.error) return { ok: false, error: data.error };
-    return { ok: true, memberId: data.member_id, name: data.name };
+    // SEC.C.1: la RPC emite sesión de miembro y devuelve el perfil
+    // completo — el cliente ya no busca su fila en custs.
+    if (data.session_token) {
+      setMemberToken({ token: data.session_token, expiresAt: data.session_expires_at });
+    }
+    return { ok: true, memberId: data.member_id, name: data.name, member: data.member || null };
   } catch (err) {
     console.error('[Auth:member] Unexpected:', err);
     return { ok: false, error: 'Error inesperado' };
   }
+}
+
+// SEC.C.1 — sesión de miembro vía Google (auth.uid prueba identidad).
+// Devuelve { ok, member } o { notFound: true } (→ mostrar registro).
+export async function createMemberSessionOauth(avatarUrl) {
+  if (!sb) return { ok: false, error: 'Sin conexión' };
+  const { data, error } = await sb.rpc('create_member_session_oauth', {
+    p_avatar_url: avatarUrl || null,
+  });
+  if (error) {
+    console.error('[Auth:oauth-session]', error.message);
+    return { ok: false, error: error.message };
+  }
+  if (data?.error === 'not_found') return { ok: false, notFound: true };
+  if (data?.error) return { ok: false, error: data.error };
+  if (data.session_token) {
+    setMemberToken({ token: data.session_token, expiresAt: data.session_expires_at });
+  }
+  return { ok: true, member: data.member };
+}
+
+// SEC.C.1 — rehidratación al abrir la app con el token guardado.
+export async function getMyMember() {
+  if (!sb) return { ok: false, error: 'Sin conexión' };
+  const tok = getMemberToken();
+  if (!tok?.token) return { ok: false, noToken: true };
+  const { data, error } = await sb.rpc('get_my_member', { p_session_token: tok.token });
+  if (error) return { ok: false, error: error.message };
+  if (data?.error) return { ok: false, invalidSession: true };
+  return { ok: true, member: data.member };
+}
+
+// SEC.C.1 — logout del miembro: revoca server-side y limpia local.
+export async function logoutMember() {
+  const tok = getMemberToken();
+  if (sb && tok?.token) {
+    try { await sb.rpc('revoke_member_session', { p_session_token: tok.token }); }
+    catch { /* la revocación es best-effort */ }
+  }
+  clearMemberToken();
 }
 
 // ──────────────────────────────────────────────

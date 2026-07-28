@@ -125,15 +125,17 @@ export async function buyRaffleTickets({
   raffleId,
   quantity,
   sessionToken = null,
+  sessionRole = 'member',
 }) {
-  // SEC.B.5.2: vector DOBLE (operador + cliente). El wrapper NO resuelve
-  // rol — solo reenvía el sessionToken que le pase el call site. El call
-  // site operador (OpRaffle.jsx) pasa getOperatorToken()?.token; el call
-  // site cliente (App.jsx, vector SEC.C) no pasa nada → null.
+  // SEC.C.1: sesión OBLIGATORIA con rol explícito. El call site cliente
+  // (App.jsx) pasa el token de miembro con rol 'member' (solo puede
+  // comprar para sí mismo); OpRaffle.jsx pasa el de operador con rol
+  // 'operator' (cualquier miembro). El vector sin token quedó cerrado.
   return callRpc('buy_raffle_tickets', {
     p_member_id: memberId,
     p_raffle_id: raffleId,
     p_quantity: quantity,
+    p_session_role: sessionRole,
   }, { sessionToken });
 }
 

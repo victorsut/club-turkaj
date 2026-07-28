@@ -11,6 +11,7 @@ import ReasonModal from '../../components/ui/ReasonModal';
 import { updateMemberWithAudit, adminResetMemberPassword } from '../../services/rpcServices';
 import { plateMask } from '../../lib/inputMasks';
 import { stripEmojis } from '../../lib/text';
+import { getAdminToken } from '../../services/sessionTokens';
 
 // Tipos de vehículo (espejo de VEHICLE_TYPES del cliente — el admin
 // conserva por ahora su lenguaje visual con emojis).
@@ -54,10 +55,12 @@ export default function MemberDetail(ctx) {
         .eq('member_id', sel.id)
         .order('created_at', { ascending: false })
         .limit(100),
-      sb.from('members')
-        .select('*, physical_cards!assigned_to(card_code)')
-        .eq('id', sel.id)
-        .single(),
+      // SEC.C.1: la ficha completa exige sesión de admin (RPC)
+      sb.rpc('get_member_full', {
+        p_session_token: getAdminToken()?.token ?? null,
+        p_role: 'admin',
+        p_member_id: sel.id,
+      }),
     ]).then(([actRes, memRes]) => {
       setLoadingDetail(false);
       if (actRes.data) {
@@ -79,7 +82,7 @@ export default function MemberDetail(ctx) {
           points: m.points || 0, gallons: parseFloat(m.gallons) || 0,
           spent: parseFloat(m.spent) || 0, visits: m.visits || 0,
           tickets: m.tickets || 0, redeemed: m.redeemed_count || 0,
-          cardId: m.physical_cards?.card_code || m.card_id || '—',
+          cardId: m.card_code || m.physical_cards?.card_code || m.card_id || '—',
           registered: m.created_at ? new Date(m.created_at).toLocaleDateString('es-GT') : '—',
           lastBuy: m.last_buy ? new Date(m.last_buy).toLocaleDateString('es-GT') : 'Sin compras',
           lastBuyRaw: m.last_buy || null, // fecha cruda para daysInactive (lastBuy va formateada)

@@ -207,9 +207,32 @@ export default async function handler(req, res) {
       }).eq('id', cred.id);
 
       const { data: member } = await sb.from('members')
-        .select('id, name').eq('id', cred.member_id).maybeSingle();
+        .select('*').eq('id', cred.member_id).maybeSingle();
       if (!member) return res.status(404).json({ error: 'Miembro no encontrado' });
-      return res.status(200).json({ ok: true, memberId: member.id, name: member.name });
+
+      // SEC.C.1: la huella verificada emite sesión de miembro (la
+      // service key escribe member_sessions directo) y devuelve el
+      // perfil completo — el cliente ya no lee members por la API.
+      const { password_hash, ...profile } = member;
+      const { data: card } = await sb.from('physical_cards')
+        .select('card_code').eq('assigned_to', member.id).limit(1).maybeSingle();
+      if (card?.card_code) profile.card_code = card.card_code;
+
+      let session = null;
+      const { data: sessRow, error: sessErr } = await sb.from('member_sessions')
+        .insert({ member_id: member.id })
+        .select('token, expires_at').single();
+      if (!sessErr && sessRow) {
+        session = { token: sessRow.token, expiresAt: sessRow.expires_at };
+      } else if (sessErr) {
+        // Migración SEC.C.1 aún no ejecutada: login funciona sin sesión
+        console.warn('[webauthn] member_sessions:', sessErr.message);
+      }
+
+      return res.status(200).json({
+        ok: true, memberId: member.id, name: member.name,
+        member: profile, session,
+      });
     }
 
     return res.status(400).json({ error: 'Acción desconocida' });

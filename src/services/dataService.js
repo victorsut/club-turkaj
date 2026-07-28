@@ -11,12 +11,32 @@ import { sb } from '../lib/supabaseClient';
 // MIEMBROS (members)
 // ──────────────────────────────────────────────
 export async function fetchMembers() {
+  // SEC.C.1: la API abierta solo expone columnas NO sensibles.
   const { data, error } = await sb
     .from('members')
-    .select('*, physical_cards!assigned_to(card_code)')
+    .select('id, name, points, gallons, spent, visits, tickets, redeemed_count, last_buy, last_station, card_id, created_at, updated_at')
     .order('created_at', { ascending: false });
   if (error) console.error('[Data:members]', error.message);
   return data || [];
+}
+
+// SEC.C.1 — ficha completa de todos los miembros para operador/admin
+// (valida su sesión server-side; devuelve perfiles jsonb sin hash).
+export async function fetchMembersFull(sessionToken, role) {
+  const { data, error } = await sb.rpc('list_members_full', {
+    p_session_token: sessionToken, p_role: role,
+  });
+  if (error) { console.error('[Data:membersFull]', error.message); return []; }
+  return data || [];
+}
+
+// SEC.C.1 — ficha completa de UN miembro (operador/admin).
+export async function fetchMemberFull(sessionToken, role, memberId) {
+  const { data, error } = await sb.rpc('get_member_full', {
+    p_session_token: sessionToken, p_role: role, p_member_id: memberId,
+  });
+  if (error) { console.error('[Data:memberFull]', error.message); return null; }
+  return data;
 }
 
 export async function fetchMemberById(id) {

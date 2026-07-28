@@ -7,6 +7,7 @@ import { sb } from '../../../lib/supabaseClient';
 import { inputFlat, btnStyle, bento, BRAND_ORANGE } from '../../../constants/styles';
 import { User, Phone, Mail, Receipt, IdCard, Cake, Lock, Key, Eye, EyeOff, Plus, XMark, Chev, Fingerprint, Check } from '../../../components/ui/Icons';
 import { biometricsAvailable, registerBiometric, isUserCancel } from '../../../lib/webauthnClient';
+import { getMemberToken } from '../../../services/sessionTokens';
 import { VEHICLE_TYPES } from '../../../components/ui/VehicleIcons';
 import { DatePickerSheet } from '../../../components/ui/DrumDatePicker';
 import { phoneMask, dpiMask, plateMask, capWords } from '../../../lib/inputMasks';
@@ -127,8 +128,19 @@ export default function MenuAccount({ ctx, TH, onBack }) {
       ...(form.bday ? { birthday: form.bday } : {}),
     };
     if (sbConnected && sb) {
-      const { error } = await sb.from('members').update(updates).eq('id', me.id);
-      if (error) { fire('Error al guardar: ' + error.message, 'error'); setSaving(false); return; }
+      // SEC.C.1: el UPDATE directo quedó revocado — la edición del propio
+      // perfil pasa por update_my_profile con la sesión de miembro.
+      const { data, error } = await sb.rpc('update_my_profile', {
+        p_session_token: getMemberToken()?.token ?? null,
+        p_changes: updates,
+      });
+      const errMsg = error?.message || data?.error;
+      if (errMsg) {
+        fire(errMsg === 'invalid_session'
+          ? 'Tu sesión expiró — cerrá sesión y volvé a entrar'
+          : 'Error al guardar: ' + errMsg, 'error');
+        setSaving(false); return;
+      }
     }
     const { birthday, ...local } = updates;
     setMe(p => ({ ...p, ...local, ...(birthday ? { bday: birthday } : {}) }));
@@ -143,9 +155,13 @@ export default function MenuAccount({ ctx, TH, onBack }) {
   // bug reportado por el dueño 27-jul); solo refleja en `me` si guardó.
   const persistVehicles = async (updated) => {
     if (sb && sbConnected) {
-      const { error } = await sb.from('members')
-        .update({ plate: updated[0]?.plate || '', vehicles: updated }).eq('id', me.id);
-      if (error) { console.error('[Vehicles]', error); return error; }
+      // SEC.C.1: vía update_my_profile (plate se deriva server-side)
+      const { data, error } = await sb.rpc('update_my_profile', {
+        p_session_token: getMemberToken()?.token ?? null,
+        p_changes: { vehicles: updated },
+      });
+      const err = error || (data?.error ? { message: data.error } : null);
+      if (err) { console.error('[Vehicles]', err); return err; }
     }
     setMe(p => ({ ...p, vehicles: updated, plate: updated[0]?.plate || '' }));
     return null;

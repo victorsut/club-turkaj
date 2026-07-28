@@ -28,6 +28,7 @@
 
 const OPERATOR_TOKEN_KEY = 'ct_operator_token';
 const ADMIN_TOKEN_KEY = 'ct_admin_token';
+const MEMBER_TOKEN_KEY = 'ct_member_token'; // SEC.C.1
 
 // ──────────────────────────────────────────────
 // Helpers internos
@@ -137,4 +138,24 @@ export function getAdminToken() {
 
 export function clearAdminToken() {
   clearToken(ADMIN_TOKEN_KEY);
+}
+
+// ──────────────────────────────────────────────
+// API pública — MIEMBRO (SEC.C.1)
+// ──────────────────────────────────────────────
+// El cliente pasó a tener sesión server-side (member_sessions, TTL 180
+// días) emitida por authenticate_member / create_member_session_oauth /
+// api-webauthn. ct_me sigue siendo el CACHÉ del perfil; este token es
+// la CREDENCIAL para las RPCs del propio miembro.
+
+export function setMemberToken(payload) {
+  setToken(MEMBER_TOKEN_KEY, payload);
+}
+
+export function getMemberToken() {
+  return getToken(MEMBER_TOKEN_KEY);
+}
+
+export function clearMemberToken() {
+  clearToken(MEMBER_TOKEN_KEY);
 }

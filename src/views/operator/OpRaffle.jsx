@@ -76,6 +76,7 @@ export default function OpRaffle(ctx) {
       raffleId: rafRow.id,
       quantity: n,
       sessionToken: getOperatorToken()?.token ?? null,
+      sessionRole: 'operator',
     });
 
     if (error) {

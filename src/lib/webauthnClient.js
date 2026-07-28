@@ -9,6 +9,7 @@ import {
   browserSupportsWebAuthn,
   platformAuthenticatorIsAvailable,
 } from '@simplewebauthn/browser';
+import { setMemberToken } from '../services/sessionTokens';
 
 const post = async (body) => {
   const r = await fetch('/api/webauthn', {
@@ -50,5 +51,11 @@ export async function registerBiometric(memberId, auth) {
 export async function loginBiometric() {
   const options = await post({ action: 'login-options' });
   const response = await startAuthentication({ optionsJSON: options });
-  return post({ action: 'login-verify', response });
+  const res = await post({ action: 'login-verify', response });
+  // SEC.C.1: el endpoint emite sesión de miembro y devuelve el perfil
+  // completo (members ya no es legible por la API abierta).
+  if (res?.session?.token) {
+    setMemberToken({ token: res.session.token, expiresAt: res.session.expiresAt });
+  }
+  return res;
 }

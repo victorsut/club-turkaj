@@ -4,9 +4,10 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { sb } from '../lib/supabaseClient';
 import { makeTier, daysInactive } from '../lib/tierSystem';
 import { CFG_INIT, FUEL_LABELS } from '../constants/config';
-import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey, grantSpecialDayBonus, fetchPurchasePromo, fetchNotifications, markNotificationsRead } from '../services';
+import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey, grantSpecialDayBonus, fetchPurchasePromo, fetchNotifications, markNotificationsRead, createMemberSessionOauth, getMyMember, logoutMember, fetchMembersFull } from '../services';
 import { logoutOperator, logoutAdmin } from '../services'; // SEC.B.4: logout delega el subconjunto de localStorage (ct_op/ct_admin + token de rol)
-import { getOperatorToken, getAdminToken } from '../services/sessionTokens'; // SEC.B.6.4: chequeo de token vivo para el cierre proactivo de sesión expirada
+import { getOperatorToken, getAdminToken, getMemberToken } from '../services/sessionTokens'; // SEC.B.6.4 + SEC.C.1
+import { mapMember } from '../hooks/useSupabaseData'; // SEC.C.1: mapeo del perfil de RPC
 import { setSessionExpiredHandler } from '../services/sessionExpiry'; // SEC.B.8.2: registro del handler que dispara expireSession ante rechazo 28000 del server
 
 // Guatemala es UTC-6 — usar siempre fecha/hora local, nunca UTC
@@ -525,12 +526,13 @@ export default function App() {
           setRaffleCal(cal);
         }
 
-        // Load members (with fallback if join fails)
-        let memRes = await sb.from('members').select('*,physical_cards!assigned_to(card_code)').order('created_at', { ascending: false });
-        if (memRes.error) {
-          console.warn('[Puntos Plus] Members join query failed, trying without join:', memRes.error);
-          memRes = await sb.from('members').select('*').order('created_at', { ascending: false });
-        }
+        // Load members — SEC.C.1: en el boot solo las columnas NO
+        // sensibles (la API abierta ya no expone PII ni hashes). Los
+        // nombres alimentan la rifa; operador/admin cargan la ficha
+        // completa vía list_members_full con SU sesión al loguearse.
+        const memRes = await sb.from('members')
+          .select('id, name, points, gallons, spent, visits, tickets, redeemed_count, last_buy, last_station, card_id, created_at, updated_at')
+          .order('created_at', { ascending: false });
         if (memRes.error) console.error('[Puntos Plus] Error cargando miembros:', memRes.error);
         console.log('[Puntos Plus] Miembros encontrados:', memRes.data?.length || 0);
 
@@ -691,7 +693,7 @@ export default function App() {
         registered: utcToLocal(m.created_at) || '',
         lastBuy: utcToLocal(m.last_buy) || '',
         station: m.last_station || '',
-        cardId: m.physical_cards?.[0]?.card_code || m.card_id || '',
+        cardId: m.card_code || m.physical_cards?.[0]?.card_code || m.card_id || '',
         vehicles: parseV(m.vehicles),
         supabaseUser: true, authProvider: provider,
       };
@@ -705,12 +707,7 @@ export default function App() {
         if (data?.length > 0) {
           console.log('[Auth] \u2705 Existing member found:', data[0].name, '\u2192 logged in');
           const existing = buildExisting(data[0]);
-          // Persistir la foto de Google: los logins por tel\u00e9fono/huella
-          // la leen de members.avatar_url (antes solo viv\u00eda en la sesi\u00f3n)
-          if (avatar && data[0].avatar_url !== avatar) {
-            sb.from('members').update({ avatar_url: avatar }).eq('id', data[0].id)
-              .then(({ error }) => { if (error) console.warn('[Auth] avatar_url:', error.message); });
-          }
+          // (El avatar de Google lo persiste create_member_session_oauth)
           setMe(existing);
           setCusts(p => p.find(c => c.id === existing.id) ? p : [...p, existing]);
           setAuthScreen('logged'); setView('client');
@@ -733,75 +730,59 @@ export default function App() {
         setAuthScreen('googleProfile'); setView('client');
       }
 
-      // Intento 1: buscar por auth_provider_id con join
-      sb.from('members').select('*,physical_cards!assigned_to(card_code)')
-        .eq('auth_provider_id', u.id).then(async (r) => {
-        if (!r.error && handleMemberResult(r.data)) return;
-
-        // Intento 2: sin join (por si falla el FK)
-        if (r.error) console.warn('[Auth] Join query failed, retrying without join:', r.error.code);
-        const r2 = await sb.from('members').select('*').eq('auth_provider_id', u.id);
-        if (!r2.error && handleMemberResult(r2.data)) return;
-
-        // Intento 3: buscar por email como fallback
-        if (email) {
-          console.log('[Auth] Trying email fallback:', email);
-          const r3 = await sb.from('members').select('*').eq('email', email).limit(1);
-          if (!r3.error && r3.data?.length > 0) {
-            // Vincular auth_provider_id al miembro encontrado por email
-            await sb.from('members').update({ auth_provider_id: u.id, auth_provider: provider })
-              .eq('id', r3.data[0].id);
-            console.log('[Auth] \u2705 Linked existing member by email:', r3.data[0].name);
-            handleMemberResult(r3.data);
-            return;
-          }
+      // SEC.C.1: la sesi\u00f3n de Google prueba la identidad SERVER-side \u2014
+      // create_member_session_oauth busca por auth_provider_id, hace el
+      // v\u00ednculo por email si aplica, persiste el avatar y emite la
+      // sesi\u00f3n de miembro. Sustituye a los 3 SELECT directos (members
+      // ya no expone PII por la API abierta).
+      createMemberSessionOauth(avatar).then((res) => {
+        if (res.ok && res.member) {
+          handleMemberResult([res.member]);
+          return;
         }
-
-        // No se encontro nada: mostrar registro
-        showRegistration();
+        if (res.notFound) { showRegistration(); return; }
+        console.error('[Auth] oauth session:', res.error);
       });
     }
   }
 
-  // ===== RECARGAR DATOS SI FALTAN AL ENTRAR COMO OPERADOR/ADMIN =====
+  // ===== FICHA COMPLETA AL ENTRAR COMO OPERADOR/ADMIN (SEC.C.1) =====
+  // El boot solo carga columnas no sensibles; al loguearse un operador
+  // o admin, su sesión autoriza list_members_full y custs se reemplaza
+  // por los perfiles completos (búsqueda por teléfono/DPI, ficha, etc.).
+  const custsFullRef = useRef(false);
   useEffect(() => {
-    if ((authOp === 'logged' || authAdmin === 'logged') && custs.length === 0 && sb) {
-      console.log('[Puntos Plus] Operador/Admin logueado pero sin clientes, recargando...');
-      sb.from('members').select('*,physical_cards!assigned_to(card_code)')
-        .order('created_at', { ascending: false })
-        .then(res => {
-          if (res.error) {
-            console.warn('[Puntos Plus] Retry con join falló, intentando sin join...');
-            return sb.from('members').select('*').order('created_at', { ascending: false });
-          }
-          return res;
-        })
-        .then(res => {
-          if (res.data?.length > 0) {
-            setCusts(res.data.map(m => ({
-              id: m.id, name: m.name, email: m.email || '', avatar: m.avatar_url || '',
-              phone: m.phone || '', dpi: m.dpi || '', plate: m.plate || '',
-            vehicles: (() => { const v = m.vehicles; if (!v) return []; if (Array.isArray(v)) return v; if (typeof v === 'object') return Object.values(v); try { return JSON.parse(v); } catch { return []; } })(),
-              nit: m.nit || '', bday: m.birthday || '',
-              address: m.address || null,
-              points: m.points || 0, gallons: parseFloat(m.gallons) || 0,
-              spent: parseFloat(m.spent) || 0, visits: m.visits || 0,
-              tickets: m.tickets || 0, redeemed: m.redeemed_count || 0,
-              referrals: m.referral_count || 0,
-              registered: utcToLocal(m.created_at) || '',
-              lastBuy: utcToLocal(m.last_buy) || '',
-              station: m.last_station || '',
-              cardId: m.physical_cards?.[0]?.card_code || m.card_id || '',
-              supabaseUser: true, authProvider: m.auth_provider || 'google',
-              authProviderId: m.auth_provider_id || '',
-            })));
-            console.log('[Puntos Plus] ✅ Miembros recargados:', res.data.length);
-          } else {
-            console.warn('[Puntos Plus] No se encontraron miembros en recarga');
-          }
-        });
-    }
-  }, [authOp, authAdmin, custs.length]);
+    if (authOp !== 'logged' && authAdmin !== 'logged') { custsFullRef.current = false; return; }
+    if (custsFullRef.current || !sb) return;
+    const role = authAdmin === 'logged' ? 'admin' : 'operator';
+    const tok = role === 'admin' ? getAdminToken() : getOperatorToken();
+    if (!tok?.token) return;
+    custsFullRef.current = true;
+    fetchMembersFull(tok.token, role).then(rows => {
+      if (rows.length > 0) {
+        setCusts(rows.map(m => ({
+          id: m.id, name: m.name, email: m.email || '', avatar: m.avatar_url || '',
+          phone: m.phone || '', dpi: m.dpi || '', plate: m.plate || '',
+          vehicles: (() => { const v = m.vehicles; if (!v) return []; if (Array.isArray(v)) return v; if (typeof v === 'object') return Object.values(v); try { return JSON.parse(v); } catch { return []; } })(),
+          nit: m.nit || '', bday: m.birthday || '',
+          address: m.address || null,
+          points: m.points || 0, gallons: parseFloat(m.gallons) || 0,
+          spent: parseFloat(m.spent) || 0, visits: m.visits || 0,
+          tickets: m.tickets || 0, redeemed: m.redeemed_count || 0,
+          referrals: m.referral_count || 0,
+          registered: utcToLocal(m.created_at) || '',
+          lastBuy: utcToLocal(m.last_buy) || '',
+          station: m.last_station || '',
+          cardId: m.card_code || m.card_id || '',
+          supabaseUser: true, authProvider: m.auth_provider || 'google',
+          authProviderId: m.auth_provider_id || '',
+        })));
+        console.log('[Puntos Plus] ✅ Fichas completas cargadas:', rows.length);
+      } else {
+        custsFullRef.current = false; // token vencido u error: reintentar
+      }
+    });
+  }, [authOp, authAdmin]);
 
   // ===== CARGAR ENCUESTAS DEL DIA AL CAMBIAR DE USUARIO =====
   useEffect(() => {
@@ -828,6 +809,29 @@ export default function App() {
       console.log('[Push] Subscription result:', ok ? '✅ OK' : '⚠️ Failed/Denied');
     });
   }, [me?.id, authScreen]);
+
+  // ===== SEC.C.1: REHIDRATAR/VALIDAR la sesión de miembro al abrir =====
+  // ct_me es solo caché: si hay token, el servidor devuelve el perfil
+  // FRESCO (la ficha completa ya no baja por la API abierta). Token
+  // inválido/revocado → cerrar la sesión cacheada. Sin token (sesiones
+  // pre-SEC.C o Google, que lo obtiene en SIGNED_IN) → no forzar nada.
+  useEffect(() => {
+    if (!me?.id || authScreen !== 'logged' || viewRef.current !== 'client') return;
+    if (String(me.id).startsWith('temp-')) return;
+    getMyMember().then(res => {
+      if (res.ok && res.member) {
+        setMe(prev => prev ? { ...prev, ...mapMember(res.member) } : prev);
+      } else if (res.invalidSession) {
+        console.warn('[SEC.C] Sesión de miembro inválida → logout');
+        localStorage.removeItem('ct_me');
+        setMe(null); setAuthScreen('login');
+      }
+      // noToken: sesión legada o Google pendiente de SIGNED_IN — seguir.
+    });
+    // Solo al montar con sesión ya restaurada; los cambios de me.id
+    // posteriores vienen de logins que ya traen perfil fresco.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authScreen]);
 
   // ===== NOTIFICACIONES: inbox de la campana (carga + realtime) =====
   useEffect(() => {
@@ -1345,10 +1349,14 @@ export default function App() {
       return;
     }
 
+    // SEC.C.1: la compra exige la sesión de miembro (el vector sin token
+    // quedó cerrado server-side).
     const { data, error } = await buyRaffleTickets({
       memberId: me.id,
       raffleId: rafRow.id,
       quantity: n,
+      sessionToken: getMemberToken()?.token ?? null,
+      sessionRole: 'member',
     });
 
     if (error) {
@@ -1442,6 +1450,7 @@ export default function App() {
     if (sb) sb.auth.signOut({ scope: 'local' });
     setMe(null); setGoogleStep('welcome'); setMySurveyCount(0); setLoggedOp(null);
     if (isC) {
+      logoutMember(); // SEC.C.1: revoca member_sessions y limpia el token
       localStorage.removeItem('ct_me'); setAuthScreen('login'); setCScr('home');
       setLoginPhone(''); setLoginPass(''); setMe(null);
       setAuthError(''); fire('👋 Sesión cerrada');

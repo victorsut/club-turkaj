@@ -61,7 +61,7 @@ puntos-plus/
 
 ## 5. Tablas Supabase Críticas
 
-- **members** — id, name, phone (UNIQUE), dpi (UNIQUE), birthday, points, gallons, card_id, last_special_bonus, vehicles (jsonb).
+- **members** — id, name, phone (UNIQUE), dpi (UNIQUE), birthday, points, gallons, card_id, last_special_bonus, vehicles (jsonb). **SEC.C.1 (28-jul-2026):** la API abierta solo expone columnas NO sensibles (id, name, points, gallons, visits...); PII y hash viajan únicamente por RPCs con sesión: miembro `get_my_member`/`update_my_profile`/`register_member` (token de `member_sessions`, 180 días, emitido por `authenticate_member`/`create_member_session_oauth`/api-webauthn), operador/admin `list_members_full`/`get_member_full`. Escritura directa del cliente REVOCADA.
 - **operators** — id, name, username, password_hash (bcrypt vía `crypt()` + `gen_salt('bf', 6)`), dpi, gafete, station_id, active. Alta y reset de contraseña SOLO por RPCs `create_operator` / `update_operator_password` (nunca insertar `password_hash` desde el cliente).
 - **purchases** — id, member_id, operator_id, station_id, fuel_type, gallons, amount, points_earned.
 - **redemptions** — id, member_id, reward_id, operator_id, collected, collected_at, confirm_status, redemption_code. Realtime FULL.

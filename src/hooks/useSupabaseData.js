@@ -43,7 +43,16 @@ export function mapMember(m) {
     registered: m.created_at ? m.created_at.split('T')[0] : '',
     lastBuy: m.last_buy ? m.last_buy.split('T')[0] : '',
     station: m.last_station || '',
-    cardId: m.physical_cards?.[0]?.card_code || m.card_id || '',
+    // card_code viene plano en los perfiles de RPC (SEC.C.1); el join
+    // physical_cards solo existe en las lecturas de op/admin.
+    cardId: m.card_code || m.physical_cards?.[0]?.card_code || m.card_id || '',
+    vehicles: (() => {
+      const v = m.vehicles;
+      if (!v) return [];
+      if (Array.isArray(v)) return v;
+      if (typeof v === 'object') return Object.values(v);
+      try { return JSON.parse(v); } catch { return []; }
+    })(),
     supabaseUser: true,
     authProvider: m.auth_provider || 'phone',
     authProviderId: m.auth_provider_id || '',

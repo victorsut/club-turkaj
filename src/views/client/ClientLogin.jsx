@@ -9,6 +9,7 @@ import { inputFlat, btnStyle, BRAND_ORANGE } from '../../constants/styles';
 import { GoogleLogo, Phone, Lock, Mail, Chev, Fingerprint } from '../../components/ui/Icons';
 import { phoneMask } from '../../lib/inputMasks';
 import { signInWithPhone } from '../../services/authService';
+import { mapMember } from '../../hooks/useSupabaseData';
 import { biometricsAvailable, loginBiometric, isUserCancel } from '../../lib/webauthnClient';
 import Wordmark from '../../components/ui/Wordmark';
 import LegalFooter from '../../components/ui/LegalFooter';
@@ -67,7 +68,9 @@ export default function ClientLogin(ctx) {
     try {
       const res = await signInWithPhone(loginPhone, loginPass);
       if (!res.ok) { setAuthError(res.error); return; }
-      const found = custs.find(c => c.id === res.memberId);
+      // SEC.C.1: el perfil viene del servidor con la sesión; custs queda
+      // como fallback transitorio (RPC vieja sin member).
+      const found = res.member ? mapMember(res.member) : custs.find(c => c.id === res.memberId);
       if (!found) { setAuthError('No se pudo cargar tu perfil. Recargá la app e intentá de nuevo.'); return; }
       setMe(found); setAuthScreen('logged'); fire('Bienvenido ' + found.name, 'success');
     } finally {
@@ -92,7 +95,7 @@ export default function ClientLogin(ctx) {
     setBioBusy(true);
     try {
       const res = await loginBiometric();
-      const found = custs.find(c => c.id === res.memberId);
+      const found = res.member ? mapMember(res.member) : custs.find(c => c.id === res.memberId);
       if (!found) { setAuthError('No se pudo cargar tu perfil. Recargá la app e intentá de nuevo.'); return; }
       setMe(found); setAuthScreen('logged'); fire('Bienvenido ' + found.name, 'success');
     } catch (err) {

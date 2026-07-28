@@ -13,6 +13,8 @@ import AddressPicker, { EMPTY_ADDRESS } from '../../components/ui/AddressPicker'
 import { isAddressComplete, packAddress } from '../../constants/geoGt';
 import { phoneMask, dpiMask, plateMask, capWords } from '../../lib/inputMasks';
 import { getNextCardCode } from '../../services/dataService';
+import { setMemberToken } from '../../services/sessionTokens';
+import { mapMember } from '../../hooks/useSupabaseData';
 
 const VEHICLE_PTS = 2;
 
@@ -47,14 +49,16 @@ export default function GoogleProfile(ctx) {
   // ── Verificar si el telefono o DPI ya existe en Supabase ─
   const checkPhoneDuplicate = async (phone) => {
     if (!sb || !phone) return false;
-    const { data } = await sb.from('members').select('id').eq('phone', phone.trim()).maybeSingle();
-    return !!data;
+    // SEC.C.1: el teléfono ya no es legible por la API abierta — el
+    // chequeo de duplicados es un RPC que solo devuelve booleanos.
+    const { data } = await sb.rpc('check_member_exists', { p_phone: phone.trim() });
+    return !!data?.phone_exists;
   };
 
   const checkDpiDuplicate = async (dpi) => {
     if (!sb || !dpi) return false;
-    const { data } = await sb.from('members').select('id').eq('dpi', dpi.trim()).maybeSingle();
-    return !!data;
+    const { data } = await sb.rpc('check_member_exists', { p_dpi: dpi.trim() });
+    return !!data?.dpi_exists;
   };
 
   // Email, nit y dirección (cantón elegido) dan puntos opcionales
@@ -99,63 +103,47 @@ export default function GoogleProfile(ctx) {
       if (sb && sbConnected) {
         const provider   = me?.authProvider || 'manual';
         const providerId = me?.id?.startsWith('temp-') ? null : me?.id;
-        // SEC-lite (25-jul): hash bcrypt SERVER-SIDE. Fallback al formato
-        // legado solo si el RPC falla — authenticate_member lo acepta y
-        // lo auto-migra a bcrypt en el primer login.
-        let pwHash = 'pw:' + btoa(password);
-        try {
-          const { data: h, error: hErr } = await sb.rpc('hash_member_password', { p_password: password });
-          if (!hErr && h) pwHash = h;
-        } catch { /* fallback legado */ }
-        const memberData = {
-          phone:            regProfile.phone?.trim() || (provider === 'google' ? 'goog_' + (me?.id || '').substring(0, 12) : null),
-          password_hash:    pwHash,
-          auth_provider:    provider,
-          auth_provider_id: providerId,
-          name:             regProfile.name,
-          dpi:              regProfile.dpi || null,
-          plate:            firstPlate || null,
-          vehicles:         vehicles.length > 0 ? vehicles : [],
-          nit:              regProfile.nit || null,
-          email:            regProfile.email || me?.email || null,
-          birthday:         bdayStored || null,
-          address:          addressStored,
-          avatar_url:       me?.avatar || null,
-          points:           totalPts,
-          gallons: 0, spent: 0, visits: 0, tickets: 0, redeemed_count: 0, referral_count: 0,
-        };
-        console.log('[Reg] Insertando miembro:', memberData.name, memberData.phone);
-        // Segunda verificacion antes del insert (por si acaso)
-        const doubleCheck = await checkPhoneDuplicate(regProfile.phone?.trim());
-        if (doubleCheck) {
+        // SEC.C.1: el alta completa vive en el RPC register_member — hash
+        // bcrypt, bonus de puntos SERVER-side (misma fórmula del wizard),
+        // tarjeta CTOD única, activity_log y sesión de miembro. El INSERT
+        // directo del cliente quedó revocado.
+        const { data: reg, error: regErr } = await sb.rpc('register_member', {
+          p_data: {
+            phone:            regProfile.phone?.trim() || (provider === 'google' ? 'goog_' + (me?.id || '').substring(0, 12) : null),
+            auth_provider:    provider,
+            auth_provider_id: providerId,
+            name:             regProfile.name,
+            dpi:              regProfile.dpi || null,
+            plate:            firstPlate || null,
+            vehicles:         vehicles.length > 0 ? vehicles : [],
+            nit:              regProfile.nit || null,
+            email:            regProfile.email || me?.email || null,
+            birthday:         bdayStored || null,
+            address:          addressStored,
+            avatar_url:       me?.avatar || null,
+          },
+          p_password: password,
+        });
+        if (regErr) {
+          console.error('[Reg] RPC error:', regErr.message);
+          setAuthError('Error al guardar. Intenta de nuevo.');
+          setSaving(false); return;
+        }
+        if (reg?.error === 'phone_exists') {
           setAuthScreen('login'); setGoogleStep('welcome');
           fire('Este numero ya esta registrado. Inicia sesion.', 'warn');
           setSaving(false); return;
         }
-        const dpiDoubleCheck = await checkDpiDuplicate(regProfile.dpi?.trim());
-        if (dpiDoubleCheck) {
+        if (reg?.error === 'dpi_exists') {
           setAuthScreen('login'); setGoogleStep('welcome');
           fire('Este DPI ya esta registrado. Inicia sesion.', 'warn');
           setSaving(false); return;
         }
-        const { data: rows, error: memberErr } = await sb.from('members').insert(memberData).select();
-        if (memberErr) { console.error('[Reg] Error insert members:', memberErr.message, memberErr.details); setSaving(false); return; }
-        const dbId = rows?.[0]?.id;
-        if (!dbId) { console.error('[Reg] No se obtuvo ID del miembro'); setSaving(false); return; }
-        console.log('[Reg] Miembro creado con ID:', dbId);
-        setMe(p => ({ ...p, id: dbId }));
+        if (reg?.error) { setAuthError(reg.error); setSaving(false); return; }
 
-        // Crear tarjeta
-        const { data: cardRows, error: cardErr } = await sb.from('physical_cards').insert({ assigned_to: dbId, card_code: fallbackCard, tier: 'ORO', status: 'active' }).select();
-        if (cardErr) console.error('[Reg] Error creando tarjeta:', cardErr.message);
-        if (cardRows?.[0]) await sb.from('members').update({ card_id: cardRows[0].id }).eq('id', dbId);
-
-        // Actividad de vehiculos
-        if (vehicles.length > 0) {
-          await sb.from('activity_log').insert({ member_id: dbId, activity_type: 'registro_vehiculos', description: vehicles.length + ' vehiculo(s) - +' + vehiclePts + ' pts', points_change: vehiclePts, metadata: { vehicles } });
-        }
-        logActivity(dbId, 'registro', 'Bienvenido a Puntos Plus - +' + totalPts + ' pts', totalPts);
-        console.log('[Reg] Registro completado exitosamente');
+        setMemberToken({ token: reg.session_token, expiresAt: reg.session_expires_at });
+        setMe(mapMember(reg.member));
+        console.log('[Reg] Registro completado, ID:', reg.member_id, 'tarjeta:', reg.card_code);
       } else {
         console.warn('[Reg] Sin conexion a Supabase — registro solo en memoria');
       }
