@@ -21,7 +21,18 @@ export default function OpRatingModal({
 }) {
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState('rate'); // 'rate' | 'survey'
+  const [closing, setClosing] = useState(false);
   const launchedRef = useRef(false);
+
+  // D35: el modal cierra con la animación INVERSA a la apertura
+  // (fadeUpOut) antes de desmontar — todos los caminos de salida
+  // (Omitir, Ahora no, Cancelar, auto-cierre) pasan por acá.
+  const close = useCallback(() => {
+    setClosing(prev => {
+      if (!prev) setTimeout(onClose, 200);
+      return true;
+    });
+  }, [onClose]);
 
   // Encuesta de la estación de ESTA compra (llave: stations.name)
   const surveyTarget = SHELL_SURVEYS.find(s => s.name === data.stationName);
@@ -41,8 +52,8 @@ export default function OpRatingModal({
     }
     setSaving(false);
     if (canInvite) setStep('survey');
-    else onClose();
-  }, [saving, sbConnected, data.operatorId, memberId, fire, canInvite, onClose]);
+    else close();
+  }, [saving, sbConnected, data.operatorId, memberId, fire, canInvite, close]);
 
   const startSurvey = () => {
     if (!surveyTarget || surveyPending) return;
@@ -54,8 +65,8 @@ export default function OpRatingModal({
   // Al volver de Shell, el handler de visibilidad de ClientHome resuelve
   // surveyPending (puntos o cancelación, con sus toasts) → cerrar acá.
   useEffect(() => {
-    if (step === 'survey' && launchedRef.current && !surveyPending) onClose();
-  }, [step, surveyPending, onClose]);
+    if (step === 'survey' && launchedRef.current && !surveyPending) close();
+  }, [step, surveyPending, close]);
 
   const subTxt = dark ? 'rgba(255,255,255,.5)' : '#6E6E73';
 
@@ -63,7 +74,8 @@ export default function OpRatingModal({
     <div style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)',
       zIndex: 250, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: 20, animation: 'fadeUp .3s ease',
+      padding: 20,
+      animation: closing ? 'fadeUpOut .2s ease forwards' : 'fadeUp .3s ease',
     }}>
       <div style={{
         background: dark ? '#101018' : '#fff',
@@ -154,7 +166,7 @@ export default function OpRatingModal({
             </div>
 
             {/* Skip */}
-            <button onClick={onClose} style={{
+            <button onClick={close} style={{
               width: '100%', padding: 12, borderRadius: 14,
               background: 'none', border: 'none',
               fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 600,
@@ -220,7 +232,7 @@ export default function OpRatingModal({
                     }} />
                   </div>
                 </div>
-                <button onClick={() => { setSurveyPending(null); onClose(); }} style={{
+                <button onClick={() => { setSurveyPending(null); close(); }} style={{
                   width: '100%', marginTop: 8, padding: 14, borderRadius: 14,
                   background: dark ? 'rgba(255,255,255,.08)' : '#F5F5F7',
                   border: 'none',
@@ -241,7 +253,7 @@ export default function OpRatingModal({
                 }}>
                   Responder encuesta
                 </button>
-                <button onClick={onClose} style={{
+                <button onClick={close} style={{
                   width: '100%', marginTop: 6, padding: 12, borderRadius: 14,
                   background: 'none', border: 'none',
                   fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 600,
