@@ -126,7 +126,19 @@ self.addEventListener('push', (event) => {
     actions: data.actions || [],
   };
 
-  event.waitUntil(self.registration.showNotification(data.title, options));
+  // Compra y premio: si la app está A LA VISTA, el modal Realtime de
+  // calificación (o el chip de promo) ya lo cubre — no duplicar con una
+  // notificación del sistema. Con la app cerrada, oculta o el teléfono
+  // bloqueado no hay ventana visible → la notificación sí se muestra.
+  // (Chrome permite omitir showNotification cuando hay una pestaña
+  // visible del sitio; para otros tipos siempre se muestra.)
+  event.waitUntil((async () => {
+    if (data.type === 'purchase' || data.type === 'reward') {
+      const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      if (wins.some(w => w.visibilityState === 'visible')) return;
+    }
+    await self.registration.showNotification(data.title, options);
+  })());
 });
 
 // Deep-link por tipo de notificación cuando la app está CERRADA

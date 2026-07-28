@@ -4,7 +4,7 @@
 // categoría en filas con wrap (sin barra de desplazamiento), cards flat
 // sin borde con el ícono SVG del premio (RewardIcon — sin emojis) sobre
 // un cuadro de color sólido por categoría. BLACK conserva su galaxia.
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { bento, BRAND_ORANGE, CAT_LABELS, CAT_COLORS, homeColors } from '../../constants/styles';
 import RewardIcon from '../../components/ui/RewardIcon';
 import ChipScroller from '../../components/ui/ChipScroller';
@@ -13,7 +13,7 @@ import { Clock } from '../../components/ui/Icons';
 import { originFromEvent } from '../../lib/motionOrigin';
 
 export default function Catalog(ctx) {
-  const { rewards, me, gT, cfg, cTier, catF, setCatF, redeem, setRedeemConfirm, client = true, redeemedList, activityLog, dark: modeDark, showQR } = ctx;
+  const { rewards, me, gT, cfg, cTier, catF, setCatF, redeem, setRedeemConfirm, client = true, redeemedList, activityLog, dark: modeDark, showQR, catPendingSignal } = ctx;
   // El modo claro/oscuro solo aplica a la vista del cliente — en el
   // panel admin el catálogo conserva su presentación clara actual.
   const dark = client && !!modeDark;
@@ -25,6 +25,12 @@ export default function Catalog(ctx) {
   // Canjes PENDIENTES de usar (reloj arriba-derecha → HistorySheet ya
   // filtrado, mismo patrón del Historial de Canjes).
   const [pendSheet, setPendSheet] = useState(null); // { origin } | null
+
+  // Deep-link de notificación de premio (type 'reward'): la señal del
+  // ctx abre los pendientes sin tap (origin null → animación centrada).
+  useEffect(() => {
+    if (client && catPendingSignal) setPendSheet({ origin: null });
+  }, [client, catPendingSignal]);
   const myRedeemed = (client && me) ? (redeemedList || []).filter(rd => rd.memberId === me.id) : [];
   const pendingCount = myRedeemed.filter(r => !r.collected).length;
   const myActs = me ? (activityLog?.[me.id] || []) : [];

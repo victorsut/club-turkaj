@@ -195,6 +195,9 @@ export default function App() {
   const [amt, setAmt] = useState('');
   const [fuel, setFuel] = useState('super');
   const [catF, setCatF] = useState('todos');
+  // Señal (contador) para que Catalog abra sus canjes PENDIENTES al
+  // llegar por deep-link de notificación de premio (type 'reward').
+  const [catPendingSignal, setCatPendingSignal] = useState(0);
   const [rQty, setRQty] = useState(1);
   const [showHist, setShowHist] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
@@ -845,6 +848,11 @@ export default function App() {
             });
           }
         }
+        // Premio de promoción: llevar a Canjes con los pendientes abiertos.
+        if (d.type === 'reward') {
+          setCScr('cat');
+          setCatPendingSignal(s => s + 1);
+        }
         // Otros tipos (degradacion, general): basta traer la app al frente.
       }
     };
@@ -871,6 +879,12 @@ export default function App() {
           if (promo) setPendingOpRating(prev => (prev ? { ...prev, promo } : prev));
         });
       }
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+    // Deep-link de notificación de premio (app cerrada): Canjes pendientes.
+    if (params.get('goto') === 'pendientes' && me?.id) {
+      setCScr('cat');
+      setCatPendingSignal(s => s + 1);
       window.history.replaceState(null, '', window.location.pathname);
     }
   }, [me?.id]);
@@ -1177,6 +1191,18 @@ export default function App() {
           ],
         },
       });
+
+      // Premio por promoción (grant_reward): push aparte con deep-link a
+      // los canjes pendientes, donde vive el QR para reclamarlo.
+      if (promo?.effect_type === 'grant_reward') {
+        sendPushToMember(cid, {
+          type: 'reward',
+          title: '¡Ganaste un premio!',
+          body: `${promo.name ? promo.name + ': ' : ''}${promo.reward_name} gratis por tu compra. Abrí la notificación para ver el QR y mostralo al operador cuando quieras reclamarlo.`,
+          url: '/?goto=pendientes',
+          data: { rewardName: promo.reward_name, code: promo.redemption_code || null },
+        });
+      }
     }
 
     // Aviso de upgrade de tier
@@ -1450,7 +1476,7 @@ export default function App() {
     raffleCal, setRaffleCal, rafData, setRafData, rafWinners, setRafWinners,
     opRatings, setOpRatings, redeemedList, setRedeemedList,
     sel, setSel, q, setQ, modal, setModal, amt, setAmt, fuel, setFuel,
-    catF, setCatF, rQty, setRQty,
+    catF, setCatF, catPendingSignal, rQty, setRQty,
     showHist, setShowHist, showInvite, setShowInvite,
     showRedeemed, setShowRedeemed, showWifi, setShowWifi,
     showMap, setShowMap, showTerms, setShowTerms,
