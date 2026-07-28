@@ -54,7 +54,7 @@ export default function MemberDetail(ctx) {
         .select('*')
         .eq('member_id', sel.id)
         .order('created_at', { ascending: false })
-        .limit(100),
+        .limit(500),
       // SEC.C.1: la ficha completa exige sesión de admin (RPC)
       sb.rpc('get_member_full', {
         p_session_token: getAdminToken()?.token ?? null,

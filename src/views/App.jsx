@@ -810,6 +810,65 @@ export default function App() {
     });
   }, [me?.id, authScreen]);
 
+  // ===== HISTORIAL PROPIO COMPLETO AL LOGUEARSE (28-jul) =====
+  // El boot carga solo las últimas 200 actividades GLOBALES: con uso
+  // real, las entradas viejas del miembro (p. ej. su 'registro' con el
+  // bonus de alta) caen fuera de la ventana y su libro mayor queda
+  // incompleto (reporte del dueño: Fernando Morales). Acá se trae el
+  // historial PROPIO completo del miembro logueado.
+  useEffect(() => {
+    if (!me?.id || authScreen !== 'logged' || viewRef.current !== 'client' || !sb) return;
+    if (String(me.id).startsWith('temp-')) return;
+    sb.from('activity_log')
+      .select('*')
+      .eq('member_id', me.id)
+      .order('created_at', { ascending: false })
+      .limit(1000)
+      .then(res => {
+        if (res.data) {
+          setActivityLog(prev => ({
+            ...prev,
+            [me.id]: res.data.map(a => ({
+              type: a.activity_type,
+              desc: a.description,
+              pts: a.points_change,
+              amount: a.amount ? parseFloat(a.amount) : null,
+              date: utcToLocal(a.created_at) || '',
+              station: a.station_id || '',
+            })),
+          }));
+        }
+      });
+  }, [me?.id, authScreen]);
+
+  // ===== REALTIME PARA ADMIN/OPERADOR: puntos en vivo en custs (28-jul) =====
+  // El canal member-updates solo cubre al miembro logueado (vista
+  // cliente). Pedido del dueño: el admin también debe ver los puntos
+  // moverse en vivo. Sin filtro: cualquier UPDATE de members refresca
+  // la fila en custs (el payload solo trae las columnas no sensibles —
+  // los grants de columna de SEC.C.1 aplican también a Realtime).
+  useEffect(() => {
+    if ((authOp !== 'logged' && authAdmin !== 'logged') || !sb || !sbConnected) return;
+    const ch = sb.channel('members-staff')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'members' }, (payload) => {
+        const m = payload.new || {};
+        if (!m.id) return;
+        setCusts(p => p.map(c => c.id === m.id ? {
+          ...c,
+          points: m.points ?? c.points,
+          gallons: parseFloat(m.gallons) || c.gallons,
+          spent: parseFloat(m.spent) || c.spent,
+          visits: m.visits ?? c.visits,
+          tickets: m.tickets ?? c.tickets,
+          redeemed: m.redeemed_count ?? c.redeemed,
+          lastBuy: utcToLocal(m.last_buy) || c.lastBuy,
+          station: m.last_station || c.station,
+        } : c));
+      })
+      .subscribe();
+    return () => sb.removeChannel(ch);
+  }, [authOp, authAdmin, sbConnected]);
+
   // ===== SEC.C.1: REHIDRATAR/VALIDAR la sesión de miembro al abrir =====
   // ct_me es solo caché: si hay token, el servidor devuelve el perfil
   // FRESCO (la ficha completa ya no baja por la API abierta). Token
@@ -1004,11 +1063,14 @@ export default function App() {
         // historial del cliente para sus propias acciones. El mapeo no cambia.
         if (viewRef.current === 'client') {
           // ── Recargar historial desde Supabase en el dispositivo del miembro ──
+          // limit alto: el historial es el LIBRO MAYOR del miembro — el
+          // 'registro' (bonus de alta) debe seguir visible aunque haya
+          // mucha actividad posterior (reporte del dueño 28-jul).
           sb.from('activity_log')
             .select('*')
             .eq('member_id', m.id)
             .order('created_at', { ascending: false })
-            .limit(50)
+            .limit(1000)
             .then(res => {
               if (res.data?.length > 0) {
                 setActivityLog(prev => ({
