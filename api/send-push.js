@@ -1,13 +1,9 @@
-import webpush from 'web-push';
-import { createClient } from '@supabase/supabase-js';
-
-const VAPID_PUBLIC = process.env.VAPID_PUBLIC_KEY;
-const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY;
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-
-webpush.setVapidDetails('mailto:clubturkaj@gmail.com', VAPID_PUBLIC, VAPID_PRIVATE);
-const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+// api/send-push.js — envío directo de una notificación push a un
+// miembro (o varios). Punto de entrada genérico del motor: el tipo y
+// el deep-link viajan en el payload y el SW rutea el click por `type`.
+// Lo usa el cliente (compra registrada por el operador); el cron de
+// degradación usa /api/degradation-alerts.
+import { pushToMembers } from './_lib/push.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -17,42 +13,14 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { member_id, title, body, data } = req.body;
-    if (!member_id) return res.status(400).json({ error: 'member_id required' });
-
-    const { data: subs, error } = await sb
-      .from('push_subscriptions')
-      .select('*')
-      .eq('member_id', member_id);
-
-    if (error) return res.status(500).json({ error: error.message });
-    if (!subs?.length) return res.status(200).json({ sent: 0, message: 'No subscriptions' });
-
-    const payload = JSON.stringify({
-      title: title || 'Puntos Plus',
-      body: body || 'Tenés una notificación',
-      icon: '/logo.png',
-      tag: 'purchase-' + Date.now(),
-      url: '/',
-      ...(data || {}),
-    });
-
-    let sent = 0;
-    for (const sub of subs) {
-      try {
-        await webpush.sendNotification({
-          endpoint: sub.endpoint,
-          keys: { p256dh: sub.keys_p256dh, auth: sub.keys_auth },
-        }, payload);
-        sent++;
-      } catch (err) {
-        if (err.statusCode === 410 || err.statusCode === 404) {
-          await sb.from('push_subscriptions').delete().eq('id', sub.id);
-        }
-      }
+    const { member_id, member_ids, title, body, type, url, data } = req.body;
+    const ids = member_ids || member_id;
+    if (!ids || (Array.isArray(ids) && !ids.length)) {
+      return res.status(400).json({ error: 'member_id required' });
     }
 
-    return res.status(200).json({ sent });
+    const result = await pushToMembers(ids, { type, title, body, url, data });
+    return res.status(200).json(result);
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

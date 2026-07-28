@@ -113,6 +113,8 @@ self.addEventListener('push', (event) => {
     if (event.data) data.body = event.data.text();
   }
 
+  // El payload completo viaja en `data` (motor de notificaciones):
+  // el click se rutea por `type` y los campos extra llegan al cliente.
   const options = {
     body: data.body,
     icon: data.icon || '/logo.png',
@@ -120,27 +122,34 @@ self.addEventListener('push', (event) => {
     vibrate: [200, 100, 200],
     tag: data.tag || 'puntos-plus',
     renotify: true,
-    data: {
-      url: data.url || '/',
-      type: data.type || 'general',
-      operatorId: data.operatorId || null,
-      operatorName: data.operatorName || null,
-      stationName: data.stationName || null,
-    },
+    data: Object.assign({}, data, { url: data.url || '/', type: data.type || 'general' }),
     actions: data.actions || [],
   };
 
   event.waitUntil(self.registration.showNotification(data.title, options));
 });
 
+// Deep-link por tipo de notificación cuando la app está CERRADA
+// (con la app abierta, el cliente recibe NOTIFICATION_CLICK y decide).
+function urlForNotification(data) {
+  if (data.type === 'purchase' && data.operatorId) {
+    // Abre el modal de calificación + encuesta de ESA compra
+    return '/?rate=' + data.operatorId +
+      '&opName=' + encodeURIComponent(data.operatorName || '') +
+      '&station=' + encodeURIComponent(data.stationName || '') +
+      (data.purchaseId ? '&purchaseId=' + data.purchaseId : '') +
+      (data.points != null ? '&pts=' + data.points : '') +
+      (data.amount != null ? '&amount=' + data.amount : '');
+  }
+  return data.url || '/';
+}
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const data = event.notification.data || {};
-  let url = data.url || '/';
+  let url = urlForNotification(data);
 
-  if (event.action === 'rate' && data.operatorId) {
-    url = `/?rate=${data.operatorId}&opName=${encodeURIComponent(data.operatorName || '')}&station=${encodeURIComponent(data.stationName || '')}`;
-  }
+  if (event.action === 'dismiss') return;
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {

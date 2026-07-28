@@ -30,7 +30,7 @@ PWA en producción activa.
 - **Auth cliente:** Google OAuth (Supabase Auth).
 - **Auth operador/admin:** RPC `authenticate_operator`, hash formato `pw:base64`.
 - **QR:** generación local SVG (offline) + escaneo con `html5-qrcode`.
-- **Push:** `web-push` + VAPID, serverless en `api/send-push.js`.
+- **Push:** `web-push` + VAPID. Motor de notificaciones (28-jul-2026): núcleo en `api/_lib/push.js`, envío genérico `api/send-push.js` (`type` rutea el click en sw.js; `purchase` abre el modal de calificación+encuesta de esa compra), todo envío se registra en la tabla `notifications` (dedupe + futuro inbox). Alertas de degradación: RPC `list_degradation_alerts()` + cron diario de Vercel `api/degradation-alerts` (09:00 GT, requiere env `CRON_SECRET`) — avisos desde el día 11 de inactividad; no-op mientras el motor de degradación esté apagado.
 
 ## 3. Reglas de Código
 
@@ -69,6 +69,7 @@ puntos-plus/
 - **raffle_calendar** — id, month, year, prize_name, prize_icon, prize_value, winner_id, drawn_at.
 - **special_days** — id, name, month, day, points, icon, active, system. `month=0` = cumpleaños del miembro.
 - **activity_log** — fuente única para el historial del cliente.
+- **notifications** — registro de push enviados (member_id, type, title, body, data, sent_at, read_at). Solo service key; `read_at` reservado para el futuro inbox in-app.
 
 ## 6. Estaciones
 

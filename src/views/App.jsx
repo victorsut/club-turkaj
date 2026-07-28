@@ -832,11 +832,20 @@ export default function App() {
         const d = event.data.data || {};
         if (d.type === 'purchase' && d.operatorId) {
           setPendingOpRating({
+            purchaseId: d.purchaseId || null,
             operatorId: d.operatorId,
             operatorName: d.operatorName || 'Operador',
             stationName: d.stationName || '',
+            points: d.points ?? null,
+            amount: d.amount ?? null,
           });
+          if (d.purchaseId) {
+            fetchPurchasePromo(d.purchaseId).then(({ data: promo }) => {
+              if (promo) setPendingOpRating(prev => (prev ? { ...prev, promo } : prev));
+            });
+          }
         }
+        // Otros tipos (degradacion, general): basta traer la app al frente.
       }
     };
     navigator.serviceWorker.addEventListener('message', handleMessage);
@@ -848,11 +857,20 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     const rateOpId = params.get('rate');
     if (rateOpId && me?.id) {
+      const purchaseId = params.get('purchaseId') || null;
       setPendingOpRating({
+        purchaseId,
         operatorId: rateOpId,
         operatorName: decodeURIComponent(params.get('opName') || 'Operador'),
         stationName: decodeURIComponent(params.get('station') || ''),
+        points: params.get('pts') != null ? Number(params.get('pts')) : null,
+        amount: params.get('amount') != null ? Number(params.get('amount')) : null,
       });
+      if (purchaseId) {
+        fetchPurchasePromo(purchaseId).then(({ data: promo }) => {
+          if (promo) setPendingOpRating(prev => (prev ? { ...prev, promo } : prev));
+        });
+      }
       window.history.replaceState(null, '', window.location.pathname);
     }
   }, [me?.id]);
@@ -1138,14 +1156,26 @@ export default function App() {
     fire(`+${pts} pts · ${gal} gal · Q${a}${promoTag}`);
     setModal(null); setAmt('');
 
-    // Push notification
+    // Push notification (motor): si el cliente tiene la app cerrada, el
+    // tap de la notificación abre su modal de calificación + encuesta
+    // (misma data que el canal Realtime de purchases).
     if (loggedOp) {
       sendPushToMember(cid, {
-        title: promo ? '🎉 ¡Compra con promoción!' : '⛽ ¡Compra registrada!',
-        body: `+${pts} pts · ${gal} gal · Q${a}${promoTag} — Atendido por ${loggedOp.name}`,
-        operatorId: loggedOp.id,
-        operatorName: loggedOp.name,
-        stationName,
+        type: 'purchase',
+        title: promo ? '¡Compra con promoción!' : '¡Compra registrada!',
+        body: `+${pts} pts · ${gal} gal · Q${a}${promoTag}${tier_changed && new_tier ? ` · ¡Subiste a ${new_tier}!` : ''} — Atendido por ${loggedOp.name}`,
+        data: {
+          operatorId: loggedOp.id,
+          operatorName: loggedOp.name,
+          stationName,
+          purchaseId: data.purchase_id || null,
+          points: pts,
+          amount: a,
+          actions: [
+            { action: 'rate', title: 'Calificar' },
+            { action: 'dismiss', title: 'Cerrar' },
+          ],
+        },
       });
     }
 

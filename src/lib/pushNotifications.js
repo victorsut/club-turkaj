@@ -49,25 +49,21 @@ export async function subscribePush(memberId) {
   }
 }
 
-export async function sendPushToMember(memberId, notification) {
+// Envío genérico del motor de notificaciones: type rutea el click en el
+// SW ('purchase' abre el modal de calificación; otros usan url) y data
+// lleva los campos extra que el SW devuelve al cliente.
+export async function sendPushToMember(memberId, { title, body, type = 'general', url, data } = {}) {
   try {
     const res = await fetch('/api/send-push', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         member_id: memberId,
-        title: notification.title || 'Puntos Plus',
-        body: notification.body || 'Tenés una notificación',
-        data: {
-          type: 'purchase',
-          operatorId: notification.operatorId,
-          operatorName: notification.operatorName,
-          stationName: notification.stationName,
-          actions: [
-            { action: 'rate', title: '⭐ Calificar' },
-            { action: 'dismiss', title: 'Cerrar' },
-          ],
-        },
+        title: title || 'Puntos Plus',
+        body: body || 'Tenés una notificación',
+        type,
+        url,
+        data: data || {},
       }),
     });
     const result = await res.json();
