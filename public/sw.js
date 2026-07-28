@@ -105,6 +105,25 @@ self.addEventListener('fetch', (event) => {
 });
 
 // ── Push Notifications ────────────────────────────────────
+// Pregunta a una ventana quién es (miembro logueado + vista). La página
+// responde por el puerto del MessageChannel; sin respuesta en timeoutMs
+// (página congelada/descartada o versión vieja del cliente) → null.
+function askClient(win, timeoutMs) {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (v) => { if (!done) { done = true; resolve(v); } };
+    const mc = new MessageChannel();
+    const timer = setTimeout(() => finish(null), timeoutMs);
+    mc.port1.onmessage = (e) => { clearTimeout(timer); finish(e.data); };
+    try {
+      win.postMessage({ type: 'WHO_IS' }, [mc.port2]);
+    } catch (e) {
+      clearTimeout(timer);
+      finish(null);
+    }
+  });
+}
+
 self.addEventListener('push', (event) => {
   let data = { title: 'Puntos Plus', body: 'Tenes una notificacion', icon: '/logo.png' };
   try {
@@ -133,11 +152,19 @@ self.addEventListener('push', (event) => {
   // (Chrome permite omitir showNotification cuando hay una pestaña
   // visible del sitio; para otros tipos siempre se muestra.)
   event.waitUntil((async () => {
-    if (data.type === 'purchase' || data.type === 'reward') {
+    // Suprimir SOLO si una ventana visible es LA VISTA CLIENTE de ESTE
+    // miembro (ahí el modal Realtime ya lo cubre). Preguntar por
+    // MessageChannel: una pestaña del OPERADOR en el mismo navegador
+    // también es "ventana visible del sitio" y NO debe suprimir (bug
+    // detectado 28-jul). Sin respuesta (página congelada) → se muestra.
+    if ((data.type === 'purchase' || data.type === 'reward') && data.memberId) {
       const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-      // Suprimida con la app a la vista: ni notificación NI registro en
-      // el inbox (el cliente ya vio el modal — no pasó nada que avisar).
-      if (wins.some(w => w.visibilityState === 'visible')) return;
+      const visibles = wins.filter(w => w.visibilityState === 'visible');
+      const answers = await Promise.all(visibles.map(w => askClient(w, 350)));
+      const covered = answers.some(a => a && a.view === 'client' && a.memberId === data.memberId);
+      console.log('[SW] push', data.type, 'visibles:', visibles.length, 'cubierto por modal:', covered);
+      // Cubierto: ni notificación NI registro en el inbox.
+      if (covered) return;
     }
     await self.registration.showNotification(data.title, options);
     // Registrar en el inbox SOLO lo realmente mostrado (tipos con

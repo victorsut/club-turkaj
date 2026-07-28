@@ -77,6 +77,10 @@ export async function pushToMembers(memberIds, notification) {
     }
   }
 
+  // Diagnóstico en los logs de Vercel: sin suscripciones, sent queda
+  // en 0 y el push "exitoso" en realidad no llegó a ningún dispositivo.
+  console.log(`[push] type=${type} members=${ids.length} subs=${(subs || []).length} sent=${sent}`);
+
   // Registro inmediato SOLO para tipos siempre-visibles (degradacion,
   // general...). Best effort: el push ya salió y no se revierte.
   if (!logOnDisplay) {

@@ -875,9 +875,25 @@ export default function App() {
   }, [me?.id]);
 
   // ===== SERVICE WORKER: Listen for notification clicks =====
+  // Ref con el miembro logueado: el listener del SW es estable ([] deps)
+  // y necesita el valor VIGENTE para responder WHO_IS.
+  const meIdRef = useRef(null);
+  useEffect(() => { meIdRef.current = me?.id || null; }, [me?.id]);
+
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
     const handleMessage = (event) => {
+      // El SW pregunta quién está a la vista antes de suprimir una
+      // notificación de compra/premio: responder miembro + vista por el
+      // puerto del MessageChannel (una pestaña de operador responde
+      // view 'op' y NO suprime — bug del 28-jul).
+      if (event.data?.type === 'WHO_IS' && event.ports && event.ports[0]) {
+        event.ports[0].postMessage({
+          memberId: meIdRef.current,
+          view: viewRef.current,
+        });
+        return;
+      }
       if (event.data?.type === 'NOTIFICATION_CLICK') {
         const d = event.data.data || {};
         if (d.type === 'purchase' && d.operatorId) {
