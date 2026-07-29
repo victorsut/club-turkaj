@@ -197,6 +197,17 @@ export async function updateAdminPassword(targetId, newPassword, { currentPasswo
   }, 'password');
 }
 
+/**
+ * F7a: genera una llave de API para un sistema externo (PROPER).
+ * La llave viaja EN CLARO una sola vez — no puede recuperarse después.
+ */
+export async function createApiClient(name, scopes) {
+  return adminRpc('api_create_client', {
+    p_name: name,
+    ...(scopes ? { p_scopes: scopes } : {}),
+  }, 'apiKey');
+}
+
 /** Activa/desactiva un admin (no permite auto-desactivarse ni dejar 0 activos). */
 export async function toggleAdminActive(targetId, newActive, audit = {}) {
   return adminRpc('toggle_admin_active', {
