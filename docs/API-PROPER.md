@@ -1,6 +1,6 @@
 # API de integración Puntos Plus ⇄ PROPER
 
-**Versión del documento:** 1.0 · 29 de julio de 2026
+**Versión del documento:** 1.1 · 29 de julio de 2026
 **Estado:** propuesta técnica para revisión de PROPER
 **Contacto:** Puntos Plus — Gasolineras Turkaj, Chichicastenango
 
@@ -23,6 +23,18 @@ Dos funciones, ambas iniciadas por un escaneo de QR desde el POS:
 **Puntos Plus expone la API; PROPER la consume.** No necesitamos acceso a la
 base de datos de PROPER ni ustedes a la nuestra: todo viaja por HTTPS con una
 llave de API.
+
+> ### Principio de diseño: no intervenir en su flujo
+>
+> **La factura se emite primero; nosotros validamos después.** Ningún paso de
+> esta integración condiciona, bloquea o modifica el proceso de facturación de
+> PROPER. Recibimos los datos de una factura **ya emitida** y respondemos si
+> acumuló puntos o no.
+>
+> Cuando una factura no cumple las condiciones (§4), **no es un error del POS
+> ni del colaborador**: devolvemos un mensaje explicando qué debe ajustar *el
+> cliente* en su app para la próxima vez. El colaborador solo lo lee en
+> pantalla. La venta ya está hecha y no se toca.
 
 ---
 
@@ -82,10 +94,21 @@ que aparece y lo reutiliza después. Ese espejo:
 No hace falta una sincronización previa ni un catálogo cargado a mano: el
 primer envío del colaborador lo da de alta.
 
-### 3.4 La estación
+### 3.4 La estación — viene con el colaborador
 
-Cada POS pertenece a una estación fija. Consulten `GET /v1/stations` una vez
-(§5.1) y guarden el `station_id` en la configuración del dispositivo.
+Cada colaborador porta su propio POS e **inicia sesión en PROPER**, que ya le
+tiene asignada su estación. Por eso **no les pedimos configurar nada por
+dispositivo**: manden el código de estación que ya manejan (en
+`operator.station`) y nosotros lo mapeamos a la nuestra.
+
+Aceptamos tres formas, en este orden:
+
+1. El **código de estación de PROPER** (ej. `"1"`, `"EST-01"`) — nos pasan su
+   lista una vez y la configuramos de nuestro lado.
+2. El **nombre** (`"Turkaj I"`, `"turkaj 1"` — toleramos mayúsculas y espacios).
+3. Si no viene, usamos **la última estación conocida de ese colaborador**.
+
+Solo si no podemos resolverla por ninguna vía devolvemos `unknown_station`.
 
 ---
 
@@ -103,21 +126,30 @@ que aplicamos es:
 Se aceptan como consumidor final: `CF`, `C/F`, `CF0`, `consumidor final` y el
 campo vacío.
 
-**Recomendación de flujo:** antes de emitir, el POS puede consultar
-`GET /v1/members` (§5.2) — devuelve si el cliente tiene NIT y con cuáles se le
-puede facturar. Así el colaborador lo sabe *antes* de imprimir, y no después.
+**Qué pasa cuando no se cumple.** La factura ya está emitida y no se toca:
+respondemos `422` con un mensaje **dirigido al cliente**, para que el
+colaborador se lo lea y aquel ajuste su app. Hay dos casos distintos:
 
-Si la factura ya se emitió con un NIT que no corresponde, la respuesta es
-`422 nit_mismatch` y **no se acredita nada**. Es una decisión de negocio, no un
-error técnico: el mensaje puede mostrarse tal cual al colaborador.
+| `error` | Situación | Mensaje que devolvemos |
+|---|---|---|
+| `nit_not_registered` | Factura con NIT, pero el cliente no tiene NIT en Puntos Plus | "…el cliente no tiene NIT registrado en Puntos Plus. Puede agregarlo desde su app en Menú → Mi Cuenta, o pedir la factura con CF." |
+| `nit_mismatch` | Factura con un NIT distinto al registrado | "El NIT de la factura no coincide con el registrado por el cliente… Solo acumulan las facturas con su propio NIT o con CF." |
+
+Ambas respuestas incluyen `member_name` e `invoice_nit` (y el NIT registrado
+enmascarado, en el segundo caso) por si quieren mostrarlo o imprimirlo.
+
+**Consulta opcional de diagnóstico:** si alguna vez quieren anticiparse,
+`GET /v1/members` (§5.2) dice con qué NIT acumula ese cliente. **No es parte
+del flujo** — es una herramienta para soporte o para una pantalla informativa.
 
 ---
 
 ## 5. Endpoints
 
-### 5.1 `GET /v1/stations` — catálogo de estaciones
+### 5.1 `GET /v1/stations` — catálogo de estaciones (referencia)
 
-Se consulta una vez para configurar cada POS.
+Solo informativo: como la estación viaja con el colaborador (§3.4), el POS no
+necesita configurarla. Sirve para cotejar el mapeo de códigos.
 
 ```bash
 curl -X GET "https://puntosplus.vercel.app/api/v1/stations" \
@@ -137,9 +169,10 @@ curl -X GET "https://puntosplus.vercel.app/api/v1/stations" \
 
 ---
 
-### 5.2 `GET /v1/members` — identificar al cliente (opcional pero recomendado)
+### 5.2 `GET /v1/members` — consulta de diagnóstico (opcional)
 
-Se llama justo después de escanear el QR, **antes de emitir la factura**.
+No forma parte del flujo de venta. Sirve para soporte o para una pantalla
+informativa: dice con qué NIT acumula un cliente.
 
 ```bash
 curl -X GET "https://puntosplus.vercel.app/api/v1/members?card_code=CTOD-00042" \
@@ -169,22 +202,22 @@ cliente no tiene NIT registrado, será `["CF"]`.
 
 ### 5.3 `POST /v1/purchases` — acumular puntos ⭐ (endpoint principal)
 
-Se llama **después** de cerrar la factura, con los datos reales de la venta.
+Se llama **después** de emitir la factura, con los datos reales de la venta.
 
 ```bash
 curl -X POST "https://puntosplus.vercel.app/api/v1/purchases" \
   -H "Authorization: Bearer pp_live_..." \
   -H "Content-Type: application/json" \
-  -H "Idempotency-Key: PROPER-FAC-2026-000123" \
+  -H "Idempotency-Key: FAC-2026-000123" \
   -d '{
     "card_code": "CTOD-00042",
-    "amount": 250.00,
+    "fuel_amount": 250.00,
     "gallons": 8.06,
     "fuel_type": "super",
     "nit": "CF",
     "invoice_no": "FAC-2026-000123",
-    "station_id": "03643c23-cfbf-4d90-80af-8d9a2b15be2c",
-    "operator": { "external_id": "EMP-017", "name": "Juan Pérez" }
+    "total_amount": 312.50,
+    "operator": { "external_id": "EMP-017", "name": "Juan Pérez", "station": "1" }
   }'
 ```
 
@@ -193,14 +226,38 @@ curl -X POST "https://puntosplus.vercel.app/api/v1/purchases" \
 | Campo | Tipo | Obligatorio | Notas |
 |---|---|---|---|
 | `card_code` | string | Sí | Texto del QR escaneado, tal cual |
-| `amount` | number | Sí | Total facturado en Q. Mínimo Q10 |
-| `gallons` | number | Sí | **Galones reales del surtidor** (más preciso que estimarlos) |
+| `fuel_amount` | number | Sí | **Solo la porción de COMBUSTIBLE** de la factura, en Q. Mínimo Q10 |
+| `gallons` | number | Sí | Galones reales despachados |
 | `fuel_type` | string | Sí | `super` \| `regular` \| `diesel` |
-| `nit` | string | Sí | NIT de la factura, o `CF` |
+| `nit` | string | Sí | NIT de la factura emitida, o `CF` |
 | `invoice_no` | string | Recomendado | Número de factura, para conciliación |
-| `station_id` | uuid | Sí | De `GET /v1/stations` |
+| `total_amount` | number | Opcional | Total de la factura (con tienda). Solo se guarda para conciliar: **no** afecta los puntos |
 | `operator.external_id` | string | Sí | Identificador del colaborador en PROPER |
-| `operator.name` | string | Recomendado | Nombre para mostrar en reportes |
+| `operator.name` | string | Recomendado | Nombre, para reportes de atención |
+| `operator.station` | string | Recomendado | Código de estación de PROPER (§3.4) |
+
+> **Compatibilidad:** aceptamos `amount` como alias de `fuel_amount` y
+> `station` en la raíz del cuerpo, por si les resulta más cómodo.
+
+#### Facturas mixtas (combustible + tienda)
+
+Los puntos se calculan **únicamente sobre el consumo de combustible**. Si la
+factura incluye otros productos, manden:
+
+- `fuel_amount` → la porción de combustible (**base de los puntos**),
+- `total_amount` → el total facturado (solo para conciliación).
+
+Ejemplo: factura de Q312.50 = Q250 de súper + Q62.50 de tienda → el cliente
+acumula por los Q250. Si la factura **no tiene combustible**, devolvemos
+`422 no_fuel_in_invoice` y no se acredita nada.
+
+#### Sobre los precios y los galones
+
+**No usamos nuestros precios para nada de este cálculo.** La configuración de
+precios vigente es la de PROPER (la editamos nosotros de su lado), así que
+confiamos plenamente en los `gallons` y el `fuel_amount` que nos envían: son
+los valores reales de la venta. Nuestro rol se limita a convertir el consumo
+en puntos según las reglas del programa.
 
 #### Respuesta exitosa — `201 Created`
 
@@ -214,6 +271,8 @@ curl -X POST "https://puntosplus.vercel.app/api/v1/purchases" \
   "points_promo": 0,
   "points_balance": 365,
   "gallons": 8.06,
+  "fuel_amount": 250.00,
+  "station": "Turkaj I",
   "tier": "PLATINO",
   "tier_changed": false,
   "new_card_code": null,
@@ -316,11 +375,13 @@ mostrar al colaborador.
 | 400 | `invalid_card_code` | El QR escaneado no es una tarjeta Puntos Plus |
 | 404 | `member_not_found` | La tarjeta no corresponde a ningún cliente |
 | 404 | `redemption_not_found` | No existe un canje con ese código |
-| 422 | `nit_mismatch` | La factura no cumple la regla de NIT (§4) |
-| 422 | `amount_too_low` | Monto menor a Q10 |
+| 422 | `nit_mismatch` | El NIT de la factura no es el del cliente (§4) |
+| 422 | `nit_not_registered` | Factura con NIT y cliente sin NIT registrado (§4) |
+| 422 | `no_fuel_in_invoice` | La factura no incluye combustible |
+| 422 | `amount_too_low` | Consumo de combustible menor a Q10 |
 | 422 | `invalid_gallons` | Galones ausentes o ≤ 0 |
 | 422 | `invalid_fuel_type` | Distinto de `super`, `regular`, `diesel` |
-| 422 | `invalid_station` | `station_id` desconocido |
+| 422 | `unknown_station` | No se pudo resolver la estación del colaborador (§3.4) |
 | 422 | `missing_operator` | Falta el identificador del colaborador |
 | 405 | `method_not_allowed` | Método HTTP incorrecto |
 | 500 | `server_error` | Error nuestro — reintentar en unos segundos |
@@ -336,13 +397,14 @@ misma `Idempotency-Key`.
 ### 7.1 Acumular puntos
 
 ```
-1. El colaborador cobra normalmente en PROPER
-2. Al cerrar la factura → botón "Acumular Puntos Plus"
+1. El colaborador cobra y EMITE la factura normalmente en PROPER
+   (nada de esto se modifica ni se condiciona)
+2. Factura emitida → botón "Acumular Puntos Plus"
 3. Escanea el QR del cliente                  → CTOD-00042
-4. (Opcional) GET /v1/members                 → ¿CF o NIT del cliente?
-5. Se emite la factura
-6. POST /v1/purchases con los datos reales
-7. El POS muestra/imprime: "+25 pts · Saldo: 365"
+4. POST /v1/purchases con los datos de la factura ya emitida
+5a. Acumuló  → el POS muestra: "+25 pts · Saldo: 365"
+5b. No acumuló → el POS muestra el motivo, dirigido al cliente
+    ("agregá tu NIT en la app" / "pedí la factura con CF")
 ```
 
 Del lado del cliente todo sigue igual: **recibe una notificación** en su
@@ -376,7 +438,10 @@ Sugerimos validar estos casos:
 - [ ] Compra con `CF` → acredita
 - [ ] Compra con el NIT del cliente → acredita
 - [ ] Compra con un NIT ajeno → `422 nit_mismatch`, no acredita
-- [ ] Cliente sin NIT + factura con NIT → `422 nit_mismatch`
+- [ ] Cliente sin NIT + factura con NIT → `422 nit_not_registered`
+- [ ] **Factura mixta** (combustible + tienda) → acredita solo por `fuel_amount`
+- [ ] **Factura sin combustible** → `422 no_fuel_in_invoice`
+- [ ] **Estación resuelta desde el colaborador** (sin mandar `station`) → acredita en la correcta
 - [ ] Reintento con la misma `Idempotency-Key` → `replayed: true`, sin doble acreditación
 - [ ] QR inválido o tarjeta inexistente → error claro
 - [ ] Compra que sube de nivel → `tier_changed: true`
@@ -406,32 +471,43 @@ Sugerimos validar estos casos:
 
 Para cerrar la integración nos ayudaría recibir:
 
-1. **Confirmación del contrato** — si los campos de §5.3 coinciden con lo que su
-   sistema tiene disponible al cerrar una factura (especialmente **galones
-   reales** y **NIT**).
-2. **Identificador del colaborador** — qué campo usarán como `external_id`
-   (código de empleado, usuario del sistema, etc.) y si es estable en el tiempo.
-3. **Modelo de llamada** — si los POS llamarán directo a nuestra API o a través
-   de un servidor intermedio de PROPER (recomendamos lo segundo).
-4. **Manejo de anulaciones** — hoy no contemplamos reverso de puntos por
-   factura anulada. Si su flujo lo necesita, diseñamos un endpoint
-   `POST /v1/purchases/{id}/void`; díganos cómo notifican una anulación.
-5. **Volumen estimado** — transacciones por día y por estación, para dimensionar
+1. **Confirmación del contrato** — si los campos de §5.3 están disponibles en su
+   sistema al momento de cerrar una factura. Los tres críticos son:
+   **galones despachados**, **monto de la porción de combustible** y **NIT
+   emitido**.
+2. **Desglose de combustible en facturas mixtas** — confirmar que pueden
+   separar la línea de combustible del resto de productos. Es lo único que
+   necesitamos que venga discriminado.
+3. **Identificador del colaborador** — qué campo usarán como `external_id`
+   (código de empleado, usuario con el que inicia sesión, etc.) y si es estable
+   en el tiempo.
+4. **Códigos de estación** — su lista de estaciones con el código que manejan,
+   para dejar el mapeo configurado de nuestro lado (§3.4).
+5. **Modelo de llamada** — si los POS llamarán directo a nuestra API o a través
+   de un servidor intermedio de PROPER (recomendamos lo segundo: la llave queda
+   protegida y ustedes controlan reintentos y trazabilidad).
+6. **Manejo de anulaciones** — hoy no contemplamos reverso de puntos por factura
+   anulada. Si su flujo lo necesita, diseñamos `POST /v1/purchases/{id}/void`;
+   díganos cómo notifican una anulación.
+7. **Volumen estimado** — transacciones por día y por estación, para dimensionar
    límites de uso.
 
 ---
 
 ## 11. Preguntas abiertas de nuestro lado
 
-- **Combustible por bomba:** hoy pedimos `fuel_type` como texto. Si su sistema
-  maneja códigos de producto, mándenos la tabla y hacemos el mapeo de nuestro
-  lado.
-- **Ventas mixtas** (combustible + tienda en la misma factura): hoy acreditamos
-  sobre el **total** facturado. Si prefieren acreditar solo la porción de
-  combustible, necesitaríamos ese desglose en el payload.
-- **Facturas a crédito o con múltiples formas de pago:** para nosotros es
-  indistinto, acreditamos sobre el monto total. Confirmar si comparten ese
-  criterio.
+- **Combustible por bomba:** pedimos `fuel_type` como texto (`super`,
+  `regular`, `diesel`). Si manejan códigos de producto, mándenos la tabla y
+  hacemos el mapeo de nuestro lado.
+- **Varios combustibles en una misma factura** (p. ej. súper y diésel para dos
+  vehículos): hoy esperamos un solo `fuel_type` con la suma de galones y monto.
+  Si esto ocurre con frecuencia, podemos aceptar un arreglo de líneas.
+- **Facturas a crédito o con varias formas de pago:** para nosotros es
+  indistinto — acreditamos sobre el consumo de combustible facturado.
+  Confirmar si comparten ese criterio.
+- **Cliente sin tarjeta escaneada:** si el colaborador olvida escanear, la
+  factura simplemente no acumula. ¿Necesitan poder acumular después, con la
+  factura ya cerrada? Se puede habilitar con un plazo (ej. mismo día).
 
 ---
 
