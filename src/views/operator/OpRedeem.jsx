@@ -1,5 +1,5 @@
 // src/views/operator/OpRedeem.jsx
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { sMono, btnYellow } from '../../constants/styles';
 import Badge from '../../components/ui/Badge';
@@ -109,7 +109,7 @@ export default function OpRedeem(ctx) {
     setLoadingPending(false);
     if (error) { fire('Error cargando canjes: ' + error); return; }
     setPending((data || []).map(rd => ({
-      id: rd.id, memberId: rd.member_id,
+      id: rd.id, memberId: rd.member_id, rewardId: rd.reward_id || null,
       reward: { name: rd.reward_name || 'Premio', icon: rd.reward_icon || '', cat: rd.reward_category || '' },
       cost: rd.points_spent, date: utcToLocal(rd.created_at) || '',
       code: rd.redemption_code, collected: false,
@@ -132,7 +132,7 @@ export default function OpRedeem(ctx) {
     if (!cust) { fire('No se encontro al cliente de este canje'); return; }
     setConfirmClient(cust);
     setConfirmItem({
-      id: data.id, memberId: data.member_id,
+      id: data.id, memberId: data.member_id, rewardId: data.reward_id || null,
       reward: { name: data.reward_name || 'Premio', icon: data.reward_icon || '', cat: data.reward_category || '' },
       cost: data.points_spent, date: utcToLocal(data.created_at) || '',
       code: data.redemption_code, collected: false,
@@ -157,6 +157,26 @@ export default function OpRedeem(ctx) {
     else fire('Miembro no encontrado para: ' + raw);
   }, [custs, fire, loadPending, loadFromRedemption]);
 
+  // ── Canal BROADCAST del aviso de confirmación (SEC.C.2b) ──
+  // La entrega del UPDATE por postgres_changes con las policies de
+  // SEC.C.2 resultó no confiable en producción: el aviso al cliente
+  // viaja DIRECTO por broadcast (sin RLS de por medio). El canal vive
+  // mientras dura la espera; el desistimiento (cancelar/timeout)
+  // también se emite para cerrar el modal del cliente.
+  const confirmBcRef = useRef(null);
+  const closeConfirmBc = useCallback(async (notifyCancel) => {
+    const cur = confirmBcRef.current;
+    if (!cur) return;
+    confirmBcRef.current = null;
+    try {
+      if (notifyCancel) {
+        await cur.ch.send({ type: 'broadcast', event: 'confirm_cancel', payload: { redemptionId: cur.redemptionId } });
+      }
+    } catch { /* mejor esfuerzo */ }
+    sb.removeChannel(cur.ch);
+  }, []);
+  useEffect(() => () => { closeConfirmBc(false); }, [closeConfirmBc]);
+
   const requestConfirm = useCallback(async (item) => {
     setConfirmItem(null);
     if (!sb || !sbConnected) { fire('Sin conexion'); return; }
@@ -166,6 +186,20 @@ export default function OpRedeem(ctx) {
     const { error } = await sb.from('redemptions')
       .update({ confirm_status: 'pending' }).eq('id', item.id);
     if (error) { fire('Error: ' + error.message); return; }
+    // Aviso directo al dispositivo del cliente por broadcast.
+    const bc = sb.channel(`redeem-bc-${item.memberId}`);
+    confirmBcRef.current = { ch: bc, redemptionId: item.id };
+    bc.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        bc.send({ type: 'broadcast', event: 'confirm_request', payload: {
+          redemptionId: item.id,
+          rewardId: item.rewardId || null,
+          rewardName: item.reward?.name,
+          rewardIcon: item.reward?.icon,
+          cost: item.cost ?? 0,
+        } });
+      }
+    });
     setWaitingConfirm(item);
     setConfirmResult(null);
     fire('Esperando confirmacion del cliente...');
@@ -176,6 +210,7 @@ export default function OpRedeem(ctx) {
       const status = await fetchRedemptionStatus(item.id);
       if (status === 'confirmed') {
         clearInterval(interval);
+        closeConfirmBc(false); // el cliente ya confirmó — su modal se cerró solo
         await sb.from('redemptions').update({ collected: true, confirm_status: 'none', operator_id: loggedOp?.id || null, collected_at: new Date().toISOString() }).eq('id', item.id);
         setPending(p => p.filter(x => x.id !== item.id));
         setRedeemedList(p => p.map(x => x.id === item.id ? { ...x, collected: true } : x));
@@ -196,6 +231,7 @@ export default function OpRedeem(ctx) {
         setTimeout(() => setConfirmResult(null), 3000);
       } else if (status === 'cancelled') {
         clearInterval(interval);
+        closeConfirmBc(false); // canceló el cliente — su modal ya no está
         await sb.from('redemptions').update({ confirm_status: 'none' }).eq('id', item.id);
         setWaitingConfirm(null);
         setConfirmClient(null);
@@ -204,13 +240,14 @@ export default function OpRedeem(ctx) {
         setTimeout(() => setConfirmResult(null), 3000);
       } else if (attempts >= 30) {
         clearInterval(interval);
+        closeConfirmBc(true); // timeout: cerrar también el modal del cliente
         await sb.from('redemptions').update({ confirm_status: 'none' }).eq('id', item.id);
         setWaitingConfirm(null);
         setConfirmClient(null);
         fire('Tiempo de espera agotado');
       }
     }, 2000);
-  }, [sbConnected, fire, logActivity, setRedeemedList, client, confirmClient, loggedOp, setReadyToPrint, autoPrint, doPrint]);
+  }, [sbConnected, fire, logActivity, setRedeemedList, client, confirmClient, loggedOp, setReadyToPrint, autoPrint, doPrint, closeConfirmBc]);
 
   const tier = client ? gT(client.gallons) : null;
 
@@ -286,7 +323,7 @@ export default function OpRedeem(ctx) {
               {[0,1,2].map(i => <div key={i} style={{ width: 12, height: 12, borderRadius: '50%', background: '#FBBC04', animation: 'bounce .9s ' + (i * 0.2) + 's infinite' }} />)}
             </div>
             <div style={{ fontSize: 12, color: '#BDBDBD', marginBottom: 20 }}>Premio: {waitingConfirm.reward.name} | Codigo: {waitingConfirm.code}</div>
-            <button onClick={async () => { await sb.from('redemptions').update({ confirm_status: 'none' }).eq('id', waitingConfirm.id); setWaitingConfirm(null); setConfirmClient(null); fire('Solicitud cancelada'); }} style={{ padding: '10px 24px', borderRadius: 12, border: '1px solid #eee', background: 'none', color: '#9E9E9E', fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+            <button onClick={async () => { closeConfirmBc(true); await sb.from('redemptions').update({ confirm_status: 'none' }).eq('id', waitingConfirm.id); setWaitingConfirm(null); setConfirmClient(null); fire('Solicitud cancelada'); }} style={{ padding: '10px 24px', borderRadius: 12, border: '1px solid #eee', background: 'none', color: '#9E9E9E', fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
               Cancelar solicitud
             </button>
           </div>

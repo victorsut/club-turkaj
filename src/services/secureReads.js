@@ -114,6 +114,17 @@ export async function fetchOperatorPurchases(operatorId, limit = 100) {
   }, 'opPurchases')) || [];
 }
 
+// Estación por miembro (última compra + más frecuente) desde
+// purchases, nombres resueltos server-side. Alimenta el filtro por
+// estación de la vista Miembros (SEC.C.2b).
+export async function fetchMemberStations() {
+  const s = staffSession();
+  if (!s) return [];
+  return (await rpcRows('list_member_stations', {
+    p_session_token: s.token, p_role: s.role,
+  }, 'memberStations')) || [];
+}
+
 // ── raffle_tickets ─────────────────────────────
 
 // Participantes agregados de todas las rifas (cualquier sesión).

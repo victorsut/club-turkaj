@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { sb } from '../lib/supabaseClient';
 import { makeTier, daysInactive } from '../lib/tierSystem';
 import { CFG_INIT, FUEL_LABELS } from '../constants/config';
-import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey, grantSpecialDayBonus, fetchPurchasePromo, fetchNotifications, markNotificationsRead, createMemberSessionOauth, getMyMember, logoutMember, fetchMembersFull, fetchMyActivity, fetchMyRedemptions, fetchActivityStaff, fetchRaffleParticipants } from '../services';
+import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey, grantSpecialDayBonus, fetchPurchasePromo, fetchNotifications, markNotificationsRead, createMemberSessionOauth, getMyMember, logoutMember, fetchMembersFull, fetchMyActivity, fetchMyRedemptions, fetchActivityStaff, fetchRaffleParticipants, fetchMemberStations } from '../services';
 import { logoutOperator, logoutAdmin } from '../services'; // SEC.B.4: logout delega el subconjunto de localStorage (ct_op/ct_admin + token de rol)
 import { getOperatorToken, getAdminToken, getMemberToken } from '../services/sessionTokens'; // SEC.B.6.4 + SEC.C.1
 import { mapMember } from '../hooks/useSupabaseData'; // SEC.C.1: mapeo del perfil de RPC
@@ -263,6 +263,9 @@ export default function App() {
   const [memSort, setMemSort] = useState('all');
   const [stationFilter, setStationFilter] = useState(null);
   const [stationMode, setStationMode] = useState('last');
+  // SEC.C.2b: estación por miembro (última compra / más frecuente)
+  // derivada server-side de purchases — { member_id: {last, top} }.
+  const [memberStations, setMemberStations] = useState({});
   const [sbConnected, setSbConnected] = useState(false);
   const [sbLoading, setSbLoading] = useState(true);
 
@@ -744,6 +747,15 @@ export default function App() {
       });
       setActivityLog(prev => ({ ...actMap, ...prev }));
     });
+    // Estación por miembro para el filtro de Miembros (SEC.C.2b):
+    // derivada de purchases (el activity_log guarda station_id como
+    // uuid y la vista comparaba nombres — nunca coincidía).
+    fetchMemberStations().then(rows => {
+      if (!rows.length) return;
+      const map = {};
+      rows.forEach(r => { map[r.member_id] = { last: r.last_station, top: r.top_station }; });
+      setMemberStations(map);
+    });
   }, [authOp, authAdmin]);
 
   // ===== SEC.C.2: PARTICIPANTES DE RIFA CON SESIÓN =====
@@ -1121,7 +1133,38 @@ export default function App() {
       .subscribe((status) => {
         console.log('[Realtime] redemption-confirm subscription:', status);
       });
-    return () => sb.removeChannel(ch);
+
+    // ── Canal BROADCAST del flujo de confirmación (SEC.C.2b) ──
+    // La entrega de postgres_changes con policies/grants de columna
+    // resultó no confiable en producción (el UPDATE a 'pending' se
+    // commiteaba pero el evento no llegaba al cliente). El operador
+    // emite el aviso DIRECTO por broadcast tras marcar 'pending' — sin
+    // RLS de por medio — y también el desistimiento (cancel/timeout),
+    // que además corrige un hueco viejo: el reset a 'none' nunca
+    // cerraba el modal del cliente. El canal postgres queda de respaldo
+    // (si ambos llegan, el estado se re-escribe idéntico — inocuo).
+    const bc = sb.channel(`redeem-bc-${me.id}`)
+      .on('broadcast', { event: 'confirm_request' }, ({ payload }) => {
+        if (!payload?.redemptionId) return;
+        console.log('[Broadcast] confirm_request:', payload.redemptionId);
+        const reward = rewards.find(r => r.id === payload.rewardId) || null;
+        setPendingRedeemConfirm({
+          redemptionId: payload.redemptionId,
+          rewardName:   reward?.name || payload.rewardName || 'Premio',
+          rewardIcon:   reward?.icon || payload.rewardIcon || '🎁',
+          reward,
+          cost:         payload.cost ?? 0,
+        });
+      })
+      .on('broadcast', { event: 'confirm_cancel' }, ({ payload }) => {
+        console.log('[Broadcast] confirm_cancel:', payload?.redemptionId);
+        setPendingRedeemConfirm(p => p?.redemptionId === payload?.redemptionId ? null : p);
+      })
+      .subscribe((status) => {
+        console.log('[Realtime] redeem-bc subscription:', status);
+      });
+
+    return () => { sb.removeChannel(ch); sb.removeChannel(bc); };
   }, [me?.id, sbConnected, rewards]);
 
   // ===== REALTIME: Modal de calificación de operador tras COMBUSTIBLE =====
@@ -1615,7 +1658,7 @@ export default function App() {
     redeemConfirm, setRedeemConfirm,
     showSurveys, setShowSurveys,
     sortDir, setSortDir, memSort, setMemSort,
-    stationFilter, setStationFilter, stationMode, setStationMode,
+    stationFilter, setStationFilter, stationMode, setStationMode, memberStations,
     // Auth
     authScreen, setAuthScreen, authOp, setAuthOp, loggedOp, setLoggedOp, opScanMode, setOpScanMode, opRedeemScan, setOpRedeemScan, stations, setStations, authAdmin, setAuthAdmin, loggedAdmin, setLoggedAdmin,
     opRafClient, setOpRafClient, opRafScan, setOpRafScan, opRafQty, setOpRafQty, opSearch, setOpSearch,

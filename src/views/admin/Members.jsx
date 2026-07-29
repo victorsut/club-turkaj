@@ -10,17 +10,17 @@ export default function Members(ctx) {
     custs, gT, cfg, q, setQ, sel, setSel, setScr, setModal,
     memSort, setMemSort, sortDir, setSortDir,
     stationFilter, setStationFilter, stationMode, setStationMode,
-    activityLog, editMember, setEditMember,
+    memberStations, editMember, setEditMember,
   } = ctx;
 
+  // SEC.C.2b: la estación del miembro viene del RPC list_member_stations
+  // (derivada de purchases, con NOMBRE server-side). El cálculo viejo
+  // sobre activityLog comparaba uuids de station_id contra nombres —
+  // nunca coincidía. Regla del dueño: clasificar por el ÚLTIMO consumo.
   const getMemberStation = (cid, mode) => {
-    const acts = (activityLog && activityLog[cid]) || [];
-    const withStation = acts.filter(a => a.station);
-    if (!withStation.length) return null;
-    if (mode === 'last') return withStation[0].station;
-    const counts = {};
-    withStation.forEach(a => { counts[a.station] = (counts[a.station] || 0) + 1; });
-    return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+    const st = memberStations?.[cid];
+    if (!st) return null;
+    return mode === 'last' ? (st.last || null) : (st.top || st.last || null);
   };
 
   // Filter and sort
