@@ -9,6 +9,7 @@ import { logoutOperator, logoutAdmin, fetchOperatorsFull } from '../services'; /
 import { getOperatorToken, getAdminToken, getMemberToken } from '../services/sessionTokens'; // SEC.B.6.4 + SEC.C.1
 import { mapMember } from '../hooks/useSupabaseData'; // SEC.C.1: mapeo del perfil de RPC
 import { setSessionExpiredHandler } from '../services/sessionExpiry'; // SEC.B.8.2: registro del handler que dispara expireSession ante rechazo 28000 del server
+import { firstName } from '../lib/text'; // regla 29-jul: al cliente solo el primer nombre del personal
 
 // Guatemala es UTC-6 — usar siempre fecha/hora local, nunca UTC
 function localDate() {
@@ -1390,10 +1391,11 @@ export default function App() {
       sendPushToMember(cid, {
         type: 'purchase',
         title: promo ? '¡Compra con promoción!' : '¡Compra registrada!',
-        body: `+${pts} pts · ${gal} gal · Q${a}${promoTag}${tier_changed && new_tier ? ` · ¡Subiste a ${new_tier}!` : ''} — Atendido por ${loggedOp.name}`,
+        // Regla del dueño (29-jul): al cliente solo el PRIMER nombre.
+        body: `+${pts} pts · ${gal} gal · Q${a}${promoTag}${tier_changed && new_tier ? ` · ¡Subiste a ${new_tier}!` : ''} — Atendido por ${firstName(loggedOp.name)}`,
         data: {
           operatorId: loggedOp.id,
-          operatorName: loggedOp.name,
+          operatorName: firstName(loggedOp.name),
           stationName,
           purchaseId: data.purchase_id || null,
           points: pts,

@@ -13,6 +13,7 @@ import { SHELL_SURVEYS, SURVEY_WAIT } from '../constants/config';
 import { Fuel, Pin, Clock, StarRate } from './ui/Icons';
 import { SurveyIcon } from './ui/BentoIcons';
 import LogoSpinner from './ui/LogoSpinner';
+import { firstName } from '../lib/text';
 
 export default function OpRatingModal({
   data, onClose, dark, memberId, sbConnected, fire,
@@ -141,7 +142,7 @@ export default function OpRatingModal({
               fontSize: 20, fontWeight: 800, marginBottom: 2,
               color: dark ? '#fff' : '#0D0D0D',
             }}>
-              {data.operatorName}
+              {firstName(data.operatorName) || 'Operador'}
             </div>
             {data.stationName && (
               <div style={{ fontSize: 12, fontWeight: 600, color: '#9E9E9E', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>

@@ -11,3 +11,9 @@ export const stripEmojis = (s) =>
     .replace(/\s{2,}/g, ' ')
     .replace(/^[·\s]+|[·\s]+$/g, '')
     .trim();
+
+// Primer nombre. Regla del dueño (29-jul): la vista del CLIENTE muestra
+// solo el primer nombre del personal — el apellido es dato interno.
+// Aplicar al MOSTRAR (el nombre completo sigue viajando y se usa en
+// admin, operador y comprobantes impresos).
+export const firstName = (s) => String(s ?? '').trim().split(/\s+/)[0] || '';
