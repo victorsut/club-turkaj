@@ -141,3 +141,65 @@ export async function logoutAdmin() {
 export function isAdminLoggedIn() {
   return getAdminSession() !== null;
 }
+
+// ──────────────────────────────────────────────
+// GESTIÓN DE ADMINISTRADORES (objetivo #1, 29-jul-2026)
+// ──────────────────────────────────────────────
+// La tabla `admins` quedó CERRADA a la API abierta (antes cualquiera
+// con la anon key podía leer los bcrypt e insertarse un admin). Todo
+// pasa por RPCs con la sesión de admin; las acciones sensibles llevan
+// auditoría atómica server-side (admin_audit_log).
+
+function auditParams(audit = {}) {
+  if (!audit.adminId) return {};
+  return {
+    p_admin_id: audit.adminId,
+    p_admin_name: audit.adminName,
+    p_admin_email: audit.adminEmail,
+    p_reason_text: audit.reasonText,
+  };
+}
+
+async function adminRpc(name, params, tag) {
+  const token = getAdminToken()?.token;
+  if (!sb || !token) return { error: 'Sesión de admin no disponible' };
+  const { data, error } = await sb.rpc(name, { p_session_token: token, ...params });
+  if (error) { console.error(`[adminAuth:${tag}]`, error.message); return { error: error.message }; }
+  return data || { error: 'Sin respuesta' };
+}
+
+/** Lista de administradores (sin password_hash). */
+export async function fetchAdmins() {
+  const token = getAdminToken()?.token;
+  if (!sb || !token) return [];
+  const { data, error } = await sb.rpc('list_admins', { p_session_token: token });
+  if (error) { console.error('[adminAuth:list]', error.message); return []; }
+  return data || [];
+}
+
+/** Alta de administrador (bcrypt server-side). */
+export async function createAdmin({ name, dpi, gafete, email, password }, audit = {}) {
+  return adminRpc('create_admin', {
+    p_name: name, p_dpi: dpi, p_gafete: gafete, p_email: email, p_password: password,
+    ...auditParams(audit),
+  }, 'create');
+}
+
+/**
+ * Cambia la contraseña de un admin. Si el objetivo es uno MISMO, el
+ * servidor exige la contraseña actual; si es otro, queda auditado.
+ */
+export async function updateAdminPassword(targetId, newPassword, { currentPassword = null, ...audit } = {}) {
+  return adminRpc('update_admin_password', {
+    p_target_id: targetId, p_new_password: newPassword,
+    p_current_password: currentPassword,
+    ...auditParams(audit),
+  }, 'password');
+}
+
+/** Activa/desactiva un admin (no permite auto-desactivarse ni dejar 0 activos). */
+export async function toggleAdminActive(targetId, newActive, audit = {}) {
+  return adminRpc('toggle_admin_active', {
+    p_target_id: targetId, p_new_active: newActive, ...auditParams(audit),
+  }, 'toggle');
+}

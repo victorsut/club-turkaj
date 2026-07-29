@@ -192,6 +192,10 @@ export default function Settings(ctx) {
         <button onClick={() => setScr('ops')} style={{ flex: 1, padding: 14, borderRadius: 14, background: AT.card, border: `1px solid ${AT.border}`, fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#64B5F6' }}>👷 Operadores</button>
         <button onClick={() => setScr('audit')} style={{ flex: 1, padding: 14, borderRadius: 14, background: AT.card, border: `1px solid ${AT.border}`, fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#CE93D8' }}>📜 Auditoría</button>
       </div>
+      {/* Objetivo #1 (29-jul): gestión de administradores desde el panel */}
+      <div style={{ padding: '0 20px 12px' }}>
+        <button onClick={() => setScr('admins')} style={{ width: '100%', padding: 14, borderRadius: 14, background: AT.card, border: `1px solid ${AT.border}`, fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#90CAF9' }}>🔐 Administradores</button>
+      </div>
 
       {/* Conversión */}
       <div style={aSec}>Conversión</div>

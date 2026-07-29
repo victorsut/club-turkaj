@@ -3,8 +3,7 @@ import { useState, useEffect } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { sMono, adminTheme as AT, btnYellow, btnDark, inputStyle } from '../../constants/styles';
 import { Back, Plus } from '../../components/ui/Icons';
-import { createOperatorRPC, updateOperatorPassword, toggleOperatorActive } from '../../services/operatorAuthService';
-import { logAdminAction } from '../../services/rpcServices';
+import { createOperatorRPC, updateOperatorPassword, toggleOperatorActive, updateOperatorProfile } from '../../services/operatorAuthService';
 import { fetchOperatorPurchases, fetchOperatorRedemptions } from '../../services/secureReads';
 import ReasonModal from '../../components/ui/ReasonModal';
 
@@ -165,52 +164,17 @@ export default function OpManagement(ctx) {
       switch (type) {
         case 'edit':
         case 'edit_with_password': {
-          // old_value desde editOp (snapshot previo, sin re-query).
-          const oldValue = editOp ? {
-            operator_id: operatorId,
-            operator_username: editOp.user,
-            name: editOp.name,
-            dpi: editOp.dpi,
-            gafete: editOp.gafete,
-            phone: editOp.phone || null,
-            email: editOp.email || null,
-            station_id: editOp.stationId || null,
-            bomba: editOp.bomba || null,
-            turno: editOp.turno || null,
-          } : null;
-          const newValue = {
-            operator_id: operatorId,
-            operator_username: payload.updates.username,
-            name: payload.updates.name,
-            dpi: payload.updates.dpi,
-            gafete: payload.updates.gafete,
-            phone: payload.updates.phone,
-            email: payload.updates.email,
-            station_id: payload.updates.station_id,
-            bomba: payload.updates.bomba,
-            turno: payload.updates.turno,
-          };
-
-          const { error: upErr } = await sb.from('operators').update(payload.updates).eq('id', operatorId);
-          if (upErr) {
+          // El old_value/new_value de la auditoría los arma el RPC
+          // server-side (lee la fila antes y después del UPDATE).
+          // Objetivo #1 (29-jul): `operators` perdió la escritura
+          // directa — el RPC actualiza Y audita en la misma transacción
+          // (antes el log era client-first y podía quedar sin rastro).
+          const { ok: upOk, error: upErr } = await updateOperatorProfile(operatorId, payload.updates, audit);
+          if (!upOk) {
             setShowReasonModal(false);
             setShowOpReg(true);   // reabrir modal de edición con datos intactos
-            fire(upErr.message.includes('unique') ? 'Usuario o gafete ya existe' : 'Error: ' + upErr.message);
+            fire('Error: ' + (upErr || 'no se pudo actualizar'));
             return;
-          }
-
-          // Log client-first (update_operator NO es sensible server-side).
-          const { error: logErr } = await logAdminAction({
-            ...audit,
-            action: 'update_operator',
-            entityType: 'operator',
-            entityId: operatorId,
-            oldValue,
-            newValue,
-          });
-          if (logErr) {
-            console.error('[OpMgmt] log update_operator falló:', logErr);
-            fire('⚠️ Operador actualizado, pero la auditoría falló');
           }
 
           // Cambio de contraseña (RPC con auditoría atómica propia).

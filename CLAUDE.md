@@ -85,7 +85,7 @@ puntos-plus/
 
 ## 8. Objetivos Prioritarios (en orden)
 
-1. ~~**Migrar credenciales de operadores y administradores a la base de datos**~~ ✅ Cerrado para operadores (2026-05-05): no quedan arrays hardcoded; alta/reset de password vía RPCs `create_operator` y `update_operator_password` con bcrypt server-side. Pendiente equivalente para admins (objetivo futuro).
+1. ~~**Migrar credenciales de operadores y administradores a la base de datos**~~ ✅ **CERRADO** — operadores (2026-05-05) y **admins (29-jul-2026)**: no quedan arrays hardcoded; todo con bcrypt server-side. Operadores: `create_operator`, `update_operator_password`, `toggle_operator_active`, `update_operator_profile`. Admins: `list_admins`, `create_admin`, `update_admin_password` (exige la contraseña actual si es la propia), `toggle_admin_active` (nunca deja 0 activos ni permite auto-desactivarse) — UI en Admin → Configuración → Administradores, con razón obligatoria y auditoría. **`admins` quedó CERRADA a la API abierta** (antes cualquiera podía leer los hashes e insertarse un admin); `operators` solo expone columnas no sensibles (id, name, username, station_id, bomba, turno, active) — la ficha completa por `list_operators_full` con sesión.
 2. **Sistema de escaneo real de QR** (correlativos `CTOD/CTPD/CTBD-XXXXX`) y validación contra `members.card_id`.
 3. **Refinar historial de actividad** desde `activity_log` (paginado, agrupado por tipo: compra, canje, encuesta, rifa).
 

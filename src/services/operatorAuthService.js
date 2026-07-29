@@ -5,7 +5,7 @@
 // La contraseña en texto plano nunca se guarda en el cliente.
 
 import { sb } from '../lib/supabaseClient';
-import { setOperatorToken, getOperatorToken, clearOperatorToken } from './sessionTokens';
+import { setOperatorToken, getOperatorToken, clearOperatorToken, getAdminToken } from './sessionTokens';
 
 const STORAGE_KEY = 'ct_op';
 
@@ -169,6 +169,46 @@ export async function createOperatorRPC({
     return { data: null, error };
   }
   return { data: data?.[0] || null, error: null };
+}
+
+/**
+ * Actualiza los DATOS de un operador (sin contraseña ni estado).
+ * Objetivo #1 (29-jul): sustituye el UPDATE directo de OpManagement —
+ * `operators` perdió la escritura abierta y la auditoría dejó de ser
+ * client-first (ahora es atómica dentro del RPC).
+ * @returns {Promise<{ ok: boolean, error: string|null }>}
+ */
+export async function updateOperatorProfile(operatorId, updates, audit = {}) {
+  const token = getAdminToken()?.token;
+  if (!sb || !token) return { ok: false, error: 'Sesión de admin no disponible' };
+  const params = { p_session_token: token, p_id: operatorId, p_updates: updates };
+  if (audit.adminId) {
+    params.p_admin_id = audit.adminId;
+    params.p_admin_name = audit.adminName;
+    params.p_admin_email = audit.adminEmail;
+    params.p_reason_text = audit.reasonText;
+  }
+  const { data, error } = await sb.rpc('update_operator_profile', params);
+  if (error) {
+    console.error('[operatorAuth] update profile RPC error:', error);
+    const dup = /unique|duplicate/i.test(error.message);
+    return { ok: false, error: dup ? 'Usuario o gafete ya existe' : error.message };
+  }
+  if (data?.error) return { ok: false, error: data.error };
+  return { ok: true, error: null };
+}
+
+/** Lista de operadores con ficha completa (sin password_hash). */
+export async function fetchOperatorsFull() {
+  const tok = getAdminToken()?.token;
+  const role = tok ? 'admin' : 'operator';
+  const token = tok || getOperatorToken()?.token;
+  if (!sb || !token) return [];
+  const { data, error } = await sb.rpc('list_operators_full', {
+    p_session_token: token, p_role: role,
+  });
+  if (error) { console.error('[operatorAuth] list full:', error.message); return []; }
+  return data || [];
 }
 
 /**

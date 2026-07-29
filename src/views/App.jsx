@@ -5,7 +5,7 @@ import { sb } from '../lib/supabaseClient';
 import { makeTier, daysInactive } from '../lib/tierSystem';
 import { CFG_INIT, FUEL_LABELS } from '../constants/config';
 import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey, grantSpecialDayBonus, fetchPurchasePromo, fetchNotifications, markNotificationsRead, createMemberSessionOauth, getMyMember, logoutMember, fetchMembersFull, fetchMyActivity, fetchMyRedemptions, fetchActivityStaff, fetchRaffleParticipants, fetchMemberStations, respondRedemptionConfirm } from '../services';
-import { logoutOperator, logoutAdmin } from '../services'; // SEC.B.4: logout delega el subconjunto de localStorage (ct_op/ct_admin + token de rol)
+import { logoutOperator, logoutAdmin, fetchOperatorsFull } from '../services'; // SEC.B.4: logout delega el subconjunto de localStorage (ct_op/ct_admin + token de rol)
 import { getOperatorToken, getAdminToken, getMemberToken } from '../services/sessionTokens'; // SEC.B.6.4 + SEC.C.1
 import { mapMember } from '../hooks/useSupabaseData'; // SEC.C.1: mapeo del perfil de RPC
 import { setSessionExpiredHandler } from '../services/sessionExpiry'; // SEC.B.8.2: registro del handler que dispara expireSession ante rechazo 28000 del server
@@ -79,6 +79,7 @@ import Settings from './admin/Settings';
 import AdminPromos from './admin/AdminPromos';
 import PromoRules from './admin/PromoRules';
 import OpManagement from './admin/OpManagement';
+import AdminManagement from './admin/AdminManagement';
 import AuditLog from './admin/AuditLog';
 import VehiclesSoon from './client/VehiclesSoon';
 import { originFromEvent } from '../lib/motionOrigin';
@@ -569,13 +570,23 @@ export default function App() {
           setCusts(prev => (custsFullRef.current ? prev : mapped));
         }
 
-        // Load operators
-        const opRes = await sb.from('operators').select('*, stations(name)').order('name');
+        // Load operators — objetivo #1 (29-jul): `operators` dejó de
+        // exponer DPI/gafete/teléfono/correo/hash por la API abierta.
+        // El boot trae solo columnas públicas (el cliente necesita el
+        // nombre para el modal de calificación); la ficha completa la
+        // carga el admin con su sesión (efecto opsFull más abajo).
+        const opRes = await sb.from('operators')
+          .select('id, name, username, station_id, bomba, turno, active')
+          .order('name');
+        if (opRes.error) console.error('[Puntos Plus] Error cargando operadores:', opRes.error);
         if (opRes.data?.length > 0) {
+          const stById = {};
+          (stRes.data || []).forEach(s => { stById[s.id] = s.name; });
           setOperators(opRes.data.map(o => ({
             id: o.id, name: o.name, user: o.username,
-            dpi: o.dpi, gafete: o.gafete, phone: o.phone || '', email: o.email || '',
-            station: o.stations?.name || o.station_id || '', stationId: o.station_id || null, bomba: o.bomba || '', turno: o.turno || '',
+            dpi: '', gafete: '', phone: '', email: '',
+            station: stById[o.station_id] || '', stationId: o.station_id || null,
+            bomba: o.bomba || '', turno: o.turno || '',
             active: o.active !== false,
           })));
           console.log('[Puntos Plus] Operadores cargados:', opRes.data.length);
@@ -758,6 +769,20 @@ export default function App() {
         });
       });
       setActivityLog(prev => ({ ...actMap, ...prev }));
+    });
+    // Ficha completa de operadores (objetivo #1): DPI/gafete/teléfono/
+    // correo ya no viajan por la API abierta — el admin los carga con
+    // su sesión para la pestaña Operadores.
+    fetchOperatorsFull().then(rows => {
+      if (!rows.length) return;
+      setOperators(rows.map(o => ({
+        id: o.id, name: o.name, user: o.username,
+        dpi: o.dpi || '', gafete: o.gafete || '',
+        phone: o.phone || '', email: o.email || '',
+        station: o.station_name || '', stationId: o.station_id || null,
+        bomba: o.bomba || '', turno: o.turno || '',
+        active: o.active !== false,
+      })));
     });
     // Estación por miembro para el filtro de Miembros (SEC.C.2b):
     // derivada de purchases (el activity_log guarda station_id como
@@ -1760,6 +1785,7 @@ export default function App() {
       if (scr === 'premios') return <AdminPremios {...ctx} />;
       if (scr === 'cfg') return <Settings {...ctx} />;
       if (scr === 'ops') return <OpManagement {...ctx} />;
+      if (scr === 'admins') return <AdminManagement {...ctx} />;
       if (scr === 'audit') return <AuditLog {...ctx} />;
       if (scr === 'rules') return <Rules {...ctx} />;
       if (scr === 'promos') return <AdminPromos {...ctx} />;
