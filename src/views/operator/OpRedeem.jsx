@@ -9,6 +9,7 @@ import { Back } from '../../components/ui/Icons';
 import { buildRedemptionReceipt } from '../../lib/receiptModel';
 import { printReceipt } from '../../lib/receiptPrinter';
 import { logPrint } from '../../services/rpcServices';
+import { fetchOperatorRedemptions, fetchPendingRedemptionsStaff, fetchRedemptionByCode, fetchRedemptionStatus } from '../../services/secureReads';
 
 function utcToLocal(isoString) {
   if (!isoString) return '';
@@ -81,18 +82,14 @@ export default function OpRedeem(ctx) {
     // FA-lite fix: filtrar por collected_at (fecha de ENTREGA), no por
     // created_at (fecha en que el cliente creó el canje — puede ser de
     // días antes y dejaba la entrega de hoy fuera del historial).
-    sb.from('redemptions')
-      .select('*, rewards(name, icon), members(name), collected_at')
-      .eq('collected', true)
-      .eq('operator_id', loggedOp.id)
-      .gte('collected_at', todayUTC.toISOString())
-      .order('collected_at', { ascending: false, nullsFirst: false })
-      .then(({ data }) => {
+    // SEC.C.2: por RPC con la sesión del operador (SELECT revocado).
+    fetchOperatorRedemptions(loggedOp.id, { since: todayUTC.toISOString(), limit: 100 })
+      .then(rows => {
         setLoadingToday(false);
-        if (data?.length) setTodayHistory(data.map(r => ({
+        if (rows.length) setTodayHistory(rows.map(r => ({
           id: r.id,
-          memberName: r.members?.name || '-',
-          reward: { name: r.rewards?.name || 'Premio', icon: r.rewards?.icon || '' },
+          memberName: r.member_name || '-',
+          reward: { name: r.reward_name || 'Premio', icon: r.reward_icon || '' },
           cost: r.points_spent,
           code: r.redemption_code,
           date: r.collected_at || r.created_at, // fecha de entrega
@@ -107,16 +104,13 @@ export default function OpRedeem(ctx) {
       setPending(local); return;
     }
     setLoadingPending(true);
-    const { data, error } = await sb.from('redemptions')
-      .select('*, rewards(name, icon, category)')
-      .eq('member_id', cust.id)
-      .eq('collected', false)
-      .order('created_at', { ascending: false });
+    // SEC.C.2: pendientes por RPC con la sesión del operador.
+    const { data, error } = await fetchPendingRedemptionsStaff(cust.id);
     setLoadingPending(false);
-    if (error) { fire('Error cargando canjes: ' + error.message); return; }
+    if (error) { fire('Error cargando canjes: ' + error); return; }
     setPending((data || []).map(rd => ({
       id: rd.id, memberId: rd.member_id,
-      reward: { name: rd.rewards?.name || 'Premio', icon: rd.rewards?.icon || '', cat: rd.rewards?.category || '' },
+      reward: { name: rd.reward_name || 'Premio', icon: rd.reward_icon || '', cat: rd.reward_category || '' },
       cost: rd.points_spent, date: utcToLocal(rd.created_at) || '',
       code: rd.redemption_code, collected: false,
     })));
@@ -129,11 +123,9 @@ export default function OpRedeem(ctx) {
   // dispositivo) no cambia.
   const loadFromRedemption = useCallback(async (code) => {
     if (!sb || !sbConnected) { fire('Sin conexion'); return; }
-    const { data, error } = await sb.from('redemptions')
-      .select('*, rewards(name, icon, category)')
-      .eq('redemption_code', code)
-      .maybeSingle();
-    if (error) { fire('Error: ' + error.message); return; }
+    // SEC.C.2: busqueda por codigo TK via RPC con la sesion del operador.
+    const { data, error } = await fetchRedemptionByCode(code);
+    if (error) { fire('Error: ' + error); return; }
     if (!data) { fire('Canje no encontrado: ' + code); return; }
     if (data.collected) { fire('Este canje ya fue entregado'); return; }
     const cust = custs.find(c => c.id === data.member_id);
@@ -141,7 +133,7 @@ export default function OpRedeem(ctx) {
     setConfirmClient(cust);
     setConfirmItem({
       id: data.id, memberId: data.member_id,
-      reward: { name: data.rewards?.name || 'Premio', icon: data.rewards?.icon || '', cat: data.rewards?.category || '' },
+      reward: { name: data.reward_name || 'Premio', icon: data.reward_icon || '', cat: data.reward_category || '' },
       cost: data.points_spent, date: utcToLocal(data.created_at) || '',
       code: data.redemption_code, collected: false,
     });
@@ -180,9 +172,9 @@ export default function OpRedeem(ctx) {
     let attempts = 0;
     const interval = setInterval(async () => {
       attempts++;
-      const { data } = await sb.from('redemptions')
-        .select('confirm_status').eq('id', item.id).single();
-      if (data?.confirm_status === 'confirmed') {
+      // SEC.C.2: poll del estado por RPC (SELECT directo revocado).
+      const status = await fetchRedemptionStatus(item.id);
+      if (status === 'confirmed') {
         clearInterval(interval);
         await sb.from('redemptions').update({ collected: true, confirm_status: 'none', operator_id: loggedOp?.id || null, collected_at: new Date().toISOString() }).eq('id', item.id);
         setPending(p => p.filter(x => x.id !== item.id));
@@ -202,7 +194,7 @@ export default function OpRedeem(ctx) {
           code: item.code, date: new Date().toISOString(),
         }, ...p]);
         setTimeout(() => setConfirmResult(null), 3000);
-      } else if (data?.confirm_status === 'cancelled') {
+      } else if (status === 'cancelled') {
         clearInterval(interval);
         await sb.from('redemptions').update({ confirm_status: 'none' }).eq('id', item.id);
         setWaitingConfirm(null);

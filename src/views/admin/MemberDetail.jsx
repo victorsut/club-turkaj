@@ -9,6 +9,7 @@ import InactivityWarning from '../../components/ui/InactivityWarning';
 import { Back } from '../../components/ui/Icons';
 import ReasonModal from '../../components/ui/ReasonModal';
 import { updateMemberWithAudit, adminResetMemberPassword } from '../../services/rpcServices';
+import { fetchActivityStaff } from '../../services/secureReads';
 import { plateMask } from '../../lib/inputMasks';
 import { stripEmojis } from '../../lib/text';
 import { getAdminToken } from '../../services/sessionTokens';
@@ -50,21 +51,19 @@ export default function MemberDetail(ctx) {
     if (!sel?.id || !sb) return;
     setLoadingDetail(true);
     Promise.all([
-      sb.from('activity_log')
-        .select('*')
-        .eq('member_id', sel.id)
-        .order('created_at', { ascending: false })
-        .limit(500),
+      // SEC.C.2: el SELECT abierto de activity_log quedó revocado — la
+      // actividad de la ficha llega por RPC con la sesión de admin.
+      fetchActivityStaff(sel.id, 500),
       // SEC.C.1: la ficha completa exige sesión de admin (RPC)
       sb.rpc('get_member_full', {
         p_session_token: getAdminToken()?.token ?? null,
         p_role: 'admin',
         p_member_id: sel.id,
       }),
-    ]).then(([actRes, memRes]) => {
+    ]).then(([actRows, memRes]) => {
       setLoadingDetail(false);
-      if (actRes.data) {
-        setLocalActs(actRes.data.map(a => ({
+      if (actRows?.length) {
+        setLocalActs(actRows.map(a => ({
           type: a.activity_type, desc: a.description,
           pts: a.points_change, amount: a.amount ? parseFloat(a.amount) : null,
           date: a.created_at ? new Date(a.created_at).toLocaleDateString('es-GT') : '',

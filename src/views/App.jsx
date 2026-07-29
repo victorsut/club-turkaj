@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { sb } from '../lib/supabaseClient';
 import { makeTier, daysInactive } from '../lib/tierSystem';
 import { CFG_INIT, FUEL_LABELS } from '../constants/config';
-import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey, grantSpecialDayBonus, fetchPurchasePromo, fetchNotifications, markNotificationsRead, createMemberSessionOauth, getMyMember, logoutMember, fetchMembersFull } from '../services';
+import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey, grantSpecialDayBonus, fetchPurchasePromo, fetchNotifications, markNotificationsRead, createMemberSessionOauth, getMyMember, logoutMember, fetchMembersFull, fetchMyActivity, fetchMyRedemptions, fetchActivityStaff, fetchRaffleParticipants } from '../services';
 import { logoutOperator, logoutAdmin } from '../services'; // SEC.B.4: logout delega el subconjunto de localStorage (ct_op/ct_admin + token de rol)
 import { getOperatorToken, getAdminToken, getMemberToken } from '../services/sessionTokens'; // SEC.B.6.4 + SEC.C.1
 import { mapMember } from '../hooks/useSupabaseData'; // SEC.C.1: mapeo del perfil de RPC
@@ -572,74 +572,11 @@ export default function App() {
           console.log('[Puntos Plus] Operadores cargados:', opRes.data.length);
         }
 
-        // Load activity log
-        const actRes = await sb.from('activity_log').select('*').order('created_at', { ascending: false }).limit(200);
-        if (actRes.data?.length > 0) {
-          const actMap = {};
-          actRes.data.forEach(a => {
-            if (!actMap[a.member_id]) actMap[a.member_id] = [];
-            actMap[a.member_id].push({
-              type: a.activity_type, desc: a.description,
-              pts: a.points_change, amount: a.amount ? parseFloat(a.amount) : null,
-              date: utcToLocal(a.created_at) || '', station: a.station_id || '',
-            });
-          });
-          setActivityLog(actMap);
-        }
-
-        // Load redemptions
-        const rdRes = await sb.from('redemptions')
-          .select('*, rewards(name, icon, category)')
-          .order('created_at', { ascending: false })
-          .limit(100);
-        if (rdRes.data?.length > 0) {
-          setRedeemedList(rdRes.data.map(rd => ({
-            id: rd.id,
-            memberId: rd.member_id,
-            reward: { name: rd.rewards?.name || 'Premio', icon: rd.rewards?.icon || '🎁', cat: rd.rewards?.category || '' },
-            cost: rd.points_spent,
-            date: utcToLocal(rd.created_at) || '',
-            code: rd.redemption_code,
-            collected: rd.collected || false,
-          })));
-        }
-
-        // Load raffle tickets — FUENTE REAL de boletos comprados: la
-        // tabla que llena el RPC buy_raffle_tickets es raffle_tickets
-        // (raffle_entries quedó obsoleta y por eso "Mis boletos" volvía
-        // a cero al recargar). El nombre se resuelve desde members.
-        const reRes = await sb.from('raffle_tickets')
-          .select('member_id, raffle_id, quantity');
-
-        console.log('[Raffle] raffle_tickets:', reRes.error?.message || `${reRes.data?.length ?? 0} filas`);
-
-        if (!reRes.error && reRes.data?.length > 0 && rcRes.data?.length > 0) {
-          // mapa raffle_id → month 0-indexed (solo año en curso)
-          const yrNow = new Date().getFullYear();
-          const idToMonth = {};
-          rcRes.data.filter(r => !r.year || r.year === yrNow).forEach(r => { idToMonth[r.id] = r.month - 1; });
-
-          // mapa member_id → name desde la carga de members ya hecha arriba
-          const idToName = {};
-          if (memRes.data?.length > 0) {
-            memRes.data.forEach(m => { idToName[m.id] = m.name || 'Miembro'; });
-          }
-
-          const rafMap = Array(12).fill(null).map(() => ({ participants: [] }));
-          reRes.data.forEach(e => {
-            const month = idToMonth[e.raffle_id];
-            if (month === undefined || month < 0 || month > 11) return;
-            const ps  = rafMap[month].participants;
-            const ex  = ps.findIndex(p => p.cid === e.member_id);
-            const name = idToName[e.member_id] || 'Miembro';
-            if (ex >= 0) ps[ex].tickets += e.quantity || 1;
-            else ps.push({ cid: e.member_id, name, tickets: e.quantity || 1 });
-          });
-          setRafData(rafMap);
-          console.log('[Raffle] ✅ rafData listo:', reRes.data.length, 'compras');
-        } else if (reRes.error) {
-          console.error('[Raffle] Error:', reRes.error.message);
-        }
+        // SEC.C.2: activity_log, redemptions y raffle_tickets ya NO se
+        // leen en el boot — su SELECT abierto quedó revocado. El libro
+        // mayor y los canjes del miembro llegan por RPC con su sesión al
+        // loguearse; el mapa global del staff y los participantes de la
+        // rifa, con la sesión de operador/admin (efectos más abajo).
 
         // Load operator ratings
         const ratRes = await sb.from('operator_ratings').select('operator_id, stars').order('created_at', { ascending: false });
@@ -784,6 +721,56 @@ export default function App() {
     });
   }, [authOp, authAdmin]);
 
+  // ===== SEC.C.2: ACTIVIDAD GLOBAL PARA STAFF =====
+  // El boot ya no puede leer activity_log: el mapa global (filtro por
+  // estación en Miembros, actividad de las fichas) se carga por RPC al
+  // entrar como operador/admin. Merge sobre lo previo: el libro mayor
+  // completo del miembro logueado en este navegador no se pisa.
+  const actMapStaffRef = useRef(false);
+  useEffect(() => {
+    if (authOp !== 'logged' && authAdmin !== 'logged') { actMapStaffRef.current = false; return; }
+    if (actMapStaffRef.current || !sb) return;
+    actMapStaffRef.current = true;
+    fetchActivityStaff(null, 300).then(rows => {
+      if (!rows.length) { actMapStaffRef.current = false; return; }
+      const actMap = {};
+      rows.forEach(a => {
+        if (!actMap[a.member_id]) actMap[a.member_id] = [];
+        actMap[a.member_id].push({
+          type: a.activity_type, desc: a.description,
+          pts: a.points_change, amount: a.amount ? parseFloat(a.amount) : null,
+          date: utcToLocal(a.created_at) || '', station: a.station_id || '',
+        });
+      });
+      setActivityLog(prev => ({ ...actMap, ...prev }));
+    });
+  }, [authOp, authAdmin]);
+
+  // ===== SEC.C.2: PARTICIPANTES DE RIFA CON SESIÓN =====
+  // raffle_tickets ya no tiene SELECT abierto: los boletos agregados
+  // llegan por RPC con la sesión activa (miembro, operador o admin) y
+  // el nombre viene resuelto server-side. Las compras de boletos siguen
+  // actualizando rafData de forma optimista; este efecto trae la verdad
+  // del servidor al abrir la app o cambiar de sesión.
+  useEffect(() => {
+    if (!sb || !sbConnected || raffleCal.length === 0) return;
+    const memberLogged = authScreen === 'logged' && me?.id && !String(me.id).startsWith('temp-');
+    if (!memberLogged && authOp !== 'logged' && authAdmin !== 'logged') return;
+    fetchRaffleParticipants().then(rows => {
+      if (!rows) return; // sin token o error: conservar lo que haya
+      const idToMonth = {};
+      raffleCal.forEach((r, i) => { if (r?.dbId) idToMonth[r.dbId] = i; });
+      const rafMap = Array(12).fill(null).map(() => ({ participants: [] }));
+      rows.forEach(e => {
+        const month = idToMonth[e.raffle_id];
+        if (month === undefined) return;
+        rafMap[month].participants.push({ cid: e.member_id, name: e.name || 'Miembro', tickets: e.tickets || 1 });
+      });
+      setRafData(rafMap);
+      console.log('[Raffle] ✅ rafData listo:', rows.length, 'participantes');
+    });
+  }, [sbConnected, raffleCal, authScreen, me?.id, authOp, authAdmin]);
+
   // ===== CARGAR ENCUESTAS DEL DIA AL CAMBIAR DE USUARIO =====
   useEffect(() => {
     if (me?.id && !me.id.startsWith('temp-') && sb && sbConnected) loadTodaySurveys(me.id);
@@ -810,35 +797,41 @@ export default function App() {
     });
   }, [me?.id, authScreen]);
 
-  // ===== HISTORIAL PROPIO COMPLETO AL LOGUEARSE (28-jul) =====
-  // El boot carga solo las últimas 200 actividades GLOBALES: con uso
-  // real, las entradas viejas del miembro (p. ej. su 'registro' con el
-  // bonus de alta) caen fuera de la ventana y su libro mayor queda
-  // incompleto (reporte del dueño: Fernando Morales). Acá se trae el
-  // historial PROPIO completo del miembro logueado.
+  // ===== HISTORIAL Y CANJES PROPIOS AL LOGUEARSE (28-jul / SEC.C.2) =====
+  // El libro mayor COMPLETO del miembro (limit 1000 — el 'registro' con
+  // el bonus de alta debe seguir visible; reporte: Fernando Morales) y
+  // sus canjes (con redemption_code para el QR del premio) llegan por
+  // RPC con su sesión: el SELECT abierto de ambas tablas quedó revocado.
+  // Sesiones legadas sin token ven listas vacías hasta re-loguearse.
   useEffect(() => {
     if (!me?.id || authScreen !== 'logged' || viewRef.current !== 'client' || !sb) return;
     if (String(me.id).startsWith('temp-')) return;
-    sb.from('activity_log')
-      .select('*')
-      .eq('member_id', me.id)
-      .order('created_at', { ascending: false })
-      .limit(1000)
-      .then(res => {
-        if (res.data) {
-          setActivityLog(prev => ({
-            ...prev,
-            [me.id]: res.data.map(a => ({
-              type: a.activity_type,
-              desc: a.description,
-              pts: a.points_change,
-              amount: a.amount ? parseFloat(a.amount) : null,
-              date: utcToLocal(a.created_at) || '',
-              station: a.station_id || '',
-            })),
-          }));
-        }
-      });
+    fetchMyActivity(me.id, 1000).then(rows => {
+      if (!rows.length) return;
+      setActivityLog(prev => ({
+        ...prev,
+        [me.id]: rows.map(a => ({
+          type: a.activity_type,
+          desc: a.description,
+          pts: a.points_change,
+          amount: a.amount ? parseFloat(a.amount) : null,
+          date: utcToLocal(a.created_at) || '',
+          station: a.station_id || '',
+        })),
+      }));
+    });
+    fetchMyRedemptions().then(rows => {
+      if (!rows.length) return;
+      setRedeemedList(rows.map(rd => ({
+        id: rd.id,
+        memberId: rd.member_id,
+        reward: { name: rd.reward_name || 'Premio', icon: rd.reward_icon || '🎁', cat: rd.reward_category || '' },
+        cost: rd.points_spent,
+        date: utcToLocal(rd.created_at) || '',
+        code: rd.redemption_code,
+        collected: rd.collected || false,
+      })));
+    });
   }, [me?.id, authScreen]);
 
   // ===== REALTIME PARA ADMIN/OPERADOR: puntos en vivo en custs (28-jul) =====
@@ -1062,31 +1055,26 @@ export default function App() {
         // CADA UPDATE de members → cubre combustible cross-device Y refresca el
         // historial del cliente para sus propias acciones. El mapeo no cambia.
         if (viewRef.current === 'client') {
-          // ── Recargar historial desde Supabase en el dispositivo del miembro ──
+          // ── Recargar historial en el dispositivo del miembro ──
           // limit alto: el historial es el LIBRO MAYOR del miembro — el
           // 'registro' (bonus de alta) debe seguir visible aunque haya
           // mucha actividad posterior (reporte del dueño 28-jul).
-          sb.from('activity_log')
-            .select('*')
-            .eq('member_id', m.id)
-            .order('created_at', { ascending: false })
-            .limit(1000)
-            .then(res => {
-              if (res.data?.length > 0) {
-                setActivityLog(prev => ({
-                  ...prev,
-                  [m.id]: res.data.map(a => ({
-                    type: a.activity_type,
-                    desc: a.description,
-                    pts: a.points_change,
-                    amount: a.amount ? parseFloat(a.amount) : null,
-                    date: utcToLocal(a.created_at) || '',
-                    station: a.station_id || '',
-                  })),
-                }));
-                console.log('[Realtime] ✅ Historial recargado:', res.data.length, 'entradas');
-              }
-            });
+          // SEC.C.2: por RPC con la sesión (SELECT abierto revocado).
+          fetchMyActivity(m.id, 1000).then(rows => {
+            if (!rows.length) return;
+            setActivityLog(prev => ({
+              ...prev,
+              [m.id]: rows.map(a => ({
+                type: a.activity_type,
+                desc: a.description,
+                pts: a.points_change,
+                amount: a.amount ? parseFloat(a.amount) : null,
+                date: utcToLocal(a.created_at) || '',
+                station: a.station_id || '',
+              })),
+            }));
+            console.log('[Realtime] ✅ Historial recargado:', rows.length, 'entradas');
+          });
         }
 
         // FIX-MODAL (Parte D): el modal de calificación se eliminó de acá.

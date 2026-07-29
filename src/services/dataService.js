@@ -209,18 +209,17 @@ export async function fetchRaffleCalendar() {
   return data || [];
 }
 
-export async function fetchRaffleParticipants(raffleId) {
-  const { data, error } = await sb
-    .from('raffle_participants')
-    .select('*')
-    .eq('raffle_id', raffleId);
-  if (error) console.error('[Data:rafflePart]', error.message);
-  return data || [];
-}
+// (fetchRaffleParticipants se eliminó en SEC.C.2: leía la tabla
+// deprecada raffle_participants y no tenía consumidores. La versión
+// real vive en secureReads.js — RPC list_raffle_participants.)
 
 // ──────────────────────────────────────────────
 // ACTIVITY LOG
 // ──────────────────────────────────────────────
+// ⚠️ SEC.C.2: el SELECT abierto de activity_log quedó revocado — esta
+// función solo la referencia el hook muerto useSupabaseData y hoy
+// devolvería []. Lecturas reales: secureReads.fetchMyActivity /
+// fetchActivityStaff (RPC list_activity con sesión).
 export async function fetchActivityLog(limit = 200) {
   const { data, error } = await sb
     .from('activity_log')
@@ -336,6 +335,9 @@ export async function rateOperator({ operatorId, memberId, stars }) {
 // ──────────────────────────────────────────────
 // CANJES (redemptions) — lectura
 // ──────────────────────────────────────────────
+// ⚠️ SEC.C.2: sin consumidores y con el SELECT abierto revocado (solo
+// filas en flujo de confirmación y sin redemption_code). Lecturas
+// reales: secureReads.fetchMyRedemptions y RPCs del operador.
 export async function fetchRedemptions(memberId) {
   const { data, error } = await sb
     .from('redemptions')

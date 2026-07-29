@@ -5,6 +5,7 @@ import { sMono, adminTheme as AT, btnYellow, btnDark, inputStyle } from '../../c
 import { Back, Plus } from '../../components/ui/Icons';
 import { createOperatorRPC, updateOperatorPassword, toggleOperatorActive } from '../../services/operatorAuthService';
 import { logAdminAction } from '../../services/rpcServices';
+import { fetchOperatorPurchases, fetchOperatorRedemptions } from '../../services/secureReads';
 import ReasonModal from '../../components/ui/ReasonModal';
 
 export default function OpManagement(ctx) {
@@ -23,24 +24,26 @@ export default function OpManagement(ctx) {
     setLoadingHist(true);
     setOpHistory([]);
     setOpRedeems([]);
+    // SEC.C.2: purchases y redemptions ya no tienen SELECT abierto — el
+    // historial del operador llega por RPC con la sesión de admin (el
+    // nombre del miembro viene resuelto server-side).
     Promise.all([
-      sb.from('purchases').select('*, members(name)').eq('operator_id', selOp.id).order('created_at', { ascending: false }).limit(100),
-      sb.from('redemptions').select('*, members(name), rewards(name, icon), collected_at').eq('operator_id', selOp.id).eq('collected', true).order('created_at', { ascending: false }).limit(100),
-    ]).then(([purchRes, redeemRes]) => {
+      fetchOperatorPurchases(selOp.id, 100),
+      fetchOperatorRedemptions(selOp.id, { limit: 100 }),
+    ]).then(([purchRows, redeemRows]) => {
       setLoadingHist(false);
-      console.log('[OpMgmt] Compras:', purchRes.data?.length, purchRes.error?.message);
-      console.log('[OpMgmt] Canjes:', redeemRes.data?.length, redeemRes.error?.message);
-      if (purchRes.data?.length) setOpHistory(purchRes.data.map(p => ({
+      console.log('[OpMgmt] Compras:', purchRows.length, '· Canjes:', redeemRows.length);
+      if (purchRows.length) setOpHistory(purchRows.map(p => ({
         id: p.id,
-        memberName: p.members?.name || '-',
-        desc: (p.gallons?.toFixed ? p.gallons.toFixed(1) : p.gallons) + ' gal - Q' + p.amount,
+        memberName: p.member_name || '-',
+        desc: (typeof p.gallons === 'number' ? p.gallons.toFixed(1) : p.gallons) + ' gal - Q' + p.amount,
         pts: p.points_earned, date: p.created_at, fuel: p.fuel_type,
       })));
-      if (redeemRes.data?.length) setOpRedeems(redeemRes.data.map(r => ({
+      if (redeemRows.length) setOpRedeems(redeemRows.map(r => ({
         id: r.id,
-        memberName: r.members?.name || '-',
-        rewardName: r.rewards?.name || 'Premio',
-        rewardIcon: r.rewards?.icon || '',
+        memberName: r.member_name || '-',
+        rewardName: r.reward_name || 'Premio',
+        rewardIcon: r.reward_icon || '',
         pts: r.points_spent,
         code: r.redemption_code,
         date: r.collected_at || r.created_at, // fecha de entrega, no de canje
