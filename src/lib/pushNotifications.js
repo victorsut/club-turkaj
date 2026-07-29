@@ -1,5 +1,6 @@
 // src/lib/pushNotifications.js
 import { sb } from './supabaseClient';
+import { savePushSubscription } from '../services/secureReads';
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
@@ -33,13 +34,15 @@ export async function subscribePush(memberId) {
 
     const subJson = sub.toJSON();
     if (sb) {
-      const { error } = await sb.from('push_subscriptions').upsert({
-        member_id: memberId,
+      // SEC.C.4: push_subscriptions quedó cerrada (antes cualquiera
+      // podía leer o borrar las suscripciones de otros) — se guarda por
+      // RPC con la sesión del miembro, que además deriva el member_id.
+      const res = await savePushSubscription({
         endpoint: subJson.endpoint,
-        keys_p256dh: subJson.keys.p256dh,
-        keys_auth: subJson.keys.auth,
-      }, { onConflict: 'member_id,endpoint' });
-      if (error) console.error('[Push] Save error:', error);
+        p256dh: subJson.keys.p256dh,
+        auth: subJson.keys.auth,
+      });
+      if (res.error) console.error('[Push] Save error:', res.error);
       else console.log('[Push] ✅ Subscribed');
     }
     return true;

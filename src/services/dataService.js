@@ -123,6 +123,11 @@ export async function fetchRewards(activeOnly = true) {
   return data || [];
 }
 
+// ⚠️ SEC.C.4: SIN CONSUMIDORES — la escritura del catálogo (rewards,
+// promotions, special_days, raffle_calendar, stations) quedó revocada;
+// todo pasa por secureReads.adminWriteCatalog (RPC admin_write_catalog
+// con whitelist por entidad + sesión de admin + auditoría atómica).
+// Estas funciones fallarían hoy; se conservan solo como referencia.
 export async function createReward(rewardData) {
   const { data, error } = await sb.from('rewards').insert(rewardData).select();
   if (error) console.error('[Data:createReward]', error.message);
@@ -327,6 +332,9 @@ export async function fetchSurveys(memberId) {
 // ──────────────────────────────────────────────
 // CALIFICACIONES (operator_ratings)
 // ──────────────────────────────────────────────
+// ⚠️ SEC.C.4: SIN CONSUMIDORES — el INSERT abierto (spam de estrellas)
+// quedó revocado. La calificación real va por
+// secureReads.rateOperatorSecure (RPC con sesión de miembro).
 export async function rateOperator({ operatorId, memberId, stars }) {
   const { error } = await sb.from('operator_ratings').insert({
     operator_id: operatorId,

@@ -143,6 +143,66 @@ export async function deliverRedemption(redemptionId) {
   return rpcResult(data, error, 'deliver');
 }
 
+// ── catálogo del panel (SEC.C.4) ───────────────
+// rewards, promotions, special_days, raffle_calendar y stations
+// perdieron la escritura abierta: todo pasa por admin_write_catalog
+// (whitelist por entidad + sesión de admin + auditoría atómica).
+// `audit` = { adminId, adminName, adminEmail, reasonText }.
+export async function adminWriteCatalog(entity, action, { id = null, data = {}, audit = {} } = {}) {
+  const admin = getAdminToken();
+  if (!sb || !admin?.token) return { error: 'Sesión de admin no disponible' };
+  const { data: res, error } = await sb.rpc('admin_write_catalog', {
+    p_session_token: admin.token,
+    p_entity: entity, p_action: action, p_id: id, p_data: data,
+    p_admin_id: audit.adminId ?? null,
+    p_admin_name: audit.adminName ?? null,
+    p_admin_email: audit.adminEmail ?? null,
+    p_reason_text: audit.reasonText ?? null,
+  });
+  if (error) { console.warn('[SecureReads:catalog]', error.message); return { error: error.message }; }
+  return res || { error: 'Sin respuesta' };
+}
+
+// ── escrituras del cliente con sesión (SEC.C.4) ─
+export async function rateOperatorSecure(operatorId, stars, purchaseId = null) {
+  const tok = getMemberToken();
+  if (!tok?.token) return { error: 'Sesión expirada' };
+  const { data, error } = await sb.rpc('rate_operator', {
+    p_session_token: tok.token, p_operator_id: operatorId,
+    p_stars: stars, p_purchase_id: purchaseId,
+  });
+  if (error) { console.warn('[SecureReads:rate]', error.message); return { error: error.message }; }
+  return data || { error: 'Sin respuesta' };
+}
+
+export async function countMySurveysToday() {
+  const tok = getMemberToken();
+  if (!tok?.token) return null;
+  const { data, error } = await sb.rpc('count_my_surveys_today', { p_session_token: tok.token });
+  if (error) { console.warn('[SecureReads:surveys]', error.message); return null; }
+  return typeof data?.count === 'number' ? data.count : null;
+}
+
+export async function markRaffleWinnerSeen(raffleId) {
+  const tok = getMemberToken();
+  if (!tok?.token) return { error: 'Sesión expirada' };
+  const { data, error } = await sb.rpc('mark_raffle_winner_seen', {
+    p_session_token: tok.token, p_raffle_id: raffleId,
+  });
+  if (error) { console.warn('[SecureReads:winnerSeen]', error.message); return { error: error.message }; }
+  return data || {};
+}
+
+export async function savePushSubscription({ endpoint, p256dh, auth }) {
+  const tok = getMemberToken();
+  if (!tok?.token) return { error: 'Sesión expirada' };
+  const { data, error } = await sb.rpc('save_push_subscription', {
+    p_session_token: tok.token, p_endpoint: endpoint, p_p256dh: p256dh, p_auth: auth,
+  });
+  if (error) { console.warn('[SecureReads:push]', error.message); return { error: error.message }; }
+  return data || {};
+}
+
 // ── physical_cards (SEC.C.3) ───────────────────
 
 // Tarjeta por código para el escaneo del operador. Devuelve el shape

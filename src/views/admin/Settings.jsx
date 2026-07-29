@@ -5,6 +5,7 @@ import { sb } from '../../lib/supabaseClient';
 import { sMono, adminTheme as AT, inputStyleDark } from '../../constants/styles';
 import { Back } from '../../components/ui/Icons';
 import { updateFuelPrices } from '../../services/rpcServices';
+import { adminWriteCatalog } from '../../services/secureReads';
 import ReasonModal from '../../components/ui/ReasonModal';
 
 export default function Settings(ctx) {
@@ -50,11 +51,15 @@ export default function Settings(ctx) {
     setSavingWifi(row.id);
     const ssid = row.ssid.trim() || null;
     const pass = row.pass.trim() || null;
-    const { error } = await sb.from('stations')
-      .update({ wifi_ssid: ssid, wifi_password: pass })
-      .eq('id', row.id);
+    // SEC.C.4: stations perdió la escritura abierta (dirección,
+    // coordenadas y clave WiFi eran editables por cualquiera).
+    const res = await adminWriteCatalog('station', 'update', {
+      id: row.id,
+      data: { wifi_ssid: ssid, wifi_password: pass },
+      audit: { adminId: loggedAdmin?.id, adminName: loggedAdmin?.name, adminEmail: loggedAdmin?.email },
+    });
     setSavingWifi(null);
-    if (error) { fire('Error: ' + error.message, 'error'); return; }
+    if (res.error) { fire('Error: ' + res.error, 'error'); return; }
     if (setStations) {
       setStations(p => p.map(s => s.id === row.id ? { ...s, wifiSsid: ssid, wifiPassword: pass } : s));
     }

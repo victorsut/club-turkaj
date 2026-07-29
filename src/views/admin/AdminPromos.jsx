@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { btnYellow, adminTheme as AT } from '../../constants/styles';
 import ReasonModal from '../../components/ui/ReasonModal';
-import { logAdminAction } from '../../services/rpcServices';
+import { adminWriteCatalog } from '../../services/secureReads';
 import AdminPromoForm from './AdminPromoForm';
 
 const CATEGORY_LABELS = { combustible: 'Combustible', tienda: 'Tienda', servicios: 'Servicios' };
@@ -71,12 +71,16 @@ export default function AdminPromos(ctx) {
       return;
     }
 
-    // CREATE: insert directo, sin auditoria (consistente con F0.3.5/F0.3.6).
+    // CREATE: SEC.C.4 — promotions perdió la escritura abierta; el RPC
+    // valida la sesión de admin y registra la auditoría.
     setSaving(true);
-    const res = await sb.from('promotions').insert(data).select();
+    const res = await adminWriteCatalog('promotion', 'create', {
+      data,
+      audit: { adminId: loggedAdmin?.id, adminName: loggedAdmin?.name, adminEmail: loggedAdmin?.email },
+    });
     setSaving(false);
-    if (res.error) { fire('❌ Error: ' + res.error.message); return; }
-    setPromos(p => [...p, mapRow(res.data[0])].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
+    if (res.error) { fire('❌ Error: ' + res.error); return; }
+    setPromos(p => [...p, mapRow(res.row || { ...data, id: res.id })].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
     fire('✅ Promoción creada');
     setEditing(null);
   };
@@ -121,19 +125,16 @@ export default function AdminPromos(ctx) {
     try {
       switch (pendingAction.type) {
         case 'edit': {
-          const { error: upErr } = await sb.from('promotions').update(pendingAction.payload.updates).eq('id', eid);
-          if (upErr) {
+          // SEC.C.4: escritura + auditoría atómica en el RPC.
+          const res = await adminWriteCatalog('promotion', 'update', {
+            id: eid, data: pendingAction.payload.updates, audit,
+          });
+          if (res.error) {
             setShowReasonModal(false);
             setEditing(pendingAction.payload.reopen);   // Reabrir form
-            fire('Error: ' + upErr.message);
+            fire('Error: ' + res.error);
             return;
           }
-          const { error: logErr } = await logAdminAction({
-            ...audit,
-            action: 'update_promotion', entityType: 'promotion', entityId: eid,
-            oldValue: pendingAction.oldSnapshot, newValue: pendingAction.payload.updates,
-          });
-          if (logErr) { console.error('[F0.3.7] log update_promotion fallo:', logErr); fire('⚠️ Actualizado, pero la auditoria fallo'); }
 
           const u = pendingAction.payload.updates;
           setPromos(prev => prev.map(p => p.id === eid ? {
@@ -148,28 +149,18 @@ export default function AdminPromos(ctx) {
         }
 
         case 'delete': {
-          const { error: delErr } = await sb.from('promotions').delete().eq('id', eid);
-          if (delErr) { setShowReasonModal(false); fire('Error: ' + delErr.message); return; }
-          const { error: logErr } = await logAdminAction({
-            ...audit,
-            action: 'delete_promotion', entityType: 'promotion', entityId: eid,
-            oldValue: pendingAction.oldSnapshot, newValue: null,
-          });
-          if (logErr) { console.error('[F0.3.7] log delete_promotion fallo:', logErr); fire('⚠️ Eliminado, pero la auditoria fallo'); }
+          const res = await adminWriteCatalog('promotion', 'delete', { id: eid, audit });
+          if (res.error) { setShowReasonModal(false); fire('Error: ' + res.error); return; }
           setPromos(prev => prev.filter(p => p.id !== eid));
           fire('Promocion eliminada');
           break;
         }
 
         case 'toggle': {
-          const { error: upErr } = await sb.from('promotions').update({ active: pendingAction.payload.newActive }).eq('id', eid);
-          if (upErr) { setShowReasonModal(false); fire('Error: ' + upErr.message); return; }
-          const { error: logErr } = await logAdminAction({
-            ...audit,
-            action: 'toggle_promotion_active', entityType: 'promotion', entityId: eid,
-            oldValue: pendingAction.oldSnapshot, newValue: { active: pendingAction.payload.newActive },
+          const res = await adminWriteCatalog('promotion', 'update', {
+            id: eid, data: { active: pendingAction.payload.newActive }, audit,
           });
-          if (logErr) { console.error('[F0.3.7] log toggle_promotion_active fallo:', logErr); fire('⚠️ Toggle aplicado, pero la auditoria fallo'); }
+          if (res.error) { setShowReasonModal(false); fire('Error: ' + res.error); return; }
           setPromos(prev => prev.map(p => p.id === eid ? { ...p, active: pendingAction.payload.newActive } : p));
           fire(pendingAction.payload.newActive ? 'Promocion activada' : 'Promocion desactivada');
           break;

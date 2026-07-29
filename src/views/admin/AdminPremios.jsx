@@ -5,7 +5,7 @@ import { adminTheme as AT, btnYellow, btnDark, inputStyle, sMono } from '../../c
 import { Back, Plus } from '../../components/ui/Icons';
 import LogoSpinner from '../../components/ui/LogoSpinner';
 import ReasonModal from '../../components/ui/ReasonModal';
-import { logAdminAction } from '../../services/rpcServices';
+import { adminWriteCatalog } from '../../services/secureReads';
 
 const CAT_LABELS = {
   combustible: 'Combustible', servicio: 'Servicio', merch: 'Puntos Plus',
@@ -34,6 +34,13 @@ const TABS = [
 
 export default function AdminPremios(ctx) {
   const { rewards, setRewards, fire, setScr, sbConnected, loggedAdmin, cfg } = ctx;
+
+  // SEC.C.4: datos de auditoría del admin logueado (los altas sin
+  // ReasonModal quedan igualmente registradas por el RPC).
+  const adminAudit = (reasonText = null) => ({
+    adminId: loggedAdmin?.id, adminName: loggedAdmin?.name,
+    adminEmail: loggedAdmin?.email, reasonText,
+  });
 
   const [sub, setSub]             = useState('canjear');
   const [showForm, setShowForm]   = useState(false);
@@ -130,12 +137,14 @@ export default function AdminPremios(ctx) {
       return;
     }
 
-    // CREAR: directo al insert, sin auditoria.
+    // CREAR: SEC.C.4 — rewards perdió la escritura abierta (cualquiera
+    // podía poner points_cost = 0 y canjear gratis); va por RPC con la
+    // sesión de admin.
     setSaving(true);
     if (sb && sbConnected) {
-      const { data: nd, error } = await sb.from('rewards').insert(data).select().single();
-      if (error) { fire('Error: ' + error.message); setSaving(false); return; }
-      setRewards(p => [...p, { ...data, id: nd.id, pts: data.points_cost, cat: data.category, tier: data.tier_exclusive }]);
+      const res = await adminWriteCatalog('reward', 'create', { data, audit: adminAudit() });
+      if (res.error) { fire('Error: ' + res.error); setSaving(false); return; }
+      setRewards(p => [...p, { ...data, id: res.id, pts: data.points_cost, cat: data.category, tier: data.tier_exclusive }]);
       fire('Premio creado');
     }
     setSaving(false); setShowForm(false); setEditR(null);
@@ -229,9 +238,9 @@ export default function AdminPremios(ctx) {
     // CREAR: directo.
     setSavingFest(true);
     if (sb && sbConnected) {
-      const { data: nd, error } = await sb.from('special_days').insert(data).select().single();
-      if (error) { fire('Error: ' + error.message); setSavingFest(false); return; }
-      setFestList(p => [...p, { ...data, id: nd.id }].sort((a,b) => a.month !== b.month ? a.month-b.month : a.day-b.day));
+      const res = await adminWriteCatalog('special_day', 'create', { data, audit: adminAudit() });
+      if (res.error) { fire('Error: ' + res.error); setSavingFest(false); return; }
+      setFestList(p => [...p, { ...data, id: res.id }].sort((a,b) => a.month !== b.month ? a.month-b.month : a.day-b.day));
       fire('Festivo creado');
     }
     setSavingFest(false); setShowFestForm(false); setEditFest(null);
@@ -284,9 +293,9 @@ export default function AdminPremios(ctx) {
     // CREAR: directo.
     setSavingRaf(true);
     if (sb && sbConnected) {
-      const { data: nd, error } = await sb.from('raffle_calendar').insert(data).select().single();
-      if (error) { fire('Error: ' + error.message); setSavingRaf(false); return; }
-      setRaffleList(p => [...p, { ...data, id: nd.id }].sort((a,b) => a.year !== b.year ? a.year-b.year : a.month-b.month));
+      const res = await adminWriteCatalog('raffle', 'create', { data, audit: adminAudit() });
+      if (res.error) { fire('Error: ' + res.error); setSavingRaf(false); return; }
+      setRaffleList(p => [...p, { ...data, id: res.id }].sort((a,b) => a.year !== b.year ? a.year-b.year : a.month-b.month));
       fire('Rifa creada');
     }
     setSavingRaf(false); setShowRafForm(false); setEditRaf(null);
@@ -329,31 +338,24 @@ export default function AdminPremios(ctx) {
         case 'edit_reward':
         case 'edit_special_day':
         case 'edit_raffle': {
-          const tableMap  = { edit_reward: 'rewards', edit_special_day: 'special_days', edit_raffle: 'raffle_calendar' };
-          const actionMap = { edit_reward: 'update_reward', edit_special_day: 'update_special_day', edit_raffle: 'update_raffle' };
+          // SEC.C.4: escritura + auditoría ATÓMICA en el RPC (antes el
+          // log era client-first y podía dejar el cambio sin rastro).
           const entityMap = { edit_reward: 'reward', edit_special_day: 'special_day', edit_raffle: 'raffle' };
           const updates = pendingAction.payload.updates;
 
           if (sb && sbConnected) {
-            const { error: upErr } = await sb.from(tableMap[pendingAction.type]).update(updates).eq('id', eid);
-            if (upErr) {
+            const res = await adminWriteCatalog(entityMap[pendingAction.type], 'update', {
+              id: eid, data: updates, audit,
+            });
+            if (res.error) {
               setShowReasonModal(false);
               // Reabrir el modal de edicion correspondiente (form intacto).
               if (pendingAction.type === 'edit_reward') setShowForm(true);
               else if (pendingAction.type === 'edit_special_day') setShowFestForm(true);
               else setShowRafForm(true);
-              fire('Error: ' + upErr.message);
+              fire('Error: ' + res.error);
               return;
             }
-            const { error: logErr } = await logAdminAction({
-              ...audit,
-              action: actionMap[pendingAction.type],
-              entityType: entityMap[pendingAction.type],
-              entityId: eid,
-              oldValue: pendingAction.oldSnapshot,
-              newValue: updates,
-            });
-            if (logErr) { console.error('[AdminPremios] log ' + actionMap[pendingAction.type] + ' fallo:', logErr); fire('⚠️ Actualizado, pero la auditoria fallo'); }
           }
 
           if (pendingAction.type === 'edit_reward') {
@@ -375,21 +377,11 @@ export default function AdminPremios(ctx) {
         case 'delete_reward':
         case 'delete_special_day':
         case 'delete_raffle_entry': {
-          const tableMap  = { delete_reward: 'rewards', delete_special_day: 'special_days', delete_raffle_entry: 'raffle_calendar' };
           const entityMap = { delete_reward: 'reward', delete_special_day: 'special_day', delete_raffle_entry: 'raffle' };
 
           if (sb && sbConnected) {
-            const { error: delErr } = await sb.from(tableMap[pendingAction.type]).delete().eq('id', eid);
-            if (delErr) { setShowReasonModal(false); fire('Error: ' + delErr.message); return; }
-            const { error: logErr } = await logAdminAction({
-              ...audit,
-              action: pendingAction.type,
-              entityType: entityMap[pendingAction.type],
-              entityId: eid,
-              oldValue: pendingAction.oldSnapshot,
-              newValue: null,
-            });
-            if (logErr) { console.error('[AdminPremios] log ' + pendingAction.type + ' fallo:', logErr); fire('⚠️ Eliminado, pero la auditoria fallo'); }
+            const res = await adminWriteCatalog(entityMap[pendingAction.type], 'delete', { id: eid, audit });
+            if (res.error) { setShowReasonModal(false); fire('Error: ' + res.error); return; }
           }
 
           if (pendingAction.type === 'delete_reward') { setRewards(prev => prev.filter(r => r.id !== eid)); fire('Premio eliminado'); }
@@ -400,17 +392,10 @@ export default function AdminPremios(ctx) {
 
         case 'toggle_reward_active': {
           if (sb && sbConnected) {
-            const { error: upErr } = await sb.from('rewards').update({ active: pendingAction.payload.newActive }).eq('id', eid);
-            if (upErr) { setShowReasonModal(false); fire('Error: ' + upErr.message); return; }
-            const { error: logErr } = await logAdminAction({
-              ...audit,
-              action: 'toggle_reward_active',
-              entityType: 'reward',
-              entityId: eid,
-              oldValue: pendingAction.oldSnapshot,
-              newValue: { active: pendingAction.payload.newActive },
+            const res = await adminWriteCatalog('reward', 'update', {
+              id: eid, data: { active: pendingAction.payload.newActive }, audit,
             });
-            if (logErr) { console.error('[AdminPremios] log toggle_reward_active fallo:', logErr); fire('⚠️ Toggle aplicado, pero la auditoria fallo'); }
+            if (res.error) { setShowReasonModal(false); fire('Error: ' + res.error); return; }
           }
           setRewards(prev => prev.map(r => r.id === eid ? { ...r, active: pendingAction.payload.newActive } : r));
           fire(pendingAction.payload.newActive ? 'Premio activado' : 'Premio desactivado');

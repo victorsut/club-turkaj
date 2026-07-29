@@ -14,6 +14,7 @@ import { Fuel, Pin, Clock, StarRate } from './ui/Icons';
 import { SurveyIcon } from './ui/BentoIcons';
 import LogoSpinner from './ui/LogoSpinner';
 import { firstName } from '../lib/text';
+import { rateOperatorSecure } from '../services/secureReads';
 
 export default function OpRatingModal({
   data, onClose, dark, memberId, sbConnected, fire,
@@ -43,12 +44,11 @@ export default function OpRatingModal({
     if (starCount < 1 || saving) return;
     setSaving(true);
     if (sb && sbConnected) {
-      const { error } = await sb.from('operator_ratings').insert({
-        operator_id: data.operatorId,
-        member_id: memberId,
-        stars: starCount,
-      });
-      if (error) console.error('[Rating]', error);
+      // SEC.C.4: el INSERT abierto de operator_ratings quedó revocado
+      // (permitía spam de estrellas) — RPC con la sesión del miembro,
+      // una calificación por compra.
+      const res = await rateOperatorSecure(data.operatorId, starCount, data.purchaseId || null);
+      if (res.error) console.error('[Rating]', res.error);
       else fire(`¡Gracias! Calificación enviada: ${starCount}/5`, 'success');
     }
     setSaving(false);

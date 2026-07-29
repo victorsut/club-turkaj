@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { sb } from '../lib/supabaseClient';
 import { makeTier, daysInactive } from '../lib/tierSystem';
 import { CFG_INIT, FUEL_LABELS } from '../constants/config';
-import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey, grantSpecialDayBonus, fetchPurchasePromo, fetchNotifications, markNotificationsRead, createMemberSessionOauth, getMyMember, logoutMember, fetchMembersFull, fetchMyActivity, fetchMyRedemptions, fetchActivityStaff, fetchRaffleParticipants, fetchMemberStations, respondRedemptionConfirm } from '../services';
+import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey, grantSpecialDayBonus, fetchPurchasePromo, fetchNotifications, markNotificationsRead, createMemberSessionOauth, getMyMember, logoutMember, fetchMembersFull, fetchMyActivity, fetchMyRedemptions, fetchActivityStaff, fetchRaffleParticipants, fetchMemberStations, respondRedemptionConfirm, countMySurveysToday, markRaffleWinnerSeen } from '../services';
 import { logoutOperator, logoutAdmin, fetchOperatorsFull } from '../services'; // SEC.B.4: logout delega el subconjunto de localStorage (ct_op/ct_admin + token de rol)
 import { getOperatorToken, getAdminToken, getMemberToken } from '../services/sessionTokens'; // SEC.B.6.4 + SEC.C.1
 import { mapMember } from '../hooks/useSupabaseData'; // SEC.C.1: mapeo del perfil de RPC
@@ -304,17 +304,12 @@ export default function App() {
   // Helper: cargar conteo de encuestas del día para un miembro
   const loadTodaySurveys = useCallback(async (memberId) => {
     if (!sb || !memberId) return;
-    // Guatemala UTC-6: calcular medianoche local en UTC
-    const now = new Date();
-    const localMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const todayUTC = localMidnight.toISOString();
-    console.log('[Surveys] Buscando encuestas desde:', todayUTC, 'para member:', memberId);
-    const { count, error } = await sb.from('surveys')
-      .select('*', { count: 'exact', head: true })
-      .eq('member_id', memberId)
-      .gte('created_at', todayUTC);
-    if (error) {
-      console.error('[Surveys] Error cargando conteo:', error);
+    // SEC.C.4: surveys quedó cerrada (el INSERT abierto permitía
+    // bloquear el límite diario de un miembro) — el conteo llega por
+    // RPC con su sesión, resuelto en zona Guatemala server-side.
+    const count = await countMySurveysToday();
+    if (count == null) {
+      console.warn('[Surveys] conteo no disponible (sesión legada o error)');
     } else {
       setMySurveyCount(count || 0);
       console.log('[Surveys] Encuestas hoy:', count);
@@ -2212,12 +2207,10 @@ export default function App() {
             // como guarda instantánea. Reflejar en raffleCal local para
             // que el efecto no lo re-encuentre antes del próximo fetch.
             try { localStorage.setItem(`pp_rafwin_${raffleWin.dbId}`, '1'); } catch { /* noop */ }
-            if (sb) {
-              sb.from('raffle_calendar')
-                .update({ winner_seen_at: new Date().toISOString() })
-                .eq('id', raffleWin.dbId)
-                .then(({ error }) => { if (error) console.error('[Rifa] winner_seen_at:', error.message); });
-            }
+            // SEC.C.4: raffle_calendar perdió la escritura abierta (el
+            // premio y hasta el winner_id eran editables) — el RPC solo
+            // deja al GANADOR marcar su propia felicitación.
+            if (sb) markRaffleWinnerSeen(raffleWin.dbId);
             setRaffleCal(p => p.map(r => r?.dbId === raffleWin.dbId
               ? { ...r, winnerSeenAt: new Date().toISOString() } : r));
             setRaffleWin(null);
