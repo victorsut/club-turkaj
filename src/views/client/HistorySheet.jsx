@@ -4,7 +4,7 @@
 // "Hoy" solo aparece si hay movimientos hoy; "Mes" y "Año" abren un
 // selector solo con los meses/años que tienen movimientos.
 // Entra desde su tile (container transform D35) y se guarda al cerrar.
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { sMono, bento, BRAND_ORANGE, clientMainBg } from '../../constants/styles';
 import { ArrowLeft, Gift, Clock, Fuel, Ticket, Cake, Car, Clipboard, StarLine } from '../../components/ui/Icons';
 import RewardIcon, { rewardIconFor } from '../../components/ui/RewardIcon';
@@ -50,7 +50,7 @@ const fmtDay = (iso) => iso && iso.length === 10
 // por nivel — homeColors); sin él cae a los tokens teal/orange de ORO.
 // `accentInk` = tinta sobre el acento (BLACK usa superficies claras u
 // oro con tinta oscura — referencia nivel black).
-export default function HistorySheet({ type, origin, tint, accent, accentInk, onClose, acts, redeemed, tierName, initialPending = false, dark = tierName === 'BLACK', qrOverlayOpen = false }) {
+export default function HistorySheet({ type, origin, tint, accent, accentInk, onClose, acts, redeemed, tierName, initialPending = false, dark = tierName === 'BLACK', qrOverlayOpen = false, rewardQrCloseSignal = 0 }) {
   const isCompras = type === 'compras';
   const todayGT = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Guatemala' });
 
@@ -92,6 +92,16 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
   useEffect(() => {
     if (qrOverlayOpen) { setQrItem(null); setQrClosing(false); }
   }, [qrOverlayOpen]);
+  // Pedido del dueño (29-jul): al CONFIRMAR la entrega en el modal que
+  // envía el operador, el QR del premio (si quedó abierto tras el
+  // escaneo) se cierra solo. La señal es un contador en ctx — el ref
+  // evita cerrar en el montaje.
+  const qrSignalRef = useRef(rewardQrCloseSignal);
+  useEffect(() => {
+    if (rewardQrCloseSignal === qrSignalRef.current) return;
+    qrSignalRef.current = rewardQrCloseSignal;
+    setQrItem(null); setQrClosing(false);
+  }, [rewardQrCloseSignal]);
 
   // D35: al cerrar, la ventana "se guarda" en el cuadro de origen.
   const close = () => {

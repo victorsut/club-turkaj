@@ -31,7 +31,7 @@ export default function ClientHome(ctx) {
     pendingOpRating, setPendingOpRating, sbConnected,
     activityLog, custs, redeemedList, logout,
     rafData, curMonth, setCScr, setNavOrigin, dark,
-    myNotifs, markNotifsRead } = ctx;
+    myNotifs, markNotifsRead, rewardQrCloseSignal } = ctx;
 
   // Campana de notificaciones (28-jul): badge con las sin leer; abre
   // el inbox (NotificationsSheet) con container transform desde el ícono.
@@ -573,6 +573,7 @@ export default function ClientHome(ctx) {
           tierName={cTier.name}
           dark={dark}
           qrOverlayOpen={showQR}
+          rewardQrCloseSignal={rewardQrCloseSignal}
         />
       )}
       {/* Stations modal */}

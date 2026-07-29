@@ -821,6 +821,29 @@ export default function App() {
     });
   }, [me?.id, authScreen]);
 
+  // Canjes propios del miembro (con código TK para el QR) — se usa al
+  // loguearse y al confirmar una entrega (el pendiente pasa a RECOGIDO
+  // sin tener que reabrir la app).
+  const reloadMyRedemptions = useCallback(() => {
+    fetchMyRedemptions().then(rows => {
+      if (!rows.length) return;
+      setRedeemedList(rows.map(rd => ({
+        id: rd.id,
+        memberId: rd.member_id,
+        reward: { name: rd.reward_name || 'Premio', icon: rd.reward_icon || '🎁', cat: rd.reward_category || '' },
+        cost: rd.points_spent,
+        date: utcToLocal(rd.created_at) || '',
+        code: rd.redemption_code,
+        collected: rd.collected || false,
+      })));
+    });
+  }, []);
+
+  // Señal para cerrar el QR del premio en HistorySheet al confirmar la
+  // entrega (pedido del dueño 29-jul) — el sheet vive dentro del
+  // historial, así que viaja por ctx como contador.
+  const [rewardQrCloseSignal, setRewardQrCloseSignal] = useState(0);
+
   // ===== HISTORIAL Y CANJES PROPIOS AL LOGUEARSE (28-jul / SEC.C.2) =====
   // El libro mayor COMPLETO del miembro (limit 1000 — el 'registro' con
   // el bonus de alta debe seguir visible; reporte: Fernando Morales) y
@@ -844,19 +867,8 @@ export default function App() {
         })),
       }));
     });
-    fetchMyRedemptions().then(rows => {
-      if (!rows.length) return;
-      setRedeemedList(rows.map(rd => ({
-        id: rd.id,
-        memberId: rd.member_id,
-        reward: { name: rd.reward_name || 'Premio', icon: rd.reward_icon || '🎁', cat: rd.reward_category || '' },
-        cost: rd.points_spent,
-        date: utcToLocal(rd.created_at) || '',
-        code: rd.redemption_code,
-        collected: rd.collected || false,
-      })));
-    });
-  }, [me?.id, authScreen]);
+    reloadMyRedemptions();
+  }, [me?.id, authScreen, reloadMyRedemptions]);
 
   // ===== REALTIME PARA ADMIN/OPERADOR: puntos en vivo en custs (28-jul) =====
   // El canal member-updates solo cubre al miembro logueado (vista
@@ -1671,6 +1683,7 @@ export default function App() {
     showSurveys, setShowSurveys,
     sortDir, setSortDir, memSort, setMemSort,
     stationFilter, setStationFilter, stationMode, setStationMode, memberStations,
+    rewardQrCloseSignal,
     // Auth
     authScreen, setAuthScreen, authOp, setAuthOp, loggedOp, setLoggedOp, opScanMode, setOpScanMode, opRedeemScan, setOpRedeemScan, stations, setStations, authAdmin, setAuthAdmin, loggedAdmin, setLoggedAdmin,
     opRafClient, setOpRafClient, opRafScan, setOpRafScan, opRafQty, setOpRafQty, opSearch, setOpSearch,
@@ -1893,8 +1906,15 @@ export default function App() {
               <button onClick={async () => {
                 const res = await respondRedemptionConfirm(pendingRedeemConfirm.redemptionId, true);
                 setPendingRedeemConfirm(null);
-                if (res.error) fire(res.error, 'warn');
-                else fire('¡Canje confirmado!', 'success');
+                if (res.error) { fire(res.error, 'warn'); return; }
+                fire('¡Canje confirmado!', 'success');
+                // Pedido del dueño (29-jul): si el QR del premio quedó
+                // abierto tras el escaneo, cerrarlo al confirmar.
+                setRewardQrCloseSignal(s => s + 1);
+                // La entrega se concreta en el POS un instante después
+                // (poll de 2s + RPC): recargar los canjes para que el
+                // pendiente pase a RECOGIDO sin reabrir la app.
+                setTimeout(reloadMyRedemptions, 6000);
               }} style={{
                 flex: 2, padding: 16, borderRadius: 14, border: 'none',
                 background: BRAND_ORANGE, color: '#fff',
