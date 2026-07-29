@@ -9,7 +9,7 @@ import { Back } from '../../components/ui/Icons';
 import { buildRedemptionReceipt } from '../../lib/receiptModel';
 import { printReceipt } from '../../lib/receiptPrinter';
 import { logPrint } from '../../services/rpcServices';
-import { fetchOperatorRedemptions, fetchPendingRedemptionsStaff, fetchRedemptionByCode, fetchRedemptionStatus } from '../../services/secureReads';
+import { fetchOperatorRedemptions, fetchPendingRedemptionsStaff, fetchRedemptionByCode, fetchRedemptionStatus, setRedemptionConfirm, deliverRedemption, resolveCardStaff } from '../../services/secureReads';
 
 function utcToLocal(isoString) {
   if (!isoString) return '';
@@ -156,11 +156,11 @@ export default function OpRedeem(ctx) {
     if (found) { fire('OK ' + found.name); loadPending(found); return; }
     // SEC.C.2b: fallback por ID — si custs quedó con cardId stale (el
     // uuid de las columnas abiertas del boot), la tarjeta se resuelve
-    // contra physical_cards y el miembro se busca por su id.
+    // server-side (SEC.C.3: physical_cards ya no se lee directo) y el
+    // miembro se busca por su id.
     if (sb && sbConnected) {
-      const { data } = await sb.from('physical_cards')
-        .select('assigned_to').eq('card_code', raw.toUpperCase()).maybeSingle();
-      const byId = data?.assigned_to ? custs.find(c => c.id === data.assigned_to) : null;
+      const { data } = await resolveCardStaff(raw.toUpperCase());
+      const byId = data?.id ? custs.find(c => c.id === data.id) : null;
       if (byId) { fire('OK ' + byId.name); loadPending(byId); return; }
     }
     fire('Miembro no encontrado para: ' + raw);
@@ -192,9 +192,9 @@ export default function OpRedeem(ctx) {
     // Cliente del flujo activo: la lista (client) o el escaneo directo
     // del premio (confirmClient).
     const clName = (client || confirmClient)?.name;
-    const { error } = await sb.from('redemptions')
-      .update({ confirm_status: 'pending' }).eq('id', item.id);
-    if (error) { fire('Error: ' + error.message); return; }
+    // SEC.C.3: el UPDATE directo quedó revocado — RPC con sesión.
+    const res = await setRedemptionConfirm(item.id, 'pending');
+    if (res.error) { fire('Error: ' + res.error); return; }
     // Aviso directo al dispositivo del cliente por broadcast.
     const bc = sb.channel(`redeem-bc-${item.memberId}`);
     confirmBcRef.current = { ch: bc, redemptionId: item.id };
@@ -220,7 +220,15 @@ export default function OpRedeem(ctx) {
       if (status === 'confirmed') {
         clearInterval(interval);
         closeConfirmBc(false); // el cliente ya confirmó — su modal se cerró solo
-        await sb.from('redemptions').update({ collected: true, confirm_status: 'none', operator_id: loggedOp?.id || null, collected_at: new Date().toISOString() }).eq('id', item.id);
+        // SEC.C.3: entrega ATÓMICA server-side (exige confirmed, marca
+        // collected/operator_id y registra el 'entrega' en activity_log).
+        const dres = await deliverRedemption(item.id);
+        if (dres.error) {
+          setWaitingConfirm(null);
+          setConfirmClient(null);
+          fire('Error al entregar: ' + dres.error);
+          return;
+        }
         setPending(p => p.filter(x => x.id !== item.id));
         setRedeemedList(p => p.map(x => x.id === item.id ? { ...x, collected: true } : x));
         setWaitingConfirm(null);
@@ -241,7 +249,7 @@ export default function OpRedeem(ctx) {
       } else if (status === 'cancelled') {
         clearInterval(interval);
         closeConfirmBc(false); // canceló el cliente — su modal ya no está
-        await sb.from('redemptions').update({ confirm_status: 'none' }).eq('id', item.id);
+        await setRedemptionConfirm(item.id, 'none');
         setWaitingConfirm(null);
         setConfirmClient(null);
         setConfirmResult('cancelled');
@@ -250,7 +258,7 @@ export default function OpRedeem(ctx) {
       } else if (attempts >= 30) {
         clearInterval(interval);
         closeConfirmBc(true); // timeout: cerrar también el modal del cliente
-        await sb.from('redemptions').update({ confirm_status: 'none' }).eq('id', item.id);
+        await setRedemptionConfirm(item.id, 'none');
         setWaitingConfirm(null);
         setConfirmClient(null);
         fire('Tiempo de espera agotado');
@@ -332,7 +340,7 @@ export default function OpRedeem(ctx) {
               {[0,1,2].map(i => <div key={i} style={{ width: 12, height: 12, borderRadius: '50%', background: '#FBBC04', animation: 'bounce .9s ' + (i * 0.2) + 's infinite' }} />)}
             </div>
             <div style={{ fontSize: 12, color: '#BDBDBD', marginBottom: 20 }}>Premio: {waitingConfirm.reward.name} | Codigo: {waitingConfirm.code}</div>
-            <button onClick={async () => { closeConfirmBc(true); await sb.from('redemptions').update({ confirm_status: 'none' }).eq('id', waitingConfirm.id); setWaitingConfirm(null); setConfirmClient(null); fire('Solicitud cancelada'); }} style={{ padding: '10px 24px', borderRadius: 12, border: '1px solid #eee', background: 'none', color: '#9E9E9E', fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+            <button onClick={async () => { closeConfirmBc(true); await setRedemptionConfirm(waitingConfirm.id, 'none'); setWaitingConfirm(null); setConfirmClient(null); fire('Solicitud cancelada'); }} style={{ padding: '10px 24px', borderRadius: 12, border: '1px solid #eee', background: 'none', color: '#9E9E9E', fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
               Cancelar solicitud
             </button>
           </div>

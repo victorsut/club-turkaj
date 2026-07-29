@@ -216,10 +216,11 @@ export async function fetchRaffleCalendar() {
 // ──────────────────────────────────────────────
 // ACTIVITY LOG
 // ──────────────────────────────────────────────
-// ⚠️ SEC.C.2: el SELECT abierto de activity_log quedó revocado — esta
-// función solo la referencia el hook muerto useSupabaseData y hoy
-// devolvería []. Lecturas reales: secureReads.fetchMyActivity /
-// fetchActivityStaff (RPC list_activity con sesión).
+// ⚠️ SEC.C.2/C.3: el SELECT y el INSERT abiertos de activity_log
+// quedaron revocados — fetchActivityLog y logActivity solo los
+// referencia código muerto y hoy fallarían. Lecturas reales:
+// secureReads.fetchMyActivity / fetchActivityStaff; escrituras: solo
+// RPCs server-side (deliver_redemption, register_purchase, etc.).
 export async function fetchActivityLog(limit = 200) {
   const { data, error } = await sb
     .from('activity_log')
@@ -246,6 +247,10 @@ export async function logActivity({ memberId, type, description, pointsChange, a
 // ──────────────────────────────────────────────
 // TARJETAS FÍSICAS (physical_cards)
 // ──────────────────────────────────────────────
+// ⚠️ SEC.C.3: physical_cards quedó CERRADA a la API abierta (lectura y
+// escritura). Estas funciones no tienen consumidores y hoy fallarían —
+// el alta/cambio de tier es server-side (register_member /
+// register_purchase) y el escaneo usa secureReads.resolveCardStaff.
 export async function fetchCards() {
   const { data, error } = await sb.from('physical_cards').select('*');
   if (error) console.error('[Data:cards]', error.message);
@@ -358,6 +363,9 @@ export async function fetchRedemptions(memberId) {
 // physical_cards.assigned_to → members.id permite hacer resource
 // embedding en una sola query.
 //
+// ⚠️ SEC.C.3: SIN CONSUMIDORES — OpClients migró a
+// secureReads.resolveCardStaff (RPC resolve_card con sesión) porque
+// physical_cards quedó cerrada; esta función hoy fallaría.
 // Casos posibles (return shape):
 //   1. Sin conexión           → { data: null, error: { message } }
 //   2. Código vacío           → { data: null, error: { message } }

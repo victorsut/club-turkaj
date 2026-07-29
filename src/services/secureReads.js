@@ -102,6 +102,71 @@ export async function fetchRedemptionStatus(redemptionId) {
   return data?.confirm_status ?? null;
 }
 
+// ── flujo de confirmación de canje (SEC.C.3) ───
+// El UPDATE directo de redemptions quedó revocado: el operador pide o
+// retira la confirmación y entrega por RPC; el cliente responde con SU
+// sesión. Devuelven { ok } | { error } (string legible).
+
+function rpcResult(data, error, tag) {
+  if (error) { console.warn(`[SecureReads:${tag}]`, error.message); return { error: error.message }; }
+  return data || { error: 'Sin respuesta' };
+}
+
+// Operador/admin: p_status 'pending' (solicitar) o 'none' (retirar).
+export async function setRedemptionConfirm(redemptionId, status) {
+  const s = staffSession();
+  if (!s) return { error: 'Sin sesión' };
+  const { data, error } = await sb.rpc('operator_set_redemption_confirm', {
+    p_session_token: s.token, p_role: s.role,
+    p_redemption_id: redemptionId, p_status: status,
+  });
+  return rpcResult(data, error, 'setConfirm');
+}
+
+// Miembro: confirmar (true) o cancelar (false) la solicitud activa.
+export async function respondRedemptionConfirm(redemptionId, accept) {
+  const tok = getMemberToken();
+  if (!tok?.token) return { error: 'Sesión expirada — volvé a iniciar sesión' };
+  const { data, error } = await sb.rpc('respond_redemption_confirm', {
+    p_session_token: tok.token, p_redemption_id: redemptionId, p_accept: accept,
+  });
+  return rpcResult(data, error, 'respondConfirm');
+}
+
+// Operador/admin: entrega atómica (exige confirmed; registra 'entrega').
+export async function deliverRedemption(redemptionId) {
+  const s = staffSession();
+  if (!s) return { error: 'Sin sesión' };
+  const { data, error } = await sb.rpc('deliver_redemption', {
+    p_session_token: s.token, p_role: s.role, p_redemption_id: redemptionId,
+  });
+  return rpcResult(data, error, 'deliver');
+}
+
+// ── physical_cards (SEC.C.3) ───────────────────
+
+// Tarjeta por código para el escaneo del operador. Devuelve el shape
+// que ya esperaba OpClients: { data, error, reason }.
+export async function resolveCardStaff(code) {
+  const s = staffSession();
+  if (!s) return { data: null, error: 'Sin sesión' };
+  const { data, error } = await sb.rpc('resolve_card', {
+    p_session_token: s.token, p_role: s.role, p_code: code,
+  });
+  if (error) { console.warn('[SecureReads:resolveCard]', error.message); return { data: null, error: error.message }; }
+  if (!data) return { data: null, error: null, reason: 'card_not_found' };
+  if (!data.assigned_to) {
+    return {
+      data: null, error: null, reason: 'card_not_assigned',
+      cardInfo: { card_code: data.card_code, card_status: data.status, card_tier: data.tier },
+    };
+  }
+  return {
+    data: { id: data.assigned_to, name: data.member_name || 'Miembro' },
+    error: null,
+  };
+}
+
 // ── purchases ──────────────────────────────────
 
 // Compras registradas por un operador (él mismo, o admin).

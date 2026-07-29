@@ -5,7 +5,9 @@ import { FUEL_LABELS } from '../../constants/config';
 import Badge from '../../components/ui/Badge';
 import QRScanner from '../../components/ui/QRScanner';
 import { parseCardCode } from '../../lib/cardCodes';
-import { fetchMemberByCardCode } from '../../services/dataService';
+// SEC.C.3: physical_cards quedó cerrada — la tarjeta se resuelve por
+// RPC con la sesión del operador.
+import { resolveCardStaff } from '../../services/secureReads';
 
 export default function OpClients(ctx) {
   const { custs, gT, cfg, fire, opScanMode, setOpScanMode, setPurchaseConfirm, sbConnected } = ctx;
@@ -57,7 +59,7 @@ export default function OpClients(ctx) {
       return;
     }
 
-    const { data, error, reason } = await fetchMemberByCardCode(parsed.normalized);
+    const { data, error, reason } = await resolveCardStaff(parsed.normalized);
 
     if (error) {
       fire('Sin conexión, intentá de nuevo');

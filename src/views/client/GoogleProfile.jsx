@@ -12,7 +12,6 @@ import { WizardHeader, PtsCard, Field, DateField } from './registerUi';
 import AddressPicker, { EMPTY_ADDRESS } from '../../components/ui/AddressPicker';
 import { isAddressComplete, packAddress } from '../../constants/geoGt';
 import { phoneMask, dpiMask, plateMask, capWords } from '../../lib/inputMasks';
-import { getNextCardCode } from '../../services/dataService';
 import { setMemberToken } from '../../services/sessionTokens';
 import { mapMember } from '../../hooks/useSupabaseData';
 
@@ -81,9 +80,10 @@ export default function GoogleProfile(ctx) {
     setSaving(true);
     try {
       const firstPlate = vehicles[0]?.plate || '';
-      // Obtener correlativo con fallback si falla Supabase
-      let fallbackCard = 'CTOD-00001';
-      try { fallbackCard = await getNextCardCode('ORO'); } catch(e) { console.warn('[Reg] getNextCardCode falló, usando fallback'); }
+      // SEC.C.3: physical_cards quedó cerrada al cliente — este código
+      // es solo un placeholder VISUAL del estado optimista; la tarjeta
+      // real la asigna register_member y llega en reg.member.
+      const fallbackCard = 'CTOD-00001';
 
       // Fecha COMPLETA YYYY-MM-DD (antes se recortaba a MM-DD; desde
       // jul-2026 se conserva el año — el RPC del bonus acepta ambos)

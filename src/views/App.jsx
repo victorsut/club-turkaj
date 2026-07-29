@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { sb } from '../lib/supabaseClient';
 import { makeTier, daysInactive } from '../lib/tierSystem';
 import { CFG_INIT, FUEL_LABELS } from '../constants/config';
-import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey, grantSpecialDayBonus, fetchPurchasePromo, fetchNotifications, markNotificationsRead, createMemberSessionOauth, getMyMember, logoutMember, fetchMembersFull, fetchMyActivity, fetchMyRedemptions, fetchActivityStaff, fetchRaffleParticipants, fetchMemberStations } from '../services';
+import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey, grantSpecialDayBonus, fetchPurchasePromo, fetchNotifications, markNotificationsRead, createMemberSessionOauth, getMyMember, logoutMember, fetchMembersFull, fetchMyActivity, fetchMyRedemptions, fetchActivityStaff, fetchRaffleParticipants, fetchMemberStations, respondRedemptionConfirm } from '../services';
 import { logoutOperator, logoutAdmin } from '../services'; // SEC.B.4: logout delega el subconjunto de localStorage (ct_op/ct_admin + token de rol)
 import { getOperatorToken, getAdminToken, getMemberToken } from '../services/sessionTokens'; // SEC.B.6.4 + SEC.C.1
 import { mapMember } from '../hooks/useSupabaseData'; // SEC.C.1: mapeo del perfil de RPC
@@ -286,20 +286,18 @@ export default function App() {
 
   // ===== SUPABASE WRITE HELPERS =====
   const logActivity = useCallback((memberId, type, desc, ptsChange, amount) => {
-    // Actualizar estado local SIEMPRE (independiente de Supabase)
+    // SEC.C.3: el INSERT directo de activity_log quedó revocado — este
+    // helper solo actualiza el estado LOCAL (optimismo de UI). El
+    // rastro persistente lo escriben los RPCs server-side (la 'entrega'
+    // la registra deliver_redemption; compras/canjes/rifa/encuestas ya
+    // lo hacían desde sus propios RPCs).
     setActivityLog(prev => {
       const n = { ...prev };
       if (!n[memberId]) n[memberId] = [];
       n[memberId] = [{ type, desc, pts: ptsChange, amount, date: localDate(), station: '' }, ...n[memberId]];
       return n;
     });
-    // Guardar en Supabase solo si está conectado
-    if (!sb || !sbConnected) return;
-    sb.from('activity_log').insert({
-      member_id: memberId, activity_type: type,
-      description: desc, points_change: ptsChange || null, amount: amount || null,
-    }).then(r => { if (r.error) console.error('[Activity]', r.error); });
-  }, [sbConnected]);
+  }, []);
 
   // Helper: cargar conteo de encuestas del día para un miembro
   const loadTodaySurveys = useCallback(async (memberId) => {
@@ -1881,9 +1879,11 @@ export default function App() {
             {/* Botones — acción sólida naranja, cancelar flat */}
             <div style={{ display: 'flex', gap: 12 }}>
               <button onClick={async () => {
-                await sb.from('redemptions').update({ confirm_status: 'cancelled' }).eq('id', pendingRedeemConfirm.redemptionId);
+                // SEC.C.3: la respuesta viaja por RPC con la sesión del miembro.
+                const res = await respondRedemptionConfirm(pendingRedeemConfirm.redemptionId, false);
                 setPendingRedeemConfirm(null);
-                fire('Canje cancelado', 'info');
+                if (res.error) fire(res.error, 'warn');
+                else fire('Canje cancelado', 'info');
               }} style={{
                 flex: 1, padding: 16, borderRadius: 14, border: 'none',
                 background: dark ? 'rgba(255,255,255,.08)' : '#F5F5F7',
@@ -1891,9 +1891,10 @@ export default function App() {
                 fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700, cursor: 'pointer',
               }}>Cancelar</button>
               <button onClick={async () => {
-                await sb.from('redemptions').update({ confirm_status: 'confirmed' }).eq('id', pendingRedeemConfirm.redemptionId);
+                const res = await respondRedemptionConfirm(pendingRedeemConfirm.redemptionId, true);
                 setPendingRedeemConfirm(null);
-                fire('¡Canje confirmado!', 'success');
+                if (res.error) fire(res.error, 'warn');
+                else fire('¡Canje confirmado!', 'success');
               }} style={{
                 flex: 2, padding: 16, borderRadius: 14, border: 'none',
                 background: BRAND_ORANGE, color: '#fff',
