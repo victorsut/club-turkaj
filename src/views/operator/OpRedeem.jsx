@@ -139,7 +139,7 @@ export default function OpRedeem(ctx) {
     });
   }, [sbConnected, custs, fire]);
 
-  const handleScan = useCallback((code) => {
+  const handleScan = useCallback(async (code) => {
     setScanning(false);
     const raw = String(code || '').trim();
     // QR del premio (canje pendiente)
@@ -153,9 +153,18 @@ export default function OpRedeem(ctx) {
       const cm = c.cardId.match(/^CT[OPB]D-(\d+)$/);
       return cm && cm[1] === correlative;
     });
-    if (found) { fire('OK ' + found.name); loadPending(found); }
-    else fire('Miembro no encontrado para: ' + raw);
-  }, [custs, fire, loadPending, loadFromRedemption]);
+    if (found) { fire('OK ' + found.name); loadPending(found); return; }
+    // SEC.C.2b: fallback por ID — si custs quedó con cardId stale (el
+    // uuid de las columnas abiertas del boot), la tarjeta se resuelve
+    // contra physical_cards y el miembro se busca por su id.
+    if (sb && sbConnected) {
+      const { data } = await sb.from('physical_cards')
+        .select('assigned_to').eq('card_code', raw.toUpperCase()).maybeSingle();
+      const byId = data?.assigned_to ? custs.find(c => c.id === data.assigned_to) : null;
+      if (byId) { fire('OK ' + byId.name); loadPending(byId); return; }
+    }
+    fire('Miembro no encontrado para: ' + raw);
+  }, [custs, fire, loadPending, loadFromRedemption, sbConnected]);
 
   // ── Canal BROADCAST del aviso de confirmación (SEC.C.2b) ──
   // La entrega del UPDATE por postgres_changes con las policies de

@@ -75,6 +75,15 @@ export default function OpClients(ctx) {
     }
 
     if (data) {
+      // SEC.C.2b: si el miembro SÍ está en custs (el match local falló
+      // solo porque cardId quedó stale — uuid de las columnas abiertas
+      // del boot), seleccionarlo por ID resuelve el flujo completo.
+      const inCusts = custs.find(c => c.id === data.id);
+      if (inCusts) {
+        setSel(data.id);
+        fire(`✓ ${inCusts.name}`);
+        return;
+      }
       // Miembro encontrado en Supabase pero NO está en cache local
       // todavía (creado en otro dispositivo, realtime aún sin propagar).
       // No seteamos sel porque selClient = custs.find(c => c.id === sel)

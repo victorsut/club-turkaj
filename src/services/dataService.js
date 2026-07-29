@@ -374,6 +374,10 @@ export async function fetchMemberByCardCode(code) {
     return { data: null, error: { message: 'Código vacío' } };
   }
 
+  // SEC.C.2b: el embed pedía members(*) — con los grants de columna de
+  // SEC.C.1 eso da "permission denied for table members" y el escaneo
+  // moría con "Sin conexión". Solo columnas ABIERTAS (la ficha completa
+  // del miembro viaja por RPCs con sesión).
   const { data, error } = await sb
     .from('physical_cards')
     .select(`
@@ -382,7 +386,7 @@ export async function fetchMemberByCardCode(code) {
       tier,
       status,
       assigned_to,
-      members:assigned_to (*)
+      members:assigned_to (id, name, points, gallons, spent, visits, tickets, redeemed_count, last_buy, last_station, card_id, created_at, updated_at)
     `)
     .eq('card_code', normalized)
     .maybeSingle();

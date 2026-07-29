@@ -560,7 +560,15 @@ export default function App() {
         }
 
         if (memRes.data?.length > 0) {
-          setCusts(memRes.data.map(mapMember));
+          // SEC.C.2b (bug reportado por el dueño): con operador/admin ya
+          // logueado, las fichas COMPLETAS (custsFull) pueden llegar
+          // ANTES de que esta carga del boot resuelva — y este set las
+          // PISABA con las columnas abiertas, cuyo cardId es el uuid de
+          // members.card_id (no el código CTOD-XXXXX): el escaneo de QR
+          // dejaba de encontrar miembros hasta re-loguearse.
+          const mapped = memRes.data.map(mapMember);
+          bootCustsRef.current = mapped;
+          setCusts(prev => (custsFullRef.current ? prev : mapped));
         }
 
         // Load operators
@@ -691,6 +699,9 @@ export default function App() {
   // o admin, su sesión autoriza list_members_full y custs se reemplaza
   // por los perfiles completos (búsqueda por teléfono/DPI, ficha, etc.).
   const custsFullRef = useRef(false);
+  // SEC.C.2b: última carga de members del boot (columnas abiertas) —
+  // respaldo si el fetch de fichas completas falla tras ganarle al boot.
+  const bootCustsRef = useRef(null);
   useEffect(() => {
     if (authOp !== 'logged' && authAdmin !== 'logged') { custsFullRef.current = false; return; }
     if (custsFullRef.current || !sb) return;
@@ -720,6 +731,9 @@ export default function App() {
         console.log('[Puntos Plus] ✅ Fichas completas cargadas:', rows.length);
       } else {
         custsFullRef.current = false; // token vencido u error: reintentar
+        // SEC.C.2b: si el boot le cedió el paso a este fetch y falló,
+        // restaurar al menos las columnas abiertas.
+        if (bootCustsRef.current) setCusts(p => (p.length ? p : bootCustsRef.current));
       }
     });
   }, [authOp, authAdmin]);
