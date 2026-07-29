@@ -1,0 +1,1023 @@
+<title>API Puntos Plus ⇄ PROPER</title>
+
+<style>
+  :root {
+    --brand: #FA5408;
+    --brand-soft: rgba(250, 84, 8, .10);
+    --brand-line: rgba(250, 84, 8, .28);
+    --ink: #14110F;
+    --ink-2: #423B36;
+    --muted: #6E6863;
+    --paper: #FBFAF9;
+    --surface: #FFFFFF;
+    --surface-2: #F4F1EE;
+    --line: #E5DFD9;
+    --code-bg: #17140F;
+    --code-ink: #EDE7DF;
+    --ok: #1E7A4C;
+    --warn: #A96A05;
+    --stop: #BE3A26;
+    --ok-bg: rgba(30, 122, 76, .09);
+    --warn-bg: rgba(169, 106, 5, .10);
+    --stop-bg: rgba(190, 58, 38, .09);
+
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --brand: #FF6A22;
+      --brand-soft: rgba(255, 106, 34, .13);
+      --brand-line: rgba(255, 106, 34, .34);
+      --ink: #F3EFEB;
+      --ink-2: #C9C1BA;
+      --muted: #948B83;
+      --paper: #121110;
+      --surface: #1A1817;
+      --surface-2: #211E1C;
+      --line: #2F2B28;
+      --code-bg: #0C0B0A;
+      --code-ink: #E8E1D8;
+      --ok: #5FCB92;
+      --warn: #E0A33C;
+      --stop: #F07963;
+      --ok-bg: rgba(95, 203, 146, .10);
+      --warn-bg: rgba(224, 163, 60, .10);
+      --stop-bg: rgba(240, 121, 99, .10);
+    }
+  }
+  :root[data-theme="dark"] {
+    --brand: #FF6A22;
+    --brand-soft: rgba(255, 106, 34, .13);
+    --brand-line: rgba(255, 106, 34, .34);
+    --ink: #F3EFEB;
+    --ink-2: #C9C1BA;
+    --muted: #948B83;
+    --paper: #121110;
+    --surface: #1A1817;
+    --surface-2: #211E1C;
+    --line: #2F2B28;
+    --code-bg: #0C0B0A;
+    --code-ink: #E8E1D8;
+    --ok: #5FCB92;
+    --warn: #E0A33C;
+    --stop: #F07963;
+    --ok-bg: rgba(95, 203, 146, .10);
+    --warn-bg: rgba(224, 163, 60, .10);
+    --stop-bg: rgba(240, 121, 99, .10);
+  }
+  :root[data-theme="light"] {
+    --brand: #FA5408;
+    --brand-soft: rgba(250, 84, 8, .10);
+    --brand-line: rgba(250, 84, 8, .28);
+    --ink: #14110F;
+    --ink-2: #423B36;
+    --muted: #6E6863;
+    --paper: #FBFAF9;
+    --surface: #FFFFFF;
+    --surface-2: #F4F1EE;
+    --line: #E5DFD9;
+    --code-bg: #17140F;
+    --code-ink: #EDE7DF;
+    --ok: #1E7A4C;
+    --warn: #A96A05;
+    --stop: #BE3A26;
+    --ok-bg: rgba(30, 122, 76, .09);
+    --warn-bg: rgba(169, 106, 5, .10);
+    --stop-bg: rgba(190, 58, 38, .09);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .shell {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 24px 96px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0 56px;
+  }
+  @media (min-width: 1040px) {
+    .shell { grid-template-columns: 216px minmax(0, 1fr); }
+  }
+
+  /* ── Cabecera ── */
+  .masthead {
+    grid-column: 1 / -1;
+    padding: 56px 0 36px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 44px;
+  }
+  .lockup {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 26px;
+  }
+  .mark {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: var(--brand);
+    color: #fff;
+    display: grid; place-items: center;
+    font-weight: 800; font-size: 19px;
+    letter-spacing: -.04em;
+    flex-shrink: 0;
+  }
+  .lockup-name { font-weight: 750; font-size: 16px; letter-spacing: -.01em; }
+  .lockup-x { color: var(--muted); font-size: 18px; }
+  .lockup-partner {
+    font-family: var(--mono);
+    font-size: 14px; font-weight: 600;
+    letter-spacing: .06em;
+    padding: 5px 11px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    color: var(--ink-2);
+  }
+  h1 {
+    font-size: clamp(30px, 5vw, 44px);
+    line-height: 1.1;
+    letter-spacing: -.028em;
+    font-weight: 800;
+    margin: 0 0 16px;
+    text-wrap: balance;
+  }
+  .standfirst {
+    font-size: 18px;
+    color: var(--ink-2);
+    max-width: 62ch;
+    margin: 0 0 28px;
+    text-wrap: pretty;
+  }
+  .meta-row {
+    display: flex; flex-wrap: wrap;
+    gap: 8px 28px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+  .meta-row b { color: var(--ink-2); font-weight: 600; }
+
+  /* ── Índice ── */
+  nav.toc { display: none; }
+  @media (min-width: 1040px) {
+    nav.toc {
+      display: block;
+      position: sticky;
+      top: 32px;
+      align-self: start;
+      max-height: calc(100vh - 64px);
+      overflow-y: auto;
+      padding-bottom: 24px;
+    }
+    nav.toc .toc-label {
+      font-family: var(--mono);
+      font-size: 10.5px; font-weight: 700;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+    nav.toc a {
+      display: block;
+      padding: 5px 0 5px 12px;
+      border-left: 2px solid var(--line);
+      color: var(--ink-2);
+      text-decoration: none;
+      font-size: 13.5px;
+      line-height: 1.45;
+      transition: color .15s, border-color .15s;
+    }
+    nav.toc a:hover, nav.toc a:focus-visible {
+      color: var(--brand);
+      border-left-color: var(--brand);
+    }
+    nav.toc a .n {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      margin-right: 7px;
+    }
+  }
+
+  main { min-width: 0; max-width: 74ch; }
+
+  section { margin-bottom: 60px; scroll-margin-top: 24px; }
+
+  h2 {
+    font-size: 25px;
+    line-height: 1.22;
+    letter-spacing: -.02em;
+    font-weight: 750;
+    margin: 0 0 6px;
+    text-wrap: balance;
+  }
+  h2 .n {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--brand);
+    display: block;
+    margin-bottom: 7px;
+    letter-spacing: .04em;
+  }
+  h3 {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -.01em;
+    margin: 34px 0 10px;
+  }
+  h3 code, h2 code { font-size: .93em; }
+
+  p { margin: 0 0 15px; max-width: 70ch; text-wrap: pretty; }
+  a { color: var(--brand); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  strong { font-weight: 680; }
+
+  ul, ol { margin: 0 0 15px; padding-left: 22px; max-width: 70ch; }
+  li { margin-bottom: 7px; }
+  li::marker { color: var(--muted); }
+
+  code {
+    font-family: var(--mono);
+    font-size: .875em;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    padding: 1px 5px;
+    border-radius: 5px;
+    white-space: nowrap;
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    border-radius: 11px;
+    padding: 17px 19px;
+    overflow-x: auto;
+    margin: 0 0 18px;
+    font-size: 13px;
+    line-height: 1.6;
+    border: 1px solid var(--line);
+  }
+  pre code {
+    background: none; border: none; padding: 0;
+    font-size: inherit; color: inherit; white-space: pre;
+  }
+  .tok-key { color: #FFB48A; }
+  .tok-str { color: #A7D98C; }
+  .tok-num { color: #8FC7F0; }
+  .tok-cmt { color: #7A6F64; }
+  .tok-cmd { color: #FFD9A0; }
+
+  .table-wrap { overflow-x: auto; margin: 0 0 20px; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 460px;
+    font-size: 14.5px;
+  }
+  th, td {
+    text-align: left;
+    padding: 9px 14px 9px 0;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  th {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom-color: var(--ink-2);
+    white-space: nowrap;
+  }
+  td code { white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  /* ── Bloques destacados ── */
+  .callout {
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin: 0 0 22px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .callout > :last-child { margin-bottom: 0; }
+  .callout-label {
+    font-family: var(--mono);
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    margin-bottom: 9px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .callout-label::before {
+    content: ""; width: 7px; height: 7px; border-radius: 50%;
+    background: currentColor; flex-shrink: 0;
+  }
+  .c-key { background: var(--brand-soft); border-color: var(--brand-line); }
+  .c-key .callout-label { color: var(--brand); }
+  .c-ok { background: var(--ok-bg); border-color: color-mix(in srgb, var(--ok) 32%, transparent); }
+  .c-ok .callout-label { color: var(--ok); }
+  .c-warn { background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn) 32%, transparent); }
+  .c-warn .callout-label { color: var(--warn); }
+  .c-stop { background: var(--stop-bg); border-color: color-mix(in srgb, var(--stop) 32%, transparent); }
+  .c-stop .callout-label { color: var(--stop); }
+
+  /* ── Método + ruta ── */
+  .endpoint {
+    display: flex; align-items: center; gap: 10px;
+    flex-wrap: wrap;
+    font-family: var(--mono);
+    font-size: 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    padding: 10px 14px;
+    margin: 0 0 16px;
+  }
+  .verb {
+    font-weight: 700; font-size: 11.5px;
+    letter-spacing: .08em;
+    padding: 3px 8px;
+    border-radius: 5px;
+    color: #fff;
+  }
+  .verb-get { background: #2F6FB0; }
+  .verb-post { background: var(--ok); }
+  :root[data-theme="dark"] .verb-get,
+  :root[data-theme="dark"] .verb-post { color: #0C0B0A; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .verb-get,
+    :root:not([data-theme="light"]) .verb-post { color: #0C0B0A; }
+  }
+  .endpoint .path { color: var(--ink); word-break: break-all; }
+  .endpoint .tag {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: .05em;
+    text-transform: uppercase;
+  }
+
+  /* ── Flujos ── */
+  .flow {
+    counter-reset: step;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 20px;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .flow li {
+    counter-increment: step;
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    gap: 14px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--line);
+    margin: 0;
+  }
+  .flow li:last-child { border-bottom: none; }
+  .flow li::before {
+    content: counter(step);
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--brand);
+    padding-top: 3px;
+  }
+  .flow .lead { font-weight: 620; }
+  .flow .sub { color: var(--muted); font-size: 14px; display: block; margin-top: 2px; }
+
+  /* ── Checklist ── */
+  .checks { list-style: none; padding: 0; margin: 0 0 20px; }
+  .checks li {
+    display: grid; grid-template-columns: 22px 1fr; gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--line);
+    margin: 0;
+    font-size: 15px;
+  }
+  .checks li::before {
+    content: "";
+    width: 15px; height: 15px;
+    border: 1.5px solid var(--muted);
+    border-radius: 4px;
+    margin-top: 4px;
+  }
+
+  .foot {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--line);
+    padding-top: 26px;
+    margin-top: 20px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .foot strong { color: var(--ink-2); }
+
+  :focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; border-radius: 3px; }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+    html { scroll-behavior: auto; }
+  }
+  html { scroll-behavior: smooth; }
+</style>
+
+<div class="shell">
+
+  <header class="masthead">
+    <div class="lockup">
+      <div class="mark">P</div>
+      <span class="lockup-name">Puntos&nbsp;Plus</span>
+      <span class="lockup-x">⇄</span>
+      <span class="lockup-partner">PROPER</span>
+    </div>
+    <h1>API de integración para acumulación de puntos</h1>
+    <p class="standfirst">
+      Propuesta técnica para que el sistema de facturación de PROPER acredite
+      puntos y consulte premios de Puntos Plus, sin modificar su flujo de venta.
+    </p>
+    <div class="meta-row">
+      <span><b>Versión</b> 1.2</span>
+      <span><b>Fecha</b> 29 de julio de 2026</span>
+      <span><b>Estado</b> propuesta para revisión</span>
+      <span><b>Emite</b> Gasolineras Turkaj, Chichicastenango</span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Índice del documento">
+    <div class="toc-label">Contenido</div>
+    <a href="#s1"><span class="n">1</span>Qué resuelve</a>
+    <a href="#s2"><span class="n">2</span>Datos básicos</a>
+    <a href="#s3"><span class="n">3</span>Identificación</a>
+    <a href="#s4"><span class="n">4</span>Regla de NIT</a>
+    <a href="#s41"><span class="n">4.1</span>Facturas anuladas</a>
+    <a href="#s5"><span class="n">5</span>Endpoints</a>
+    <a href="#s6"><span class="n">6</span>Errores</a>
+    <a href="#s7"><span class="n">7</span>Flujos completos</a>
+    <a href="#s8"><span class="n">8</span>Ambiente de pruebas</a>
+    <a href="#s9"><span class="n">9</span>Seguridad</a>
+    <a href="#s10"><span class="n">10</span>Qué necesitamos</a>
+    <a href="#s11"><span class="n">11</span>Preguntas abiertas</a>
+  </nav>
+
+  <main>
+
+    <section id="s1">
+      <h2><span class="n">01</span>Qué resuelve esta integración</h2>
+      <p>
+        Puntos Plus es el programa de lealtad de las gasolineras Turkaj (I, II y III).
+        Hoy los puntos se acreditan desde una app aparte, en un paso manual posterior
+        al cobro. La integración busca que <strong>todo ocurra dentro del flujo normal
+        de facturación de PROPER</strong>, sin que el colaborador cambie de aplicación.
+      </p>
+      <p>Dos funciones, ambas iniciadas por un escaneo de QR desde el POS:</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Dónde</th><th>Botón sugerido</th><th>Qué hace</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Con la factura ya emitida</td>
+              <td><strong>Acumular Puntos Plus</strong></td>
+              <td>Escanea el QR del cliente y acredita los puntos de esa factura</td>
+            </tr>
+            <tr>
+              <td>En la pantalla de inicio</td>
+              <td><strong>Comprobante de premio</strong></td>
+              <td>Escanea el QR de un premio canjeado y devuelve los datos para imprimirlo</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        <strong>Del lado del cliente no cambia nada.</strong> Sigue usando su app igual
+        que hoy: recibe la notificación de puntos, ve su saldo actualizarse, canjea
+        premios y confirma las entregas desde su teléfono.
+      </p>
+
+      <div class="callout c-key">
+        <div class="callout-label">Principio de diseño</div>
+        <p><strong>No intervenimos en su flujo.</strong> La factura se emite primero;
+        nosotros validamos después. Ningún paso de esta integración condiciona, bloquea
+        o modifica el proceso de facturación de PROPER.</p>
+        <p>Cuando una factura no cumple las condiciones, <strong>no es un error del POS
+        ni del colaborador</strong>: devolvemos un mensaje explicando qué debe ajustar
+        <em>el cliente</em> en su app. El colaborador solo lo lee en pantalla. La venta
+        ya está hecha y no se toca.</p>
+      </div>
+
+      <p>
+        <strong>Puntos Plus expone la API; PROPER la consume.</strong> No necesitamos
+        acceso a la base de datos de PROPER ni ustedes a la nuestra: todo viaja por
+        HTTPS con una llave de API.
+      </p>
+    </section>
+
+    <section id="s2">
+      <h2><span class="n">02</span>Datos básicos</h2>
+      <div class="table-wrap">
+        <table>
+          <tbody>
+            <tr><th style="width: 150px;">URL base</th><td><code>https://puntosplus.vercel.app/api/v1</code></td></tr>
+            <tr><th>Formato</th><td>JSON (UTF-8)</td></tr>
+            <tr><th>Autenticación</th><td><code>Authorization: Bearer &lt;API_KEY&gt;</code></td></tr>
+            <tr><th>Fechas</th><td>ISO 8601 UTC; la lógica de negocio corre en América/Guatemala</td></tr>
+            <tr><th>Moneda</th><td>Quetzales (GTQ)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        La llave se entrega por canal seguro. Es un texto tipo <code>pp_live_a1b2c3…</code>;
+        <strong>se muestra una sola vez</strong> y no puede recuperarse. Si se pierde,
+        generamos otra y revocamos la anterior. La llave identifica al <em>sistema</em>
+        PROPER, no al colaborador: quién atendió se envía en cada compra.
+      </p>
+    </section>
+
+    <section id="s3">
+      <h2><span class="n">03</span>Cómo identificamos a cada actor</h2>
+
+      <h3>3.1 · El cliente — QR de su tarjeta digital</h3>
+      <p>Cada miembro tiene un código correlativo con este formato:</p>
+      <pre><code>CT[O|P|B]D-NNNNN     ejemplos:  CTOD-00042   CTPD-00113   CTBD-00007</code></pre>
+      <p>
+        La letra del medio es su nivel (<strong>O</strong>ro, <strong>P</strong>latino,
+        <strong>B</strong>lack) y <strong>cambia sola</strong> cuando el cliente sube de
+        nivel — el correlativo numérico nunca cambia. El QR de la app contiene
+        exactamente ese texto, sin URL ni prefijos.
+      </p>
+
+      <h3>3.2 · El premio — QR del canje</h3>
+      <p>Cuando un cliente canjea un premio, se genera un código único:</p>
+      <pre><code>TK-XXXXXX            ejemplo:  TK-3F9A2C</code></pre>
+
+      <h3>3.3 · El colaborador — su identificador de PROPER</h3>
+      <p>
+        PROPER mantiene su propia base de personal y <strong>no necesitamos
+        duplicarla</strong>. En cada compra nos envían el identificador interno del
+        colaborador y su nombre; Puntos Plus crea automáticamente un registro espejo la
+        primera vez que aparece y lo reutiliza después. Ese espejo:
+      </p>
+      <ul>
+        <li>permite atribuir cada compra a quien la hizo (reportes y ranking de atención),</li>
+        <li><strong>no puede iniciar sesión</strong> en la app de Puntos Plus,</li>
+        <li>se actualiza solo si el nombre o la estación cambian en PROPER.</li>
+      </ul>
+      <p>No hace falta sincronización previa ni cargar un catálogo a mano.</p>
+
+      <h3>3.4 · La estación — viene con el colaborador</h3>
+      <p>
+        Cada colaborador porta su propio POS e <strong>inicia sesión en PROPER</strong>,
+        que ya le tiene asignada su estación. Por eso <strong>no hay nada que configurar
+        por dispositivo</strong>: manden el código de estación que ya manejan (en
+        <code>operator.station</code>) y nosotros lo mapeamos. Lo resolvemos en este orden:
+      </p>
+      <ol>
+        <li>El <strong>código de estación de PROPER</strong> (ej. <code>"1"</code>,
+          <code>"EST-01"</code>) — nos pasan su lista una vez y la configuramos.</li>
+        <li>El <strong>nombre</strong> (<code>"Turkaj I"</code>, <code>"turkaj 1"</code>
+          — toleramos mayúsculas y espacios).</li>
+        <li>Si no viene, <strong>la última estación conocida de ese colaborador</strong>.</li>
+      </ol>
+      <p>Solo si no podemos resolverla por ninguna vía devolvemos <code>unknown_station</code>.</p>
+    </section>
+
+    <section id="s4">
+      <h2><span class="n">04</span>Regla de NIT</h2>
+      <p>Los puntos se acreditan <strong>solo si la factura corresponde al cliente</strong>:</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Situación del cliente</th><th>Sí acumula</th><th>No acumula</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Tiene NIT registrado</strong></td>
+              <td><code>CF</code> o su propio NIT</td>
+              <td>Cualquier otro NIT</td>
+            </tr>
+            <tr>
+              <td><strong>No tiene NIT registrado</strong></td>
+              <td>Solo <code>CF</code></td>
+              <td>Cualquier NIT</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        <strong>Normalización:</strong> comparamos sin guiones, espacios ni distinción de
+        mayúsculas. Se aceptan como consumidor final: <code>CF</code>, <code>C/F</code>,
+        <code>CF0</code>, <code>consumidor final</code> y el campo vacío.
+      </p>
+
+      <div class="callout c-warn">
+        <div class="callout-label">Cuando no se cumple</div>
+        <p>La factura ya está emitida y no se toca: respondemos <code>422</code> con un
+        mensaje <strong>dirigido al cliente</strong>, para que el colaborador se lo lea y
+        aquel ajuste su app.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Error</th><th>Situación</th><th>Mensaje</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code>nit_not_registered</code></td>
+                <td>Factura con NIT, cliente sin NIT registrado</td>
+                <td>“…el cliente no tiene NIT registrado en Puntos Plus. Puede agregarlo desde su app en Menú → Mi Cuenta, o pedir la factura con CF.”</td>
+              </tr>
+              <tr>
+                <td><code>nit_mismatch</code></td>
+                <td>Factura con un NIT distinto al registrado</td>
+                <td>“El NIT de la factura no coincide con el registrado por el cliente… Solo acumulan las facturas con su propio NIT o con CF.”</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Ambas respuestas incluyen <code>member_name</code> e <code>invoice_nit</code>
+        (y el NIT registrado enmascarado, en el segundo caso).</p>
+      </div>
+
+      <p>
+        <strong>Consulta opcional de diagnóstico:</strong> si quieren anticiparse,
+        <code>GET /v1/members</code> dice con qué NIT acumula un cliente.
+        <strong>No es parte del flujo</strong> — es una herramienta de soporte.
+      </p>
+    </section>
+
+    <section id="s41">
+      <h2><span class="n">4.1</span>Facturas anuladas — no hay reverso</h2>
+      <div class="callout c-ok">
+        <div class="callout-label">Nada que hacer de su lado</div>
+        <p>
+          Si una factura que ya acreditó puntos se anula en PROPER, <strong>los puntos
+          del cliente no se modifican</strong>. La anulación no genera ninguna llamada a
+          esta API ni ninguna acción de su parte. No necesitamos que nos notifiquen las
+          anulaciones y no existe un endpoint de reverso.
+        </p>
+      </div>
+      <p>
+        El motivo es operativo: el cliente ya vio sus puntos en la app (recibe una
+        notificación al instante) y quitárselos después genera más fricción de la que
+        resuelve. El volumen de anulaciones es bajo y el programa lo absorbe.
+      </p>
+    </section>
+
+    <section id="s5">
+      <h2><span class="n">05</span>Endpoints</h2>
+
+      <h3>5.1 · Catálogo de estaciones <span style="color:var(--muted);font-weight:500;">(referencia)</span></h3>
+      <div class="endpoint">
+        <span class="verb verb-get">GET</span>
+        <span class="path">/v1/stations</span>
+        <span class="tag">informativo</span>
+      </div>
+      <p>
+        Solo informativo: como la estación viaja con el colaborador, el POS no necesita
+        configurarla. Sirve para cotejar el mapeo de códigos.
+      </p>
+      <pre><code><span class="tok-cmd">curl</span> -X GET "https://puntosplus.vercel.app/api/v1/stations" \
+  -H "Authorization: Bearer pp_live_..."</code></pre>
+
+      <h3>5.2 · Consulta de diagnóstico <span style="color:var(--muted);font-weight:500;">(opcional)</span></h3>
+      <div class="endpoint">
+        <span class="verb verb-get">GET</span>
+        <span class="path">/v1/members?card_code=CTOD-00042</span>
+        <span class="tag">fuera del flujo</span>
+      </div>
+      <pre><code>{
+  <span class="tok-key">"ok"</span>: true,
+  <span class="tok-key">"name"</span>: <span class="tok-str">"Alexander Sut"</span>,
+  <span class="tok-key">"tier"</span>: <span class="tok-str">"PLATINO"</span>,
+  <span class="tok-key">"points"</span>: <span class="tok-num">340</span>,
+  <span class="tok-key">"has_nit"</span>: true,
+  <span class="tok-key">"nit_masked"</span>: <span class="tok-str">"****4501"</span>,
+  <span class="tok-key">"accepted_nits"</span>: [<span class="tok-str">"CF"</span>, <span class="tok-str">"12345678901"</span>]
+}</code></pre>
+
+      <h3>5.3 · Acumular puntos <span style="color:var(--brand);font-weight:600;">— endpoint principal</span></h3>
+      <div class="endpoint">
+        <span class="verb verb-post">POST</span>
+        <span class="path">/v1/purchases</span>
+        <span class="tag">tras emitir la factura</span>
+      </div>
+
+      <pre><code><span class="tok-cmd">curl</span> -X POST "https://puntosplus.vercel.app/api/v1/purchases" \
+  -H "Authorization: Bearer pp_live_..." \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: FAC-2026-000123" \
+  -d '{
+    <span class="tok-key">"card_code"</span>: <span class="tok-str">"CTOD-00042"</span>,
+    <span class="tok-key">"fuel_amount"</span>: <span class="tok-num">250.00</span>,
+    <span class="tok-key">"gallons"</span>: <span class="tok-num">8.06</span>,
+    <span class="tok-key">"fuel_type"</span>: <span class="tok-str">"super"</span>,
+    <span class="tok-key">"nit"</span>: <span class="tok-str">"CF"</span>,
+    <span class="tok-key">"invoice_no"</span>: <span class="tok-str">"FAC-2026-000123"</span>,
+    <span class="tok-key">"total_amount"</span>: <span class="tok-num">312.50</span>,
+    <span class="tok-key">"operator"</span>: {
+      <span class="tok-key">"external_id"</span>: <span class="tok-str">"EMP-017"</span>,
+      <span class="tok-key">"name"</span>: <span class="tok-str">"Juan Pérez"</span>,
+      <span class="tok-key">"station"</span>: <span class="tok-str">"1"</span>
+    }
+  }'</code></pre>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Campo</th><th>Tipo</th><th>Oblig.</th><th>Notas</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>card_code</code></td><td>string</td><td>Sí</td><td>Texto del QR escaneado, tal cual</td></tr>
+            <tr><td><code>fuel_amount</code></td><td>number</td><td>Sí</td><td><strong>Solo la porción de COMBUSTIBLE</strong>, en Q. Mínimo Q10</td></tr>
+            <tr><td><code>gallons</code></td><td>number</td><td>Sí</td><td>Galones reales despachados</td></tr>
+            <tr><td><code>fuel_type</code></td><td>string</td><td>Sí</td><td><code>super</code> · <code>regular</code> · <code>diesel</code></td></tr>
+            <tr><td><code>nit</code></td><td>string</td><td>Sí</td><td>NIT de la factura emitida, o <code>CF</code></td></tr>
+            <tr><td><code>invoice_no</code></td><td>string</td><td>Recom.</td><td>Número de factura, para conciliación</td></tr>
+            <tr><td><code>total_amount</code></td><td>number</td><td>No</td><td>Total facturado. Solo se guarda para conciliar: <strong>no</strong> afecta los puntos</td></tr>
+            <tr><td><code>operator.external_id</code></td><td>string</td><td>Sí</td><td>Identificador del colaborador en PROPER</td></tr>
+            <tr><td><code>operator.name</code></td><td>string</td><td>Recom.</td><td>Nombre, para reportes de atención</td></tr>
+            <tr><td><code>operator.station</code></td><td>string</td><td>Recom.</td><td>Código de estación de PROPER</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:14.5px;color:var(--muted);">
+        Compatibilidad: aceptamos <code>amount</code> como alias de <code>fuel_amount</code>
+        y <code>station</code> en la raíz del cuerpo.
+      </p>
+
+      <div class="callout c-key">
+        <div class="callout-label">Facturas mixtas · combustible + tienda</div>
+        <p>Los puntos se calculan <strong>únicamente sobre el consumo de combustible</strong>.
+        Si la factura incluye otros productos, manden <code>fuel_amount</code> (la porción
+        de combustible, base de los puntos) y <code>total_amount</code> (el total, solo
+        conciliación).</p>
+        <p>Ejemplo: factura de Q312.50 = Q250 de súper + Q62.50 de tienda → el cliente
+        acumula por los Q250. Si la factura <strong>no tiene combustible</strong>,
+        devolvemos <code>422 no_fuel_in_invoice</code>.</p>
+      </div>
+
+      <div class="callout">
+        <div class="callout-label" style="color:var(--muted);">Sobre los precios y los galones</div>
+        <p style="margin:0;"><strong>No usamos nuestros precios para nada de este cálculo.</strong>
+        La configuración de precios vigente es la de PROPER (la editamos nosotros de su
+        lado), así que confiamos plenamente en los <code>gallons</code> y el
+        <code>fuel_amount</code> que nos envían: son los valores reales de la venta.
+        Nuestro rol se limita a convertir el consumo en puntos según las reglas del programa.</p>
+      </div>
+
+      <h3>Respuesta exitosa · <code>201 Created</code></h3>
+      <pre><code>{
+  <span class="tok-key">"ok"</span>: true,
+  <span class="tok-key">"member_name"</span>: <span class="tok-str">"Alexander Sut"</span>,
+  <span class="tok-key">"points_earned"</span>: <span class="tok-num">25</span>,
+  <span class="tok-key">"points_base"</span>: <span class="tok-num">25</span>,
+  <span class="tok-key">"points_promo"</span>: <span class="tok-num">0</span>,
+  <span class="tok-key">"points_balance"</span>: <span class="tok-num">365</span>,
+  <span class="tok-key">"gallons"</span>: <span class="tok-num">8.06</span>,
+  <span class="tok-key">"fuel_amount"</span>: <span class="tok-num">250.00</span>,
+  <span class="tok-key">"station"</span>: <span class="tok-str">"Turkaj I"</span>,
+  <span class="tok-key">"tier"</span>: <span class="tok-str">"PLATINO"</span>,
+  <span class="tok-key">"tier_changed"</span>: false,
+  <span class="tok-key">"promo"</span>: null
+}</code></pre>
+      <p>
+        <strong>Qué mostrar o imprimir:</strong> <code>points_earned</code> (los puntos de
+        esta compra) y <code>points_balance</code> (su saldo total). Si
+        <code>tier_changed</code> es <code>true</code>, el cliente subió de nivel y
+        <code>new_card_code</code> trae su código nuevo — vale la pena felicitarlo.
+      </p>
+
+      <h3>Cuando aplica una promoción</h3>
+      <p>
+        Puntos Plus tiene un motor de promociones (dobles puntos por día o producto,
+        premios por consumo). Si alguna aplica, se refleja sola en
+        <code>points_promo</code> y en el objeto <code>promo</code>. Si la promoción
+        otorga un <strong>premio gratis</strong>, <code>promo</code> incluirá
+        <code>reward_name</code> y un <code>redemption_code</code> (<code>TK-XXXXXX</code>)
+        que puede imprimirse en el ticket.
+      </p>
+
+      <div class="callout c-ok">
+        <div class="callout-label">Idempotencia · importante</div>
+        <p style="margin:0;">Envíen el header <code>Idempotency-Key</code> con un valor
+        único por factura (el número de factura sirve). Si el POS reintenta por corte de
+        red, devolvemos la <strong>respuesta original</strong> con
+        <code>"replayed": true</code> y <strong>no</strong> acreditamos dos veces. Los
+        rechazos <em>no</em> consumen la llave: pueden corregir el dato y reintentar.</p>
+      </div>
+
+      <h3>5.4 · Comprobante de premio</h3>
+      <div class="endpoint">
+        <span class="verb verb-get">GET</span>
+        <span class="path">/v1/redemptions?code=TK-3F9A2C</span>
+        <span class="tag">solo lectura</span>
+      </div>
+      <pre><code>{
+  <span class="tok-key">"ok"</span>: true,
+  <span class="tok-key">"code"</span>: <span class="tok-str">"TK-3F9A2C"</span>,
+  <span class="tok-key">"reward_name"</span>: <span class="tok-str">"Lavado de vehículo"</span>,
+  <span class="tok-key">"points_spent"</span>: <span class="tok-num">150</span>,
+  <span class="tok-key">"member_name"</span>: <span class="tok-str">"Alexander Sut"</span>,
+  <span class="tok-key">"card_code"</span>: <span class="tok-str">"CTPD-00113"</span>,
+  <span class="tok-key">"delivered"</span>: false,
+  <span class="tok-key">"delivered_at"</span>: null
+}</code></pre>
+      <p>
+        <strong>Esta llamada no cambia el estado del canje</strong> — solo entrega los
+        datos para imprimir. La entrega se confirma como hasta ahora: el operador la
+        solicita desde la app de Puntos Plus y <strong>el cliente la aprueba en su
+        teléfono</strong>. Es una salvaguarda del programa y se mantiene igual.
+      </p>
+      <p>
+        Si <code>delivered</code> viene en <code>true</code>, el premio ya fue entregado
+        antes: conviene advertirlo antes de imprimir de nuevo.
+      </p>
+    </section>
+
+    <section id="s6">
+      <h2><span class="n">06</span>Errores</h2>
+      <p>Todas las respuestas de error tienen la misma forma:</p>
+      <pre><code>{ <span class="tok-key">"error"</span>: <span class="tok-str">"nit_mismatch"</span>, <span class="tok-key">"message"</span>: <span class="tok-str">"La factura debe emitirse con CF o con el NIT del cliente"</span> }</code></pre>
+      <p>
+        <code>error</code> es una clave estable (para programar); <code>message</code> es
+        texto listo para mostrar al colaborador.
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>HTTP</th><th>Error</th><th>Significado</th></tr></thead>
+          <tbody>
+            <tr><td>401</td><td><code>missing_api_key</code> · <code>invalid_api_key</code></td><td>Llave ausente, mal escrita o desactivada</td></tr>
+            <tr><td>403</td><td><code>insufficient_scope</code></td><td>La llave no tiene permiso para esa operación</td></tr>
+            <tr><td>400</td><td><code>invalid_card_code</code></td><td>El QR escaneado no es una tarjeta Puntos Plus</td></tr>
+            <tr><td>404</td><td><code>member_not_found</code></td><td>La tarjeta no corresponde a ningún cliente</td></tr>
+            <tr><td>404</td><td><code>redemption_not_found</code></td><td>No existe un canje con ese código</td></tr>
+            <tr><td>422</td><td><code>nit_mismatch</code></td><td>El NIT de la factura no es el del cliente</td></tr>
+            <tr><td>422</td><td><code>nit_not_registered</code></td><td>Factura con NIT y cliente sin NIT registrado</td></tr>
+            <tr><td>422</td><td><code>no_fuel_in_invoice</code></td><td>La factura no incluye combustible</td></tr>
+            <tr><td>422</td><td><code>amount_too_low</code></td><td>Consumo de combustible menor a Q10</td></tr>
+            <tr><td>422</td><td><code>invalid_gallons</code></td><td>Galones ausentes o ≤ 0</td></tr>
+            <tr><td>422</td><td><code>invalid_fuel_type</code></td><td>Distinto de super, regular, diesel</td></tr>
+            <tr><td>422</td><td><code>unknown_station</code></td><td>No se pudo resolver la estación del colaborador</td></tr>
+            <tr><td>422</td><td><code>missing_operator</code></td><td>Falta el identificador del colaborador</td></tr>
+            <tr><td>500</td><td><code>server_error</code></td><td>Error nuestro — reintentar en unos segundos</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        <strong>Criterio recomendado en el POS:</strong> los <code>4xx</code> son
+        definitivos (mostrar el mensaje y seguir); ante un <code>500</code> o un timeout,
+        reintentar hasta 2 veces con la misma <code>Idempotency-Key</code>.
+      </p>
+    </section>
+
+    <section id="s7">
+      <h2><span class="n">07</span>Flujos completos</h2>
+
+      <h3>Acumular puntos</h3>
+      <ol class="flow">
+        <li><span><span class="lead">El colaborador cobra y emite la factura</span>
+          <span class="sub">Flujo normal de PROPER — nada se modifica ni se condiciona</span></span></li>
+        <li><span><span class="lead">Factura emitida → botón “Acumular Puntos Plus”</span></span></li>
+        <li><span><span class="lead">Escanea el QR del cliente</span>
+          <span class="sub">CTOD-00042</span></span></li>
+        <li><span><span class="lead">POST /v1/purchases con los datos de la factura</span></span></li>
+        <li><span><span class="lead">El POS muestra el resultado</span>
+          <span class="sub">Acumuló: “+25 pts · Saldo: 365” — No acumuló: el motivo, dirigido al cliente</span></span></li>
+      </ol>
+      <p>
+        Del lado del cliente todo sigue igual: recibe una notificación en su teléfono con
+        los puntos acreditados y, si tiene la app abierta, ve el saldo actualizarse al
+        instante y puede calificar la atención.
+      </p>
+
+      <h3>Comprobante de premio</h3>
+      <ol class="flow">
+        <li><span><span class="lead">El cliente llega con su premio canjeado en la app</span></span></li>
+        <li><span><span class="lead">Pantalla de inicio → “Comprobante de premio”</span></span></li>
+        <li><span><span class="lead">Escanea el QR del premio</span>
+          <span class="sub">TK-3F9A2C</span></span></li>
+        <li><span><span class="lead">GET /v1/redemptions y el POS imprime</span></span></li>
+        <li><span><span class="lead">La entrega se confirma en la app de Puntos Plus</span>
+          <span class="sub">Operador la solicita, cliente la aprueba en su teléfono</span></span></li>
+      </ol>
+    </section>
+
+    <section id="s8">
+      <h2><span class="n">08</span>Ambiente de pruebas</h2>
+      <p>Antes de producción les entregamos:</p>
+      <ul>
+        <li>una <strong>API key de pruebas</strong> con acceso a datos ficticios,</li>
+        <li>2–3 <strong>tarjetas de prueba</strong> (una con NIT registrado y otra sin él)
+          para validar los dos caminos de la regla de NIT,</li>
+        <li>un <strong>canje de prueba</strong> con su código <code>TK-</code> para el comprobante.</li>
+      </ul>
+
+      <h3>Casos sugeridos</h3>
+      <ul class="checks">
+        <li>Compra con <code>CF</code> → acredita</li>
+        <li>Compra con el NIT del cliente → acredita</li>
+        <li>Compra con un NIT ajeno → <code>422 nit_mismatch</code>, no acredita</li>
+        <li>Cliente sin NIT + factura con NIT → <code>422 nit_not_registered</code></li>
+        <li>Factura mixta (combustible + tienda) → acredita solo por <code>fuel_amount</code></li>
+        <li>Factura sin combustible → <code>422 no_fuel_in_invoice</code></li>
+        <li>Estación resuelta desde el colaborador, sin mandar <code>station</code></li>
+        <li>Reintento con la misma <code>Idempotency-Key</code> → sin doble acreditación</li>
+        <li>QR inválido o tarjeta inexistente → error claro</li>
+        <li>Compra que sube de nivel → <code>tier_changed: true</code></li>
+        <li>Consulta de un canje ya entregado → <code>delivered: true</code></li>
+      </ul>
+    </section>
+
+    <section id="s9">
+      <h2><span class="n">09</span>Seguridad y operación</h2>
+      <ul>
+        <li><strong>HTTPS obligatorio.</strong> La llave viaja en el header
+          <code>Authorization</code>; nunca en la URL ni en los logs del POS.</li>
+        <li><strong>La llave no debe quedar en el dispositivo</strong> sin protección:
+          idealmente vive en el servidor de PROPER, que actúa de intermediario con los POS.</li>
+        <li><strong>Registramos cada llamada</strong> (endpoint, datos, resultado) para
+          conciliación y soporte. No guardamos la llave en claro.</li>
+        <li><strong>Sin acceso cruzado a bases de datos:</strong> PROPER no lee ni escribe
+          en la nuestra y viceversa.</li>
+        <li><strong>Rotación:</strong> si sospechan que la llave se filtró, avisen y la
+          revocamos en minutos.</li>
+        <li><strong>Datos personales:</strong> la API expone solo lo mínimo — nombre,
+          nivel, saldo y NIT enmascarado. No devolvemos teléfono, DPI, dirección ni correo.</li>
+      </ul>
+    </section>
+
+    <section id="s10">
+      <h2><span class="n">10</span>Qué necesitamos de PROPER</h2>
+      <ol>
+        <li><strong>Confirmación del contrato</strong> — si los campos de §5.3 están
+          disponibles al cerrar una factura. Los tres críticos: <strong>galones
+          despachados</strong>, <strong>monto de la porción de combustible</strong> y
+          <strong>NIT emitido</strong>.</li>
+        <li><strong>Desglose de combustible en facturas mixtas</strong> — confirmar que
+          pueden separar la línea de combustible del resto de productos. Es lo único que
+          necesitamos discriminado.</li>
+        <li><strong>Identificador del colaborador</strong> — qué campo usarán como
+          <code>external_id</code> y si es estable en el tiempo.</li>
+        <li><strong>Códigos de estación</strong> — su lista con el código que manejan,
+          para dejar el mapeo configurado de nuestro lado.</li>
+        <li><strong>Modelo de llamada</strong> — si los POS llamarán directo a nuestra API
+          o a través de un servidor intermedio de PROPER (recomendamos lo segundo).</li>
+        <li><strong>Volumen estimado</strong> — transacciones por día y por estación, para
+          dimensionar límites de uso.</li>
+      </ol>
+      <div class="callout c-ok">
+        <div class="callout-label">Anulaciones</div>
+        <p style="margin:0;">Nada que hacer: una factura anulada no afecta los puntos ya
+        acreditados. No hay endpoint de reverso ni necesitan notificarnos.</p>
+      </div>
+    </section>
+
+    <section id="s11">
+      <h2><span class="n">11</span>Preguntas abiertas de nuestro lado</h2>
+      <ul>
+        <li><strong>Combustible por bomba:</strong> pedimos <code>fuel_type</code> como
+          texto. Si manejan códigos de producto, mándenos la tabla y hacemos el mapeo.</li>
+        <li><strong>Varios combustibles en una misma factura</strong> (súper y diésel para
+          dos vehículos): hoy esperamos un solo <code>fuel_type</code> con la suma. Si
+          ocurre con frecuencia, podemos aceptar un arreglo de líneas.</li>
+        <li><strong>Facturas a crédito o con varias formas de pago:</strong> para nosotros
+          es indistinto — acreditamos sobre el consumo de combustible facturado.</li>
+        <li><strong>Cliente sin tarjeta escaneada:</strong> si el colaborador olvida
+          escanear, la factura no acumula. ¿Necesitan poder acumular después, con la
+          factura ya cerrada? Se puede habilitar con un plazo (ej. mismo día).</li>
+      </ul>
+    </section>
+
+  </main>
+
+  <footer class="foot">
+    <p>
+      <strong>Este documento es una propuesta.</strong> Todo campo o comportamiento es
+      negociable antes de fijar la versión 1 del contrato. Cualquier duda sobre los
+      ejemplos o el ambiente de pruebas, la resolvemos por el canal que les resulte más
+      cómodo.
+    </p>
+    <p style="margin-bottom:0;">Puntos Plus · Gasolineras Turkaj · Chichicastenango, Guatemala</p>
+  </footer>
+
+</div>

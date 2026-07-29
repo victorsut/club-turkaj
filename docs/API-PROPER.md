@@ -1,6 +1,6 @@
 # API de integración Puntos Plus ⇄ PROPER
 
-**Versión del documento:** 1.1 · 29 de julio de 2026
+**Versión del documento:** 1.2 · 29 de julio de 2026
 **Estado:** propuesta técnica para revisión de PROPER
 **Contacto:** Puntos Plus — Gasolineras Turkaj, Chichicastenango
 
@@ -17,8 +17,13 @@ Dos funciones, ambas iniciadas por un escaneo de QR desde el POS:
 
 | # | Dónde | Botón sugerido | Qué hace |
 |---|---|---|---|
-| 1 | Al **cerrar la factura** | "Acumular Puntos Plus" | Escanea el QR del cliente y acredita los puntos de esa factura |
+| 1 | Con la **factura ya emitida** | "Acumular Puntos Plus" | Escanea el QR del cliente y acredita los puntos de esa factura |
 | 2 | En la **pantalla de inicio** | "Comprobante de premio" | Escanea el QR de un premio canjeado y devuelve los datos para imprimirlo |
+
+**Del lado del cliente no cambia nada.** Sigue usando su app igual que hoy:
+recibe la notificación de puntos, ve su saldo actualizarse, canjea premios y
+confirma las entregas desde su teléfono. Esta integración solo reemplaza el
+paso manual que hoy hace el colaborador en una app aparte.
 
 **Puntos Plus expone la API; PROPER la consume.** No necesitamos acceso a la
 base de datos de PROPER ni ustedes a la nuestra: todo viaja por HTTPS con una
@@ -141,6 +146,21 @@ enmascarado, en el segundo caso) por si quieren mostrarlo o imprimirlo.
 **Consulta opcional de diagnóstico:** si alguna vez quieren anticiparse,
 `GET /v1/members` (§5.2) dice con qué NIT acumula ese cliente. **No es parte
 del flujo** — es una herramienta para soporte o para una pantalla informativa.
+
+---
+
+## 4.1 Facturas anuladas — no hay reverso
+
+**Decisión del programa:** si una factura que ya acreditó puntos se anula en
+PROPER, **los puntos del cliente no se modifican**. La anulación no genera
+ninguna llamada a esta API ni ninguna acción de su parte.
+
+Los puntos ya acreditados quedan firmes. No necesitamos que nos notifiquen las
+anulaciones ni existe un endpoint de reverso.
+
+> El motivo es operativo: el cliente ya vio sus puntos en la app (recibe una
+> notificación al instante) y quitárselos después genera más fricción de la que
+> resuelve. El volumen de anulaciones es bajo y el programa lo absorbe.
 
 ---
 
@@ -486,11 +506,12 @@ Para cerrar la integración nos ayudaría recibir:
 5. **Modelo de llamada** — si los POS llamarán directo a nuestra API o a través
    de un servidor intermedio de PROPER (recomendamos lo segundo: la llave queda
    protegida y ustedes controlan reintentos y trazabilidad).
-6. **Manejo de anulaciones** — hoy no contemplamos reverso de puntos por factura
-   anulada. Si su flujo lo necesita, diseñamos `POST /v1/purchases/{id}/void`;
-   díganos cómo notifican una anulación.
-7. **Volumen estimado** — transacciones por día y por estación, para dimensionar
+6. **Volumen estimado** — transacciones por día y por estación, para dimensionar
    límites de uso.
+
+> **Anulaciones: nada que hacer.** Como se explica en §4.1, una factura anulada
+> no afecta los puntos ya acreditados. No hay endpoint de reverso ni necesitan
+> notificarnos.
 
 ---
 
