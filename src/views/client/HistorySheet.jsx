@@ -20,7 +20,7 @@ const CLOSE_MS = 200; // duración de ppGrowOut (+ margen) antes de desmontar
 const TYPE_ICONS = {
   compra: Fuel, canje: Gift, rifa: Ticket,
   encuesta: Clipboard, evento: Cake, registro: StarLine,
-  registro_vehiculos: Car, vehiculo: Car,
+  registro_vehiculos: Car, vehiculo: Car, entrega: Gift,
 };
 const actIconFor = (a) => {
   if (a.type === 'canje') return rewardIconFor({ name: a.desc || '' });
