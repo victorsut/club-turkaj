@@ -9,6 +9,11 @@
 //         total_amount?, operator: { external_id, name, station } }
 // Header recomendado: Idempotency-Key (nº de factura)
 import { authenticate, logRequest, replay, json, cors, statusFor, messageFor, sbAdmin } from '../_lib/apiAuth.js';
+import { pushToMembers } from '../_lib/push.js';
+
+// Regla del dueño (29-jul): al cliente solo el PRIMER nombre del personal.
+// (Duplicado mínimo de src/lib/text.js — los endpoints no importan de src/.)
+const firstName = (s) => String(s ?? '').trim().split(/\s+/)[0] || '';
 
 export default async function handler(req, res) {
   cors(res);
@@ -77,7 +82,59 @@ export default async function handler(req, res) {
     return json(res, status, body);
   }
 
+  // Campos INTERNOS del RPC (para el push): fuera de la respuesta pública —
+  // el contrato con PROPER no cambia.
+  const { member_id, operator_id, operator_name, ...pub } = data;
+
+  // Push de calificación server-side (F7a.2): con PROPER los colaboradores
+  // ya no usan nuestra vista de operador, así que el aviso que antes
+  // disparaba el navegador del operador sale de acá. Si el cliente tiene
+  // la app abierta, el SW lo suprime y el modal Realtime cubre el caso.
+  // Best effort: un fallo de push nunca afecta la acreditación.
+  try {
+    const opFirst = firstName(operator_name);
+    const promo = data.promo || null;
+    const promoTag = promo
+      ? (promo.effect_type === 'grant_reward'
+        ? ` · 🎁 ${promo.reward_name} GRATIS`
+        : ` · 🎉 ${promo.name} (+${promo.extra_points})`)
+      : '';
+    await pushToMembers(member_id, {
+      type: 'purchase',
+      title: promo ? '¡Compra con promoción!' : '¡Compra registrada!',
+      body: `+${data.points_earned} pts · ${data.gallons} gal · Q${data.fuel_amount}${promoTag}`
+        + `${data.tier_changed && data.tier ? ` · ¡Subiste a ${data.tier}!` : ''}`
+        + `${opFirst ? ` — Atendido por ${opFirst}` : ''}`,
+      data: {
+        operatorId: operator_id,
+        operatorName: opFirst,
+        stationName: data.station,
+        purchaseId: data.purchase_id || null,
+        points: data.points_earned,
+        amount: data.fuel_amount,
+        actions: [
+          { action: 'rate', title: 'Calificar' },
+          { action: 'dismiss', title: 'Cerrar' },
+        ],
+      },
+    });
+
+    // Premio por promoción (grant_reward): push aparte con deep-link a
+    // los canjes pendientes, donde vive el QR para reclamarlo.
+    if (promo?.effect_type === 'grant_reward') {
+      await pushToMembers(member_id, {
+        type: 'reward',
+        title: '¡Ganaste un premio!',
+        body: `${promo.name ? promo.name + ': ' : ''}${promo.reward_name} gratis por tu compra. Abrí la notificación para ver el QR y mostralo al operador cuando quieras reclamarlo.`,
+        url: '/?goto=pendientes',
+        data: { rewardName: promo.reward_name, code: promo.redemption_code || null },
+      });
+    }
+  } catch (err) {
+    console.error('[API:purchases] push:', err.message);
+  }
+
   await logRequest({ clientId: auth.clientId, endpoint: 'POST /v1/purchases',
-    idempotencyKey: idemKey, request: b, response: data, status: 201 });
-  return json(res, 201, data);
+    idempotencyKey: idemKey, request: b, response: pub, status: 201 });
+  return json(res, 201, pub);
 }

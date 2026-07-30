@@ -778,6 +778,9 @@ export default function App() {
         station: o.station_name || '', stationId: o.station_id || null,
         bomba: o.bomba || '', turno: o.turno || '',
         active: o.active !== false,
+        // Espejo de PROPER (F7a): no puede loguearse; su estación es la
+        // última donde despachó según la factura.
+        external: o.external_source || null,
       })));
     });
     // Estación por miembro para el filtro de Miembros (SEC.C.2b):

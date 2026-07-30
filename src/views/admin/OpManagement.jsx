@@ -272,8 +272,13 @@ export default function OpManagement(ctx) {
           <div key={op.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: `1px solid ${AT.border}`, opacity: op.active ? 1 : .5 }}>
             <div style={{ width: 44, height: 44, borderRadius: 14, background: op.active ? '#2E7D32' : '#616161', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16, flexShrink: 0 }}>{op.name.charAt(0)}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div onClick={() => setSelOp(op)} style={{ fontWeight: 700, fontSize: 14, color: '#64B5F6', cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>{op.name}</div>
-              <div style={{ fontSize: 11, color: '#777', marginTop: 2 }}>{op.station || '-'} | #{op.gafete} | {op.turno}</div>
+              <div onClick={() => setSelOp(op)} style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 14, color: '#64B5F6', cursor: 'pointer' }}>
+                <span style={{ textDecoration: 'underline', textDecorationStyle: 'dotted', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{op.name}</span>
+                {op.external === 'proper' && <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 800, letterSpacing: 1, padding: '2px 7px', borderRadius: 7, background: 'rgba(250,84,8,.15)', color: '#FA5408' }}>PROPER</span>}
+              </div>
+              {/* Espejo de PROPER: su estación es la última donde despachó
+                  (viaja con cada factura, ya no es una asignación fija). */}
+              <div style={{ fontSize: 11, color: '#777', marginTop: 2 }}>{op.external === 'proper' ? `Despachó en ${op.station || '-'}` : (op.station || '-')} | #{op.gafete} | {op.turno}</div>
               <div style={{ fontSize: 10, color: '#555', marginTop: 2 }}>@{op.user}{op.phone ? ' | ' + op.phone : ''}{avg ? ' | ' + avg + ' pts' : ''}</div>
             </div>
             <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
