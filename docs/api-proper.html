@@ -449,11 +449,11 @@
     <h1>API de integración para acumulación de puntos</h1>
     <p class="standfirst">
       Propuesta técnica para que el sistema de facturación de PROPER acredite
-      puntos y consulte premios de Puntos Plus, sin modificar su flujo de venta.
+      puntos y entregue premios de Puntos Plus, sin modificar su flujo de venta.
     </p>
     <div class="meta-row">
-      <span><b>Versión</b> 1.2</span>
-      <span><b>Fecha</b> 29 de julio de 2026</span>
+      <span><b>Versión</b> 1.3</span>
+      <span><b>Fecha</b> 30 de julio de 2026</span>
       <span><b>Estado</b> propuesta para revisión</span>
       <span><b>Emite</b> Gasolineras Turkaj, Chichicastenango</span>
     </div>
@@ -500,11 +500,21 @@
             </tr>
             <tr>
               <td>En la pantalla de inicio</td>
-              <td><strong>Comprobante de premio</strong></td>
-              <td>Escanea el QR de un premio canjeado y devuelve los datos para imprimirlo</td>
+              <td><strong>Entregar premio</strong></td>
+              <td>Escanea el QR del premio (o la tarjeta del cliente), pide la confirmación al cliente y, confirmada, imprime el comprobante</td>
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <div class="callout c-key">
+        <div class="callout-label">Dos reglas de la interfaz del POS</div>
+        <p><strong>Si el escáner falla, permitan escribir el código a mano</strong> —
+        el de la tarjeta del cliente (<code>CTOD-00042</code>) o el del premio
+        (<code>TK-3F9A2C</code>). Para la API es indistinto: recibe el mismo texto.</p>
+        <p><strong>El comprobante se imprime únicamente al entregar un canje o
+        premio.</strong> La acumulación de puntos no genera ningún impreso (la factura
+        ya la emitió PROPER).</p>
       </div>
 
       <p>
@@ -577,9 +587,12 @@
         primera vez que aparece y lo reutiliza después. Ese espejo:
       </p>
       <ul>
-        <li>permite atribuir cada compra a quien la hizo (reportes y ranking de atención),</li>
+        <li>permite atribuir cada compra y cada entrega a quien la hizo (reportes y
+          ranking de atención — la calificación del cliente es <strong>al
+          colaborador</strong>, sin importar en qué estación haya estado ese día),</li>
         <li><strong>no puede iniciar sesión</strong> en la app de Puntos Plus,</li>
-        <li>se actualiza solo si el nombre o la estación cambian en PROPER.</li>
+        <li>su estación registrada se refresca con <strong>cada factura</strong> (el
+          colaborador no está atado a una estación: la estación viaja con la factura).</li>
       </ul>
       <p>No hace falta sincronización previa ni cargar un catálogo a mano.</p>
 
@@ -824,11 +837,18 @@
         rechazos <em>no</em> consumen la llave: pueden corregir el dato y reintentar.</p>
       </div>
 
-      <h3>5.4 · Comprobante de premio</h3>
+      <h3>5.4 · Entrega de premios</h3>
+      <p>
+        El flujo de entrega <strong>completo se opera desde PROPER</strong>. La única
+        salvaguarda que se conserva del programa: <strong>el cliente confirma la entrega
+        en su teléfono</strong> — sin esa confirmación la entrega no procede.
+      </p>
+
+      <h4>a) Consultar un canje (por el QR del premio)</h4>
       <div class="endpoint">
         <span class="verb verb-get">GET</span>
         <span class="path">/v1/redemptions?code=TK-3F9A2C</span>
-        <span class="tag">solo lectura</span>
+        <span class="tag">solo lectura · sirve de poll</span>
       </div>
       <pre><code>{
   <span class="tok-key">"ok"</span>: true,
@@ -838,17 +858,86 @@
   <span class="tok-key">"member_name"</span>: <span class="tok-str">"Alexander Sut"</span>,
   <span class="tok-key">"card_code"</span>: <span class="tok-str">"CTPD-00113"</span>,
   <span class="tok-key">"delivered"</span>: false,
-  <span class="tok-key">"delivered_at"</span>: null
+  <span class="tok-key">"delivered_at"</span>: null,
+  <span class="tok-key">"confirm_status"</span>: <span class="tok-str">"none"</span>
 }</code></pre>
       <p>
-        <strong>Esta llamada no cambia el estado del canje</strong> — solo entrega los
-        datos para imprimir. La entrega se confirma como hasta ahora: el operador la
-        solicita desde la app de Puntos Plus y <strong>el cliente la aprueba en su
-        teléfono</strong>. Es una salvaguarda del programa y se mantiene igual.
+        No cambia el estado. <code>confirm_status</code> sirve además como
+        <strong>poll</strong> durante la espera de confirmación (ver c). Si
+        <code>delivered</code> viene en <code>true</code>, el premio ya fue entregado.
       </p>
+
+      <h4>b) Alternativa: por la tarjeta del cliente</h4>
+      <p>Si el cliente no tiene a mano el QR del premio, escaneen (o escriban) su
+        tarjeta para listar sus canjes pendientes de entrega:</p>
+      <div class="endpoint">
+        <span class="verb verb-get">GET</span>
+        <span class="path">/v1/redemptions?card_code=CTOD-00042</span>
+        <span class="tag">solo lectura</span>
+      </div>
+      <pre><code>{
+  <span class="tok-key">"ok"</span>: true,
+  <span class="tok-key">"member_name"</span>: <span class="tok-str">"Alexander Sut"</span>,
+  <span class="tok-key">"pending"</span>: [
+    { <span class="tok-key">"code"</span>: <span class="tok-str">"TK-3F9A2C"</span>, <span class="tok-key">"reward_name"</span>: <span class="tok-str">"Lavado de vehículo"</span>,
+      <span class="tok-key">"points_spent"</span>: <span class="tok-num">150</span>, <span class="tok-key">"confirm_status"</span>: <span class="tok-str">"none"</span> }
+  ]
+}</code></pre>
+
+      <h4>c) Pedir la confirmación al cliente</h4>
+      <div class="endpoint">
+        <span class="verb verb-post">POST</span>
+        <span class="path">/v1/redemptions</span>
+        <span class="tag">action: request</span>
+      </div>
+      <pre><code>{
+  <span class="tok-key">"code"</span>: <span class="tok-str">"TK-3F9A2C"</span>,
+  <span class="tok-key">"action"</span>: <span class="tok-str">"request"</span>,
+  <span class="tok-key">"operator"</span>: { <span class="tok-key">"external_id"</span>: <span class="tok-str">"EMP-0147"</span>, <span class="tok-key">"name"</span>: <span class="tok-str">"María Tzoc"</span> }
+}</code></pre>
       <p>
-        Si <code>delivered</code> viene en <code>true</code>, el premio ya fue entregado
-        antes: conviene advertirlo antes de imprimir de nuevo.
+        Al cliente <strong>le aparece la solicitud en su app al instante</strong> (si la
+        tenía cerrada, la ve al abrirla). El POS queda esperando: hagan
+        <strong>poll</strong> con la llamada (a) cada 2 segundos:
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th><code>confirm_status</code></th><th>Significa</th><th>Qué hace el POS</th></tr></thead>
+          <tbody>
+            <tr><td><code>pending</code></td><td>El cliente aún no responde</td><td>Seguir esperando</td></tr>
+            <tr><td><code>confirmed</code></td><td>El cliente confirmó</td><td>Llamar <code>deliver</code> (d)</td></tr>
+            <tr><td><code>cancelled</code></td><td>El cliente rechazó</td><td>Mostrar aviso y terminar</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Si el cliente no responde (recomendamos ~60&nbsp;s de espera) o el colaborador
+        desiste, envíen <code>{"code": "…", "action": "cancel"}</code> — eso cierra
+        también la solicitud en el teléfono del cliente.
+      </p>
+
+      <h4>d) Entregar e imprimir</h4>
+      <div class="endpoint">
+        <span class="verb verb-post">POST</span>
+        <span class="path">/v1/redemptions</span>
+        <span class="tag">action: deliver</span>
+      </div>
+      <pre><code>{
+  <span class="tok-key">"ok"</span>: true,
+  <span class="tok-key">"status"</span>: <span class="tok-str">"delivered"</span>,
+  <span class="tok-key">"code"</span>: <span class="tok-str">"TK-3F9A2C"</span>,
+  <span class="tok-key">"reward_name"</span>: <span class="tok-str">"Lavado de vehículo"</span>,
+  <span class="tok-key">"points_spent"</span>: <span class="tok-num">150</span>,
+  <span class="tok-key">"member_name"</span>: <span class="tok-str">"Alexander Sut"</span>,
+  <span class="tok-key">"redeemed_at"</span>: <span class="tok-str">"2026-07-28T18:22:10.000Z"</span>,
+  <span class="tok-key">"delivered_at"</span>: <span class="tok-str">"2026-07-30T15:40:03.000Z"</span>
+}</code></pre>
+      <p>
+        Esa respuesta es el <strong>payload del comprobante</strong>: con ella el POS
+        imprime. La entrega es atómica y queda atribuida al colaborador (manden
+        <code>operator</code> igual que en <code>request</code>): si el cliente no había
+        confirmado devuelve <code>422 not_confirmed</code>, y si ya se entregó,
+        <code>409 already_delivered</code> — imposible entregar dos veces.
       </p>
     </section>
 
@@ -878,6 +967,9 @@
             <tr><td>422</td><td><code>invalid_fuel_type</code></td><td>Distinto de super, regular, diesel</td></tr>
             <tr><td>422</td><td><code>unknown_station</code></td><td>No se pudo resolver la estación del colaborador</td></tr>
             <tr><td>422</td><td><code>missing_operator</code></td><td>Falta el identificador del colaborador</td></tr>
+            <tr><td>400</td><td><code>invalid_action</code></td><td><code>action</code> distinto de request, cancel, deliver</td></tr>
+            <tr><td>409</td><td><code>already_delivered</code></td><td>El premio ya fue entregado — no se entrega dos veces</td></tr>
+            <tr><td>422</td><td><code>not_confirmed</code></td><td>El cliente aún no confirmó la entrega en su app</td></tr>
             <tr><td>500</td><td><code>server_error</code></td><td>Error nuestro — reintentar en unos segundos</td></tr>
           </tbody>
         </table>
@@ -910,15 +1002,20 @@
         instante y puede calificar la atención.
       </p>
 
-      <h3>Comprobante de premio</h3>
+      <h3>Entrega de un premio</h3>
       <ol class="flow">
         <li><span><span class="lead">El cliente llega con su premio canjeado en la app</span></span></li>
-        <li><span><span class="lead">Pantalla de inicio → “Comprobante de premio”</span></span></li>
-        <li><span><span class="lead">Escanea el QR del premio</span>
-          <span class="sub">TK-3F9A2C</span></span></li>
-        <li><span><span class="lead">GET /v1/redemptions y el POS imprime</span></span></li>
-        <li><span><span class="lead">La entrega se confirma en la app de Puntos Plus</span>
-          <span class="sub">Operador la solicita, cliente la aprueba en su teléfono</span></span></li>
+        <li><span><span class="lead">Pantalla de inicio → “Entregar premio”</span></span></li>
+        <li><span><span class="lead">Escanea el QR del premio o la tarjeta del cliente</span>
+          <span class="sub">TK-3F9A2C directo, o CTOD-00042 → lista de pendientes — también se puede escribir a mano</span></span></li>
+        <li><span><span class="lead">POST /v1/redemptions {action: "request"}</span>
+          <span class="sub">La solicitud aparece en el teléfono del cliente</span></span></li>
+        <li><span><span class="lead">El cliente confirma en su celular</span>
+          <span class="sub">El POS hace poll hasta confirm_status = "confirmed" (rechazo o ~60 s sin respuesta → action: "cancel")</span></span></li>
+        <li><span><span class="lead">POST /v1/redemptions {action: "deliver"}</span>
+          <span class="sub">Entrega atómica, atribuida al colaborador</span></span></li>
+        <li><span><span class="lead">El POS imprime el comprobante</span>
+          <span class="sub">Con la respuesta del deliver — único momento en que se imprime algo</span></span></li>
       </ol>
     </section>
 
@@ -945,6 +1042,12 @@
         <li>QR inválido o tarjeta inexistente → error claro</li>
         <li>Compra que sube de nivel → <code>tier_changed: true</code></li>
         <li>Consulta de un canje ya entregado → <code>delivered: true</code></li>
+        <li>Entrega completa: request → cliente confirma → poll <code>confirmed</code> → deliver → imprime</li>
+        <li>Cliente rechaza la solicitud → poll <code>cancelled</code></li>
+        <li><code>deliver</code> sin confirmación previa → <code>422 not_confirmed</code></li>
+        <li><code>deliver</code> de un premio ya entregado → <code>409 already_delivered</code></li>
+        <li>Pendientes por tarjeta (<code>?card_code=</code>) → lista correcta</li>
+        <li>Código escrito a mano (sin escáner) → mismo resultado que el QR</li>
       </ul>
     </section>
 

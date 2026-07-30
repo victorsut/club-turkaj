@@ -42,6 +42,9 @@ const STATUS = {
   invalid_station: 422,
   unknown_station: 422,
   missing_operator: 422,
+  invalid_action: 400,
+  already_delivered: 409,
+  not_confirmed: 422,
   method_not_allowed: 405,
   server_error: 500,
 };
@@ -62,6 +65,9 @@ const MESSAGES = {
   invalid_station: 'La estación indicada no existe',
   unknown_station: 'No pudimos determinar la estación del colaborador',
   missing_operator: 'Falta el identificador del colaborador',
+  invalid_action: 'Acción inválida (request, cancel o deliver)',
+  already_delivered: 'Este premio ya fue entregado',
+  not_confirmed: 'El cliente aún no ha confirmado la entrega en su app',
   server_error: 'Error interno, reintentá en unos segundos',
 };
 export const messageFor = (code, detail) => detail || MESSAGES[code] || 'Solicitud inválida';

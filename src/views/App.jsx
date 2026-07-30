@@ -860,8 +860,26 @@ export default function App() {
         code: rd.redemption_code,
         collected: rd.collected || false,
       })));
+      // F7a.3: solicitud de confirmación VIGENTE al abrir la app — si el
+      // POS de PROPER (o el operador) la pidió con la app cerrada, el
+      // broadcast se perdió; acá se detecta y se abre el modal. Solo
+      // solicitudes frescas (< 3 min, confirm_requested_at) para no
+      // revivir solicitudes muertas de días anteriores.
+      const pend = rows.find(rd =>
+        !rd.collected && rd.confirm_status === 'pending' && rd.confirm_requested_at &&
+        (Date.now() - new Date(rd.confirm_requested_at).getTime()) < 3 * 60 * 1000);
+      if (pend) {
+        const reward = rewards.find(r => r.id === pend.reward_id) || null;
+        setPendingRedeemConfirm(p => p || {
+          redemptionId: pend.id,
+          rewardName:   reward?.name || pend.reward_name || 'Premio',
+          rewardIcon:   reward?.icon || pend.reward_icon || '🎁',
+          reward,
+          cost:         pend.points_spent || 0,
+        });
+      }
     });
-  }, []);
+  }, [rewards]);
 
   // Señal para cerrar el QR del premio en HistorySheet al confirmar la
   // entrega (pedido del dueño 29-jul) — el sheet vive dentro del

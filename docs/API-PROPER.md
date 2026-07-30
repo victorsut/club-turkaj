@@ -1,6 +1,6 @@
 # API de integración Puntos Plus ⇄ PROPER
 
-**Versión del documento:** 1.2 · 29 de julio de 2026
+**Versión del documento:** 1.3 · 30 de julio de 2026
 **Estado:** propuesta técnica para revisión de PROPER
 **Contacto:** Puntos Plus — Gasolineras Turkaj, Chichicastenango
 
@@ -17,8 +17,16 @@ Dos funciones, ambas iniciadas por un escaneo de QR desde el POS:
 
 | # | Dónde | Botón sugerido | Qué hace |
 |---|---|---|---|
-| 1 | Con la **factura ya emitida** | "Acumular Puntos Plus" | Escanea el QR del cliente y acredita los puntos de esa factura |
-| 2 | En la **pantalla de inicio** | "Comprobante de premio" | Escanea el QR de un premio canjeado y devuelve los datos para imprimirlo |
+| 1 | Con la **factura ya emitida** | "Acumular Puntos Plus" | Escanea el QR del cliente y acredita los puntos de esa factura. **No imprime nada** |
+| 2 | En la **pantalla de inicio** | "Entregar premio" | Escanea el QR del premio (o la tarjeta del cliente), pide la confirmación al cliente y, confirmada, **imprime el comprobante** |
+
+> **Si el escáner falla**, el POS debe permitir **escribir el código a mano**:
+> el de la tarjeta del cliente (`CTOD-00042`) o el del premio (`TK-3F9A2C`).
+> Para la API es indistinto — recibe el mismo texto.
+>
+> **Regla de impresión:** el comprobante se imprime **únicamente al entregar
+> un canje o premio**. La acumulación de puntos no genera ningún impreso (la
+> factura ya la emitió PROPER).
 
 **Del lado del cliente no cambia nada.** Sigue usando su app igual que hoy:
 recibe la notificación de puntos, ve su saldo actualizarse, canjea premios y
@@ -92,9 +100,12 @@ En cada compra nos envían el identificador interno del colaborador y su
 nombre; Puntos Plus crea automáticamente un registro espejo la primera vez
 que aparece y lo reutiliza después. Ese espejo:
 
-- permite atribuir cada compra a quien la hizo (reportes y ranking de atención),
+- permite atribuir cada compra y cada entrega a quien la hizo (reportes y
+  ranking de atención — la calificación del cliente es **al colaborador**,
+  sin importar en qué estación haya estado ese día),
 - **no puede iniciar sesión** en la app de Puntos Plus,
-- se actualiza solo si el nombre cambia en PROPER.
+- su estación registrada se refresca con **cada factura** (el colaborador no
+  está atado a una estación: la estación viaja con la factura).
 
 No hace falta una sincronización previa ni un catálogo cargado a mano: el
 primer envío del colaborador lo da de alta.
@@ -326,8 +337,13 @@ premios por consumo). Si alguna aplica, se refleja sola:
 ```
 
 Si la promoción otorga un **premio gratis**, `promo` incluirá además
-`reward_name` y `redemption_code` (un `TK-XXXXXX`). Ese código puede
-imprimirse en el ticket: el cliente lo presenta para retirar su premio.
+`reward_name` y `redemption_code` (un `TK-XXXXXX`). No hace falta imprimir
+nada: el cliente recibe el premio **en su app** (con su QR) y lo reclama
+cuando quiera con el flujo de entrega (§5.4). El POS puede mostrar el nombre
+del premio en pantalla como cortesía.
+
+Recuerden la regla de impresión (§1): **acumular puntos no genera ningún
+impreso**.
 
 #### Idempotencia (importante)
 
@@ -340,10 +356,14 @@ el dato y reintentar con la misma.
 
 ---
 
-### 5.4 `GET /v1/redemptions` — comprobante de premio
+### 5.4 `GET` + `POST /v1/redemptions` — entrega de premios
 
-Para el botón de la pantalla de inicio. Escanean el QR del premio y obtienen
-los datos a imprimir.
+El flujo de entrega **completo se opera desde PROPER**. La única salvaguarda
+que se conserva del programa es que **el cliente confirma la entrega en su
+teléfono** — eso evita que un premio se marque como entregado sin que el
+cliente esté presente.
+
+#### a) Consultar un canje (por el QR del premio)
 
 ```bash
 curl -X GET "https://puntosplus.vercel.app/api/v1/redemptions?code=TK-3F9A2C" \
@@ -367,13 +387,99 @@ curl -X GET "https://puntosplus.vercel.app/api/v1/redemptions?code=TK-3F9A2C" \
 }
 ```
 
-**Esta llamada no cambia el estado del canje** — solo entrega los datos. La
-entrega se confirma como hasta ahora: el operador la solicita desde la app de
-Puntos Plus y **el cliente la aprueba en su teléfono**. Es una salvaguarda del
-programa y se mantiene igual.
+No cambia el estado. `confirm_status` sirve además como **poll** durante la
+espera de confirmación (ver c). Si `delivered` viene en `true`, el premio ya
+fue entregado antes.
 
-Si `delivered` viene en `true`, el premio ya fue entregado antes: conviene
-advertirlo antes de imprimir de nuevo.
+#### b) Alternativa: por la tarjeta del cliente
+
+Si el cliente no tiene a mano el QR del premio, escaneen (o escriban) su
+tarjeta para listar sus canjes pendientes de entrega:
+
+```bash
+curl -X GET "https://puntosplus.vercel.app/api/v1/redemptions?card_code=CTOD-00042" \
+  -H "Authorization: Bearer pp_live_..."
+```
+
+```json
+{
+  "ok": true,
+  "member_name": "Alexander Sut",
+  "card_code": "CTOD-00042",
+  "pending": [
+    { "code": "TK-3F9A2C", "reward_name": "Lavado de vehículo",
+      "category": "servicio", "points_spent": 150,
+      "created_at": "2026-07-28T18:22:10.000Z", "confirm_status": "none" }
+  ]
+}
+```
+
+#### c) Pedir la confirmación al cliente
+
+```bash
+curl -X POST "https://puntosplus.vercel.app/api/v1/redemptions" \
+  -H "Authorization: Bearer pp_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "code": "TK-3F9A2C",
+    "action": "request",
+    "operator": { "external_id": "EMP-0147", "name": "María Tzoc" }
+  }'
+```
+
+```json
+{ "ok": true, "status": "pending", "code": "TK-3F9A2C",
+  "reward_name": "Lavado de vehículo", "member_name": "Alexander Sut",
+  "reward_icon": "🚿", "points_spent": 150 }
+```
+
+Al cliente **le aparece la solicitud en su app al instante** (si la tenía
+cerrada, la ve al abrirla). El POS queda esperando: hagan **poll** con la
+llamada (a) cada 2 segundos hasta que `confirm_status` sea:
+
+| `confirm_status` | Significa | Qué hace el POS |
+|---|---|---|
+| `pending` | El cliente aún no responde | Seguir esperando |
+| `confirmed` | El cliente confirmó | Llamar `deliver` (d) |
+| `cancelled` | El cliente rechazó | Mostrar aviso y terminar |
+
+Si el cliente no responde (recomendamos ~60 s de espera) o el colaborador
+desiste, envíen `{"code": "...", "action": "cancel"}` — eso cierra también la
+solicitud en el teléfono del cliente.
+
+#### d) Entregar e imprimir
+
+Con la confirmación del cliente:
+
+```bash
+curl -X POST "https://puntosplus.vercel.app/api/v1/redemptions" \
+  -H "Authorization: Bearer pp_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "code": "TK-3F9A2C",
+    "action": "deliver",
+    "operator": { "external_id": "EMP-0147", "name": "María Tzoc" }
+  }'
+```
+
+```json
+{
+  "ok": true,
+  "status": "delivered",
+  "code": "TK-3F9A2C",
+  "reward_name": "Lavado de vehículo",
+  "category": "servicio",
+  "points_spent": 150,
+  "member_name": "Alexander Sut",
+  "redeemed_at": "2026-07-28T18:22:10.000Z",
+  "delivered_at": "2026-07-30T15:40:03.000Z"
+}
+```
+
+Esa respuesta es el **payload del comprobante**: con ella el POS imprime.
+La entrega es atómica y queda atribuida al colaborador: si el cliente no
+había confirmado devuelve `422 not_confirmed`, y si el premio ya se entregó
+devuelve `409 already_delivered` — imposible entregar dos veces.
 
 ---
 
@@ -403,6 +509,9 @@ mostrar al colaborador.
 | 422 | `invalid_fuel_type` | Distinto de `super`, `regular`, `diesel` |
 | 422 | `unknown_station` | No se pudo resolver la estación del colaborador (§3.4) |
 | 422 | `missing_operator` | Falta el identificador del colaborador |
+| 400 | `invalid_action` | `action` distinto de `request`, `cancel`, `deliver` |
+| 409 | `already_delivered` | El premio ya fue entregado — no se entrega dos veces |
+| 422 | `not_confirmed` | El cliente aún no confirmó la entrega en su app (§5.4) |
 | 405 | `method_not_allowed` | Método HTTP incorrecto |
 | 500 | `server_error` | Error nuestro — reintentar en unos segundos |
 
@@ -431,16 +540,23 @@ Del lado del cliente todo sigue igual: **recibe una notificación** en su
 teléfono con los puntos acreditados y, si tiene la app abierta, ve el saldo
 actualizarse al instante y puede calificar la atención.
 
-### 7.2 Comprobante de premio
+### 7.2 Entrega de un premio
 
 ```
 1. El cliente llega con su premio canjeado en la app
-2. Pantalla de inicio de PROPER → "Comprobante de premio"
-3. Escanea el QR del premio                   → TK-3F9A2C
-4. GET /v1/redemptions?code=TK-3F9A2C
-5. El POS imprime el comprobante
-6. La entrega se confirma en la app de Puntos Plus (cliente + operador)
+2. Pantalla de inicio de PROPER → "Entregar premio"
+3. Escanea el QR del premio (TK-3F9A2C) o la tarjeta del cliente
+   (CTOD-00042 → lista de pendientes) — o escribe el código a mano
+4. POST /v1/redemptions {action: "request"}   → solicitud enviada
+5. Al cliente le aparece la solicitud EN SU TELÉFONO y confirma
+6. El POS hace poll: GET ?code=... hasta confirm_status = "confirmed"
+   (si el cliente rechaza o pasan ~60 s → {action: "cancel"} y terminar)
+7. POST /v1/redemptions {action: "deliver"}   → entrega atribuida
+8. El POS imprime el comprobante con la respuesta del deliver
 ```
+
+La confirmación del cliente en su propio teléfono es la salvaguarda del
+programa: sin ella el `deliver` no procede.
 
 ---
 
@@ -466,6 +582,12 @@ Sugerimos validar estos casos:
 - [ ] QR inválido o tarjeta inexistente → error claro
 - [ ] Compra que sube de nivel → `tier_changed: true`
 - [ ] Consulta de un canje ya entregado → `delivered: true`
+- [ ] **Entrega completa**: request → el cliente confirma en su app → poll da `confirmed` → deliver → imprime
+- [ ] Cliente **rechaza** la solicitud → poll da `cancelled`
+- [ ] `deliver` sin confirmación previa → `422 not_confirmed`
+- [ ] `deliver` de un premio ya entregado → `409 already_delivered`
+- [ ] Pendientes por tarjeta (`?card_code=`) → lista correcta
+- [ ] Código escrito a mano (sin escáner) → mismo resultado que el QR
 
 ---
 
