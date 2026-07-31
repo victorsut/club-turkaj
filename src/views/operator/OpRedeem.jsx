@@ -22,7 +22,8 @@ function utcToLocal(isoString) {
 
 export default function OpRedeem(ctx) {
   const { custs, rewards, gT, fire, sbConnected,
-    redeemedList, setRedeemedList, logActivity, loggedOp, opRedeemScan, setOpRedeemScan } = ctx;
+    redeemedList, setRedeemedList, logActivity, loggedOp, opRedeemScan, setOpRedeemScan,
+    addMemberToCusts } = ctx;
 
   const [client, setClient]             = useState(null);
   const [scanning, setScanning]         = useState(false);
@@ -128,7 +129,10 @@ export default function OpRedeem(ctx) {
     if (error) { fire('Error: ' + error); return; }
     if (!data) { fire('Canje no encontrado: ' + code); return; }
     if (data.collected) { fire('Este canje ya fue entregado'); return; }
-    const cust = custs.find(c => c.id === data.member_id);
+    // Miembro recién registrado fuera de la caché local → traer su
+    // ficha y sumarla a custs en el momento (mismo fix del escaneo).
+    const cust = custs.find(c => c.id === data.member_id)
+      || await addMemberToCusts?.(data.member_id);
     if (!cust) { fire('No se encontro al cliente de este canje'); return; }
     setConfirmClient(cust);
     setConfirmItem({
@@ -137,7 +141,7 @@ export default function OpRedeem(ctx) {
       cost: data.points_spent, date: utcToLocal(data.created_at) || '',
       code: data.redemption_code, collected: false,
     });
-  }, [sbConnected, custs, fire]);
+  }, [sbConnected, custs, fire, addMemberToCusts]);
 
   const handleScan = useCallback(async (code) => {
     setScanning(false);
@@ -160,11 +164,15 @@ export default function OpRedeem(ctx) {
     // miembro se busca por su id.
     if (sb && sbConnected) {
       const { data } = await resolveCardStaff(raw.toUpperCase());
-      const byId = data?.id ? custs.find(c => c.id === data.id) : null;
+      // Miembro recién registrado fuera de la caché local → traer su
+      // ficha y sumarla a custs en el momento.
+      const byId = data?.id
+        ? (custs.find(c => c.id === data.id) || await addMemberToCusts?.(data.id))
+        : null;
       if (byId) { fire('OK ' + byId.name); loadPending(byId); return; }
     }
     fire('Miembro no encontrado para: ' + raw);
-  }, [custs, fire, loadPending, loadFromRedemption, sbConnected]);
+  }, [custs, fire, loadPending, loadFromRedemption, sbConnected, addMemberToCusts]);
 
   // ── Canal BROADCAST del aviso de confirmación (SEC.C.2b) ──
   // La entrega del UPDATE por postgres_changes con las policies de

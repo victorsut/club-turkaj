@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { sb } from '../lib/supabaseClient';
 import { makeTier, daysInactive } from '../lib/tierSystem';
 import { CFG_INIT, FUEL_LABELS } from '../constants/config';
-import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey, grantSpecialDayBonus, fetchPurchasePromo, fetchNotifications, markNotificationsRead, createMemberSessionOauth, getMyMember, logoutMember, fetchMembersFull, fetchMyActivity, fetchMyRedemptions, fetchActivityStaff, fetchRaffleParticipants, fetchMemberStations, respondRedemptionConfirm, countMySurveysToday, markRaffleWinnerSeen } from '../services';
+import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey, grantSpecialDayBonus, fetchPurchasePromo, fetchNotifications, markNotificationsRead, createMemberSessionOauth, getMyMember, logoutMember, fetchMembersFull, fetchMemberFull, fetchMyActivity, fetchMyRedemptions, fetchActivityStaff, fetchRaffleParticipants, fetchMemberStations, respondRedemptionConfirm, countMySurveysToday, markRaffleWinnerSeen } from '../services';
 import { logoutOperator, logoutAdmin, fetchOperatorsFull } from '../services'; // SEC.B.4: logout delega el subconjunto de localStorage (ct_op/ct_admin + token de rol)
 import { getOperatorToken, getAdminToken, getMemberToken } from '../services/sessionTokens'; // SEC.B.6.4 + SEC.C.1
 import { mapMember } from '../hooks/useSupabaseData'; // SEC.C.1: mapeo del perfil de RPC
@@ -85,6 +85,29 @@ import AuditLog from './admin/AuditLog';
 import VehiclesSoon from './client/VehiclesSoon';
 import { originFromEvent } from '../lib/motionOrigin';
 import { isPushSupported, subscribePush, sendPushToMember } from '../lib/pushNotifications';
+
+// Ficha completa (list_members_full / get_member_full) → fila de custs.
+// Fuente única del shape: la usan la carga masiva del login de staff y
+// addMemberToCusts (alta en vivo de miembros recién registrados).
+function mapFullMember(m) {
+  return {
+    id: m.id, name: m.name, email: m.email || '', avatar: m.avatar_url || '',
+    phone: m.phone || '', dpi: m.dpi || '', plate: m.plate || '',
+    vehicles: (() => { const v = m.vehicles; if (!v) return []; if (Array.isArray(v)) return v; if (typeof v === 'object') return Object.values(v); try { return JSON.parse(v); } catch { return []; } })(),
+    nit: m.nit || '', bday: m.birthday || '',
+    address: m.address || null,
+    points: m.points || 0, gallons: parseFloat(m.gallons) || 0,
+    spent: parseFloat(m.spent) || 0, visits: m.visits || 0,
+    tickets: m.tickets || 0, redeemed: m.redeemed_count || 0,
+    referrals: m.referral_count || 0,
+    registered: utcToLocal(m.created_at) || '',
+    lastBuy: utcToLocal(m.last_buy) || '',
+    station: m.last_station || '',
+    cardId: m.card_code || m.card_id || '',
+    supabaseUser: true, authProvider: m.auth_provider || 'google',
+    authProviderId: m.auth_provider_id || '',
+  };
+}
 
 export default function App() {
   // ===== ROLE & NAVIGATION =====
@@ -716,23 +739,7 @@ export default function App() {
     custsFullRef.current = true;
     fetchMembersFull(tok.token, role).then(rows => {
       if (rows.length > 0) {
-        setCusts(rows.map(m => ({
-          id: m.id, name: m.name, email: m.email || '', avatar: m.avatar_url || '',
-          phone: m.phone || '', dpi: m.dpi || '', plate: m.plate || '',
-          vehicles: (() => { const v = m.vehicles; if (!v) return []; if (Array.isArray(v)) return v; if (typeof v === 'object') return Object.values(v); try { return JSON.parse(v); } catch { return []; } })(),
-          nit: m.nit || '', bday: m.birthday || '',
-          address: m.address || null,
-          points: m.points || 0, gallons: parseFloat(m.gallons) || 0,
-          spent: parseFloat(m.spent) || 0, visits: m.visits || 0,
-          tickets: m.tickets || 0, redeemed: m.redeemed_count || 0,
-          referrals: m.referral_count || 0,
-          registered: utcToLocal(m.created_at) || '',
-          lastBuy: utcToLocal(m.last_buy) || '',
-          station: m.last_station || '',
-          cardId: m.card_code || m.card_id || '',
-          supabaseUser: true, authProvider: m.auth_provider || 'google',
-          authProviderId: m.auth_provider_id || '',
-        })));
+        setCusts(rows.map(mapFullMember));
         console.log('[Puntos Plus] ✅ Fichas completas cargadas:', rows.length);
       } else {
         custsFullRef.current = false; // token vencido u error: reintentar
@@ -741,6 +748,30 @@ export default function App() {
         if (bootCustsRef.current) setCusts(p => (p.length ? p : bootCustsRef.current));
       }
     });
+  }, [authOp, authAdmin]);
+
+  // Miembro RECIÉN registrado → traer su ficha completa y sumarla a
+  // custs sin recargar (reporte del dueño 31-jul: el escaneo del QR de
+  // un cliente nuevo fallaba hasta recargar la app del operador). La
+  // usan el evento INSERT del canal realtime y el fallback del escaneo
+  // (auto-reparación si el realtime no propagó). Devuelve la fila
+  // mapeada o null.
+  const addMemberToCusts = useCallback(async (memberId) => {
+    if (authOp !== 'logged' && authAdmin !== 'logged') return null;
+    const role = authAdmin === 'logged' ? 'admin' : 'operator';
+    const tok = role === 'admin' ? getAdminToken() : getOperatorToken();
+    if (!tok?.token || !memberId) return null;
+    const m = await fetchMemberFull(tok.token, role, memberId);
+    if (!m?.id) return null;
+    const row = mapFullMember(m);
+    setCusts(p => {
+      const i = p.findIndex(c => c.id === row.id);
+      if (i < 0) return [...p, row];
+      const next = [...p];
+      next[i] = { ...next[i], ...row };
+      return next;
+    });
+    return row;
   }, [authOp, authAdmin]);
 
   // ===== SEC.C.2: ACTIVIDAD GLOBAL PARA STAFF =====
@@ -936,9 +967,15 @@ export default function App() {
           station: m.last_station || c.station,
         } : c));
       })
+      // Registro NUEVO: el payload trae solo columnas abiertas (sin el
+      // código CT de la tarjeta) → la ficha completa se pide por RPC.
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'members' }, (payload) => {
+        const id = payload.new?.id;
+        if (id) addMemberToCusts(id);
+      })
       .subscribe();
     return () => sb.removeChannel(ch);
-  }, [authOp, authAdmin, sbConnected]);
+  }, [authOp, authAdmin, sbConnected, addMemberToCusts]);
 
   // ===== SEC.C.1: REHIDRATAR/VALIDAR la sesión de miembro al abrir =====
   // ct_me es solo caché: si hay token, el servidor devuelve el perfil
@@ -1741,7 +1778,7 @@ export default function App() {
     adLoginDpi, setAdLoginDpi, adLoginGafete, setAdLoginGafete,
     adLoginEmail, setAdLoginEmail, adLoginPass, setAdLoginPass,
     // Helpers
-    gT, cTier, TH, curMonth, fire,
+    gT, cTier, TH, curMonth, fire, addMemberToCusts,
     dark, uiMode, setUiMode,
     sbConnected, sbLoading,
     logActivity,

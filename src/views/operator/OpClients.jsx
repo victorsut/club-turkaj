@@ -10,7 +10,7 @@ import { parseCardCode } from '../../lib/cardCodes';
 import { resolveCardStaff } from '../../services/secureReads';
 
 export default function OpClients(ctx) {
-  const { custs, gT, cfg, fire, opScanMode, setOpScanMode, setPurchaseConfirm, sbConnected } = ctx;
+  const { custs, gT, cfg, fire, opScanMode, setOpScanMode, setPurchaseConfirm, sbConnected, addMemberToCusts } = ctx;
   const [q, setQ] = useState('');
   const [sel, setSel] = useState(null);
   const [amt, setAmt] = useState('');
@@ -86,16 +86,19 @@ export default function OpClients(ctx) {
         fire(`✓ ${inCusts.name}`);
         return;
       }
-      // Miembro encontrado en Supabase pero NO está en cache local
-      // todavía (creado en otro dispositivo, realtime aún sin propagar).
-      // No seteamos sel porque selClient = custs.find(c => c.id === sel)
-      // devolvería undefined y la UI quedaría en blanco. En lugar de
-      // eso, damos al operador una salida accionable: buscar por
-      // nombre (funciona ya) o reintentar el QR en unos segundos
-      // cuando el realtime propague.
+      // Miembro recién registrado, aún fuera de la caché local: traer
+      // su ficha completa y sumarla a custs en el momento (antes solo
+      // se sugería reintentar y el operador quedaba varado hasta
+      // recargar la app).
+      const row = await addMemberToCusts?.(data.id);
+      if (row) {
+        setSel(row.id);
+        fire(`✓ ${row.name}`);
+        return;
+      }
       fire(`${data.name} encontrado. Buscalo por nombre o reintentá el QR en 5 segundos.`);
     }
-  }, [custs, fire, sbConnected]);
+  }, [custs, fire, sbConnected, addMemberToCusts]);
 
   // Abre el modal a nivel raíz (escapa el overflow:hidden del contenedor)
   const handlePurchaseClick = () => {
