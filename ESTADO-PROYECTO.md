@@ -16,7 +16,7 @@
 ## Stack Técnico
 - **Frontend:** React 18 (JSX), Vite 6
 - **Backend:** Supabase (PostgreSQL + Auth + Realtime + RLS)
-- **Deploy:** GitHub (`victorsut/puntos-plus`) → Vercel (`puntos-plus.vercel.app`)
+- **Deploy:** GitHub (`victorsut/puntos-plus`) → Vercel (`puntosplus.vercel.app` — sin guión)
 - **Dependencias:** `react`, `react-dom`, `@supabase/supabase-js`, `html5-qrcode`, `web-push`
 
 ---
@@ -93,9 +93,9 @@ puntos-plus/
 ---
 
 ## Acceso por URL (Sin switcher visible)
-- **Miembro:** `puntos-plus.vercel.app` (Google OAuth)
-- **Operador:** `puntos-plus.vercel.app/?rol=operador`
-- **Admin:** `puntos-plus.vercel.app/?rol=admin`
+- **Miembro:** `puntosplus.vercel.app` (Google OAuth)
+- **Operador:** `puntosplus.vercel.app/?rol=operador`
+- **Admin:** `puntosplus.vercel.app/?rol=admin`
 
 ---
 
