@@ -1,6 +1,6 @@
 # API de integración Puntos Plus ⇄ PROPER
 
-**Versión del documento:** 1.3 · 30 de julio de 2026
+**Versión del documento:** 1.3 · 31 de julio de 2026 (ambiente de pruebas con datos reales)
 **Estado:** propuesta técnica para revisión de PROPER
 **Contacto:** Puntos Plus — Gasolineras Turkaj, Chichicastenango
 
@@ -562,12 +562,30 @@ programa: sin ella el `deliver` no procede.
 
 ## 8. Ambiente de pruebas
 
-Antes de producción les damos:
+Antes de producción les damos una **API key de pruebas** (se entrega por
+canal seguro, junto con la definitiva) y estas **cuentas ficticias** ya
+creadas, con las que validamos nosotros mismos todos los casos del plan:
 
-- una **API key de pruebas** con acceso a datos ficticios,
-- 2–3 **tarjetas de prueba** (una con NIT registrado y otra sin él) para
-  validar los dos caminos de la regla de NIT,
-- un **canje de prueba** con su código `TK-` para el comprobante.
+| | Cliente Prueba 1 | Cliente Prueba 2 |
+|---|---|---|
+| **Tarjeta (QR)** | `CTOD-95176` | `CTOD-93935` |
+| **NIT registrado** | No tiene — solo acumula con `CF` | `12345678` (ficticio) — acumula con `CF` o ese NIT |
+| **Uso sugerido** | Camino `nit_not_registered` | Caminos `nit_mismatch` / NIT propio |
+
+Ambas cuentas tienen **canjes pendientes de entrega** para probar el flujo
+de premios (consulta, request/cancel/deliver e impresión del comprobante):
+
+- `CTOD-95176`: `TK-54C5E8`, `TK-95A8B3`, `TK-5C06D7`, `TK-991C1C` (y más)
+- `CTOD-93935`: `TK-68E982`, `TK-9BA228`, `TK-C707BE`, `TK-BDAED6` (y más)
+
+La lista viva siempre puede consultarse con
+`GET /v1/redemptions?card_code=…` — cada `deliver` exitoso consume un
+código, así que esa consulta es la fuente de verdad.
+
+> **Para probar `deliver`:** la entrega exige que el cliente confirme en su
+> teléfono. Los teléfonos de estas cuentas de prueba los operamos nosotros —
+> coordinen con nosotros por el canal acordado y confirmamos en el momento
+> (para `request`, `cancel` y el poll no hace falta coordinación).
 
 Sugerimos validar estos casos:
 
