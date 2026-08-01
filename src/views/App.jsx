@@ -58,6 +58,7 @@ import AdminLogin from './admin/AdminLogin';
 
 // Client Views
 import ClientHome from './client/ClientHome';
+import CompanySelect from './client/CompanySelect';
 import Catalog from './shared/Catalog';
 import ClientRaffle from './client/ClientRaffle';
 import Rules from './shared/Rules';
@@ -143,6 +144,11 @@ export default function App() {
 
   const [authScreen, setAuthScreen] = useState(savedMe?.id ? 'logged' : 'login');
   const [me, setMe]                 = useState(savedMe);
+  // Selector de empresa (1-ago-2026): al entrar como cliente se elige la
+  // empresa ANTES del inicio (hoy solo Gasolineras Turkaj — preparación
+  // por posibles requerimientos del dueño). Estado en memoria: se vuelve
+  // a pedir en cada apertura de la app y tras cada login.
+  const [companyPicked, setCompanyPicked] = useState(false);
 
   // ===== MODO CLARO / OSCURO (24-jul-2026) =====
   // '' = sin elección → modo efectivo por nivel (BLACK oscuro, resto
@@ -1649,6 +1655,7 @@ export default function App() {
     if (isC) {
       logoutMember(); // SEC.C.1: revoca member_sessions y limpia el token
       localStorage.removeItem('ct_me'); setAuthScreen('login'); setCScr('home');
+      setCompanyPicked(false); // el selector de empresa se pide de nuevo
       setLoginPhone(''); setLoginPass(''); setMe(null);
       setAuthError(''); fire('👋 Sesión cerrada');
     }
@@ -1856,7 +1863,8 @@ export default function App() {
       return <OpHome {...ctx} />;
     }
 
-    // Client screens
+    // Client screens — el selector de empresa antecede al inicio
+    if (!companyPicked) return <CompanySelect dark={dark} onPick={() => setCompanyPicked(true)} />;
     if (cScr === 'cat') return <Catalog {...ctx} client={true} />;
     if (cScr === 'promos') return <ClientPromos {...ctx} />;
     if (cScr === 'raf') return <ClientRaffle {...ctx} />;
@@ -1905,7 +1913,7 @@ export default function App() {
         {isC && authScreen === 'logged'
           ? (
             <div
-              key={cScr}
+              key={companyPicked ? cScr : 'company'}
               className="pp-screen"
               style={{ position: 'relative', transformOrigin: navOrigin ? `${navOrigin.x}px ${navOrigin.y}px` : '50% 85%' }}
             >
@@ -1914,8 +1922,8 @@ export default function App() {
           )
           : renderScreen()}
 
-        {/* Bottom navigation */}
-        {isLoggedIn && (
+        {/* Bottom navigation — el cliente no la ve hasta elegir empresa */}
+        {isLoggedIn && (!isC || companyPicked) && (
           <BottomNav items={nav} current={cur} onSelect={handleNav} view={view} tierName={cTier.name} dark={dark} />
         )}
       </div>

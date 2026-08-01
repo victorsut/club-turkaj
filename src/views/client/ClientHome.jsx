@@ -127,6 +127,11 @@ export default function ClientHome(ctx) {
   const headerTxt = dark ? '#fff' : '#0D0D0D';
   // Línea institucional bajo el saludo (referencia encabezado inicio)
   const taglineFg = dark ? 'rgba(255,255,255,.55)' : '#6E6E73';
+  // Halo sutil del logo Turkaj en modo oscuro: separa los contornos
+  // negros del arte del fondo (pedido del dueño 1-ago)
+  const turkajHalo = dark
+    ? 'drop-shadow(0 0 5px rgba(255,255,255,.4)) drop-shadow(0 0 16px rgba(255,255,255,.18))'
+    : 'none';
   // Pantallas cortas: tipografías y paddings compactos para caber sin scroll.
   const shortScr = useShortScreen();
   const firstName = (me.name || '').trim().split(' ')[0] || 'cliente';
@@ -281,7 +286,7 @@ export default function ClientHome(ctx) {
                 <Menu />
               </button>
             </div>
-            <img src="/logo-turkaj.png" alt="Turkaj" style={{ width: 82, marginTop: 2 }} />
+            <img src="/logo-turkaj.png" alt="Turkaj" style={{ width: 82, marginTop: 2, filter: turkajHalo }} />
           </div>
         </div>
       ) : (
@@ -312,7 +317,7 @@ export default function ClientHome(ctx) {
             </div>
             {/* Logo Turkaj a la derecha del saludo (referencia encabezado
                 inicio) — uso interno; la app conserva su logo Puntos Plus */}
-            <img src="/logo-turkaj.png" alt="Turkaj" style={{ width: 106, flexShrink: 0 }} />
+            <img src="/logo-turkaj.png" alt="Turkaj" style={{ width: 106, flexShrink: 0, filter: turkajHalo }} />
           </div>
         </>
       )}
