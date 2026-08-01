@@ -64,8 +64,11 @@ export default function ClientRaffle(ctx) {
 
   const myTickets = parts.find(p => p.cid === me.id)?.tickets || 0;
   const totalTickets = parts.reduce((s, p) => s + p.tickets, 0);
+  // 1-ago: el ganador se anuncia con su APODO (display_name de la lista
+  // de participantes); custs queda como fallback de datos viejos.
   const winnerName = rm.winnerId
-    ? ((custs || []).find(c => c.id === rm.winnerId)?.name || 'Ganador')
+    ? (parts.find(p => p.cid === rm.winnerId)?.name
+        || (custs || []).find(c => c.id === rm.winnerId)?.name || 'Ganador')
     : null;
   const PrizeIcon = rewardIconFor({ name: rm.name || '', icon: rm.icon || '' });
 
@@ -216,14 +219,18 @@ export default function ClientRaffle(ctx) {
                   display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
                   borderBottom: i < arr.length - 1 ? `1px solid ${rowLine}` : 'none',
                 }}>
+                  {/* Avatar pequeño (1-ago): la foto de perfil identifica
+                      al participante; sin foto, la inicial del apodo */}
                   <div style={{
-                    width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+                    width: 30, height: 30, borderRadius: '50%', flexShrink: 0, overflow: 'hidden',
                     background: isMe ? BRAND_ORANGE : (dark ? 'rgba(255,255,255,.1)' : '#E5E5EA'),
                     color: isMe ? '#fff' : subTxt,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 12, fontWeight: 800,
                   }}>
-                    {(p.name || '?').trim().charAt(0).toUpperCase()}
+                    {p.avatar
+                      ? <img src={p.avatar} alt="" referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : (p.name || '?').trim().charAt(0).toUpperCase()}
                   </div>
                   <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{
@@ -243,10 +250,14 @@ export default function ClientRaffle(ctx) {
                       </span>
                     )}
                   </div>
-                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: headerTxt }}>{p.tickets}</div>
-                    <div style={{ fontSize: 9, color: subTxt, fontWeight: 700, letterSpacing: 0.5 }}>BOLETOS</div>
-                  </div>
+                  {/* Boletos: SOLO los propios (1-ago) — los totales de los
+                      demás participantes ya no se muestran */}
+                  {isMe && (
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ fontSize: 15, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: headerTxt }}>{p.tickets}</div>
+                      <div style={{ fontSize: 9, color: subTxt, fontWeight: 700, letterSpacing: 0.5 }}>BOLETOS</div>
+                    </div>
+                  )}
                 </div>
               );
             })}

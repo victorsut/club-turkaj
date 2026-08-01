@@ -25,6 +25,7 @@ export function mapMember(m) {
   return {
     id: m.id,
     name: m.name,
+    nickname: m.nickname || '',
     email: m.email || '',
     avatar: m.avatar_url || '',
     phone: m.phone || '',

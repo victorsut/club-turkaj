@@ -92,7 +92,7 @@ import { isPushSupported, subscribePush, sendPushToMember } from '../lib/pushNot
 // addMemberToCusts (alta en vivo de miembros recién registrados).
 function mapFullMember(m) {
   return {
-    id: m.id, name: m.name, email: m.email || '', avatar: m.avatar_url || '',
+    id: m.id, name: m.name, nickname: m.nickname || '', email: m.email || '', avatar: m.avatar_url || '',
     phone: m.phone || '', dpi: m.dpi || '', plate: m.plate || '',
     vehicles: (() => { const v = m.vehicles; if (!v) return []; if (Array.isArray(v)) return v; if (typeof v === 'object') return Object.values(v); try { return JSON.parse(v); } catch { return []; } })(),
     nit: m.nit || '', bday: m.birthday || '',
@@ -668,7 +668,7 @@ export default function App() {
       return {
         // avatar: la BD manda — puede tener la foto PERSONALIZADA de Mi
         // Cuenta; la de Google solo es fallback (1-ago)
-        id: m.id, name: m.name, email: m.email || email, avatar: m.avatar_url || avatar || '',
+        id: m.id, name: m.name, nickname: m.nickname || '', email: m.email || email, avatar: m.avatar_url || avatar || '',
         phone: m.phone || '', dpi: m.dpi || '', plate: m.plate || '',
         nit: m.nit || '', bday: m.birthday || '',
         address: m.address || null,
@@ -853,7 +853,9 @@ export default function App() {
       rows.forEach(e => {
         const month = idToMonth[e.raffle_id];
         if (month === undefined) return;
-        rafMap[month].participants.push({ cid: e.member_id, name: e.name || 'Miembro', tickets: e.tickets || 1 });
+        // display_name = apodo o primer nombre (1-ago: la rifa ya no
+        // muestra nombres reales); avatar para la lista de participantes
+        rafMap[month].participants.push({ cid: e.member_id, name: e.display_name || e.name || 'Miembro', avatar: e.avatar_url || '', tickets: e.tickets || 1 });
       });
       setRafData(rafMap);
       console.log('[Raffle] ✅ rafData listo:', rows.length, 'participantes');
@@ -1582,7 +1584,7 @@ export default function App() {
       const ps = [...rd.participants];
       const ex = ps.findIndex(p2 => p2.cid === me.id);
       if (ex >= 0) ps[ex] = { ...ps[ex], tickets: ps[ex].tickets + tickets };
-      else ps.push({ cid: me.id, name: me.name, tickets });
+      else ps.push({ cid: me.id, name: me.nickname || (me.name || '').split(' ')[0], avatar: me.avatar || '', tickets });
       return { ...rd, participants: ps };
     }));
 
@@ -1622,7 +1624,7 @@ export default function App() {
         const ps = [...rd.participants];
         const ex = ps.findIndex(p2 => p2.cid === me.id);
         if (ex >= 0) ps[ex] = { ...ps[ex], tickets: ps[ex].tickets + 1 };
-        else ps.push({ cid: me.id, name: me.name, tickets: 1 });
+        else ps.push({ cid: me.id, name: me.nickname || (me.name || '').split(' ')[0], avatar: me.avatar || '', tickets: 1 });
         return { ...rd, participants: ps };
       }));
       fire(`+${pts} pts · ¡Bonus! ${count}/${limit} encuestas = 1 boleto de rifa gratis`, 'success');

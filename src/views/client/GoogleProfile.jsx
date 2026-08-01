@@ -93,7 +93,7 @@ export default function GoogleProfile(ctx) {
       // Dirección solo si está completa (los preseleccionados sin cantón no se guardan)
       const addressStored = packAddress(addr);
 
-      const updated = { ...me, name: regProfile.name, phone: regProfile.phone || '', dpi: regProfile.dpi || '', plate: firstPlate, email: regProfile.email || me?.email || '', bday: bdayStored, nit: regProfile.nit || '', address: addressStored, points: totalPts, cardId: fallbackCard };
+      const updated = { ...me, name: regProfile.name, nickname: regProfile.nickname?.trim() || '', phone: regProfile.phone || '', dpi: regProfile.dpi || '', plate: firstPlate, email: regProfile.email || me?.email || '', bday: bdayStored, nit: regProfile.nit || '', address: addressStored, points: totalPts, cardId: fallbackCard };
       setMe(updated);
       setCusts(p => [...p, updated]);
       setAuthScreen('logged');
@@ -142,7 +142,16 @@ export default function GoogleProfile(ctx) {
         if (reg?.error) { setAuthError(reg.error); setSaving(false); return; }
 
         setMemberToken({ token: reg.session_token, expiresAt: reg.session_expires_at });
-        setMe(mapMember(reg.member));
+        // Apodo (1-ago): register_member no lo recibe — se guarda con la
+        // sesión recién emitida vía update_my_profile (whitelist nickname).
+        const nick = regProfile.nickname?.trim() || '';
+        if (nick) {
+          sb.rpc('update_my_profile', {
+            p_session_token: reg.session_token,
+            p_changes: { nickname: nick },
+          }).then(({ error }) => { if (error) console.error('[Reg] apodo:', error.message); });
+        }
+        setMe({ ...mapMember(reg.member), ...(nick ? { nickname: nick } : {}) });
         console.log('[Reg] Registro completado, ID:', reg.member_id, 'tarjeta:', reg.card_code);
       } else {
         console.warn('[Reg] Sin conexion a Supabase — registro solo en memoria');
@@ -163,6 +172,7 @@ export default function GoogleProfile(ctx) {
     const next = async () => {
       clearAuthErr();
       if (!regProfile.name?.trim())  { setAuthError('El nombre es obligatorio'); return; }
+      if (regProfile.nickname && regProfile.nickname.trim().length > 20) { setAuthError('El apodo no puede superar 20 caracteres'); return; }
       if (!regProfile.bday?.trim())  { setAuthError('La fecha de nacimiento es obligatoria'); return; }
       if (!regProfile.dpi?.trim())   { setAuthError('El DPI es obligatorio'); return; }
       if (!/^\d{13}$/.test(regProfile.dpi.trim())) { setAuthError('El DPI debe tener exactamente 13 digitos'); return; }
@@ -203,7 +213,19 @@ export default function GoogleProfile(ctx) {
         </div>
         {errBox}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-          <Field {...fieldProps} icon={<User />} placeholder="Nombre completo *" fieldKey="name" autoCap="words" transform={capWords} />
+          {/* 1-ago: nombre REAL — luego no se puede editar en la app */}
+          <div>
+            <Field {...fieldProps} icon={<User />} placeholder="Nombre real completo *" fieldKey="name" autoCap="words" transform={capWords} />
+            <div style={{ fontSize: 11, color: '#9E9E9E', marginTop: 5, paddingLeft: 4 }}>
+              Escribe tu nombre real — después no podrás cambiarlo en la app.
+            </div>
+          </div>
+          <div>
+            <Field {...fieldProps} icon={<User />} placeholder="Apodo (opcional)" fieldKey="nickname" autoCap="words" />
+            <div style={{ fontSize: 11, color: '#9E9E9E', marginTop: 5, paddingLeft: 4 }}>
+              Así te verán los demás participantes en la rifa. Podrás cambiarlo cuando quieras.
+            </div>
+          </div>
           <DateField
             value={regProfile.bday}
             onOpen={() => { setTempDate(regProfile.bday || '2000-01-01'); setShowDatePicker(true); }}

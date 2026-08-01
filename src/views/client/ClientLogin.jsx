@@ -117,7 +117,7 @@ export default function ClientLogin(ctx) {
       lastBuy: '', station: '', cardId: '',
       supabaseUser: false, authProvider: 'manual',
     });
-    setRegProfile({ name: '', dpi: '', plate: '', email: '', bday: '', nit: '', phone: '' });
+    setRegProfile({ name: '', nickname: '', dpi: '', plate: '', email: '', bday: '', nit: '', phone: '' });
     setGoogleStep('step1');
     setAuthError('');
     setAuthScreen('googleProfile');

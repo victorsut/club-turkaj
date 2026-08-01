@@ -39,7 +39,7 @@ export default function MenuAccount({ ctx, TH, onBack }) {
   const { me, setMe, fire, sbConnected } = ctx;
 
   const [form, setForm] = useState({
-    name: me?.name || '', phone: me?.phone || '', email: me?.email || '', nit: me?.nit || '', bday: '',
+    nickname: me?.nickname || '', phone: me?.phone || '', email: me?.email || '', nit: me?.nit || '', bday: '',
   });
   // Dirección en cascada (dep → muni → cantón); sin dato guardado
   // arranca con Quiché/Chichicastenango preseleccionados
@@ -117,14 +117,16 @@ export default function MenuAccount({ ctx, TH, onBack }) {
 
   // ── Guardar datos de cuenta ──────────────────────────────
   const saveAccount = async () => {
-    if (!form.name?.trim()) { fire('El nombre es obligatorio', 'error'); return; }
+    // 1-ago: el nombre REAL ya no es editable por el cliente — el
+    // sobrenombre visible es el APODO (nickname, máx 20).
+    if (form.nickname && form.nickname.trim().length > 20) { fire('El apodo no puede superar 20 caracteres', 'error'); return; }
     if (form.phone && !/^\d{8}$/.test(form.phone.trim())) { fire('El teléfono debe tener 8 dígitos', 'error'); return; }
     setSaving(true);
     // Completa = dep+muni (cantón solo exigible en Chichicastenango);
     // incompleta → null (no se inventan datos con los preseleccionados)
     const addressStored = packAddress(addr);
     const updates = {
-      name: form.name.trim(), phone: form.phone?.trim() || me.phone, email: form.email?.trim() || null, nit: form.nit?.trim() || null,
+      nickname: form.nickname?.trim() || null, phone: form.phone?.trim() || me.phone, email: form.email?.trim() || null, nit: form.nit?.trim() || null,
       address: addressStored,
       ...(form.bday ? { birthday: form.bday } : {}),
     };
@@ -234,7 +236,8 @@ export default function MenuAccount({ ctx, TH, onBack }) {
   };
 
   const editFields = [
-    { k: 'name',  l: 'Nombre completo',    icon: <User />,    autoCap: 'words', transform: capWords },
+    { k: 'nickname', l: 'Apodo', icon: <User />, autoCap: 'words', transform: capWords,
+      hint: 'Así te verán los demás participantes en la rifa' },
     { k: 'phone', l: 'Teléfono',           icon: <Phone />,   mask: phoneMask, inputMode: 'numeric' },
     { k: 'email', l: 'Correo electrónico', icon: <Mail />,    type: 'email' },
     { k: 'nit',   l: 'NIT',               icon: <Receipt /> },
@@ -259,6 +262,17 @@ export default function MenuAccount({ ctx, TH, onBack }) {
       {/* Foto de perfil editable (1-ago) — componente aparte */}
       <AvatarEditor ctx={{ me, setMe, fire, sbConnected }} TH={TH} />
 
+      {/* Nombre REAL: bloqueado como el DPI (1-ago) — solo el admin
+          puede corregirlo; el cliente personaliza su Apodo */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={label}>Nombre completo</div>
+        <div style={{ ...field, display: 'flex', alignItems: 'center', color: TH.sub, position: 'relative' }}>
+          <div style={iconL}><User /></div>
+          <span style={{ flex: 1 }}>{me?.name || '—'}</span>
+          <span style={{ display: 'flex', color: TH.sub, opacity: .6 }}><Lock /></span>
+        </div>
+      </div>
+
       {editFields.map(f => (
         <div key={f.k} style={{ marginBottom: 14 }}>
           <div style={label}>{f.l}</div>
@@ -275,6 +289,7 @@ export default function MenuAccount({ ctx, TH, onBack }) {
               style={field}
             />
           </div>
+          {f.hint && <div style={{ fontSize: 11, color: TH.sub, marginTop: 5 }}>{f.hint}</div>}
         </div>
       ))}
 
