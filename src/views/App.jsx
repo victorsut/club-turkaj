@@ -555,19 +555,22 @@ export default function App() {
           setRaffleCal(cal);
         }
 
-        // Load members — SEC.C.1: en el boot solo las columnas NO
-        // sensibles (la API abierta ya no expone PII ni hashes). Los
-        // nombres alimentan la rifa; operador/admin cargan la ficha
-        // completa vía list_members_full con SU sesión al loguearse.
+        // Load members — SEC.C.1/C.5: en el boot solo columnas NO
+        // sensibles; el NOMBRE también quedó fuera de la API abierta
+        // (1-ago — la rifa usa display_name del RPC de participantes).
+        // Operador/admin cargan la ficha completa (con nombres) vía
+        // list_members_full con SU sesión al loguearse.
         const memRes = await sb.from('members')
-          .select('id, name, points, gallons, spent, visits, tickets, redeemed_count, last_buy, last_station, card_id, created_at, updated_at')
+          .select('id, points, gallons, spent, visits, tickets, redeemed_count, last_buy, last_station, card_id, created_at, updated_at')
           .order('created_at', { ascending: false });
         if (memRes.error) console.error('[Puntos Plus] Error cargando miembros:', memRes.error);
         console.log('[Puntos Plus] Miembros encontrados:', memRes.data?.length || 0);
 
         function mapMember(m) {
           return {
-            id: m.id, name: m.name, email: m.email || '', avatar: m.avatar_url || '',
+            // SEC.C.5: el boot ya no trae name — queda '' hasta que la
+            // ficha completa del staff (list_members_full) lo llene
+            id: m.id, name: m.name || '', email: m.email || '', avatar: m.avatar_url || '',
             phone: m.phone || '', dpi: m.dpi || '', plate: m.plate || '',
             vehicles: (() => { const v = m.vehicles; if (!v) return []; if (Array.isArray(v)) return v; if (typeof v === 'object') return Object.values(v); try { return JSON.parse(v); } catch { return []; } })(),
             nit: m.nit || '', bday: m.birthday || '',
@@ -1151,7 +1154,7 @@ export default function App() {
       }, (payload) => {
         const m = payload.new;
         const prev = payload.old;
-        console.log('[Realtime] Member updated:', m.name, 'pts:', m.points, 'visits:', m.visits, 'op_id:', m.last_operator_id);
+        console.log('[Realtime] Member updated:', m.id, 'pts:', m.points, 'visits:', m.visits, 'op_id:', m.last_operator_id);
         setMe(p => ({
           ...p,
           points: m.points ?? p.points,

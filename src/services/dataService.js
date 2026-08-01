@@ -11,10 +11,11 @@ import { sb } from '../lib/supabaseClient';
 // MIEMBROS (members)
 // ──────────────────────────────────────────────
 export async function fetchMembers() {
-  // SEC.C.1: la API abierta solo expone columnas NO sensibles.
+  // SEC.C.1/C.5: la API abierta solo expone columnas NO sensibles —
+  // el nombre también quedó fuera (1-ago, privacidad entre clientes).
   const { data, error } = await sb
     .from('members')
-    .select('id, name, points, gallons, spent, visits, tickets, redeemed_count, last_buy, last_station, card_id, created_at, updated_at')
+    .select('id, points, gallons, spent, visits, tickets, redeemed_count, last_buy, last_station, card_id, created_at, updated_at')
     .order('created_at', { ascending: false });
   if (error) console.error('[Data:members]', error.message);
   return data || [];

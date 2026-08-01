@@ -13,7 +13,6 @@
 // ============================================================
 
 import { sb } from '../lib/supabaseClient';
-import { fetchMemberByAuthId, fetchMemberByEmail } from './dataService';
 import { setMemberToken, getMemberToken, clearMemberToken } from './sessionTokens';
 
 // ──────────────────────────────────────────────
@@ -107,24 +106,9 @@ export async function logoutMember() {
   clearMemberToken();
 }
 
-// ──────────────────────────────────────────────
-// RESOLVER USUARIO DE SESIÓN OAUTH
-// ──────────────────────────────────────────────
-// Busca si un usuario de Google/Apple ya tiene perfil en `members`
-export async function resolveOAuthUser(supabaseUser) {
-  if (!supabaseUser) return null;
-  // 1. Buscar por auth_provider_id
-  let member = await fetchMemberByAuthId(supabaseUser.id);
-  if (member) return member;
-  // 2. Fallback: buscar por email
-  const email = supabaseUser.email;
-  if (email) {
-    member = await fetchMemberByEmail(email);
-    if (member) return member;
-  }
-  // 3. No existe → es usuario nuevo
-  return null;
-}
+// (resolveOAuthUser se eliminó en SEC.C.5: sin llamadores, y roto
+// desde SEC.C.1 — hacía select * sobre members con PII revocada.
+// El vínculo OAuth real vive en create_member_session_oauth.)
 
 // ──────────────────────────────────────────────
 // SESIÓN / LOGOUT

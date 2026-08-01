@@ -1,0 +1,39 @@
+-- ============================================================
+-- Puntos Plus — SEC.C.5: members.name FUERA de la API abierta
+-- (1-ago-2026, pedido del dueño: "los nombres reales sí serán
+-- privados para los demás clientes")
+-- ============================================================
+-- SEC.C.1 dejó `name` legible por anon/authenticated porque la
+-- rifa lo necesitaba. Desde 20260801c la rifa usa display_name
+-- (apodo o primer nombre) resuelto por RPC, así que ya nada del
+-- CLIENTE necesita la columna abierta — pero cualquiera con la
+-- llave pública podía listar los nombres reales de todos.
+--
+-- Cierre: se revoca el SELECT de `name` a los roles públicos.
+-- Consumidores auditados:
+--   · Boot del frontend: ya no pide `name` (App.jsx + dataService,
+--     mismo deploy). El staff carga nombres por list_members_full
+--     con SU sesión (como siempre); el cliente ve su nombre por
+--     get_my_member (sesión propia).
+--   · Realtime: los handlers solo mezclan stats (points/gallons/…);
+--     el payload simplemente deja de traer name.
+--   · RPCs SECURITY DEFINER: no les afecta (corren como owner).
+--   · Comprobantes: usan RPCs de staff / api_redemption_confirm —
+--     siguen imprimiendo el nombre REAL.
+--   · Bundles cacheados (pre-deploy): su boot de members falla con
+--     42501 → custs vacía; el staff la repuebla con su RPC al
+--     loguearse y el cliente no la necesita — degradación aceptable
+--     hasta que recarguen (banner de versión).
+-- ============================================================
+
+REVOKE SELECT (name) ON public.members FROM anon, authenticated;
+
+-- ============================================================
+-- Verificación:
+--   SELECT a.attname, a.attacl::text FROM pg_attribute a
+--   JOIN pg_class c ON c.oid = a.attrelid
+--   JOIN pg_namespace n ON n.oid = c.relnamespace
+--   WHERE n.nspname='public' AND c.relname='members'
+--     AND a.attname='name';
+--   -- esperado: attacl SIN anon=r ni authenticated=r
+-- ============================================================
