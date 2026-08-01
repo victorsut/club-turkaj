@@ -144,11 +144,13 @@ export default function App() {
 
   const [authScreen, setAuthScreen] = useState(savedMe?.id ? 'logged' : 'login');
   const [me, setMe]                 = useState(savedMe);
-  // Selector de empresa (1-ago-2026): al entrar como cliente se elige la
-  // empresa ANTES del inicio (hoy solo Gasolineras Turkaj — preparación
-  // por posibles requerimientos del dueño). Estado en memoria: se vuelve
-  // a pedir en cada apertura de la app y tras cada login.
-  const [companyPicked, setCompanyPicked] = useState(false);
+  // Selector de empresa (1-ago-2026): al INICIAR SESIÓN como cliente se
+  // elige la empresa antes del inicio (hoy solo Gasolineras Turkaj —
+  // preparación por posibles requerimientos del dueño). Solo tras un
+  // login explícito: con sesión ya guardada la app abre directo al
+  // inicio (ajuste del dueño 1-ago — no aparecer en cada apertura);
+  // el logout lo resetea para el siguiente ingreso.
+  const [companyPicked, setCompanyPicked] = useState(!!savedMe?.id);
 
   // ===== MODO CLARO / OSCURO (24-jul-2026) =====
   // '' = sin elección → modo efectivo por nivel (BLACK oscuro, resto
