@@ -666,7 +666,9 @@ export default function App() {
     function buildExisting(m) {
       const parseV = (v) => { if (!v) return []; if (Array.isArray(v)) return v; if (typeof v === 'object') return Object.values(v); try { return JSON.parse(v); } catch { return []; } };
       return {
-        id: m.id, name: m.name, email: m.email || email, avatar: avatar || m.avatar_url || '',
+        // avatar: la BD manda — puede tener la foto PERSONALIZADA de Mi
+        // Cuenta; la de Google solo es fallback (1-ago)
+        id: m.id, name: m.name, email: m.email || email, avatar: m.avatar_url || avatar || '',
         phone: m.phone || '', dpi: m.dpi || '', plate: m.plate || '',
         nit: m.nit || '', bday: m.birthday || '',
         address: m.address || null,
