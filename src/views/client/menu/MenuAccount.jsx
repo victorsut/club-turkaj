@@ -14,6 +14,7 @@ import { phoneMask, dpiMask, plateMask, capWords } from '../../../lib/inputMasks
 import AddressPicker, { EMPTY_ADDRESS } from '../../../components/ui/AddressPicker';
 import { packAddress } from '../../../constants/geoGt';
 import { SectionHeader } from './menuUi';
+import AvatarEditor from './AvatarEditor';
 import useBackLayer from '../../../hooks/useBackLayer';
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -254,6 +255,9 @@ export default function MenuAccount({ ctx, TH, onBack }) {
         />
       )}
       <SectionHeader title="Mi Cuenta" sub="Edita tus datos personales" onBack={onBack} TH={TH} />
+
+      {/* Foto de perfil editable (1-ago) — componente aparte */}
+      <AvatarEditor ctx={{ me, setMe, fire, sbConnected }} TH={TH} />
 
       {editFields.map(f => (
         <div key={f.k} style={{ marginBottom: 14 }}>

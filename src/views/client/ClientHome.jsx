@@ -98,7 +98,7 @@ export default function ClientHome(ctx) {
       } else {
         // Returned too early — cancel
         setSurveyPending(null);
-        fire('Encuesta cancelada · Permanecé al menos 1:30 min en la página', 'error');
+        fire('La encuesta no fue completada exitosamente', 'error');
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);

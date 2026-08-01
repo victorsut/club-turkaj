@@ -456,6 +456,13 @@ export const EyeOff = ({ size = 18 }) => (
   </svg>
 );
 
+export const Camera = ({ size = 17 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L17 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+    <circle cx="12" cy="13" r="3.5" />
+  </svg>
+);
+
 export const Car = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <path d="M5 11l1.5-4.2A2 2 0 0 1 8.4 5.5h7.2a2 2 0 0 1 1.9 1.3L19 11"/>
@@ -466,5 +473,5 @@ export const Car = () => (
   </svg>
 );
 
-const IC = { Fuel, Users, Gift, Ticket, Star, Plus, Search, Back, ArrowLeft, Check, Chev, Pin, Clock, Warn, XMark, Info, QR, Gear, Logout, GoogleLogo, FacebookLogo, Megaphone, Menu, Percent, Tag, Wifi, Door, Cake, House, TicketStar, Car, Coffee, Soda, Drops, Shirt, Gamepad, Headphones, Tv, Speaker, Key, Ball, Utensils, Clipboard, StarLine, StarRate, Refresh, User, IdCard, Mail, Receipt, Phone, Lock, Eye, EyeOff, Fingerprint };
+const IC = { Fuel, Users, Gift, Ticket, Star, Plus, Search, Back, ArrowLeft, Check, Chev, Pin, Clock, Warn, XMark, Info, QR, Gear, Logout, GoogleLogo, FacebookLogo, Megaphone, Menu, Percent, Tag, Wifi, Door, Cake, House, TicketStar, Car, Coffee, Soda, Drops, Shirt, Gamepad, Headphones, Tv, Speaker, Key, Ball, Utensils, Clipboard, StarLine, StarRate, Refresh, User, IdCard, Mail, Receipt, Phone, Lock, Eye, EyeOff, Fingerprint, Camera };
 export default IC;

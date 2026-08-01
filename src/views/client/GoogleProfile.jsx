@@ -4,7 +4,7 @@
 // iconos de vehículo en ui/VehicleIcons.
 import { useState } from 'react';
 import { sb } from '../../lib/supabaseClient';
-import { inputFlat, btnStyle, BRAND_ORANGE } from '../../constants/styles';
+import { inputFlat, btnStyle, BRAND_ORANGE, bento } from '../../constants/styles';
 import { User, IdCard, Mail, Receipt, Eye, EyeOff, Plus, XMark } from '../../components/ui/Icons';
 import { DatePickerSheet } from '../../components/ui/DrumDatePicker';
 import { VEHICLE_TYPES } from '../../components/ui/VehicleIcons';
@@ -378,7 +378,7 @@ export default function GoogleProfile(ctx) {
               </button>
             </div>
             {passConfirm && passConfirm === password && (
-              <div style={{ fontSize: 11, color: BRAND_ORANGE, fontWeight: 700, marginTop: 6 }}>Las contraseñas coinciden</div>
+              <div style={{ fontSize: 11, color: bento.green, fontWeight: 700, marginTop: 6 }}>Las contraseñas coinciden</div>
             )}
             {passConfirm && passConfirm !== password && (
               <div style={{ fontSize: 11, color: '#EF5350', fontWeight: 700, marginTop: 6 }}>Las contraseñas no coinciden</div>
