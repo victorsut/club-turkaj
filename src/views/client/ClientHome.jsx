@@ -125,6 +125,8 @@ export default function ClientHome(ctx) {
   // ── R1b: estado del home bento ────────────────────────────
   const isBlack = cTier.name === 'BLACK';
   const headerTxt = dark ? '#fff' : '#0D0D0D';
+  // Línea institucional bajo el saludo (referencia encabezado inicio)
+  const taglineFg = dark ? 'rgba(255,255,255,.55)' : '#6E6E73';
   // Pantallas cortas: tipografías y paddings compactos para caber sin scroll.
   const shortScr = useShortScreen();
   const firstName = (me.name || '').trim().split(' ')[0] || 'cliente';
@@ -253,23 +255,34 @@ export default function ClientHome(ctx) {
           propia como la referencia. El menú plano sustituye la campana
           (D34). */}
       {shortScr ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 18px 0' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '12px 18px 0' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: headerTxt }}>¡Hola, {firstName}!</div>
             <div style={{ fontSize: 20, fontWeight: 800, color: headerTxt, lineHeight: 1.2 }}>Bienvenido a</div>
             <div style={{ lineHeight: 1.1 }}>
               <Wordmark size={28} color={headerTxt} />
             </div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: taglineFg, marginTop: 3 }}>
+              Gasolineras Turkaj, Chichicastenango
+            </div>
           </div>
-          {bellBtn({ alignSelf: 'flex-start' })}
-          <button onClick={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('menu'); }} aria-label="Menú" style={{
-            width: 42, height: 42, border: 'none', cursor: 'pointer',
-            background: 'none', color: headerTxt,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0, padding: 0, alignSelf: 'flex-start',
-          }}>
-            <Menu />
-          </button>
+          {/* Columna derecha: bell + menú arriba, logo Turkaj debajo
+              (referencia encabezado inicio — logo interno de la app;
+              la marca de la app sigue siendo Puntos Plus) */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              {bellBtn()}
+              <button onClick={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('menu'); }} aria-label="Menú" style={{
+                width: 42, height: 42, border: 'none', cursor: 'pointer',
+                background: 'none', color: headerTxt,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0, padding: 0,
+              }}>
+                <Menu />
+              </button>
+            </div>
+            <img src="/logo-turkaj.png" alt="Turkaj" style={{ width: 82, marginTop: 2 }} />
+          </div>
         </div>
       ) : (
         <>
@@ -286,12 +299,20 @@ export default function ClientHome(ctx) {
               <Menu />
             </button>
           </div>
-          <div style={{ padding: '10px 20px 0' }}>
-            <div style={{ fontSize: 16, fontWeight: 600, color: headerTxt }}>¡Hola, {firstName}!</div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: headerTxt, lineHeight: 1.25 }}>Bienvenido a</div>
-            <div style={{ lineHeight: 1.1 }}>
-              <Wordmark size={34} color={headerTxt} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 20px 0' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 16, fontWeight: 600, color: headerTxt }}>¡Hola, {firstName}!</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: headerTxt, lineHeight: 1.25 }}>Bienvenido a</div>
+              <div style={{ lineHeight: 1.1 }}>
+                <Wordmark size={34} color={headerTxt} />
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: taglineFg, marginTop: 4 }}>
+                Gasolineras Turkaj, Chichicastenango
+              </div>
             </div>
+            {/* Logo Turkaj a la derecha del saludo (referencia encabezado
+                inicio) — uso interno; la app conserva su logo Puntos Plus */}
+            <img src="/logo-turkaj.png" alt="Turkaj" style={{ width: 106, flexShrink: 0 }} />
           </div>
         </>
       )}
