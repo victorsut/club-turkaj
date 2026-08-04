@@ -13,7 +13,7 @@ import TierCardBento from '../../components/ui/TierCardBento';
 import InactivityWarning from '../../components/ui/InactivityWarning';
 import HistorySheet from './HistorySheet';
 import useShortScreen from '../../hooks/useShortScreen';
-import { Menu, Bell, Fuel, Tag, Wifi, Door, Cake, Pin, Clock, Chev, Check, Headphones } from '../../components/ui/Icons';
+import { Menu, Bell, Fuel, Tag, Wifi, Door, Cake, Pin, Clock, Chev, Check, HelpCircle } from '../../components/ui/Icons';
 import NotificationsSheet from './NotificationsSheet';
 import SupportSheet from '../../components/ui/SupportSheet';
 import { getPosition, nearestStation } from '../../lib/geo';
@@ -69,7 +69,7 @@ export default function ClientHome(ctx) {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       flexShrink: 0, padding: 0,
     }}>
-      <Headphones />
+      <HelpCircle />
     </button>
   );
 

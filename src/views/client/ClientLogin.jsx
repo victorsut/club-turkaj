@@ -6,7 +6,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { inputFlat, btnStyle, BRAND_ORANGE } from '../../constants/styles';
-import { GoogleLogo, Phone, Lock, Mail, Chev, Fingerprint, Headphones } from '../../components/ui/Icons';
+import { GoogleLogo, Phone, Lock, Mail, Chev, Fingerprint, HelpCircle } from '../../components/ui/Icons';
 import { phoneMask } from '../../lib/inputMasks';
 import { signInWithPhone } from '../../services/authService';
 import { mapMember } from '../../hooks/useSupabaseData';
@@ -141,7 +141,7 @@ export default function ClientLogin(ctx) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button onClick={() => setSupportOpen(true)} aria-label="Asistencia y ayuda"
               style={{ width: 38, height: 38, border: 'none', cursor: 'pointer', background: 'none', color: ink, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
-              <Headphones />
+              <HelpCircle />
             </button>
             <ModeToggle dark={dark} setUiMode={setUiMode} />
           </div>

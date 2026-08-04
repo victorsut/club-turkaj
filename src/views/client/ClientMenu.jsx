@@ -5,7 +5,7 @@
 // El botón físico de volver cierra la sección abierta (useBackLayer).
 import { useState } from 'react';
 import { sMono, bento } from '../../constants/styles';
-import { User, StarLine, Warn, Clipboard, Info, Door, Chev, ArrowLeft, Sun, Moon, Headphones } from '../../components/ui/Icons';
+import { User, StarLine, Warn, Clipboard, Info, Door, Chev, ArrowLeft, Sun, Moon, HelpCircle } from '../../components/ui/Icons';
 import ModeToggle from '../../components/ui/ModeToggle';
 import SupportSheet from '../../components/ui/SupportSheet';
 import GalaxyDust from '../../components/ui/GalaxyDust';
@@ -22,7 +22,7 @@ const MENU_ITEMS = [
   { id: 'inactividad', icon: <Warn />,       label: 'Reglas de Inactividad' },
   { id: 'terminos',    icon: <Clipboard />,  label: 'Términos y Condiciones' },
   // 'ayuda' abre el SupportSheet (overlay), no una sección
-  { id: 'ayuda',       icon: <Headphones />, label: 'Asistencia y Ayuda' },
+  { id: 'ayuda',       icon: <HelpCircle />, label: 'Asistencia y Ayuda' },
   { id: 'acerca',      icon: <Info />,       label: 'Acerca de Puntos Plus' },
 ];
 
