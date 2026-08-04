@@ -6,7 +6,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { inputFlat, btnStyle, BRAND_ORANGE } from '../../constants/styles';
-import { GoogleLogo, Phone, Lock, Mail, Chev, Fingerprint, HelpCircle } from '../../components/ui/Icons';
+import { GoogleLogo, Phone, Lock, Fingerprint, HelpCircle } from '../../components/ui/Icons';
 import { phoneMask } from '../../lib/inputMasks';
 import { signInWithPhone } from '../../services/authService';
 import { mapMember } from '../../hooks/useSupabaseData';
@@ -15,7 +15,6 @@ import Wordmark from '../../components/ui/Wordmark';
 import LegalFooter from '../../components/ui/LegalFooter';
 import ModeToggle from '../../components/ui/ModeToggle';
 import SupportSheet from '../../components/ui/SupportSheet';
-import useBackLayer from '../../hooks/useBackLayer';
 
 export default function ClientLogin(ctx) {
   const { loginPhone, setLoginPhone, loginPass, setLoginPass, authError, setAuthError,
@@ -33,8 +32,6 @@ export default function ClientLogin(ctx) {
   // "¿Olvidaste tu contraseña?" aparece unos segundos después de
   // escribir el teléfono completo (8 dígitos).
   const [showForgot, setShowForgot] = useState(false);
-  const [fpSheet, setFpSheet]       = useState(false);
-  const [fpClosing, setFpClosing]   = useState(false);
   const fpTimer = useRef(null);
 
   useEffect(() => {
@@ -47,17 +44,14 @@ export default function ClientLogin(ctx) {
     return () => clearTimeout(fpTimer.current);
   }, [loginPhone]);
 
-  const closeFpSheet = () => {
-    setFpClosing(true);
-    setTimeout(() => { setFpSheet(false); setFpClosing(false); }, 200);
-  };
-  useBackLayer(fpSheet, closeFpSheet);
-
-  const pickRecovery = via => {
-    closeFpSheet();
-    fire(via === 'sms'
-      ? 'Muy pronto podrás recuperar tu contraseña por mensaje SMS'
-      : 'Muy pronto podrás recuperar tu contraseña por correo', 'info');
+  // Recuperación por WhatsApp (decisión del dueño 4-ago — sustituye al
+  // sheet SMS/correo "próximamente"): abre el chat del canal de
+  // asistencia con la solicitud pre-escrita y el número que digitó.
+  const requestPasswordReset = () => {
+    const support = (cfg?.supportPhone || '49741067').replace(/\D/g, '');
+    const phone = (loginPhone || '').replace(/\D/g, '');
+    const msg = `Hola, olvidé mi contraseña de Puntos Plus y quiero restablecerla. Mi número registrado es ${phoneMask.format(phone)}.`;
+    window.open(`https://wa.me/502${support}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
   };
 
   // SEC-lite (25-jul): la contraseña se verifica en el SERVIDOR
@@ -176,7 +170,7 @@ export default function ClientLogin(ctx) {
             onChange={e => { setLoginPass(e.target.value); clearAuthErr(); }} style={{ ...field, paddingLeft: 44 }} />
         </div>
         {showForgot && (
-          <button onClick={() => setFpSheet(true)}
+          <button onClick={requestPasswordReset}
             style={{ background: 'none', border: 'none', cursor: 'pointer', alignSelf: 'flex-end', padding: 0, fontSize: 12, fontWeight: 700, color: BRAND_ORANGE, fontFamily: "'DM Sans'", animation: 'fadeIn .3s ease' }}>
             ¿Olvidaste tu contraseña?
           </button>
@@ -234,32 +228,6 @@ export default function ClientLogin(ctx) {
       {/* Canal de asistencia (WhatsApp / llamada + horario en vivo) */}
       {supportOpen && (
         <SupportSheet onClose={() => setSupportOpen(false)} dark={dark} phone={cfg?.supportPhone} />
-      )}
-
-      {/* Sheet de recuperación de contraseña (funcionalidad pendiente) */}
-      {fpSheet && (
-        <div onClick={closeFpSheet}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 500, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', animation: fpClosing ? 'ppFadeOut .2s ease forwards' : 'fadeIn .2s ease' }}>
-          <div onClick={e => e.stopPropagation()}
-            style={{ background: dark ? '#16161A' : '#fff', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 480, padding: '24px 20px 36px', animation: fpClosing ? 'slideDownOut .22s ease forwards' : 'slideUp .25s ease' }}>
-            <div style={{ fontSize: 18, fontWeight: 900, color: ink, marginBottom: 4 }}>Recuperar contraseña</div>
-            <div style={{ fontSize: 13, color: sub, marginBottom: 18 }}>Elige cómo quieres recuperar el acceso a tu cuenta</div>
-            {[
-              { k: 'sms',   icon: <Phone />, bg: BRAND_ORANGE, fg: '#fff', title: 'Mensaje al teléfono', desc: 'Te enviaremos un código por SMS' },
-              { k: 'email', icon: <Mail />,  bg: dark ? '#fff' : '#0D0D0D', fg: dark ? '#0D0D0D' : '#fff', title: 'Correo electrónico', desc: 'Recibirás un enlace de recuperación' },
-            ].map(o => (
-              <button key={o.k} onClick={() => pickRecovery(o.k)}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, background: dark ? 'rgba(255,255,255,.07)' : '#F5F5F7', border: 'none', borderRadius: 16, padding: '14px 16px', marginBottom: 10, cursor: 'pointer', fontFamily: "'DM Sans'", textAlign: 'left' }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: o.bg, color: o.fg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{o.icon}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: ink }}>{o.title}</div>
-                  <div style={{ fontSize: 12, color: sub, marginTop: 2 }}>{o.desc}</div>
-                </div>
-                <span style={{ color: dark ? 'rgba(255,255,255,.4)' : '#BDBDBD', display: 'flex' }}><Chev /></span>
-              </button>
-            ))}
-          </div>
-        </div>
       )}
     </div>
   );
