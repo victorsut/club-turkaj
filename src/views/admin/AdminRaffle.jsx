@@ -110,6 +110,7 @@ export default function AdminRaffle(ctx) {
       {rd.participants.length === 0 && (
         <div style={{ textAlign: 'center', padding: 24, color: '#777', fontSize: 13 }}>Aún no hay participantes</div>
       )}
+      <div className="pp-adm-grid">
       {[...rd.participants].sort((a, b) => b.tickets - a.tickets).map((p, i) => {
         const c = custs.find(x => x.id === p.cid);
         const t = c ? gT(c.gallons) : gT(0);
@@ -127,9 +128,11 @@ export default function AdminRaffle(ctx) {
           </div>
         );
       })}
+      </div>
 
       {/* Calendar */}
       <div style={aSec}>Calendario 2026</div>
+      <div className="pp-adm-grid">
       {raffleCal.map((r, i) => {
         const cur = i === curMonth;
         const past = i < curMonth;
@@ -150,6 +153,7 @@ export default function AdminRaffle(ctx) {
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

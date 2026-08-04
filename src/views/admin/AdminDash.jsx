@@ -73,6 +73,11 @@ export default function AdminDash(ctx) {
         <button onClick={() => setModal('newC')} style={{ flex: 1, padding: 12, borderRadius: 14, border: `1px solid ${AT.border}`, background: AT.card, fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: AT.txt }}><Plus /> Nuevo</button>
       </div>
 
+      {/* Responsivo (4-ago): en pantallas anchas los dos grupos de
+          secciones fluyen lado a lado (pp-adm-dash); en móvil apilan
+          en el orden de siempre. */}
+      <div className="pp-adm-dash">
+      <div>
       {/* Members */}
       <div style={aSec}>Miembros</div>
       <Pair
@@ -126,6 +131,8 @@ export default function AdminDash(ctx) {
         </>}
       />
 
+      </div>
+      <div>
       {/* Raffle */}
       <div style={aSec}>Rifa: {rm.m}</div>
       <div onClick={() => setScr('raf')} style={{ margin: '0 20px', padding: 16, background: 'linear-gradient(135deg,#FBBC04,#FFD540)', borderRadius: 18, display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer' }}>
@@ -169,6 +176,8 @@ export default function AdminDash(ctx) {
           </div>
         );
       })}
+      </div>
+      </div>
     </div>
   );
 }

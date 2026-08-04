@@ -204,6 +204,7 @@ export default function AdminPromos(ctx) {
           </div>
         )}
 
+        <div className="pp-adm-grid">
         {promos.map(p => (
           <div key={p.id} style={{ ...AT_card, opacity: p.active ? 1 : .5 }}>
             {/* Preview mini */}
@@ -251,6 +252,7 @@ export default function AdminPromos(ctx) {
             </div>
           </div>
         ))}
+        </div>
       </div>
 
       {/* R1b.2: form en bottom-sheet propio */}

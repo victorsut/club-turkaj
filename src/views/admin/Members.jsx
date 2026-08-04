@@ -103,7 +103,8 @@ export default function Members(ctx) {
         ))}
       </div>
 
-      {/* Members list */}
+      {/* Members list — en pantallas anchas se reparte en columnas */}
+      <div className="pp-adm-grid">
       {filtered.map(c => {
         const t = gT(c.gallons);
         const station = getMemberStation(c.id, stationMode);
@@ -127,6 +128,7 @@ export default function Members(ctx) {
           </div>
         );
       })}
+      </div>
 
       {filtered.length === 0 && (
         <div style={{ textAlign: 'center', padding: 40, color: '#777' }}>

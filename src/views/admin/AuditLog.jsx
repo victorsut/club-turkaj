@@ -154,6 +154,7 @@ export default function AuditLog(ctx) {
         </div>
       )}
 
+      <div className="pp-adm-grid">
       {rows.map(r => {
         const c = actionColor(r.action);
         const isOpen = expanded === r.id;
@@ -222,6 +223,7 @@ export default function AuditLog(ctx) {
           </div>
         );
       })}
+      </div>
 
       {/* Paginación inferior */}
       {total > PAGE_SIZE && (

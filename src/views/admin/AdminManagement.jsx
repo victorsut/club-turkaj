@@ -133,6 +133,7 @@ export default function AdminManagement(ctx) {
         <div style={{ textAlign: 'center', padding: 32, color: '#777', fontSize: 13 }}>No hay administradores registrados</div>
       )}
 
+      <div className="pp-adm-grid">
       {admins.map(a => {
         const isSelf = a.id === loggedAdmin?.id;
         return (
@@ -158,6 +159,7 @@ export default function AdminManagement(ctx) {
           </div>
         );
       })}
+      </div>
 
       {/* ── Alta ── */}
       {showForm && (

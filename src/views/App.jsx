@@ -310,6 +310,16 @@ export default function App() {
   const isO = view === 'operator';
   const isC = view === 'client';
   const cTier = me ? gT(me.gallons) : gT(0);
+
+  // Panel admin RESPONSIVO (4-ago): con sesión de admin el lienzo crece
+  // a 1080px — la clase va en <body> porque #root (max-width 480 en
+  // global.css) vive fuera del árbol de React. Cliente/operador y el
+  // login de admin conservan el lienzo móvil.
+  const adminWide = isA && authAdmin === 'logged';
+  useEffect(() => {
+    document.body.classList.toggle('pp-adm-wide', adminWide);
+    return () => document.body.classList.remove('pp-adm-wide');
+  }, [adminWide]);
   // Modo efectivo: elección del usuario o, sin ella, el histórico del
   // nivel (BLACK oscuro, ORO/PLATINO claro). En login/registro (sin
   // sesión) manda solo la elección; por defecto claro.
@@ -1904,7 +1914,8 @@ export default function App() {
   return (
     <>
       <div style={{
-        maxWidth: 480, margin: '0 auto', minHeight: '100vh',
+        // Admin responsivo: lienzo ancho en computadora/tableta (4-ago)
+        maxWidth: adminWide ? 1080 : 480, margin: '0 auto', minHeight: '100vh',
         background: isA ? adminTheme.bg
           : isO ? '#FAFAFA'
           : clientMainBg(cTier.name, dark),

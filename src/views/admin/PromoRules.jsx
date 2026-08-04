@@ -208,6 +208,7 @@ export default function PromoRules(ctx) {
           </div>
         )}
 
+        <div className="pp-adm-grid">
         {rules.map(r => (
           <div key={r.id} style={{ ...card, opacity: r.active ? 1 : .5 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
@@ -243,6 +244,7 @@ export default function PromoRules(ctx) {
             </div>
           </div>
         ))}
+        </div>
       </div>
 
       {/* Form bottom-sheet (create/edit) */}

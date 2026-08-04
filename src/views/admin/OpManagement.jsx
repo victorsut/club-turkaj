@@ -265,6 +265,7 @@ export default function OpManagement(ctx) {
 
       {operators.length === 0 && <div style={{ textAlign: 'center', padding: 32, color: '#777', fontSize: 13 }}>No hay operadores registrados</div>}
 
+      <div className="pp-adm-grid">
       {operators.map(op => {
         const rats = opRatings[op.id] || [];
         const avg  = rats.length > 0 ? (rats.reduce((s, r) => s + (r.stars || 0), 0) / rats.length).toFixed(1) : null;
@@ -288,6 +289,7 @@ export default function OpManagement(ctx) {
           </div>
         );
       })}
+      </div>
 
       {showOpReg && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', backdropFilter: 'blur(6px)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => { if (!saving) { setShowOpReg(false); setEditOp(null); } }}>

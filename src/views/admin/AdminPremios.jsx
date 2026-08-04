@@ -452,6 +452,7 @@ export default function AdminPremios(ctx) {
 
           {filtered.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: '#555', fontSize: 13 }}>Sin premios</div>}
 
+          <div className="pp-adm-grid">
           {filtered.map(r => {
             const cs = CAT_COLORS[r.category || r.cat] || { bg: '#F5F5F5', c: '#616161' };
             const isActive = r.active !== false;
@@ -477,6 +478,7 @@ export default function AdminPremios(ctx) {
               </div>
             );
           })}
+          </div>
         </div>
       )}
 
@@ -493,6 +495,7 @@ export default function AdminPremios(ctx) {
             <div style={{ textAlign: 'center', padding: 40, color: '#555', fontSize: 13 }}>Sin rifas configuradas</div>
           )}
 
+          <div className="pp-adm-grid">
           {!loadingRaf && raffleList.map(r => {
             const hasWinner = !!r.winner_id;
             return (
@@ -521,6 +524,7 @@ export default function AdminPremios(ctx) {
               </div>
             );
           })}
+          </div>
 
           {/* MODAL FORM RIFA */}
           {showRafForm && (
@@ -604,6 +608,7 @@ export default function AdminPremios(ctx) {
             <div style={{ textAlign: 'center', padding: 40, color: '#555', fontSize: 13 }}>Sin dias festivos configurados</div>
           )}
 
+          <div className="pp-adm-grid">
           {!loadingFest && festList.map(f => {
             const isBirthday = f.month === 0;
             const isFixed    = f.system === true;
@@ -638,6 +643,7 @@ export default function AdminPremios(ctx) {
               </div>
             );
           })}
+          </div>
 
           {/* MODAL FORM FESTIVO */}
           {showFestForm && (

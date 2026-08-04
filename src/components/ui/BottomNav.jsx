@@ -22,7 +22,8 @@ export default function BottomNav({ items, current, onSelect, view, tierName, da
   return (
     <div style={{
       position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-      width: '100%', maxWidth: 480,
+      // El panel admin usa lienzo ancho en desktop/tablet (4-ago)
+      width: '100%', maxWidth: isA ? 1080 : 480,
       background: barBg,
       borderTop: `1px solid ${borderColor}`,
       display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end',

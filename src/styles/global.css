@@ -155,6 +155,25 @@ body {
 @keyframes ppBubbleIn { from { opacity: 0; transform: translateY(6px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
 .pp-bubble { animation: ppBubbleIn .25s cubic-bezier(.32, .72, .33, 1) backwards; }
 
+/* ── Panel ADMIN responsivo (4-ago-2026) ──────────────────────────
+   Habilitado para computadora, tableta y celular: con la vista admin
+   activa (y sesión iniciada) App.jsx estampa pp-adm-wide en <body>
+   (#root vive fuera del árbol React) y el lienzo crece hasta 1080px;
+   cliente y operador conservan su lienzo móvil de 480. En móvil las
+   clases pp-adm-* no aplican estilos (la base es el layout actual). */
+body.pp-adm-wide { background: #141414; }
+body.pp-adm-wide #root { max-width: 1080px; }
+
+@media (min-width: 720px) {
+  /* Listas del panel: las filas (su borde inferior hace de divisor
+     por columna) se reparten en columnas de ~330px */
+  .pp-adm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); column-gap: 24px; align-items: start; }
+}
+@media (min-width: 900px) {
+  /* Dashboard: los dos grupos de secciones fluyen lado a lado */
+  .pp-adm-dash { display: grid; grid-template-columns: 1fr 1fr; align-items: start; }
+}
+
 /* Modal CENTRADO (drum de fecha): crece desde el centro y cierra con la
    inversa (regla D35 — todo modal cierra con la animación opuesta). */
 @keyframes ppPopIn  { from { opacity: 0; transform: scale(.88); } to { opacity: 1; transform: scale(1); } }
