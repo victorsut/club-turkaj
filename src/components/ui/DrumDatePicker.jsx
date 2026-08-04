@@ -122,19 +122,31 @@ export function DateDrumPicker({ value, onChange, dark }) {
   );
 }
 
-// Bottom sheet del drum picker (FORMATO GENERAL: flat, acción en rojo)
-export const DatePickerSheet = ({ tempDate, setTempDate, setShowDatePicker, setRegProfile, dark }) => (
-  <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 500, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-    <div style={{ background: dark ? '#16161A' : '#fff', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 480, padding: '0 0 32px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: `1px solid ${dark ? 'rgba(255,255,255,.08)' : '#f0f0f0'}` }}>
-        <button onClick={() => setShowDatePicker(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 700, color: '#9E9E9E', fontFamily: "'DM Sans'" }}>Cancelar</button>
-        <div style={{ fontSize: 15, fontWeight: 800, color: dark ? '#fff' : '#0D0D0D' }}>Fecha de nacimiento</div>
-        <button onClick={() => { setRegProfile(p => ({ ...p, bday: tempDate })); setShowDatePicker(false); }}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 800, color: BRAND_ORANGE, fontFamily: "'DM Sans'" }}>Seleccionar</button>
-      </div>
-      <div style={{ padding: '12px 20px 0' }}>
+// Modal CENTRADO del drum picker (FORMATO GENERAL: flat; antes bottom
+// sheet — pedido del dueño 4-ago). Cierra con la animación inversa en
+// TODOS los caminos (regla D35): Cancelar, Seleccionar y tap-fuera.
+export const DatePickerSheet = ({ tempDate, setTempDate, setShowDatePicker, setRegProfile, dark }) => {
+  const [closing, setClosing] = useState(false);
+  const close = (apply) => {
+    if (closing) return;
+    if (apply) setRegProfile(p => ({ ...p, bday: tempDate }));
+    setClosing(true);
+    setTimeout(() => setShowDatePicker(false), 200);
+  };
+  return (
+    <div onClick={() => close(false)}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, animation: closing ? 'ppFadeOut .2s ease forwards' : 'ppFade .2s ease' }}>
+      <div className={closing ? 'pp-pop-out' : 'pp-pop'} onClick={e => e.stopPropagation()}
+        style={{ background: dark ? '#16161A' : '#fff', borderRadius: 24, width: '100%', maxWidth: 380, padding: '18px 18px 16px' }}>
+        <div style={{ textAlign: 'center', fontSize: 15, fontWeight: 800, color: dark ? '#fff' : '#0D0D0D', marginBottom: 14 }}>Fecha de nacimiento</div>
         <DateDrumPicker value={tempDate} onChange={setTempDate} dark={dark} />
+        <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+          <button onClick={() => close(false)}
+            style={{ flex: 1, padding: 13, borderRadius: 14, border: 'none', background: dark ? 'rgba(255,255,255,.08)' : '#F5F5F7', color: '#9E9E9E', fontFamily: "'DM Sans'", fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>Cancelar</button>
+          <button onClick={() => close(true)}
+            style={{ flex: 2, padding: 13, borderRadius: 14, border: 'none', background: BRAND_ORANGE, color: '#fff', fontFamily: "'DM Sans'", fontWeight: 800, cursor: 'pointer', fontSize: 13 }}>Seleccionar</button>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};

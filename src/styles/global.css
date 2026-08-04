@@ -155,9 +155,16 @@ body {
 @keyframes ppBubbleIn { from { opacity: 0; transform: translateY(6px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
 .pp-bubble { animation: ppBubbleIn .25s cubic-bezier(.32, .72, .33, 1) backwards; }
 
+/* Modal CENTRADO (drum de fecha): crece desde el centro y cierra con la
+   inversa (regla D35 — todo modal cierra con la animación opuesta). */
+@keyframes ppPopIn  { from { opacity: 0; transform: scale(.88); } to { opacity: 1; transform: scale(1); } }
+@keyframes ppPopOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(.88); } }
+.pp-pop     { animation: ppPopIn .25s cubic-bezier(.32, .72, .33, 1) backwards; }
+.pp-pop-out { animation: ppPopOut .2s ease-in forwards; }
+
 @media (prefers-reduced-motion: reduce) {
-  .pp-tile, .pp-grow, .pp-screen, .pp-bubble { animation: ppFade .15s ease backwards; }
-  .pp-grow-out { animation: ppFadeOut .15s ease forwards; }
+  .pp-tile, .pp-grow, .pp-screen, .pp-bubble, .pp-pop { animation: ppFade .15s ease backwards; }
+  .pp-grow-out, .pp-pop-out { animation: ppFadeOut .15s ease forwards; }
   .pp-tint { animation-duration: .15s; }
   .pp-tint-in { animation-duration: .1s; }
   .pp-tile:active { transform: none; }

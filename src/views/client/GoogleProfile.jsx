@@ -235,7 +235,8 @@ export default function GoogleProfile(ctx) {
             onOpen={() => { setTempDate(regProfile.bday || '2000-01-01'); setShowDatePicker(true); }}
             dark={dark}
           />
-          <Field {...fieldProps} icon={<IdCard />} placeholder="DPI — 13 dígitos *" fieldKey="dpi" inputMode="numeric" mask={dpiMask} />
+          <Field {...fieldProps} icon={<IdCard />} placeholder="DPI — 13 dígitos *" fieldKey="dpi" inputMode="numeric" mask={dpiMask}
+            bubble={{ icon: <IdCard />, color: bento.amber, text: 'Tu DPI se usará para comprobar tu identidad.' }} />
           {/* Teléfono con prefijo — globo de énfasis al enfocar (4-ago):
               el número se verificará al finalizar el registro */}
           <div style={{ position: 'relative', zIndex: phoneFocus ? 6 : undefined }}>
