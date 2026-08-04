@@ -647,12 +647,15 @@ export default function ClientHome(ctx) {
                   <div style={{ fontSize: 12, fontWeight: 600, color: dark ? 'rgba(255,255,255,.5)' : '#6E6E73', marginTop: 3, lineHeight: 1.4 }}>
                     {s.address || 'Dirección no disponible'}
                   </div>
-                  {/* Horario de atención (stations.schedule — dato de empresa) */}
+                  {/* Horario de atención (stations.schedule — dato de empresa).
+                      En BLACK claro hp.location es gris perla (invisible
+                      sobre la fila clara) → el acento pasa a la tinta,
+                      patrón del fix de contraste del WiFi. */}
                   {s.schedule && (
                     <div style={{
                       display: 'flex', alignItems: 'center', gap: 5, marginTop: 5,
                       fontSize: 11.5, fontWeight: 700,
-                      color: dark ? 'rgba(255,255,255,.75)' : hp.location,
+                      color: dark ? 'rgba(255,255,255,.75)' : (hp.locationInk || hp.location),
                     }}>
                       <Clock /> {s.schedule}
                     </div>
