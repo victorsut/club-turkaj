@@ -25,7 +25,11 @@ export default function BentoTile({
         gridColumn: wide ? '1 / -1' : 'auto',
         background: color,
         borderRadius: bento.radius,
-        padding: wide ? '16px 18px' : '15px 16px 14px',
+        // Horizontal 13 (antes 16): margen interno reducido para que
+        // títulos largos (SATISFACCIÓN/UBICACIÓN) quepan SIN guion en
+        // teléfonos angostos y el home siga entrando completo (img2
+        // POR CORREGIR 4-ago — el guionado rompía la estética).
+        padding: wide ? '16px 18px' : '15px 13px 14px',
         // square: proporción 1:1 fija (Promos/Vehículo); el resto se
         // estira con la fila del grid (adaptable a la resolución).
         aspectRatio: square ? '1 / 1' : undefined,
@@ -54,13 +58,9 @@ export default function BentoTile({
       {children || (
         <>
           <div className="pp-bento-ico" style={{ lineHeight: 1, flexShrink: 0, display: 'flex' }}>{icon}</div>
-          {/* paddingRight: aire entre el texto y el borde interno del
-              cuadro (img1 POR CORREGIR 4-ago — el título de Encuesta
-              rozaba el margen derecho) */}
-          <div className="pp-bento-body" style={wide ? { flex: 1, minWidth: 0, paddingRight: 6 } : { marginTop: 'auto', paddingTop: 10, paddingRight: 6, minWidth: 0, width: '100%' }}>
-            {/* hyphens: en pantallas angostas donde la palabra no cabe,
-                el navegador la parte con guion (lang="es" en index.html);
-                en pantallas normales no cambia nada */}
+          <div className="pp-bento-body" style={wide ? { flex: 1, minWidth: 0 } : { marginTop: 'auto', paddingTop: 10, minWidth: 0 }}>
+            {/* hyphens = ÚLTIMO recurso: solo si aun con el margen
+                reducido la palabra no cabe (lang="es" en index.html) */}
             <div style={{ fontSize: 14, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5, lineHeight: 1.2, color: titleColor || 'inherit', hyphens: 'auto', overflowWrap: 'break-word' }}>
               {title}
             </div>

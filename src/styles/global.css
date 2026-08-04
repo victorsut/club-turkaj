@@ -185,7 +185,10 @@ body {
    umbral sincronizado con useShortScreen.js. */
 @media (max-height: 800px) {
   .pp-bento-row { flex-direction: row !important; align-items: center !important; gap: 12px !important; min-height: 58px !important; }
-  .pp-bento-row .pp-bento-body { margin-top: 0 !important; padding-top: 0 !important; }
+  /* padding-right: aire del texto con el borde derecho SOLO en el modo
+     fila (img1 POR CORREGIR — el título de Encuesta rozaba el margen);
+     en el layout vertical ese aire quitaba ancho y partía las palabras */
+  .pp-bento-row .pp-bento-body { margin-top: 0 !important; padding-top: 0 !important; padding-right: 6px; }
   .pp-bento-row .pp-bento-ico svg { width: 28px; height: 28px; }
 }
 
