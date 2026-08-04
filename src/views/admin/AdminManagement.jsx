@@ -8,7 +8,7 @@
 // Espeja el lenguaje visual de OpManagement (tema oscuro admin).
 import { useState, useEffect, useCallback } from 'react';
 import { adminTheme as AT, btnYellow, inputStyle } from '../../constants/styles';
-import { Back, Plus } from '../../components/ui/Icons';
+import { Back, Plus, Eye, EyeOff } from '../../components/ui/Icons';
 import ReasonModal from '../../components/ui/ReasonModal';
 import { fetchAdmins, createAdmin, updateAdminPassword, toggleAdminActive } from '../../services/adminAuthService';
 
@@ -27,6 +27,7 @@ export default function AdminManagement(ctx) {
   // Cambio de contraseña: { admin, pass, confirm, current } — `current`
   // solo se pide (y el server solo lo exige) para la cuenta propia.
   const [pwModal, setPwModal] = useState(null);
+  const [showCurPass, setShowCurPass] = useState(false); // ojito de "contraseña actual"
   const [showReason, setShowReason] = useState(false);
   const [pending, setPending] = useState(null); // { type, ... }
 
@@ -210,8 +211,14 @@ export default function AdminManagement(ctx) {
             {pwModal.admin.id === loggedAdmin?.id && (
               <div style={{ marginBottom: 12 }}>
                 <label style={sLbl}>Contraseña actual *</label>
-                <input type="password" placeholder="********" value={pwModal.current}
-                  onChange={e => setPwModal(p => ({ ...p, current: e.target.value }))} style={inputStyle} />
+                <div style={{ position: 'relative' }}>
+                  <input type={showCurPass ? 'text' : 'password'} placeholder="********" value={pwModal.current}
+                    onChange={e => setPwModal(p => ({ ...p, current: e.target.value }))} style={{ ...inputStyle, paddingRight: 50 }} />
+                  <button type="button" onClick={() => setShowCurPass(p => !p)} aria-label={showCurPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9E9E9E', display: 'flex', padding: 2 }}>
+                    {showCurPass ? <EyeOff /> : <Eye />}
+                  </button>
+                </div>
               </div>
             )}
             <div style={{ marginBottom: 12 }}>

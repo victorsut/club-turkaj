@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { inputStyleDark, btnStyle } from '../../constants/styles';
+import { Eye, EyeOff } from '../../components/ui/Icons';
 import { loginAdmin } from '../../services/adminAuthService';
 
 export default function AdminLogin(ctx) {
@@ -19,6 +20,7 @@ export default function AdminLogin(ctx) {
   } = ctx;
 
   const [loading, setLoading] = useState(false);
+  const [showPass, setShowPass] = useState(false); // ojito de contraseña
 
   const doLogin = async () => {
     clearAuthErr();
@@ -100,16 +102,22 @@ export default function AdminLogin(ctx) {
           autoCapitalize="none"
           autoComplete="email"
         />
-        <input
-          placeholder="Contraseña"
-          type="password"
-          value={adLoginPass}
-          onChange={e => { setAdLoginPass(e.target.value); clearAuthErr(); }}
-          onKeyDown={handleKeyDown}
-          style={inputStyleDark}
-          disabled={loading}
-          autoComplete="current-password"
-        />
+        <div style={{ position: 'relative' }}>
+          <input
+            placeholder="Contraseña"
+            type={showPass ? 'text' : 'password'}
+            value={adLoginPass}
+            onChange={e => { setAdLoginPass(e.target.value); clearAuthErr(); }}
+            onKeyDown={handleKeyDown}
+            style={{ ...inputStyleDark, paddingRight: 50 }}
+            disabled={loading}
+            autoComplete="current-password"
+          />
+          <button type="button" onClick={() => setShowPass(p => !p)} aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+            style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9E9E9E', display: 'flex', padding: 2 }}>
+            {showPass ? <EyeOff /> : <Eye />}
+          </button>
+        </div>
         <button
           onClick={doLogin}
           disabled={loading}

@@ -6,7 +6,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { inputFlat, btnStyle, BRAND_ORANGE } from '../../constants/styles';
-import { GoogleLogo, Phone, Lock, Fingerprint, HelpCircle } from '../../components/ui/Icons';
+import { GoogleLogo, Phone, Lock, Fingerprint, HelpCircle, Eye, EyeOff } from '../../components/ui/Icons';
 import { phoneMask } from '../../lib/inputMasks';
 import { signInWithPhone } from '../../services/authService';
 import { mapMember } from '../../hooks/useSupabaseData';
@@ -23,6 +23,10 @@ export default function ClientLogin(ctx) {
 
   // Canal de asistencia (4-ago): disponible desde el login
   const [supportOpen, setSupportOpen] = useState(false);
+
+  // Ver/ocultar contraseña (regla 4-ago: todo campo de contraseña
+  // lleva el ojito a la derecha)
+  const [showPass, setShowPass] = useState(false);
 
   const ink = dark ? '#fff' : '#0D0D0D';
   const sub = dark ? 'rgba(255,255,255,.55)' : '#9E9E9E';
@@ -166,8 +170,12 @@ export default function ClientLogin(ctx) {
         </div>
         <div style={{ position: 'relative' }}>
           <div style={iconBox}><Lock /></div>
-          <input placeholder="Contraseña" type="password" value={loginPass}
-            onChange={e => { setLoginPass(e.target.value); clearAuthErr(); }} style={{ ...field, paddingLeft: 44 }} />
+          <input placeholder="Contraseña" type={showPass ? 'text' : 'password'} value={loginPass}
+            onChange={e => { setLoginPass(e.target.value); clearAuthErr(); }} style={{ ...field, paddingLeft: 44, paddingRight: 50 }} />
+          <button type="button" onClick={() => setShowPass(p => !p)} aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+            style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9E9E9E', display: 'flex', padding: 2 }}>
+            {showPass ? <EyeOff /> : <Eye />}
+          </button>
         </div>
         {showForgot && (
           <button onClick={requestPasswordReset}
