@@ -496,13 +496,16 @@ export default function App() {
         }
 
         if (stRes.data?.length > 0) {
+          // Orden por nombre con criterio numérico (Turkaj 1 → 2 → 3 /
+          // I → II → III) — el modal de Ubicación y las vistas admin
+          // muestran las estaciones siempre en el mismo orden (4-ago).
           setStations(stRes.data.map(s => ({
             id: s.id, name: s.name, address: s.address || '',
             lat: s.lat, lng: s.lng, active: s.active !== false,
             schedule: s.schedule || null,
             wifiSsid: s.wifi_ssid || null, wifiPassword: s.wifi_password || null,
             externalCode: s.external_code || '', // F1: código PROPER
-          })));
+          })).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es', { numeric: true })));
           console.log('[Puntos Plus] Estaciones cargadas:', stRes.data.length);
         }
 
