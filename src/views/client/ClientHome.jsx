@@ -13,8 +13,9 @@ import TierCardBento from '../../components/ui/TierCardBento';
 import InactivityWarning from '../../components/ui/InactivityWarning';
 import HistorySheet from './HistorySheet';
 import useShortScreen from '../../hooks/useShortScreen';
-import { Menu, Bell, Fuel, Tag, Wifi, Door, Cake, Pin, Clock, Chev, Check } from '../../components/ui/Icons';
+import { Menu, Bell, Fuel, Tag, Wifi, Door, Cake, Pin, Clock, Chev, Check, Headphones } from '../../components/ui/Icons';
 import NotificationsSheet from './NotificationsSheet';
+import SupportSheet from '../../components/ui/SupportSheet';
 import { getPosition, nearestStation } from '../../lib/geo';
 import LogoSpinner from '../../components/ui/LogoSpinner';
 import GalaxyDust from '../../components/ui/GalaxyDust';
@@ -56,6 +57,19 @@ export default function ClientHome(ctx) {
           {unreadN > 9 ? '9+' : unreadN}
         </span>
       )}
+    </button>
+  );
+
+  // Canal de asistencia (4-ago): icono de ayuda a la par de la campana
+  const [supportOpen, setSupportOpen] = useState(false);
+  const helpBtn = () => (
+    <button onClick={() => setSupportOpen(true)} aria-label="Asistencia y ayuda" style={{
+      width: 42, height: 42, border: 'none', cursor: 'pointer',
+      background: 'none', color: headerTxt,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      flexShrink: 0, padding: 0,
+    }}>
+      <Headphones />
     </button>
   );
 
@@ -276,6 +290,7 @@ export default function ClientHome(ctx) {
               la marca de la app sigue siendo Puntos Plus) */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center' }}>
+              {helpBtn()}
               {bellBtn()}
               <button onClick={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('menu'); }} aria-label="Menú" style={{
                 width: 42, height: 42, border: 'none', cursor: 'pointer',
@@ -294,6 +309,7 @@ export default function ClientHome(ctx) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 18px 0' }}>
             <img src="/logo.png" alt="Puntos Plus" style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0 }} />
             <div style={{ flex: 1 }} />
+            {helpBtn()}
             {bellBtn()}
             <button onClick={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('menu'); }} aria-label="Menú" style={{
               width: 42, height: 42, border: 'none', cursor: 'pointer',
@@ -860,6 +876,11 @@ export default function ClientHome(ctx) {
 
       {/* Inbox de la campana: notificaciones del motor, se marcan
           leídas al abrir (el badge se apaga al instante). */}
+      {/* Canal de asistencia (WhatsApp / llamada + horario en vivo) */}
+      {supportOpen && (
+        <SupportSheet onClose={() => setSupportOpen(false)} dark={dark} phone={cfg?.supportPhone} />
+      )}
+
       {showNotifs && (
         <NotificationsSheet
           origin={showNotifs.origin}

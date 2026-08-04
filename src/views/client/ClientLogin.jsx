@@ -6,7 +6,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { inputFlat, btnStyle, BRAND_ORANGE } from '../../constants/styles';
-import { GoogleLogo, Phone, Lock, Mail, Chev, Fingerprint } from '../../components/ui/Icons';
+import { GoogleLogo, Phone, Lock, Mail, Chev, Fingerprint, Headphones } from '../../components/ui/Icons';
 import { phoneMask } from '../../lib/inputMasks';
 import { signInWithPhone } from '../../services/authService';
 import { mapMember } from '../../hooks/useSupabaseData';
@@ -136,7 +136,15 @@ export default function ClientLogin(ctx) {
       <div style={{ marginBottom: 36 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
           <img src="/logo.png" alt="Puntos Plus" style={{ width: 64, height: 64, borderRadius: 16, display: 'block' }} />
-          <ModeToggle dark={dark} setUiMode={setUiMode} />
+          {/* Ayuda + modo claro/oscuro — la ayuda vive en el header
+              (como en el home) para no confundirse con "Regístrate" */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button onClick={() => setSupportOpen(true)} aria-label="Asistencia y ayuda"
+              style={{ width: 38, height: 38, border: 'none', cursor: 'pointer', background: 'none', color: ink, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+              <Headphones />
+            </button>
+            <ModeToggle dark={dark} setUiMode={setUiMode} />
+          </div>
         </div>
         <div style={{ fontSize: 24, fontWeight: 900, color: ink, lineHeight: 1.15 }}>Bienvenido a</div>
         <div style={{ lineHeight: 1.1, marginBottom: 10 }}>
@@ -217,15 +225,6 @@ export default function ClientLogin(ctx) {
         <button onClick={startRegister}
           style={{ background: 'none', border: 'none', color: BRAND_ORANGE, fontWeight: 800, fontSize: 13, cursor: 'pointer', fontFamily: "'DM Sans'", padding: 0 }}>
           Regístrate
-        </button>
-      </div>
-
-      {/* Canal de asistencia — link discreto bajo el registro */}
-      <div style={{ textAlign: 'center', marginTop: 10 }}>
-        <span style={{ fontSize: 13, color: sub }}>¿Necesitas ayuda? </span>
-        <button onClick={() => setSupportOpen(true)}
-          style={{ background: 'none', border: 'none', color: BRAND_ORANGE, fontWeight: 800, fontSize: 13, cursor: 'pointer', fontFamily: "'DM Sans'", padding: 0 }}>
-          Contáctanos
         </button>
       </div>
 
