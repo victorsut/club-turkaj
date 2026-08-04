@@ -25,11 +25,7 @@ export default function BentoTile({
         gridColumn: wide ? '1 / -1' : 'auto',
         background: color,
         borderRadius: bento.radius,
-        // Horizontal 13 (antes 16): margen interno reducido para que
-        // títulos largos (SATISFACCIÓN/UBICACIÓN) quepan SIN guion en
-        // teléfonos angostos y el home siga entrando completo (img2
-        // POR CORREGIR 4-ago — el guionado rompía la estética).
-        padding: wide ? '16px 18px' : '15px 13px 14px',
+        padding: wide ? '16px 18px' : '15px 16px 14px',
         // square: proporción 1:1 fija (Promos/Vehículo); el resto se
         // estira con la fila del grid (adaptable a la resolución).
         aspectRatio: square ? '1 / 1' : undefined,
