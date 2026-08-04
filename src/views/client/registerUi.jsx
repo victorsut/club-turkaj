@@ -2,6 +2,7 @@
 // Helpers de UI del wizard de registro (extraídos de GoogleProfile.jsx —
 // regla de modularidad <500 líneas). FORMATO GENERAL: paleta
 // naranja/negro/blanco, flat, iconos SVG.
+import { useState } from 'react';
 import { inputFlat, BRAND_ORANGE } from '../../constants/styles';
 import { ArrowLeft, Cake, Chev } from '../../components/ui/Icons';
 
@@ -49,22 +50,42 @@ export function PtsCard({ total, base, optional, vehicles, dark }) {
   );
 }
 
+// Globo informativo anclado sobre un campo (lenguaje visual del Toast:
+// píldora oscura flat con disco de color e icono SVG) con cola apuntando
+// al campo. Se muestra mientras el campo está enfocado — énfasis del
+// dueño (4-ago): datos que se verifican después del llenado.
+export function InfoBubble({ icon, color, text, dark }) {
+  const bg = dark ? '#2A2A30' : '#0D0D0D';
+  return (
+    <div className="pp-bubble" style={{ position: 'absolute', bottom: 'calc(100% + 9px)', left: 0, right: 0, background: bg, border: dark ? '1px solid rgba(255,255,255,.12)' : 'none', borderRadius: 14, padding: '9px 14px 9px 9px', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</div>
+      <div style={{ fontSize: 12, fontWeight: 600, color: '#fff', lineHeight: 1.4 }}>{text}</div>
+      <div style={{ position: 'absolute', top: '100%', left: 24, width: 0, height: 0, borderLeft: '7px solid transparent', borderRight: '7px solid transparent', borderTop: `7px solid ${bg}` }} />
+    </div>
+  );
+}
+
 // Campo de texto con icono SVG a la izquierda (relleno, sin borde).
 // `mask` ({clean, format} de lib/inputMasks): el estado guarda el valor
 // crudo y el input muestra el formateado con separadores automáticos.
 // `transform` post-procesa el crudo (ej. capWords); `autoCap` pasa
-// autoCapitalize al teclado del celular.
-export function Field({ icon, placeholder, fieldKey, type, inputMode, maxLen, bonus, mask, autoCap, transform,
+// autoCapitalize al teclado del celular. `bubble` ({icon, color, text})
+// muestra un InfoBubble sobre el campo mientras está enfocado.
+export function Field({ icon, placeholder, fieldKey, type, inputMode, maxLen, bonus, mask, autoCap, transform, bubble,
                         regProfile, setRegProfile, clearAuthErr, regOptional, dark }) {
+  const [focused, setFocused] = useState(false);
   const val    = regProfile[fieldKey] || '';
   const filled = val.trim().length > 0;
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', zIndex: bubble && focused ? 6 : undefined }}>
+      {bubble && focused && <InfoBubble {...bubble} dark={dark} />}
       <div style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: '#9E9E9E', display: 'flex', zIndex: 1 }}>{icon}</div>
       <input
         placeholder={placeholder} type={type || 'text'} inputMode={inputMode}
         maxLength={mask ? undefined : maxLen} autoCapitalize={autoCap}
         value={mask ? mask.format(val) : val}
+        onFocus={bubble ? () => setFocused(true) : undefined}
+        onBlur={bubble ? () => setFocused(false) : undefined}
         onChange={e => {
           let v = mask ? mask.clean(e.target.value)
             : inputMode === 'numeric' ? e.target.value.replace(/[^0-9]/g, '') : e.target.value;

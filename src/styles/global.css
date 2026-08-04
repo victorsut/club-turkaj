@@ -150,8 +150,13 @@ body {
 .pp-tint    { animation: ppTintOut .45s ease-out forwards; pointer-events: none; }
 .pp-tint-in { animation: ppTintIn .18s ease-in forwards; pointer-events: none; }
 
+/* Globo informativo del wizard (registerUi.InfoBubble): emerge del campo
+   enfocado hacia arriba; al terminar no retiene transform (backwards). */
+@keyframes ppBubbleIn { from { opacity: 0; transform: translateY(6px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.pp-bubble { animation: ppBubbleIn .25s cubic-bezier(.32, .72, .33, 1) backwards; }
+
 @media (prefers-reduced-motion: reduce) {
-  .pp-tile, .pp-grow, .pp-screen { animation: ppFade .15s ease backwards; }
+  .pp-tile, .pp-grow, .pp-screen, .pp-bubble { animation: ppFade .15s ease backwards; }
   .pp-grow-out { animation: ppFadeOut .15s ease forwards; }
   .pp-tint { animation-duration: .15s; }
   .pp-tint-in { animation-duration: .1s; }

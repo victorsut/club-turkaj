@@ -5,10 +5,10 @@
 import { useState } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { inputFlat, btnStyle, BRAND_ORANGE, bento } from '../../constants/styles';
-import { User, IdCard, Mail, Receipt, Eye, EyeOff, Plus, XMark } from '../../components/ui/Icons';
+import { User, IdCard, Mail, Receipt, Eye, EyeOff, Plus, XMark, Gift, Phone } from '../../components/ui/Icons';
 import { DatePickerSheet } from '../../components/ui/DrumDatePicker';
 import { VEHICLE_TYPES } from '../../components/ui/VehicleIcons';
-import { WizardHeader, PtsCard, Field, DateField } from './registerUi';
+import { WizardHeader, PtsCard, Field, DateField, InfoBubble } from './registerUi';
 import AddressPicker, { EMPTY_ADDRESS } from '../../components/ui/AddressPicker';
 import { isAddressComplete, packAddress } from '../../constants/geoGt';
 import { phoneMask, dpiMask, plateMask, capWords } from '../../lib/inputMasks';
@@ -44,6 +44,7 @@ export default function GoogleProfile(ctx) {
   const [showPass, setShowPass]             = useState(false);
   const [showPassConfirm, setShowPassConfirm] = useState(false);
   const [checkingPhone, setCheckingPhone] = useState(false);
+  const [phoneFocus, setPhoneFocus]       = useState(false);
 
   // ── Verificar si el telefono o DPI ya existe en Supabase ─
   const checkPhoneDuplicate = async (phone) => {
@@ -213,9 +214,12 @@ export default function GoogleProfile(ctx) {
         </div>
         {errBox}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-          {/* 1-ago: nombre REAL — luego no se puede editar en la app */}
+          {/* 1-ago: nombre REAL — luego no se puede editar en la app.
+              4-ago: globo de énfasis al enfocar — se usa para verificar
+              la identidad al entregar regalos y premios. */}
           <div>
-            <Field {...fieldProps} icon={<User />} placeholder="Nombre real completo *" fieldKey="name" autoCap="words" transform={capWords} />
+            <Field {...fieldProps} icon={<User />} placeholder="Nombre real completo *" fieldKey="name" autoCap="words" transform={capWords}
+              bubble={{ icon: <Gift />, color: bento.amber, text: 'Tu nombre completo se usará para verificar tu identidad al entregarte regalos y premios.' }} />
             <div style={{ fontSize: 11, color: '#9E9E9E', marginTop: 5, paddingLeft: 4 }}>
               Escribe tu nombre real — después no podrás cambiarlo en la app.
             </div>
@@ -232,10 +236,13 @@ export default function GoogleProfile(ctx) {
             dark={dark}
           />
           <Field {...fieldProps} icon={<IdCard />} placeholder="DPI — 13 dígitos *" fieldKey="dpi" inputMode="numeric" mask={dpiMask} />
-          {/* Teléfono con prefijo */}
-          <div style={{ position: 'relative' }}>
+          {/* Teléfono con prefijo — globo de énfasis al enfocar (4-ago):
+              el número se verificará al finalizar el registro */}
+          <div style={{ position: 'relative', zIndex: phoneFocus ? 6 : undefined }}>
+            {phoneFocus && <InfoBubble icon={<Phone />} color={bento.green} text="Verificaremos este número al finalizar tu registro." dark={dark} />}
             <div style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: '#9E9E9E', fontWeight: 700, zIndex: 1 }}>+502</div>
             <input placeholder="Teléfono 8 dígitos *" value={phoneMask.format(regProfile.phone || '')} inputMode="numeric"
+              onFocus={() => setPhoneFocus(true)} onBlur={() => setPhoneFocus(false)}
               onChange={e => { setRegProfile(p => ({ ...p, phone: phoneMask.clean(e.target.value) })); clearAuthErr(); }}
               style={{ ...fieldFlat, paddingLeft: 62 }} />
           </div>
