@@ -36,6 +36,9 @@ export const DEFAULT_CONFIG = {
   // Settings (program_config 'degradation_enabled').
   degradEnabled: false,
   degradEnabledAt: null,
+  // Canal de asistencia (4-ago-2026): número de WhatsApp/llamadas del
+  // negocio — editable en Admin → Configuración (program_config 'support').
+  supportPhone: '49741067',
   degrad: [
     {
       tier: 'BLACK',

@@ -14,12 +14,16 @@ import { biometricsAvailable, loginBiometric, isUserCancel } from '../../lib/web
 import Wordmark from '../../components/ui/Wordmark';
 import LegalFooter from '../../components/ui/LegalFooter';
 import ModeToggle from '../../components/ui/ModeToggle';
+import SupportSheet from '../../components/ui/SupportSheet';
 import useBackLayer from '../../hooks/useBackLayer';
 
 export default function ClientLogin(ctx) {
   const { loginPhone, setLoginPhone, loginPass, setLoginPass, authError, setAuthError,
     clearAuthErr, setAuthScreen, setMe, setRegProfile, setGoogleStep, custs, fire,
-    dark, setUiMode } = ctx;
+    dark, setUiMode, cfg } = ctx;
+
+  // Canal de asistencia (4-ago): disponible desde el login
+  const [supportOpen, setSupportOpen] = useState(false);
 
   const ink = dark ? '#fff' : '#0D0D0D';
   const sub = dark ? 'rgba(255,255,255,.55)' : '#9E9E9E';
@@ -216,8 +220,22 @@ export default function ClientLogin(ctx) {
         </button>
       </div>
 
+      {/* Canal de asistencia — link discreto bajo el registro */}
+      <div style={{ textAlign: 'center', marginTop: 10 }}>
+        <span style={{ fontSize: 13, color: sub }}>¿Necesitas ayuda? </span>
+        <button onClick={() => setSupportOpen(true)}
+          style={{ background: 'none', border: 'none', color: BRAND_ORANGE, fontWeight: 800, fontSize: 13, cursor: 'pointer', fontFamily: "'DM Sans'", padding: 0 }}>
+          Contáctanos
+        </button>
+      </div>
+
       {/* Disclaimer legal D28 */}
       <LegalFooter />
+
+      {/* Canal de asistencia (WhatsApp / llamada + horario en vivo) */}
+      {supportOpen && (
+        <SupportSheet onClose={() => setSupportOpen(false)} dark={dark} phone={cfg?.supportPhone} />
+      )}
 
       {/* Sheet de recuperación de contraseña (funcionalidad pendiente) */}
       {fpSheet && (

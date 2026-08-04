@@ -508,6 +508,10 @@ export default function App() {
             const degEn = cfgMap.degradation_enabled
               ? (typeof cfgMap.degradation_enabled === 'string' ? JSON.parse(cfgMap.degradation_enabled) : cfgMap.degradation_enabled)
               : {};
+            // Canal de asistencia (4-ago): número de WhatsApp/llamadas
+            const sup = cfgMap.support
+              ? (typeof cfgMap.support === 'string' ? JSON.parse(cfgMap.support) : cfgMap.support)
+              : {};
             let fp;
             if (cfgMap.fuel_prices) {
               fp = typeof cfgMap.fuel_prices === 'string' ? JSON.parse(cfgMap.fuel_prices) : cfgMap.fuel_prices;
@@ -524,6 +528,7 @@ export default function App() {
               fuelPrices: fp,
               degradEnabled: degEn.enabled === true,
               degradEnabledAt: degEn.enabled_at || null,
+              supportPhone: sup.phone || '49741067',
             });
           }
         }

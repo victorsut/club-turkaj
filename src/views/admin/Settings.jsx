@@ -7,6 +7,7 @@ import { Back } from '../../components/ui/Icons';
 import { updateFuelPrices } from '../../services/rpcServices';
 import { adminWriteCatalog } from '../../services/secureReads';
 import { createApiClient } from '../../services/adminAuthService';
+import { getAdminToken } from '../../services/sessionTokens';
 import ReasonModal from '../../components/ui/ReasonModal';
 
 export default function Settings(ctx) {
@@ -65,6 +66,33 @@ export default function Settings(ctx) {
       setStations(p => p.map(s => s.id === row.id ? { ...s, wifiSsid: ssid, wifiPassword: pass } : s));
     }
     fire(`WiFi de ${row.name} actualizado`, 'success');
+  };
+
+  // ─── Canal de asistencia (4-ago): número WhatsApp/llamadas ───
+  // Visible en login y Menú del cliente. RPC auditado con sesión de
+  // admin (el número es sensible: redirigirlo permitiría phishing).
+  const [supportForm, setSupportForm] = useState('');
+  const [savingSupport, setSavingSupport] = useState(false);
+  useEffect(() => { setSupportForm(cfg.supportPhone || ''); }, [cfg.supportPhone]);
+
+  const saveSupport = async () => {
+    if (!sb) { fire('Sin conexión', 'error'); return; }
+    const phone = supportForm.replace(/\D/g, '');
+    if (phone.length !== 8) { fire('El número debe tener exactamente 8 dígitos', 'error'); return; }
+    setSavingSupport(true);
+    const { data, error } = await sb.rpc('set_support_phone', {
+      p_session_token: getAdminToken()?.token || null,
+      p_phone: phone,
+      p_admin_id: loggedAdmin?.id,
+      p_admin_name: loggedAdmin?.name,
+      p_admin_email: loggedAdmin?.email,
+      p_reason_text: null,
+    });
+    setSavingSupport(false);
+    if (error) { fire('Error: ' + error.message, 'error'); return; }
+    if (data?.error) { fire(data.error, 'error'); return; }
+    setCfg(p => ({ ...p, supportPhone: phone }));
+    fire('Número de asistencia actualizado', 'success');
   };
 
   // ─── F7a: llaves de la API externa (PROPER) ───
@@ -275,6 +303,36 @@ export default function Settings(ctx) {
         >
           ✏️ Editar precios
         </button>
+      </div>
+
+      {/* Canal de asistencia (WhatsApp / llamadas) */}
+      <div style={aSec}>📞 Canal de Asistencia</div>
+      <div style={aCard}>
+        <div style={{ fontSize: 11, color: '#777', marginBottom: 12, lineHeight: 1.5 }}>
+          Número de WhatsApp y llamadas que el cliente ve en "Asistencia y Ayuda" (login y Menú). Horario mostrado: lunes a viernes, 8:00 a.m. – 4:00 p.m.
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            value={supportForm}
+            onChange={e => setSupportForm(e.target.value.replace(/[^0-9]/g, '').slice(0, 8))}
+            placeholder="8 dígitos (ej: 49741067)"
+            inputMode="numeric"
+            style={{ ...inputStyleDark, flex: 1, ...sMono, fontSize: 13 }}
+          />
+          <button
+            onClick={saveSupport}
+            disabled={savingSupport}
+            style={{
+              padding: '0 18px', borderRadius: 12, border: 'none',
+              background: savingSupport ? '#3A3A3A' : '#FBBC04',
+              color: savingSupport ? '#777' : '#0D0D0D',
+              fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 800,
+              cursor: savingSupport ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {savingSupport ? '...' : 'Guardar'}
+          </button>
+        </div>
       </div>
 
       {/* WiFi por estación */}

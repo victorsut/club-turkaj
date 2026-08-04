@@ -5,8 +5,9 @@
 // El botón físico de volver cierra la sección abierta (useBackLayer).
 import { useState } from 'react';
 import { sMono, bento } from '../../constants/styles';
-import { User, StarLine, Warn, Clipboard, Info, Door, Chev, ArrowLeft, Sun, Moon } from '../../components/ui/Icons';
+import { User, StarLine, Warn, Clipboard, Info, Door, Chev, ArrowLeft, Sun, Moon, Headphones } from '../../components/ui/Icons';
 import ModeToggle from '../../components/ui/ModeToggle';
+import SupportSheet from '../../components/ui/SupportSheet';
 import GalaxyDust from '../../components/ui/GalaxyDust';
 import LegalFooter from '../../components/ui/LegalFooter';
 import useBackLayer from '../../hooks/useBackLayer';
@@ -16,11 +17,13 @@ import { MenuLevels, MenuInactivity, MenuAbout } from './menu/MenuInfo';
 import MenuTerms from './menu/MenuTerms';
 
 const MENU_ITEMS = [
-  { id: 'cuenta',      icon: <User />,      label: 'Mi Cuenta' },
-  { id: 'niveles',     icon: <StarLine />,  label: 'Niveles y Beneficios' },
-  { id: 'inactividad', icon: <Warn />,      label: 'Reglas de Inactividad' },
-  { id: 'terminos',    icon: <Clipboard />, label: 'Términos y Condiciones' },
-  { id: 'acerca',      icon: <Info />,      label: 'Acerca de Puntos Plus' },
+  { id: 'cuenta',      icon: <User />,       label: 'Mi Cuenta' },
+  { id: 'niveles',     icon: <StarLine />,   label: 'Niveles y Beneficios' },
+  { id: 'inactividad', icon: <Warn />,       label: 'Reglas de Inactividad' },
+  { id: 'terminos',    icon: <Clipboard />,  label: 'Términos y Condiciones' },
+  // 'ayuda' abre el SupportSheet (overlay), no una sección
+  { id: 'ayuda',       icon: <Headphones />, label: 'Asistencia y Ayuda' },
+  { id: 'acerca',      icon: <Info />,       label: 'Acerca de Puntos Plus' },
 ];
 
 export default function ClientMenu(ctx) {
@@ -31,6 +34,9 @@ export default function ClientMenu(ctx) {
   const [section, setSection] = useState(null);
   const closeSection = () => setSection(null);
   useBackLayer(!!section, closeSection);
+
+  // Canal de asistencia (4-ago) — overlay, no sección
+  const [supportOpen, setSupportOpen] = useState(false);
 
   const shell = { minHeight: '100vh', background: TH.bg, padding: '20px 20px 110px' };
 
@@ -96,7 +102,7 @@ export default function ClientMenu(ctx) {
           (estructura de la referencia) */}
       <div style={{ background: TH.surface, borderRadius: 20, overflow: 'hidden', marginBottom: 12 }}>
         {MENU_ITEMS.map((item, i) => (
-          <button key={item.id} onClick={() => setSection(item.id)} style={{
+          <button key={item.id} onClick={() => item.id === 'ayuda' ? setSupportOpen(true) : setSection(item.id)} style={{
             width: '100%', display: 'flex', alignItems: 'center', gap: 12,
             padding: '15px 16px', border: 'none', background: 'none',
             borderTop: i > 0 ? `1px solid ${TH.divider}` : 'none',
@@ -130,6 +136,11 @@ export default function ClientMenu(ctx) {
 
       {/* Disclaimer legal D28 */}
       <LegalFooter color={TH.sub} />
+
+      {/* Canal de asistencia (WhatsApp / llamada + horario en vivo) */}
+      {supportOpen && (
+        <SupportSheet onClose={() => setSupportOpen(false)} dark={dark} phone={cfg?.supportPhone} />
+      )}
     </div>
   );
 }
