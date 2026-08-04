@@ -18,9 +18,19 @@ export default function Catalog(ctx) {
   // panel admin el catálogo conserva su presentación clara actual.
   const dark = client && !!modeDark;
   const t    = me ? gT(me.gallons) : gT(0);
-  const cats = ['todos', ...Object.keys(CAT_LABELS)];
   const visible = (rewards || []).filter(r => r.active !== false);
+  // Solo categorías CON premios activos (4-ago, pedido del dueño): una
+  // categoría vacía no aparece hasta que el admin le asigne un premio.
+  // El orden lo sigue marcando CAT_LABELS (estable entre renders).
+  const usedCats = new Set(visible.map(r => r.cat));
+  const cats = ['todos', ...Object.keys(CAT_LABELS).filter(c => usedCats.has(c))];
   const filtered = catF === 'todos' ? visible : visible.filter(r => r.cat === catF);
+
+  // Si la categoría filtrada se queda sin premios (se desactivó el
+  // último desde admin), el filtro cae a Todos — su chip ya no existe.
+  useEffect(() => {
+    if (catF !== 'todos' && !usedCats.has(catF)) setCatF('todos');
+  }, [catF, rewards]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Canjes PENDIENTES de usar (reloj arriba-derecha → HistorySheet ya
   // filtrado, mismo patrón del Historial de Canjes).
