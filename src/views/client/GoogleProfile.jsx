@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { inputFlat, btnStyle, BRAND_ORANGE, bento } from '../../constants/styles';
-import { User, IdCard, Mail, Receipt, Eye, EyeOff, Plus, XMark, Gift, Phone } from '../../components/ui/Icons';
+import { User, IdCard, Mail, Receipt, Eye, EyeOff, Plus, XMark, Phone } from '../../components/ui/Icons';
 import { DatePickerSheet } from '../../components/ui/DrumDatePicker';
 import { VEHICLE_TYPES } from '../../components/ui/VehicleIcons';
 import { WizardHeader, PtsCard, Field, DateField, InfoBubble } from './registerUi';
@@ -215,11 +215,10 @@ export default function GoogleProfile(ctx) {
         {errBox}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
           {/* 1-ago: nombre REAL — luego no se puede editar en la app.
-              4-ago: globo de énfasis al enfocar — se usa para verificar
-              la identidad al entregar regalos y premios. */}
+              4-ago: globo de énfasis al enfocar — verificación de identidad */}
           <div>
             <Field {...fieldProps} icon={<User />} placeholder="Nombre real completo *" fieldKey="name" autoCap="words" transform={capWords}
-              bubble={{ icon: <Gift />, color: bento.amber, text: 'Tu nombre completo se usará para verificar tu identidad al entregarte regalos y premios.' }} />
+              bubble={{ icon: <User />, color: bento.amber, text: 'Tu nombre completo se usará para verificar tu identidad.' }} />
             <div style={{ fontSize: 11, color: '#9E9E9E', marginTop: 5, paddingLeft: 4 }}>
               Escribe tu nombre real — después no podrás cambiarlo en la app.
             </div>

@@ -5,6 +5,7 @@
 // dentro del padre creaba un tipo nuevo por render y remontaba el tambor.
 import { useState, useRef, useEffect } from 'react';
 import { BRAND_ORANGE } from '../../constants/styles';
+import { ArrowLeft } from './Icons';
 
 const ITEM_H   = 48;
 const VISIBLE  = 5;
@@ -137,15 +138,20 @@ export const DatePickerSheet = ({ tempDate, setTempDate, setShowDatePicker, setR
     <div onClick={() => close(false)}
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, animation: closing ? 'ppFadeOut .2s ease forwards' : 'ppFade .2s ease' }}>
       <div className={closing ? 'pp-pop-out' : 'pp-pop'} onClick={e => e.stopPropagation()}
-        style={{ background: dark ? '#16161A' : '#fff', borderRadius: 24, width: '100%', maxWidth: 380, padding: '18px 18px 16px' }}>
-        <div style={{ textAlign: 'center', fontSize: 15, fontWeight: 800, color: dark ? '#fff' : '#0D0D0D', marginBottom: 14 }}>Fecha de nacimiento</div>
-        <DateDrumPicker value={tempDate} onChange={setTempDate} dark={dark} />
-        <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-          <button onClick={() => close(false)}
-            style={{ flex: 1, padding: 13, borderRadius: 14, border: 'none', background: dark ? 'rgba(255,255,255,.08)' : '#F5F5F7', color: '#9E9E9E', fontFamily: "'DM Sans'", fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>Cancelar</button>
-          <button onClick={() => close(true)}
-            style={{ flex: 2, padding: 13, borderRadius: 14, border: 'none', background: BRAND_ORANGE, color: '#fff', fontFamily: "'DM Sans'", fontWeight: 800, cursor: 'pointer', fontSize: 13 }}>Seleccionar</button>
+        style={{ background: dark ? '#16161A' : '#fff', borderRadius: 24, width: '100%', maxWidth: 380, padding: '14px 18px 16px' }}>
+        {/* Salida = flecha suelta arriba-izquierda (regla de los modales
+            del inicio — GrowModal); no hay botón Cancelar */}
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
+          <button onClick={() => close(false)} aria-label="Volver"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', color: dark ? '#fff' : '#0D0D0D', width: 36 }}>
+            <ArrowLeft />
+          </button>
+          <div style={{ flex: 1, textAlign: 'center', fontSize: 15, fontWeight: 800, color: dark ? '#fff' : '#0D0D0D' }}>Fecha de nacimiento</div>
+          <div style={{ width: 36 }} />
         </div>
+        <DateDrumPicker value={tempDate} onChange={setTempDate} dark={dark} />
+        <button onClick={() => close(true)}
+          style={{ width: '100%', padding: 13, borderRadius: 14, border: 'none', background: BRAND_ORANGE, color: '#fff', fontFamily: "'DM Sans'", fontWeight: 800, cursor: 'pointer', fontSize: 13, marginTop: 16 }}>Seleccionar</button>
       </div>
     </div>
   );
