@@ -7,7 +7,7 @@
 import { Chev } from '../../components/ui/Icons';
 import { BRAND_ORANGE } from '../../constants/styles';
 
-export default function CompanySelect({ dark, onPick }) {
+export default function CompanySelect({ dark, cfg, onPick }) {
   const ink = dark ? '#fff' : '#0D0D0D';
   const sub = dark ? 'rgba(255,255,255,.55)' : '#9E9E9E';
   const card = dark ? 'rgba(255,255,255,.07)' : '#F5F5F7';
@@ -37,8 +37,9 @@ export default function CompanySelect({ dark, onPick }) {
           background: card, padding: '30px 20px 26px', fontFamily: 'inherit',
         }}>
           <img src="/logo-turkaj.png" alt="Turkaj" style={{ width: 150, display: 'block', margin: '0 auto 16px', filter: halo }} />
-          <div style={{ fontSize: 20, fontWeight: 800, color: ink }}>Gasolineras Turkaj</div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: sub, marginTop: 2 }}>Chichicastenango</div>
+          {/* F1: nombre/ubicación editables en Admin → Configuración */}
+          <div style={{ fontSize: 20, fontWeight: 800, color: ink }}>{cfg?.companyName || 'Gasolineras Turkaj'}</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: sub, marginTop: 2 }}>{cfg?.companyLocation || 'Chichicastenango'}</div>
           <div style={{
             width: 40, height: 40, borderRadius: 20, margin: '18px auto 0',
             background: dark ? '#fff' : '#0D0D0D', color: dark ? '#0D0D0D' : '#fff',

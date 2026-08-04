@@ -282,7 +282,7 @@ export default function ClientHome(ctx) {
               <Wordmark size={28} color={headerTxt} />
             </div>
             <div style={{ fontSize: 11, fontWeight: 600, color: taglineFg, marginTop: 3 }}>
-              Gasolineras Turkaj, Chichicastenango
+              {cfg.companyName || 'Gasolineras Turkaj'}, {cfg.companyLocation || 'Chichicastenango'}
             </div>
           </div>
           {/* Columna derecha: bell + menú arriba, logo Turkaj debajo
@@ -328,7 +328,7 @@ export default function ClientHome(ctx) {
                 <Wordmark size={34} color={headerTxt} />
               </div>
               <div style={{ fontSize: 12, fontWeight: 600, color: taglineFg, marginTop: 4 }}>
-                Gasolineras Turkaj, Chichicastenango
+                {cfg.companyName || 'Gasolineras Turkaj'}, {cfg.companyLocation || 'Chichicastenango'}
               </div>
             </div>
             {/* Logo Turkaj a la derecha del saludo (referencia encabezado
@@ -634,7 +634,7 @@ export default function ClientHome(ctx) {
                 Nuestras Estaciones
               </div>
               <div style={{ fontSize: 12, fontWeight: 700, opacity: 0.9, marginTop: 2 }}>
-                Gasolineras Turkaj · Chichicastenango
+                {cfg.companyName || 'Gasolineras Turkaj'} · {cfg.companyLocation || 'Chichicastenango'}
               </div>
             </div>
 

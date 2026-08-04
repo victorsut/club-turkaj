@@ -39,6 +39,10 @@ export const DEFAULT_CONFIG = {
   // Canal de asistencia (4-ago-2026): número de WhatsApp/llamadas del
   // negocio — editable en Admin → Configuración (program_config 'support').
   supportPhone: '49741067',
+  // F1 (4-ago-2026): identidad de la empresa — selector de empresa y
+  // tagline del inicio (program_config 'company', RPC set_company_info).
+  companyName: 'Gasolineras Turkaj',
+  companyLocation: 'Chichicastenango',
   degrad: [
     {
       tier: 'BLACK',

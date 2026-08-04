@@ -82,6 +82,7 @@ import AdminPromos from './admin/AdminPromos';
 import PromoRules from './admin/PromoRules';
 import OpManagement from './admin/OpManagement';
 import AdminManagement from './admin/AdminManagement';
+import AdminStations from './admin/AdminStations';
 import AuditLog from './admin/AuditLog';
 import VehiclesSoon from './client/VehiclesSoon';
 import { originFromEvent } from '../lib/motionOrigin';
@@ -500,6 +501,7 @@ export default function App() {
             lat: s.lat, lng: s.lng, active: s.active !== false,
             schedule: s.schedule || null,
             wifiSsid: s.wifi_ssid || null, wifiPassword: s.wifi_password || null,
+            externalCode: s.external_code || '', // F1: código PROPER
           })));
           console.log('[Puntos Plus] Estaciones cargadas:', stRes.data.length);
         }
@@ -522,6 +524,10 @@ export default function App() {
             const sup = cfgMap.support
               ? (typeof cfgMap.support === 'string' ? JSON.parse(cfgMap.support) : cfgMap.support)
               : {};
+            // F1 (4-ago): identidad de la empresa
+            const comp = cfgMap.company
+              ? (typeof cfgMap.company === 'string' ? JSON.parse(cfgMap.company) : cfgMap.company)
+              : {};
             let fp;
             if (cfgMap.fuel_prices) {
               fp = typeof cfgMap.fuel_prices === 'string' ? JSON.parse(cfgMap.fuel_prices) : cfgMap.fuel_prices;
@@ -539,6 +545,8 @@ export default function App() {
               degradEnabled: degEn.enabled === true,
               degradEnabledAt: degEn.enabled_at || null,
               supportPhone: sup.phone || '49741067',
+              companyName: comp.name || 'Gasolineras Turkaj',
+              companyLocation: comp.location || 'Chichicastenango',
             });
           }
         }
@@ -1871,6 +1879,7 @@ export default function App() {
       if (scr === 'premios') return <AdminPremios {...ctx} />;
       if (scr === 'cfg') return <Settings {...ctx} />;
       if (scr === 'ops') return <OpManagement {...ctx} />;
+      if (scr === 'stations') return <AdminStations {...ctx} />;
       if (scr === 'admins') return <AdminManagement {...ctx} />;
       if (scr === 'audit') return <AuditLog {...ctx} />;
       if (scr === 'rules') return <Rules {...ctx} />;
@@ -1888,7 +1897,7 @@ export default function App() {
     }
 
     // Client screens — el selector de empresa antecede al inicio
-    if (!companyPicked) return <CompanySelect dark={dark} onPick={() => setCompanyPicked(true)} />;
+    if (!companyPicked) return <CompanySelect dark={dark} cfg={cfg} onPick={() => setCompanyPicked(true)} />;
     if (cScr === 'cat') return <Catalog {...ctx} client={true} />;
     if (cScr === 'promos') return <ClientPromos {...ctx} />;
     if (cScr === 'raf') return <ClientRaffle {...ctx} />;

@@ -1,7 +1,9 @@
 // src/views/admin/AdminDash.jsx
 // Admin dashboard — KPIs, points economy, fuel stats, top members, surveys
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { sb } from '../../lib/supabaseClient';
 import { sMono, adminTheme as AT, btnYellow, BRAND_ORANGE } from '../../constants/styles';
+import { getAdminToken } from '../../services/sessionTokens';
 import Badge from '../../components/ui/Badge';
 import { Gear, Logout, QR as QRIcon, Plus } from '../../components/ui/Icons';
 
@@ -26,13 +28,48 @@ export default function AdminDash(ctx) {
   const qUnredeemed = (ptsUnredeemed / cfg.qPerPt).toFixed(2);
   const qRedeemed = (ptsRedeemed / cfg.qPerPt).toFixed(2);
 
-  // Fuel breakdown (estimated)
+  // Fuel breakdown (estimated — fallback si el RPC de KPIs no responde)
   const gSuper = +(tG * 0.45).toFixed(0);
   const gRegular = +(tG * 0.35).toFixed(0);
   const gDiesel = +(tG - gSuper - gRegular).toFixed(0);
   const iSuper = +(gSuper * (cfg.fuelPrices?.super ?? 0)).toFixed(0);
   const iRegular = +(gRegular * (cfg.fuelPrices?.regular ?? 0)).toFixed(0);
   const iDiesel = +(gDiesel * (cfg.fuelPrices?.diesel ?? 0)).toFixed(0);
+
+  // ── KPIs REALES (F1, 4-ago): agregados de purchases por RPC — el
+  // SELECT de purchases quedó cerrado en SEC.C.2, por eso get_admin_kpis
+  // (sesión de admin). Sin RPC o sin datos, el desglose cae al estimado.
+  const [kpis, setKpis] = useState(null);
+  useEffect(() => {
+    if (!sb) return;
+    const tok = getAdminToken()?.token;
+    if (!tok) return;
+    sb.rpc('get_admin_kpis', { p_session_token: tok }).then(({ data, error }) => {
+      if (error) { console.warn('[Dash] KPIs:', error.message); return; }
+      if (data && !data.error) setKpis(data);
+    });
+  }, []);
+
+  const FUEL_META = {
+    super:   { label: 'Súper',   color: '#E65100' },
+    regular: { label: 'Regular', color: '#2E7D32' },
+    diesel:  { label: 'Diésel',  color: '#1565C0' },
+  };
+  const fuelReal = !!kpis?.fuel?.length;
+  const fuelRows = fuelReal
+    ? kpis.fuel.map(f => ({
+        key: f.fuel_type,
+        label: FUEL_META[f.fuel_type]?.label || (f.fuel_type[0].toUpperCase() + f.fuel_type.slice(1)),
+        color: FUEL_META[f.fuel_type]?.color || '#9E9E9E',
+        g: +f.gallons || 0, q: +f.amount || 0,
+      }))
+    : [
+        { key: 'super',   label: 'Súper',   color: '#E65100', g: gSuper,   q: iSuper },
+        { key: 'regular', label: 'Regular', color: '#2E7D32', g: gRegular, q: iRegular },
+        { key: 'diesel',  label: 'Diésel',  color: '#1565C0', g: gDiesel,  q: iDiesel },
+      ];
+  const fuelTotalG = fuelReal ? fuelRows.reduce((s, f) => s + f.g, 0) : tG;
+  const fuelTotalQ = fuelReal ? fuelRows.reduce((s, f) => s + f.q, 0) : tSpent;
 
   const rm = raffleCal[curMonth] || { m: '—', p: '—' };
 
@@ -114,20 +151,20 @@ export default function AdminDash(ctx) {
         </div>
       </div>
 
-      {/* Fuel Stats */}
-      <div style={aSec}>Galones Vendidos</div>
+      {/* Fuel Stats — reales desde purchases (RPC F1) o estimado */}
+      <div style={aSec}>Galones Vendidos{fuelReal ? '' : ' (estimado)'}</div>
       <Pair
         l={<>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#E65100' }}>⛽ Súper<span style={{ ...sMono, float: 'right', color: '#fff' }}>{gSuper.toLocaleString()}</span></div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#2E7D32', marginTop: 8 }}>⛽ Regular<span style={{ ...sMono, float: 'right', color: '#fff' }}>{gRegular.toLocaleString()}</span></div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#1565C0', marginTop: 8 }}>⛽ Diésel<span style={{ ...sMono, float: 'right', color: '#fff' }}>{gDiesel.toLocaleString()}</span></div>
-          <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${AT.border}`, fontSize: 13, fontWeight: 800, color: '#fff' }}>Total<span style={{ ...sMono, float: 'right' }}>{tG.toFixed(0)} gal</span></div>
+          {fuelRows.map((f, i) => (
+            <div key={f.key} style={{ fontSize: 13, fontWeight: 700, color: f.color, marginTop: i > 0 ? 8 : 0 }}>⛽ {f.label}<span style={{ ...sMono, float: 'right', color: '#fff' }}>{Math.round(f.g).toLocaleString()}</span></div>
+          ))}
+          <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${AT.border}`, fontSize: 13, fontWeight: 800, color: '#fff' }}>Total<span style={{ ...sMono, float: 'right' }}>{fuelTotalG.toFixed(0)} gal</span></div>
         </>}
         r={<>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(0,0,0,.7)' }}>Súper<span style={{ ...sMono, float: 'right' }}>Q{iSuper.toLocaleString()}</span></div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(0,0,0,.7)', marginTop: 8 }}>Regular<span style={{ ...sMono, float: 'right' }}>Q{iRegular.toLocaleString()}</span></div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(0,0,0,.7)', marginTop: 8 }}>Diésel<span style={{ ...sMono, float: 'right' }}>Q{iDiesel.toLocaleString()}</span></div>
-          <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(0,0,0,.15)', fontSize: 13, fontWeight: 800 }}>Total<span style={{ ...sMono, float: 'right' }}>Q{tSpent.toLocaleString()}</span></div>
+          {fuelRows.map((f, i) => (
+            <div key={f.key} style={{ fontSize: 13, fontWeight: 700, color: 'rgba(0,0,0,.7)', marginTop: i > 0 ? 8 : 0 }}>{f.label}<span style={{ ...sMono, float: 'right' }}>Q{Math.round(f.q).toLocaleString()}</span></div>
+          ))}
+          <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(0,0,0,.15)', fontSize: 13, fontWeight: 800 }}>Total<span style={{ ...sMono, float: 'right' }}>Q{Math.round(fuelTotalQ).toLocaleString()}</span></div>
         </>}
       />
 
@@ -155,6 +192,31 @@ export default function AdminDash(ctx) {
         </div>
         <div style={{ fontSize: 18, color: '#666' }}>→</div>
       </div>
+
+      {/* Ventas por estación (F1: purchases.station_id es dato confiable
+          de cada factura desde el modelo operador-por-factura) */}
+      {kpis?.stations?.length > 0 && (
+        <>
+          <div style={aSec}>Ventas por Estación</div>
+          <div style={{ margin: '0 20px 10px', ...aCard, padding: '4px 16px' }}>
+            {kpis.stations.map((s, i) => {
+              const m = (kpis.stations_month || []).find(x => x.id === s.id);
+              return (
+                <div key={s.id || i} style={{ padding: '12px 0', borderBottom: i < kpis.stations.length - 1 ? `1px solid ${AT.border}` : 'none' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: '#E0E0E0' }}>{s.name}</div>
+                    <div style={{ ...sMono, fontSize: 14, fontWeight: 800, color: '#FBBC04' }}>{Math.round(s.gallons).toLocaleString()}<span style={{ fontSize: 10, color: '#777' }}> gal</span></div>
+                  </div>
+                  <div style={{ fontSize: 11, color: '#9E9E9E', marginTop: 3, display: 'flex', justifyContent: 'space-between' }}>
+                    <span>{s.purchases} compras · Q{Math.round(s.amount).toLocaleString()}</span>
+                    <span style={{ color: '#66BB6A', fontWeight: 700 }}>Este mes: {Math.round(m?.gallons || 0).toLocaleString()} gal</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       {/* Top 10 */}
       <div style={aSec}>Top 10 — Galones Comprados</div>

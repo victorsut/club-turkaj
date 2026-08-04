@@ -5,13 +5,12 @@ import { sb } from '../../lib/supabaseClient';
 import { sMono, adminTheme as AT, inputStyleDark } from '../../constants/styles';
 import { Back } from '../../components/ui/Icons';
 import { updateFuelPrices } from '../../services/rpcServices';
-import { adminWriteCatalog } from '../../services/secureReads';
 import { createApiClient } from '../../services/adminAuthService';
 import { getAdminToken } from '../../services/sessionTokens';
 import ReasonModal from '../../components/ui/ReasonModal';
 
 export default function Settings(ctx) {
-  const { cfg, setCfg, setScr, fire, operators, setScr: navTo, loggedAdmin, stations, setStations } = ctx;
+  const { cfg, setCfg, setScr, fire, operators, setScr: navTo, loggedAdmin } = ctx;
 
   // ─── Interruptor del motor de degradación (25-jul) ───
   // Apagado hasta el lanzamiento oficial. Al encender, el servidor
@@ -38,34 +37,34 @@ export default function Settings(ctx) {
       : 'Motor de degradación desactivado');
   };
 
-  // ─── WiFi por estación (25-jul): SSID + clave editables ───
-  // Escritura directa a stations (política RLS abierta, igual que
-  // schedule). Vacío = la estación no ofrece WiFi por app y el modal
-  // del cliente cae al pase con el operador.
-  const [wifiForm, setWifiForm] = useState([]);
-  const [savingWifi, setSavingWifi] = useState(null); // id en guardado
+  // ─── F1 (4-ago): identidad de la empresa ───
+  // El WiFi por estación se movió a la vista Estaciones (scr 'stations')
+  // junto con dirección, horario, coordenadas y código PROPER.
+  const [companyForm, setCompanyForm] = useState({ name: '', location: '' });
+  const [savingCompany, setSavingCompany] = useState(false);
   useEffect(() => {
-    setWifiForm((stations || []).map(s => ({ id: s.id, name: s.name, ssid: s.wifiSsid || '', pass: s.wifiPassword || '' })));
-  }, [stations]);
+    setCompanyForm({ name: cfg.companyName || '', location: cfg.companyLocation || '' });
+  }, [cfg.companyName, cfg.companyLocation]);
 
-  const saveWifi = async (row) => {
+  const saveCompany = async () => {
     if (!sb) { fire('Sin conexión', 'error'); return; }
-    setSavingWifi(row.id);
-    const ssid = row.ssid.trim() || null;
-    const pass = row.pass.trim() || null;
-    // SEC.C.4: stations perdió la escritura abierta (dirección,
-    // coordenadas y clave WiFi eran editables por cualquiera).
-    const res = await adminWriteCatalog('station', 'update', {
-      id: row.id,
-      data: { wifi_ssid: ssid, wifi_password: pass },
-      audit: { adminId: loggedAdmin?.id, adminName: loggedAdmin?.name, adminEmail: loggedAdmin?.email },
+    const name = companyForm.name.trim();
+    const location = companyForm.location.trim();
+    if (!name || !location) { fire('Nombre y ubicación son obligatorios', 'error'); return; }
+    setSavingCompany(true);
+    const { data, error } = await sb.rpc('set_company_info', {
+      p_session_token: getAdminToken()?.token || null,
+      p_data: { name, location },
+      p_admin_id: loggedAdmin?.id,
+      p_admin_name: loggedAdmin?.name,
+      p_admin_email: loggedAdmin?.email,
+      p_reason_text: null,
     });
-    setSavingWifi(null);
-    if (res.error) { fire('Error: ' + res.error, 'error'); return; }
-    if (setStations) {
-      setStations(p => p.map(s => s.id === row.id ? { ...s, wifiSsid: ssid, wifiPassword: pass } : s));
-    }
-    fire(`WiFi de ${row.name} actualizado`, 'success');
+    setSavingCompany(false);
+    if (error) { fire('Error: ' + error.message, 'error'); return; }
+    if (data?.error) { fire(data.error, 'error'); return; }
+    setCfg(p => ({ ...p, companyName: name, companyLocation: location }));
+    fire('Datos de la empresa actualizados', 'success');
   };
 
   // ─── Canal de asistencia (4-ago): número WhatsApp/llamadas ───
@@ -248,6 +247,8 @@ export default function Settings(ctx) {
         <button onClick={() => setScr('admins')} style={{ flex: 1, padding: 14, borderRadius: 14, background: AT.card, border: `1px solid ${AT.border}`, fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#90CAF9' }}>🔐 Administradores</button>
         {/* F7a: llaves de la API externa (PROPER) */}
         <button onClick={() => setShowApiModal(true)} style={{ flex: 1, padding: 14, borderRadius: 14, background: AT.card, border: `1px solid ${AT.border}`, fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#80CBC4' }}>🔌 API externa</button>
+        {/* F1: ficha completa de estaciones (incluye el WiFi que vivía acá) */}
+        <button onClick={() => setScr('stations')} style={{ flex: 1, padding: 14, borderRadius: 14, background: AT.card, border: `1px solid ${AT.border}`, fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#FFB74D' }}>⛽ Estaciones</button>
       </div>
 
       {/* Conversión */}
@@ -335,47 +336,29 @@ export default function Settings(ctx) {
         </div>
       </div>
 
-      {/* WiFi por estación */}
-      <div style={aSec}>WiFi de Estaciones</div>
+      {/* F1: identidad de la empresa (selector + tagline del inicio) */}
+      <div style={aSec}>🏢 Empresa</div>
       <div style={aCard}>
         <div style={{ fontSize: 11, color: '#777', marginBottom: 12, lineHeight: 1.5 }}>
-          El cliente PLATINO/BLACK que esté en la estación (detección por ubicación) ve esta red y clave en su app. Vacío = la clave la entrega el operador.
+          Nombre y ubicación que el cliente ve en el selector de empresa y en el encabezado del inicio.
         </div>
-        {wifiForm.length === 0 && (
-          <div style={{ fontSize: 12, color: '#777', textAlign: 'center', padding: 8 }}>Cargando estaciones...</div>
-        )}
-        {wifiForm.map((w, i) => (
-          <div key={w.id} style={{ marginBottom: i < wifiForm.length - 1 ? 18 : 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#64B5F6', marginBottom: 8 }}>{w.name}</div>
-            <input
-              value={w.ssid}
-              onChange={e => setWifiForm(p => p.map(x => x.id === w.id ? { ...x, ssid: e.target.value } : x))}
-              placeholder="Nombre de la red (SSID)"
-              style={{ ...inputStyleDark, marginBottom: 8 }}
-            />
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                value={w.pass}
-                onChange={e => setWifiForm(p => p.map(x => x.id === w.id ? { ...x, pass: e.target.value } : x))}
-                placeholder="Contraseña"
-                style={{ ...inputStyleDark, flex: 1, ...sMono, fontSize: 13 }}
-              />
-              <button
-                onClick={() => saveWifi(w)}
-                disabled={savingWifi === w.id}
-                style={{
-                  padding: '0 18px', borderRadius: 12, border: 'none',
-                  background: savingWifi === w.id ? '#3A3A3A' : '#FBBC04',
-                  color: savingWifi === w.id ? '#777' : '#0D0D0D',
-                  fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 800,
-                  cursor: savingWifi === w.id ? 'not-allowed' : 'pointer',
-                }}
-              >
-                {savingWifi === w.id ? '...' : 'Guardar'}
-              </button>
-            </div>
-          </div>
-        ))}
+        <label style={{ display: 'block', fontSize: 11, fontWeight: 800, color: '#9E9E9E', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Nombre</label>
+        <input value={companyForm.name} onChange={e => setCompanyForm(p => ({ ...p, name: e.target.value }))}
+          placeholder="Gasolineras Turkaj" style={{ ...inputStyleDark, marginBottom: 10 }} />
+        <label style={{ display: 'block', fontSize: 11, fontWeight: 800, color: '#9E9E9E', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Ubicación</label>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input value={companyForm.location} onChange={e => setCompanyForm(p => ({ ...p, location: e.target.value }))}
+            placeholder="Chichicastenango" style={{ ...inputStyleDark, flex: 1 }} />
+          <button onClick={saveCompany} disabled={savingCompany} style={{
+            padding: '0 18px', borderRadius: 12, border: 'none',
+            background: savingCompany ? '#3A3A3A' : '#FBBC04',
+            color: savingCompany ? '#777' : '#0D0D0D',
+            fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 800,
+            cursor: savingCompany ? 'not-allowed' : 'pointer',
+          }}>
+            {savingCompany ? '...' : 'Guardar'}
+          </button>
+        </div>
       </div>
 
       {/* Tiers */}
