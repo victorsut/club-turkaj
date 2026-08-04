@@ -54,8 +54,14 @@ export default function BentoTile({
       {children || (
         <>
           <div className="pp-bento-ico" style={{ lineHeight: 1, flexShrink: 0, display: 'flex' }}>{icon}</div>
-          <div className="pp-bento-body" style={wide ? { flex: 1, minWidth: 0 } : { marginTop: 'auto', paddingTop: 10 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5, lineHeight: 1.2, color: titleColor || 'inherit' }}>
+          {/* paddingRight: aire entre el texto y el borde interno del
+              cuadro (img1 POR CORREGIR 4-ago — el título de Encuesta
+              rozaba el margen derecho) */}
+          <div className="pp-bento-body" style={wide ? { flex: 1, minWidth: 0, paddingRight: 6 } : { marginTop: 'auto', paddingTop: 10, paddingRight: 6, minWidth: 0, width: '100%' }}>
+            {/* hyphens: en pantallas angostas donde la palabra no cabe,
+                el navegador la parte con guion (lang="es" en index.html);
+                en pantallas normales no cambia nada */}
+            <div style={{ fontSize: 14, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5, lineHeight: 1.2, color: titleColor || 'inherit', hyphens: 'auto', overflowWrap: 'break-word' }}>
               {title}
             </div>
             {sub && (
