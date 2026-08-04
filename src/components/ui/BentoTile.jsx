@@ -60,12 +60,14 @@ export default function BentoTile({
           <div className="pp-bento-ico" style={{ lineHeight: 1, flexShrink: 0, display: 'flex' }}>{icon}</div>
           <div className="pp-bento-body" style={wide ? { flex: 1, minWidth: 0 } : { marginTop: 'auto', paddingTop: 10, minWidth: 0 }}>
             {/* hyphens = ÚLTIMO recurso: solo si aun con el margen
-                reducido la palabra no cabe (lang="es" en index.html) */}
-            <div style={{ fontSize: 14, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5, lineHeight: 1.2, color: titleColor || 'inherit', hyphens: 'auto', overflowWrap: 'break-word' }}>
+                reducido la palabra no cabe (lang="es" en index.html).
+                Las clases pp-bento-title/sub permiten recolocarlos como
+                celdas del grid del tile en pantallas cortas. */}
+            <div className="pp-bento-title" style={{ fontSize: 14, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5, lineHeight: 1.2, color: titleColor || 'inherit', hyphens: 'auto', overflowWrap: 'break-word' }}>
               {title}
             </div>
             {sub && (
-              <div style={{ fontSize: 11.5, opacity: 0.9, marginTop: 3, lineHeight: 1.35, fontWeight: 500 }}>
+              <div className="pp-bento-sub" style={{ fontSize: 11.5, opacity: 0.9, marginTop: 3, lineHeight: 1.35, fontWeight: 500 }}>
                 {sub}
               </div>
             )}
