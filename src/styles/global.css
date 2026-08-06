@@ -240,6 +240,11 @@ body.pp-adm-wide #root { max-width: none; }
 @media (min-width: 1240px) {
   .pp-dash-cols-3 { grid-template-columns: repeat(3, 1fr); }
 }
+/* Top 10 general: columnas MULTI-COLUMN (flujo vertical — el 2º
+   debajo del 1º), ancho mínimo ~300px y MÁXIMO 5 columnas en
+   pantalla completa de computadora (pedido del dueño 6-ago). */
+.pp-top-cols { columns: 300px 5; column-gap: 24px; }
+.pp-top-cols > div { break-inside: avoid; }
 
 @media (min-width: 720px) {
   /* Listas del panel: las filas (su borde inferior hace de divisor

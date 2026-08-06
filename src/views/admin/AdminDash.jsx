@@ -107,14 +107,20 @@ export default function AdminDash(ctx) {
 
   const rm = raffleCal[curMonth] || { m: '—', name: null };
 
-  // Boletos vendidos de la rifa del mes (RPC list_raffle_participants,
-  // acepta cualquier sesión — mismo dato del stat TOTAL del cliente).
+  // Boletos vendidos SOLO de la rifa del MES ACTUAL: el RPC devuelve
+  // participantes de TODAS las rifas (agrupados por raffle_id) — se
+  // filtra por la rifa vigente (rm.dbId). Sin rifa configurada → 0.
   const [rafTickets, setRafTickets] = useState(null);
   useEffect(() => {
+    if (!rm.dbId) { setRafTickets(0); return; }
     fetchRaffleParticipants().then(rows => {
-      if (rows) setRafTickets(rows.reduce((s, p) => s + (+p.tickets || 0), 0));
+      if (rows) {
+        setRafTickets(rows
+          .filter(p => p.raffle_id === rm.dbId)
+          .reduce((s, p) => s + (+p.tickets || 0), 0));
+      }
     });
-  }, []);
+  }, [rm.dbId]);
 
   // Top 10 POR ESTACIÓN (RPC get_station_top_members, migración
   // 20260806f) — sin migración el RPC no existe y la sección se omite.
@@ -171,11 +177,11 @@ export default function AdminDash(ctx) {
       <div className="pp-dash-stats" style={{ marginBottom: 14 }}>
         <Stat icon={<Users />} label="Miembros" value={custs.length}
           sub={`+${newThisMonth} este mes`} onClick={() => setScr('mem')} />
-        <Stat icon={<Gift />} label="Puntos sin canjear" value={ptsUnredeemed.toLocaleString()}
-          sub={`Equivalen a Q${(+qUnredeemed).toLocaleString()}`} onClick={() => setScr('cat')} accent="#66BB6A" />
-        <Stat icon={<Fuel />} label={`Galones${fuelReal ? '' : ' (est.)'}`} value={Math.round(fuelTotalG).toLocaleString()}
+        <Stat icon={<Gift />} label="Puntos sin canjear" value={ptsUnredeemed.toLocaleString('en-US')}
+          sub={`Equivalen a Q${(+qUnredeemed).toLocaleString('en-US')}`} onClick={() => setScr('cat')} accent="#66BB6A" />
+        <Stat icon={<Fuel />} label={`Galones${fuelReal ? '' : ' (est.)'}`} value={Math.round(fuelTotalG).toLocaleString('en-US')}
           sub="Acumulados por el programa" />
-        <Stat icon={<Receipt />} label={`Ventas${fuelReal ? '' : ' (est.)'}`} value={`Q${Math.round(fuelTotalQ).toLocaleString()}`}
+        <Stat icon={<Receipt />} label={`Ventas${fuelReal ? '' : ' (est.)'}`} value={`Q${Math.round(fuelTotalQ).toLocaleString('en-US')}`}
           sub="Combustible facturado" accent="#FBBC04" />
       </div>
 
@@ -198,15 +204,15 @@ export default function AdminDash(ctx) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
                   <span style={{ fontSize: 12.5, fontWeight: 800, color: '#E0E0E0' }}>{s.name}</span>
                   <span style={{ ...sMono, fontSize: 13, color: '#FBBC04' }}>
-                    {Math.round(s.gallons).toLocaleString()}<span style={{ fontSize: 10, color: '#777' }}> gal</span>
+                    {Math.round(s.gallons).toLocaleString('en-US')}<span style={{ fontSize: 10, color: '#777' }}> gal</span>
                   </span>
                 </div>
                 <div style={{ height: 8, borderRadius: 5, background: 'rgba(255,255,255,.06)', overflow: 'hidden' }}>
                   <div style={{ width: `${pct}%`, height: '100%', borderRadius: 5, background: BRAND_ORANGE }} />
                 </div>
                 <div style={{ fontSize: 10.5, color: '#9E9E9E', fontWeight: 700, marginTop: 4, display: 'flex', justifyContent: 'space-between' }}>
-                  <span>{s.purchases} compras · Q{Math.round(s.amount).toLocaleString()}</span>
-                  <span style={{ color: '#66BB6A' }}>Mes: {Math.round(m?.gallons || 0).toLocaleString()} gal</span>
+                  <span>{s.purchases} compras · Q{Math.round(s.amount).toLocaleString('en-US')}</span>
+                  <span style={{ color: '#66BB6A' }}>Mes: {Math.round(m?.gallons || 0).toLocaleString('en-US')} gal</span>
                 </div>
               </div>
             );
@@ -229,7 +235,7 @@ export default function AdminDash(ctx) {
                 <div key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0' }}>
                   <span style={{ width: 10, height: 10, borderRadius: 3, background: f.color, flexShrink: 0 }} />
                   <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: '#E0E0E0' }}>{f.label}</span>
-                  <span style={{ ...sMono, fontSize: 12, color: '#fff' }}>{Math.round(f.g).toLocaleString()}</span>
+                  <span style={{ ...sMono, fontSize: 12, color: '#fff' }}>{Math.round(f.g).toLocaleString('en-US')}</span>
                   <span style={{ fontSize: 10, color: '#777', fontWeight: 700, width: 54, textAlign: 'right' }}>Q{Math.round(f.q / 1000)}k</span>
                 </div>
               ))}
@@ -267,19 +273,19 @@ export default function AdminDash(ctx) {
         <div onClick={() => setScr('cat')} style={{ ...rowCard, cursor: 'pointer' }}>
           <div style={cardTitle}>Puntos del programa</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
-            <div style={{ ...sMono, fontSize: 28, letterSpacing: -1.5, color: '#fff' }}>{ptsTotal.toLocaleString()}</div>
+            <div style={{ ...sMono, fontSize: 28, letterSpacing: -1.5, color: '#fff' }}>{ptsTotal.toLocaleString('en-US')}</div>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#9E9E9E' }}>emitidos en total</div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div style={{ background: 'rgba(46,125,50,.14)', borderRadius: 12, padding: 12 }}>
               <div style={{ ...kicker, color: '#66BB6A', marginBottom: 4 }}>Sin canjear</div>
-              <div style={{ ...sMono, fontSize: 18, color: '#fff' }}>{ptsUnredeemed.toLocaleString()}</div>
-              <div style={{ fontSize: 11, color: '#66BB6A', fontWeight: 700 }}>Q{(+qUnredeemed).toLocaleString()}</div>
+              <div style={{ ...sMono, fontSize: 18, color: '#fff' }}>{ptsUnredeemed.toLocaleString('en-US')}</div>
+              <div style={{ fontSize: 11, color: '#66BB6A', fontWeight: 700 }}>Q{(+qUnredeemed).toLocaleString('en-US')}</div>
             </div>
             <div style={{ background: 'rgba(230,81,0,.14)', borderRadius: 12, padding: 12 }}>
               <div style={{ ...kicker, color: '#FFB74D', marginBottom: 4 }}>Canjeados</div>
-              <div style={{ ...sMono, fontSize: 18, color: '#fff' }}>{ptsRedeemed.toLocaleString()}</div>
-              <div style={{ fontSize: 11, color: '#FFB74D', fontWeight: 700 }}>Q{(+qRedeemed).toLocaleString()}</div>
+              <div style={{ ...sMono, fontSize: 18, color: '#fff' }}>{ptsRedeemed.toLocaleString('en-US')}</div>
+              <div style={{ fontSize: 11, color: '#FFB74D', fontWeight: 700 }}>Q{(+qRedeemed).toLocaleString('en-US')}</div>
             </div>
           </div>
         </div>
@@ -327,10 +333,12 @@ export default function AdminDash(ctx) {
         </div>
       </div>
 
-      {/* ── Top 10 GENERAL (galones acumulados del programa) ── */}
+      {/* ── Top 10 GENERAL (galones acumulados del programa) —
+          máx 5 columnas en monitor, flujo VERTICAL (el 2º debajo
+          del 1º): multi-column CSS, no grid ── */}
       <div style={{ ...card, padding: '18px 6px 8px', marginBottom: 14 }}>
         <div style={{ ...cardTitle, padding: '0 14px' }}>Top 10 general — Galones comprados</div>
-        <div className="pp-adm-grid" style={{ padding: '0 8px' }}>
+        <div className="pp-top-cols" style={{ padding: '0 8px' }}>
           {[...custs].sort((a, b) => b.gallons - a.gallons).slice(0, 10).map((c, i) => {
             const t = gT(c.gallons);
             return (
@@ -353,8 +361,8 @@ export default function AdminDash(ctx) {
                   <div style={{ fontSize: 11, color: '#9E9E9E', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}><Badge t={t} /></div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ ...sMono, fontSize: 14, fontWeight: 800, color: '#fff' }}>{c.gallons.toFixed(0)}<span style={{ fontSize: 10, color: '#777', fontWeight: 600 }}> gal</span></div>
-                  <div style={{ fontSize: 10, color: '#777', ...sMono }}>Q{c.spent.toLocaleString()}</div>
+                  <div style={{ ...sMono, fontSize: 14, fontWeight: 800, color: '#fff' }}>{Math.round(c.gallons).toLocaleString('en-US')}<span style={{ fontSize: 10, color: '#777', fontWeight: 600 }}> gal</span></div>
+                  <div style={{ fontSize: 10, color: '#777', ...sMono }}>Q{Math.round(c.spent).toLocaleString('en-US')}</div>
                 </div>
               </div>
             );
@@ -402,8 +410,8 @@ export default function AdminDash(ctx) {
                       <div style={{ fontSize: 10, color: '#9E9E9E', marginTop: 1 }}>{r.purchases} compras</div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ ...sMono, fontSize: 13, fontWeight: 800, color: '#fff' }}>{Math.round(r.gallons).toLocaleString()}<span style={{ fontSize: 9.5, color: '#777', fontWeight: 600 }}> gal</span></div>
-                      <div style={{ fontSize: 10, color: '#777', ...sMono }}>Q{Math.round(r.amount).toLocaleString()}</div>
+                      <div style={{ ...sMono, fontSize: 13, fontWeight: 800, color: '#fff' }}>{Math.round(r.gallons).toLocaleString('en-US')}<span style={{ fontSize: 9.5, color: '#777', fontWeight: 600 }}> gal</span></div>
+                      <div style={{ fontSize: 10, color: '#777', ...sMono }}>Q{Math.round(r.amount).toLocaleString('en-US')}</div>
                     </div>
                   </div>
                 );
