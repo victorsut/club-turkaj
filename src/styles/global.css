@@ -229,7 +229,10 @@ body.pp-adm-wide #root { max-width: none; }
 
 /* ── Dashboard v2: rejillas del inicio ── */
 .pp-dash-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-.pp-dash-cols  { display: grid; grid-template-columns: 1fr; gap: 14px; align-items: start; }
+/* stretch: los cuadros de una misma fila comparten el ALTO del más
+   alto (pedido del dueño 6-ago — sin él las tarjetas se veían
+   disparejas); cada tarjeta lleva height:100% + border-box. */
+.pp-dash-cols  { display: grid; grid-template-columns: 1fr; gap: 14px; align-items: stretch; }
 @media (min-width: 900px) {
   .pp-dash-stats { grid-template-columns: repeat(4, 1fr); }
   .pp-dash-cols  { grid-template-columns: repeat(2, 1fr); }

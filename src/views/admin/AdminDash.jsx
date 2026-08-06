@@ -11,6 +11,7 @@ import { useState, useEffect } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { sMono, adminTheme as AT, BRAND_ORANGE } from '../../constants/styles';
 import { getAdminToken } from '../../services/sessionTokens';
+import { fetchRaffleParticipants } from '../../services';
 import Badge from '../../components/ui/Badge';
 import { Users, Gift, Fuel, Receipt, TicketStar, Clipboard, Chev } from '../../components/ui/Icons';
 
@@ -106,6 +107,29 @@ export default function AdminDash(ctx) {
 
   const rm = raffleCal[curMonth] || { m: '—', name: null };
 
+  // Boletos vendidos de la rifa del mes (RPC list_raffle_participants,
+  // acepta cualquier sesión — mismo dato del stat TOTAL del cliente).
+  const [rafTickets, setRafTickets] = useState(null);
+  useEffect(() => {
+    fetchRaffleParticipants().then(rows => {
+      if (rows) setRafTickets(rows.reduce((s, p) => s + (+p.tickets || 0), 0));
+    });
+  }, []);
+
+  // Top 10 POR ESTACIÓN (RPC get_station_top_members, migración
+  // 20260806f) — sin migración el RPC no existe y la sección se omite.
+  const [stationTop, setStationTop] = useState(null);
+  useEffect(() => {
+    if (!sb) return;
+    const tok = getAdminToken()?.token;
+    if (!tok) return;
+    sb.rpc('get_station_top_members', { p_session_token: tok, p_limit: 10 })
+      .then(({ data, error }) => {
+        if (error) { console.warn('[Dash] top estaciones:', error.message); return; }
+        if (Array.isArray(data)) setStationTop(data);
+      });
+  }, []);
+
   // Encuestas
   const totalSurveys = surveys.length;
   const totalSPts = surveys.reduce((s, sv) => s + sv.pts, 0);
@@ -115,6 +139,9 @@ export default function AdminDash(ctx) {
 
   // ===== estilos =====
   const card = { background: AT.card, borderRadius: 18, border: `1px solid ${AT.border}`, padding: 18 };
+  // Tarjetas de fila: mismo ALTO que la más alta de su fila (el grid
+  // hace stretch; height 100% + border-box lo aprovechan).
+  const rowCard = { ...card, height: '100%', boxSizing: 'border-box' };
   const kicker = { fontSize: 10.5, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase', color: '#9E9E9E' };
   const cardTitle = { fontSize: 13.5, fontWeight: 800, color: '#E0E0E0', marginBottom: 12 };
   const big = { ...sMono, fontSize: 26, letterSpacing: -1, color: '#fff' };
@@ -155,7 +182,7 @@ export default function AdminDash(ctx) {
       {/* ── Gráficos ── */}
       <div className="pp-dash-cols pp-dash-cols-3" style={{ marginBottom: 14 }}>
         {/* Barras: ventas por estación */}
-        <div style={card}>
+        <div style={rowCard}>
           <div style={cardTitle}>Ventas por estación</div>
           {stationRows.length === 0 && (
             <div style={{ fontSize: 12, color: '#777', fontWeight: 600, lineHeight: 1.6 }}>
@@ -187,7 +214,7 @@ export default function AdminDash(ctx) {
         </div>
 
         {/* Dona: mezcla de combustible */}
-        <div style={card}>
+        <div style={rowCard}>
           <div style={cardTitle}>Mezcla de combustible{fuelReal ? '' : ' (estimado)'}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
             <div style={{ position: 'relative', width: 128, height: 128, flexShrink: 0 }}>
@@ -211,7 +238,7 @@ export default function AdminDash(ctx) {
         </div>
 
         {/* Barras: miembros por nivel */}
-        <div style={card}>
+        <div style={rowCard}>
           <div style={cardTitle}>Miembros por nivel</div>
           {['ORO', 'PLATINO', 'BLACK'].map(t => {
             const n = tierCount[t];
@@ -237,7 +264,7 @@ export default function AdminDash(ctx) {
       {/* ── Programa: puntos, rifa y encuestas ── */}
       <div className="pp-dash-cols pp-dash-cols-3" style={{ marginBottom: 14 }}>
         {/* Economía de puntos */}
-        <div onClick={() => setScr('cat')} style={{ ...card, cursor: 'pointer' }}>
+        <div onClick={() => setScr('cat')} style={{ ...rowCard, cursor: 'pointer' }}>
           <div style={cardTitle}>Puntos del programa</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
             <div style={{ ...sMono, fontSize: 28, letterSpacing: -1.5, color: '#fff' }}>{ptsTotal.toLocaleString()}</div>
@@ -258,7 +285,7 @@ export default function AdminDash(ctx) {
         </div>
 
         {/* Rifa del mes */}
-        <div onClick={() => setScr('raf')} style={{ ...card, cursor: 'pointer', display: 'flex', flexDirection: 'column' }}>
+        <div onClick={() => setScr('raf')} style={{ ...rowCard, cursor: 'pointer', display: 'flex', flexDirection: 'column' }}>
           <div style={cardTitle}>Rifa de {rm.m}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1 }}>
             <div style={{ width: 52, height: 52, borderRadius: 15, background: '#FBBC04', color: '#0D0D0D', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -274,12 +301,17 @@ export default function AdminDash(ctx) {
             </div>
             <span style={{ color: '#666', display: 'flex' }}><Chev /></span>
           </div>
+          {/* Boletos vendidos del mes (RPC de participantes) */}
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${AT.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <span style={{ ...kicker }}>Boletos vendidos</span>
+            <span style={{ ...sMono, fontSize: 18, color: '#FBBC04' }}>{rafTickets ?? '—'}</span>
+          </div>
         </div>
 
         {/* Encuestas — informativa (el detalle por miembro vive en su
             ficha; el viejo click abría un modal que solo existe en la
             vista del cliente = acción zombie, retirada en Admin v2) */}
-        <div style={{ ...card, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ ...rowCard, display: 'flex', flexDirection: 'column' }}>
           <div style={cardTitle}>Encuestas Shell</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1 }}>
             <div style={{ width: 52, height: 52, borderRadius: 15, background: 'rgba(230,81,0,.2)', color: '#FF8F3C', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -295,9 +327,9 @@ export default function AdminDash(ctx) {
         </div>
       </div>
 
-      {/* ── Top 10 galones ── */}
-      <div style={{ ...card, padding: '18px 6px 8px' }}>
-        <div style={{ ...cardTitle, padding: '0 14px' }}>Top 10 — Galones comprados</div>
+      {/* ── Top 10 GENERAL (galones acumulados del programa) ── */}
+      <div style={{ ...card, padding: '18px 6px 8px', marginBottom: 14 }}>
+        <div style={{ ...cardTitle, padding: '0 14px' }}>Top 10 general — Galones comprados</div>
         <div className="pp-adm-grid" style={{ padding: '0 8px' }}>
           {[...custs].sort((a, b) => b.gallons - a.gallons).slice(0, 10).map((c, i) => {
             const t = gT(c.gallons);
@@ -329,6 +361,57 @@ export default function AdminDash(ctx) {
           })}
         </div>
       </div>
+
+      {/* ── Top 10 POR ESTACIÓN (RPC get_station_top_members) — una
+          tarjeta por estación, agregado de las facturas registradas.
+          Sin la migración 20260806f el RPC no existe y la sección se
+          omite sin romper nada. ── */}
+      {stationTop?.length > 0 && (
+        <div className="pp-dash-cols pp-dash-cols-3">
+          {stationTop.map(st => (
+            <div key={st.id} style={{ ...rowCard, padding: '18px 14px 8px' }}>
+              <div style={{ ...cardTitle, padding: '0 4px' }}>Top 10 — {st.name}</div>
+              {(!st.top || st.top.length === 0) && (
+                <div style={{ fontSize: 12, color: '#777', fontWeight: 600, padding: '0 4px 12px' }}>
+                  Sin compras registradas en esta estación.
+                </div>
+              )}
+              {(st.top || []).map((r, i) => {
+                const c = custs.find(x => x.id === r.member_id) || null;
+                const t = gT(r.member_gallons ?? c?.gallons ?? 0);
+                return (
+                  <div key={r.member_id || i}
+                    onClick={() => { if (c) { setSel(c); setScr('det'); } }}
+                    style={{
+                      display: 'flex', alignItems: 'center', padding: '10px 4px',
+                      borderBottom: i < st.top.length - 1 ? `1px solid ${AT.border}` : 'none',
+                      cursor: c ? 'pointer' : 'default',
+                    }}>
+                    <div style={{
+                      width: 24, textAlign: 'center', marginRight: 8, ...sMono,
+                      fontSize: 12.5, fontWeight: 800,
+                      color: i < 3 ? BRAND_ORANGE : '#666',
+                    }}>
+                      {i + 1}
+                    </div>
+                    <div style={{ width: 34, height: 34, borderRadius: 10, background: t.bg, color: t.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 13, marginRight: 10, flexShrink: 0 }}>
+                      {(r.member_name || '?').charAt(0)}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#E0E0E0' }}>{r.member_name}</div>
+                      <div style={{ fontSize: 10, color: '#9E9E9E', marginTop: 1 }}>{r.purchases} compras</div>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ ...sMono, fontSize: 13, fontWeight: 800, color: '#fff' }}>{Math.round(r.gallons).toLocaleString()}<span style={{ fontSize: 9.5, color: '#777', fontWeight: 600 }}> gal</span></div>
+                      <div style={{ fontSize: 10, color: '#777', ...sMono }}>Q{Math.round(r.amount).toLocaleString()}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
