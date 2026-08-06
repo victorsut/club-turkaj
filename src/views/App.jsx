@@ -2175,7 +2175,7 @@ export default function App() {
                 { l: 'Tarjeta',          v: purchaseConfirm.client.cardId || '—',                  mono: true },
                 { l: 'Combustible',      v: FUEL_LABELS[purchaseConfirm.fuel] },
                 { l: 'Monto',            v: `Q${purchaseConfirm.amt.toFixed(2)}`,                  large: true },
-                { l: 'Puntos a otorgar', v: `+${Math.floor(purchaseConfirm.amt / cfg.qPerPt)}`,    green: true, large: true },
+                { l: 'Puntos a otorgar', v: `+${Math.floor(purchaseConfirm.amt / (gT(purchaseConfirm.client.gallons || 0).qPerPt ?? cfg.qPerPt))}`, green: true, large: true },
               ].map((row, i, arr) => (
                 <div key={row.l} style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',

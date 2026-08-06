@@ -16,17 +16,21 @@ export const FUEL_LABELS = {
 // (se sobreescribe con datos de Supabase)
 // ──────────────────────────────────────────────
 export const DEFAULT_CONFIG = {
-  qPerPt: 10,       // Q10 = 1 punto
+  qPerPt: 10,       // Fallback global (la conversión real es POR TIER desde F2.1)
   ticketPts: 5,     // 5 pts = 1 boleto de rifa
   regBase: 15,      // Puntos de registro base
   regOptional: 2,   // Puntos por dato opcional
   referralPts: 25,  // Puntos por referido
   surveyPts: 3,     // Puntos por encuesta
   surveyDaily: 5,   // Límite diario de encuestas
+  // F2.1 (6-ago-2026, decisión del dueño): conversión y eventos POR TIER,
+  // editables en Admin → Configuración (RPC set_loyalty_config).
+  // qPerPt: ORO Q10 = 1 pt · PLATINO Q8 · BLACK Q6.
+  // evtPts: ORO 25 · PLATINO 35 · BLACK 50 pts por evento especial.
   tiers: {
-    oro: { evtPts: 50 },
-    platino: { gal: 150, discGal: 0.15, discRedeem: 0.10, evtPts: 60 },
-    black: { gal: 500, discGal: 0.25, discRedeem: 0.15, evtPts: 70 },
+    oro: { qPerPt: 10, evtPts: 25 },
+    platino: { gal: 150, discGal: 0.15, discRedeem: 0.10, qPerPt: 8, evtPts: 35 },
+    black: { gal: 500, discGal: 0.25, discRedeem: 0.15, qPerPt: 6, evtPts: 50 },
   },
   // Degradación real (25-jul-2026, algoritmo del dueño): 15 días de
   // gracia; desde el día 16 los galones caen a UMBRAL − n(n+1)/2 por
@@ -87,10 +91,10 @@ export const REWARD_CATEGORIES = {
 // Eventos especiales
 // ──────────────────────────────────────────────
 export const SPECIAL_EVENTS = [
-  { name: '🎂 Cumpleaños', desc: 'ORO 50 · PLATINO 60 · BLACK 70 pts' },
-  { name: '🎄 Navidad', desc: 'ORO 50 · PLATINO 60 · BLACK 70 pts' },
-  { name: '💝 Día del Cariño', desc: 'ORO 50 · PLATINO 60 · BLACK 70 pts' },
-  { name: '🎉 Aniversario Turkaj', desc: '14 de mayo · ORO 50 · PLATINO 60 · BLACK 70 pts' },
+  { name: '🎂 Cumpleaños', desc: 'ORO 25 · PLATINO 35 · BLACK 50 pts' },
+  { name: '🎄 Navidad', desc: 'ORO 25 · PLATINO 35 · BLACK 50 pts' },
+  { name: '💝 Día del Cariño', desc: 'ORO 25 · PLATINO 35 · BLACK 50 pts' },
+  { name: '🎉 Aniversario Turkaj', desc: '14 de mayo · ORO 25 · PLATINO 35 · BLACK 50 pts' },
 ];
 
 // ──────────────────────────────────────────────

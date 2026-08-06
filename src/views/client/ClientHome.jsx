@@ -177,7 +177,7 @@ export default function ClientHome(ctx) {
   // (en ORO se omite la línea); sin "invitar amigos" (feedback 21-jul).
   // Sin descuento por galón ni rifa mensual (decisión del dueño 24-jul).
   const bens = [
-    { icon: <Fuel />, t: `1 pt por cada Q${cfg.qPerPt}` },
+    { icon: <Fuel />, t: `1 pt por cada Q${cTier.qPerPt ?? cfg.qPerPt}` },
     ...(cTier.redeemDisc > 0 ? [{ icon: <Tag />, t: `-${Math.round(cTier.redeemDisc * 100)}% en canje de premios` }] : []),
     ...(cTier.name !== 'ORO' ? [{ icon: <Wifi />, t: 'WiFi gratis ilimitado' }] : []),
     ...(cTier.bath ? [{ icon: <Door />, t: 'Acceso a baños' }] : []),

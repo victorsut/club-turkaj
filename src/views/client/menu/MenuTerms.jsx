@@ -24,7 +24,7 @@ const SECS = [
   },
   {
     title: 'ACUMULACIÓN DE PUNTOS',
-    body: 'Los puntos se acumulan a razón de 1 punto por cada Q10.00 de combustible comprado en las estaciones afiliadas Turkaj I, II y III. Los puntos se asignan al momento de registrar la compra mediante el código QR personal del miembro. El Programa puede otorgar puntos adicionales en eventos especiales, días festivos o aniversarios, según lo determine en cada momento. Los puntos no tienen valor monetario y no son transferibles entre miembros.',
+    body: 'Los puntos se acumulan según el nivel del miembro: 1 punto por cada Q10.00 de combustible en nivel ORO, 1 punto por cada Q8.00 en nivel PLATINO y 1 punto por cada Q6.00 en nivel BLACK, en las estaciones afiliadas Turkaj I, II y III. Los puntos se asignan al momento de registrar la compra mediante el código QR personal del miembro. El Programa puede otorgar puntos adicionales en eventos especiales, días festivos o aniversarios, según lo determine en cada momento y de forma diferenciada por nivel. Los puntos no tienen valor monetario y no son transferibles entre miembros.',
   },
   {
     title: 'NIVELES DE MEMBRESÍA',

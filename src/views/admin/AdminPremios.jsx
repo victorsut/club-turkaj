@@ -182,7 +182,9 @@ export default function AdminPremios(ctx) {
 
   const openNewFest = () => {
     setEditFest(null);
-    setFestForm({ label: '', month: '', day: '', points: '70', type: 'custom', active: true });
+    // F2.1: points ya no se edita — se guarda el valor ORO como fallback
+    // de BD (el motor otorga por nivel desde tiers.evtPts).
+    setFestForm({ label: '', month: '', day: '', points: String(cfg?.tiers?.oro?.evtPts ?? 25), type: 'custom', active: true });
     setShowFestForm(true);
   };
   const openEditFest = (f) => {
@@ -633,7 +635,10 @@ export default function AdminPremios(ctx) {
                       <span style={{ fontSize: 11, color: '#9E9E9E' }}>{monthStr}</span>
                     )}
                     {isFixed && !isBirthday && <span style={{ fontSize: 10, background: 'rgba(255,143,0,.15)', color: '#FF8F00', padding: '2px 7px', borderRadius: 8, fontWeight: 700 }}>Sistema</span>}
-                    <span style={{ fontSize: 11, fontWeight: 800, color: '#FBBC04' }}>{f.points} pts</span>
+                    {/* F2.1: los puntos los define el NIVEL del cliente (config tiers.evtPts) */}
+                    <span style={{ fontSize: 11, fontWeight: 800, color: '#FBBC04' }}>
+                      {cfg?.tiers?.oro?.evtPts ?? 25} / {cfg?.tiers?.platino?.evtPts ?? 35} / {cfg?.tiers?.black?.evtPts ?? 50} pts por nivel
+                    </span>
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
@@ -671,15 +676,23 @@ export default function AdminPremios(ctx) {
                   </div>
                 </div>
 
+                {/* F2.1: los puntos del festivo ya NO se editan por día — los
+                    define el nivel del cliente (Configuración → Puntos por
+                    Nivel). El campo points se conserva en BD solo de fallback. */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
                   <div>
                     <label style={sLbl}>Puntos bonus</label>
-                    <input value={festForm.points} onChange={e => setFestForm(p => ({ ...p, points: e.target.value.replace(/[^0-9]/g,'') }))} placeholder="70" inputMode="numeric" style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A' }} />
+                    <div style={{ ...inputStyle, background: '#242424', color: '#9E9E9E', border: '1px dashed #3A3A3A', display: 'flex', alignItems: 'center', fontSize: 12, fontWeight: 700 }}>
+                      Por nivel: {cfg?.tiers?.oro?.evtPts ?? 25} / {cfg?.tiers?.platino?.evtPts ?? 35} / {cfg?.tiers?.black?.evtPts ?? 50}
+                    </div>
                   </div>
                   <div>
                     <label style={sLbl}>Icono (emoji)</label>
                     <input value={festForm.icon} onChange={e => setFestForm(p => ({ ...p, icon: e.target.value }))} placeholder="Emoji" style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A', fontSize: 20, textAlign: 'center' }} />
                   </div>
+                </div>
+                <div style={{ fontSize: 10, color: '#777', marginTop: -8, marginBottom: 14, lineHeight: 1.5 }}>
+                  ORO / PLATINO / BLACK — se editan en Configuración → Puntos por Nivel.
                 </div>
 
                 <div style={{ marginBottom: 14 }}>

@@ -94,6 +94,68 @@ export default function Settings(ctx) {
     fire('Número de asistencia actualizado', 'success');
   };
 
+  // ─── F2.1 (6-ago): conversión y eventos POR NIVEL ───
+  // ORO Q10=1pt/25pts · PLATINO Q8/35 · BLACK Q6/50 (decisión del
+  // dueño). RPC set_loyalty_config: sesión de admin + whitelist
+  // (solo qPerPt/evtPts — los umbrales de galones NO se editan acá)
+  // + auditoría con razón obligatoria (la economía del programa es
+  // sensible, patrón de los precios de combustible).
+  const [loyaltyForm, setLoyaltyForm] = useState({
+    oro: { qPerPt: '', evtPts: '' },
+    platino: { qPerPt: '', evtPts: '' },
+    black: { qPerPt: '', evtPts: '' },
+  });
+  const [savingLoyalty, setSavingLoyalty] = useState(false);
+  const [showLoyaltyReason, setShowLoyaltyReason] = useState(false);
+  useEffect(() => {
+    const t = cfg.tiers || {};
+    setLoyaltyForm({
+      oro:     { qPerPt: String(t.oro?.qPerPt ?? cfg.qPerPt ?? 10), evtPts: String(t.oro?.evtPts ?? 25) },
+      platino: { qPerPt: String(t.platino?.qPerPt ?? 8), evtPts: String(t.platino?.evtPts ?? 35) },
+      black:   { qPerPt: String(t.black?.qPerPt ?? 6),   evtPts: String(t.black?.evtPts ?? 50) },
+    });
+  }, [cfg.tiers, cfg.qPerPt]);
+
+  const loyaltyInvalid = ['oro', 'platino', 'black'].some(k => {
+    const q = parseInt(loyaltyForm[k].qPerPt, 10);
+    const e = parseInt(loyaltyForm[k].evtPts, 10);
+    return !Number.isInteger(q) || q < 1 || q > 100 || !Number.isInteger(e) || e < 0 || e > 1000;
+  });
+
+  const setLoyaltyField = (tier, field, raw) =>
+    setLoyaltyForm(p => ({ ...p, [tier]: { ...p[tier], [field]: raw.replace(/[^0-9]/g, '').slice(0, 4) } }));
+
+  const saveLoyaltyWithReason = async (reason) => {
+    if (!sb) { fire('Sin conexión', 'error'); return; }
+    if (!loggedAdmin?.id) {
+      setShowLoyaltyReason(false);
+      fire('Error: sesion admin no disponible. Cerra sesion y volve a ingresar.', 'error');
+      return;
+    }
+    setSavingLoyalty(true);
+    const pData = {};
+    ['oro', 'platino', 'black'].forEach(k => {
+      pData[k] = {
+        qPerPt: parseInt(loyaltyForm[k].qPerPt, 10),
+        evtPts: parseInt(loyaltyForm[k].evtPts, 10),
+      };
+    });
+    const { data, error } = await sb.rpc('set_loyalty_config', {
+      p_session_token: getAdminToken()?.token || null,
+      p_data: pData,
+      p_admin_id: loggedAdmin.id,
+      p_admin_name: loggedAdmin.name,
+      p_admin_email: loggedAdmin.email,
+      p_reason_text: reason,
+    });
+    setSavingLoyalty(false);
+    if (error) { fire('Error: ' + error.message, 'error'); return; }
+    if (data?.error) { fire(data.error, 'error'); return; }
+    setShowLoyaltyReason(false);
+    setCfg(p => ({ ...p, tiers: data }));
+    fire('Puntos por nivel actualizados', 'success');
+  };
+
   // ─── F7a: llaves de la API externa (PROPER) ───
   // La llave se muestra UNA sola vez: el hash bcrypt es lo único que
   // queda en la BD. Si se pierde, se genera otra.
@@ -251,13 +313,60 @@ export default function Settings(ctx) {
         <button onClick={() => setScr('stations')} style={{ flex: 1, padding: 14, borderRadius: 14, background: AT.card, border: `1px solid ${AT.border}`, fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#FFB74D' }}>⛽ Estaciones</button>
       </div>
 
+      {/* F2.1: conversión y eventos POR NIVEL (editable, auditado) */}
+      <div style={aSec}>Puntos por Nivel</div>
+      <div style={aCard}>
+        <div style={{ fontSize: 11, color: '#777', marginBottom: 12, lineHeight: 1.5 }}>
+          Quetzales necesarios para ganar 1 punto y puntos otorgados por evento
+          especial, según el nivel del cliente. La conversión de cada compra usa
+          el nivel que el cliente tenía antes de esa compra.
+        </div>
+        {[
+          { k: 'oro', label: '🟡 ORO', color: '#FBBC04' },
+          { k: 'platino', label: '💎 PLATINO', color: '#9E9E9E' },
+          { k: 'black', label: '🖤 BLACK', color: '#CE93D8' },
+        ].map(t => (
+          <div key={t.k} style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 10 }}>
+            <span style={{ width: 88, fontSize: 12, fontWeight: 800, color: t.color, paddingBottom: 10 }}>{t.label}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 9, color: '#777', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase', letterSpacing: .5 }}>Q por punto</div>
+              <input
+                value={loyaltyForm[t.k].qPerPt}
+                onChange={e => setLoyaltyField(t.k, 'qPerPt', e.target.value)}
+                inputMode="numeric"
+                style={{ ...inputStyleDark, width: '100%', boxSizing: 'border-box', ...sMono, fontSize: 13 }}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 9, color: '#777', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase', letterSpacing: .5 }}>Pts por evento</div>
+              <input
+                value={loyaltyForm[t.k].evtPts}
+                onChange={e => setLoyaltyField(t.k, 'evtPts', e.target.value)}
+                inputMode="numeric"
+                style={{ ...inputStyleDark, width: '100%', boxSizing: 'border-box', ...sMono, fontSize: 13 }}
+              />
+            </div>
+          </div>
+        ))}
+        <button
+          onClick={() => { if (!loyaltyInvalid) setShowLoyaltyReason(true); }}
+          disabled={loyaltyInvalid || savingLoyalty}
+          style={{
+            marginTop: 6, width: '100%', padding: '11px 16px',
+            background: loyaltyInvalid || savingLoyalty ? '#3A3A3A' : '#FBBC04',
+            border: 'none', borderRadius: 12,
+            color: loyaltyInvalid || savingLoyalty ? '#777' : '#0D0D0D',
+            fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 800,
+            cursor: loyaltyInvalid || savingLoyalty ? 'not-allowed' : 'pointer',
+          }}
+        >
+          {savingLoyalty ? 'Guardando...' : 'Guardar puntos por nivel'}
+        </button>
+      </div>
+
       {/* Conversión */}
       <div style={aSec}>Conversión</div>
       <div style={aCard}>
-        <div style={row}>
-          <span style={{ color: '#9E9E9E', fontWeight: 600 }}>Quetzales por punto</span>
-          <span style={{ color: '#FBBC04', fontWeight: 800, ...sMono }}>Q{cfg.qPerPt}</span>
-        </div>
         <div style={row}>
           <span style={{ color: '#9E9E9E', fontWeight: 600 }}>Pts por boleto rifa (global)</span>
           <span style={{ color: '#FBBC04', fontWeight: 800, ...sMono }}>{cfg.ticketPts} pts</span>
@@ -587,6 +696,15 @@ export default function Settings(ctx) {
         onConfirm={confirmSaveWithReason}
         actionLabel="Actualizar precios de combustible"
         loading={saving}
+      />
+
+      {/* ─── F2.1: motivo del cambio de puntos por nivel ─── */}
+      <ReasonModal
+        open={showLoyaltyReason}
+        onClose={() => setShowLoyaltyReason(false)}
+        onConfirm={saveLoyaltyWithReason}
+        actionLabel="Actualizar puntos por nivel"
+        loading={savingLoyalty}
       />
     </div>
   );

@@ -231,8 +231,9 @@ export default function OpClients(ctx) {
               style={{ ...inputStyle, width: '100%', boxSizing: 'border-box', marginBottom: 8, fontSize: 18, textAlign: 'center', fontWeight: 800 }} />
 
             <div style={{ fontSize: 12, color: '#9E9E9E', marginBottom: 14, textAlign: 'center' }}>
+              {/* F2.1: la conversión es del TIER del cliente (Q10/Q8/Q6) */}
               Puntos a otorgar: <strong style={{ color: '#2E7D32', ...sMono, fontSize: 16 }}>
-                +{Math.floor((parseFloat(amt) || 0) / cfg.qPerPt)}
+                +{Math.floor((parseFloat(amt) || 0) / (selTier.qPerPt ?? cfg.qPerPt))}
               </strong>
             </div>
 

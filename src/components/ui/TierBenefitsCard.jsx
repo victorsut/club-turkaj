@@ -20,7 +20,7 @@ export default function TierBenefitsCard({ t, cfg, pill, surface = '#fff', ink =
   // Sin línea de descuento por galón ni de rifa mensual (decisión del
   // dueño 24-jul-2026: ya no se muestran como beneficio del nivel).
   const bens = [
-    { icon: <Fuel />, txt: `1 pt por cada Q${cfg.qPerPt}` },
+    { icon: <Fuel />, txt: `1 pt por cada Q${t.qPerPt ?? cfg.qPerPt}` },
     ...(t.redeemDisc > 0 ? [{ icon: <Tag />, txt: `-${Math.round(t.redeemDisc * 100)}% en canje de premios` }] : []),
     ...(t.name !== 'ORO' ? [{ icon: <Wifi />, txt: 'WiFi gratis ilimitado' }] : []),
     ...(t.bath ? [{ icon: <Door />, txt: 'Acceso a baños' }] : []),

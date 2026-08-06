@@ -12,7 +12,8 @@ PWA en producción activa.
 
 ## 1. Reglas de Negocio Inamovibles
 
-- **Conversión:** Q10 = 1 punto.
+- **Conversión POR TIER (F2.1, 6-ago-2026):** ORO Q10 = 1 punto · PLATINO Q8 = 1 punto · BLACK Q6 = 1 punto. Editable en Admin → Configuración → Puntos por Nivel (RPC `set_loyalty_config`, `program_config.tiers` → `qPerPt`). El divisor se decide con el tier PREVIO a la compra. La lógica vive en el RPC `register_purchase_core` (core compartido de `register_purchase` y `api_register_purchase` — ya NO está duplicada).
+- **Eventos especiales POR TIER (F2.1):** ORO 25 · PLATINO 35 · BLACK 50 pts por evento (`program_config.tiers` → `evtPts`, mismo RPC/sección de admin). `special_days.points` quedó solo de fallback; el form de festivos ya no edita puntos.
 - **Tiers (galones):** ORO (0–149), PLATINO (150–499), BLACK (500+).
 - **Card codes:** `CTOD-XXXXX` (ORO), `CTPD-XXXXX` (PLATINO), `CTBD-XXXXX` (BLACK).
 - **Temas visuales:** ORO blanco/dorado, PLATINO gris metálico, BLACK galaxia animada.
