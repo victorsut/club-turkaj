@@ -175,6 +175,18 @@ export async function rateOperatorSecure(operatorId, stars, purchaseId = null) {
   return data || { error: 'Sin respuesta' };
 }
 
+// Borrado de cuenta (6-ago): soft delete con anonimización IRREVERSIBLE.
+// El RPC exige la palabra ELIMINAR también server-side.
+export async function deleteMyAccountSecure(confirmText) {
+  const tok = getMemberToken();
+  if (!tok?.token) return { error: 'Sesión expirada' };
+  const { data, error } = await sb.rpc('delete_my_account', {
+    p_session_token: tok.token, p_confirm: confirmText,
+  });
+  if (error) { console.warn('[SecureReads:deleteAccount]', error.message); return { error: error.message }; }
+  return data || { error: 'Sin respuesta' };
+}
+
 export async function countMySurveysToday() {
   const tok = getMemberToken();
   if (!tok?.token) return null;

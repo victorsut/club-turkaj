@@ -15,6 +15,7 @@ import AddressPicker, { EMPTY_ADDRESS } from '../../../components/ui/AddressPick
 import { packAddress } from '../../../constants/geoGt';
 import { SectionHeader } from './menuUi';
 import AvatarEditor from './AvatarEditor';
+import DeleteAccountSection from './DeleteAccountSection';
 import useBackLayer from '../../../hooks/useBackLayer';
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -502,6 +503,11 @@ export default function MenuAccount({ ctx, TH, onBack }) {
           )}
         </>
       )}
+
+      {/* ── Zona de peligro: borrar la cuenta (soft delete anonimizado,
+          6-ago) — al FINAL a propósito: el cliente pasa por todos sus
+          datos antes de llegar acá y el flujo exige tipear ELIMINAR ── */}
+      <DeleteAccountSection ctx={ctx} TH={TH} />
 
       {/* ── Confirmación de eliminación de vehículo (bottom sheet) ── */}
       {delVehicle && (() => {
