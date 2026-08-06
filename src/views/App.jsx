@@ -320,10 +320,13 @@ export default function App() {
   // global.css) vive fuera del árbol de React. Cliente/operador y el
   // login de admin conservan el lienzo móvil.
   const adminWide = isA && authAdmin === 'logged';
+  // Admin v2.1 (6-ago): el lienzo ancho aplica a TODA la vista admin —
+  // incluido el LOGIN (pantalla dividida en computadora/tablet); el
+  // shell con sidebar sigue apareciendo solo con sesión (adminWide).
   useEffect(() => {
-    document.body.classList.toggle('pp-adm-wide', adminWide);
+    document.body.classList.toggle('pp-adm-wide', isA);
     return () => document.body.classList.remove('pp-adm-wide');
-  }, [adminWide]);
+  }, [isA]);
   // Modo efectivo: elección del usuario o, sin ella, el histórico del
   // nivel (BLACK oscuro, ORO/PLATINO claro). En login/registro (sin
   // sesión) manda solo la elección; por defecto claro.
@@ -1944,9 +1947,9 @@ export default function App() {
   return (
     <>
       <div style={{
-        // Admin v2 (6-ago): el shell con menú lateral administra su
-        // propio ancho — sin límite de lienzo con sesión de admin.
-        maxWidth: adminWide ? 'none' : 480, margin: '0 auto', minHeight: '100vh',
+        // Admin v2 (6-ago): el shell (y el login de pantalla dividida)
+        // administran su propio ancho — sin límite de lienzo en admin.
+        maxWidth: isA ? 'none' : 480, margin: '0 auto', minHeight: '100vh',
         background: isA ? adminTheme.bg
           : isO ? '#FAFAFA'
           : clientMainBg(cTier.name, dark),

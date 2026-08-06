@@ -203,6 +203,27 @@ body.pp-adm-wide #root { max-width: none; }
 @keyframes ppDrawerIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
 .pp-ash-drawer { animation: ppDrawerIn .22s cubic-bezier(.32, .72, .33, 1); }
 
+/* ── Login admin v2.1: pantalla DIVIDIDA en computadora/tablet ──
+   Panel de marca a la izquierda + formulario centrado a la derecha;
+   en móvil (<768px) el panel de marca se oculta y queda la columna
+   única de siempre. */
+.pp-alog { display: flex; min-height: 100vh; }
+.pp-alog-brand { display: none; }
+.pp-alog-form {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; padding: 36px 24px;
+}
+@media (min-width: 768px) {
+  .pp-alog-brand {
+    display: flex; flex-direction: column; justify-content: space-between;
+    flex: 1.2; padding: 52px 56px; background: #141414;
+    border-right: 1px solid #2E2E2E;
+  }
+  /* El logo del formulario solo encabeza en móvil (en ancho ya está
+     en el panel de marca) */
+  .pp-alog-logo { display: none; }
+}
+
 /* ── Dashboard v2: rejillas del inicio ── */
 .pp-dash-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
 .pp-dash-cols  { display: grid; grid-template-columns: 1fr; gap: 14px; align-items: start; }
