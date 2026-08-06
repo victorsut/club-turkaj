@@ -325,14 +325,18 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
                 </div>
               );
             })
-          : items.map((rd, i) => (
+          : items.map((rd, i) => {
+            // D22: premio de rifa con plazo vencido — ya no es reclamable
+            const expired = !rd.collected && rd.expiresAt && new Date(rd.expiresAt) < new Date();
+            return (
               <div key={rd.id || i}
-                onClick={() => { if (!rd.collected) setQrItem(rd); }}
+                onClick={() => { if (!rd.collected && !expired) setQrItem(rd); }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
                   background: TH.surface, borderRadius: 16, marginBottom: 8,
                   animation: `slideIn .3s ${Math.min(i, 10) * 0.03}s both`,
-                  cursor: rd.collected ? 'default' : 'pointer',
+                  cursor: (rd.collected || expired) ? 'default' : 'pointer',
+                  opacity: expired ? .6 : 1,
                 }}>
                 <div style={{
                   width: 40, height: 40, borderRadius: 12, flexShrink: 0,
@@ -353,14 +357,18 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
                     fontSize: 9, fontWeight: 800, letterSpacing: 0.3,
                     background: rd.collected
                       ? (dark ? 'rgba(30,122,51,.25)' : 'rgba(30,122,51,.12)')
-                      : (dark ? 'rgba(217,164,11,.22)' : '#FAF1DC'),
+                      : expired
+                        ? (dark ? 'rgba(214,40,26,.22)' : 'rgba(214,40,26,.10)')
+                        : (dark ? 'rgba(217,164,11,.22)' : '#FAF1DC'),
                     color: rd.collected
                       ? (dark ? '#7CD98F' : bento.green)
-                      : (dark ? '#FFD54F' : '#B58000'),
+                      : expired
+                        ? (dark ? '#FF8A80' : bento.red)
+                        : (dark ? '#FFD54F' : '#B58000'),
                   }}>
-                    {rd.collected ? 'RECOGIDO' : 'PENDIENTE'}
+                    {rd.collected ? 'RECOGIDO' : expired ? 'VENCIDO' : 'PENDIENTE'}
                   </div>
-                  {!rd.collected && (
+                  {!rd.collected && !expired && (
                     <div style={{
                       fontSize: 9, fontWeight: 800, marginTop: 4, letterSpacing: 0.5,
                       color: dark ? '#FFD54F' : '#B58000',
@@ -370,7 +378,8 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
                   )}
                 </div>
               </div>
-            ))}
+            );
+          })}
       </div>
 
       {/* ── Bottom sheet: QR único del canje pendiente (25-jul) ──
@@ -414,6 +423,12 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
             <div style={{ fontSize: 12, fontWeight: 700, color: TH.sub, marginTop: 3 }}>
               {fmtDay(itemDay(qrItem.date))} · -{qrItem.cost} pts
             </div>
+            {/* D22: vencimiento del premio de rifa (los canjes normales no expiran) */}
+            {qrItem.expiresAt && (
+              <div style={{ fontSize: 11.5, fontWeight: 800, marginTop: 5, color: dark ? '#FFD54F' : '#B58000' }}>
+                Válido hasta el {new Date(qrItem.expiresAt).toLocaleDateString('es-GT', { day: 'numeric', month: 'long' })}
+              </div>
+            )}
 
             {/* QR sobre panel blanco con esquinas de escáner */}
             <div style={{ position: 'relative', width: 194, margin: '18px auto 12px', padding: 12, background: '#fff', borderRadius: 16 }}>

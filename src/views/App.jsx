@@ -575,6 +575,7 @@ export default function App() {
             m, p: '—', name: null, icon: null, img: null, detail: null,
             v: 'Q0', cost: 0, dbId: null, month: i + 1, year: yr,
             winnerId: null, drawnAt: null, winnerSeenAt: null, ticketPts: null,
+            claimDays: null, claimStationId: null,
           }));
           rcRes.data.filter(r => !r.year || r.year === yr).forEach(r => {
             cal[r.month - 1] = {
@@ -587,6 +588,9 @@ export default function App() {
               winnerSeenAt: r.winner_seen_at || null,
               // Costo del boleto de ESTA rifa; null = global cfg.ticketPts.
               ticketPts: r.ticket_points ?? null,
+              // D22: plazo/estación de reclamo (null = 15 días / Turkaj 1)
+              claimDays: r.claim_days ?? null,
+              claimStationId: r.claim_station_id || null,
             };
           });
           setRaffleCal(cal);
@@ -942,6 +946,8 @@ export default function App() {
         date: utcToLocal(rd.created_at) || '',
         code: rd.redemption_code,
         collected: rd.collected || false,
+        // D22: vencimiento del canje (solo premios de rifa lo traen)
+        expiresAt: rd.expires_at || null,
       })));
       // F7a.3: solicitud de confirmación VIGENTE al abrir la app — si el
       // POS de PROPER (o el operador) la pidió con la app cerrada, el
@@ -2334,6 +2340,7 @@ export default function App() {
         <RaffleWinnerModal
           cal={raffleWin}
           name={me.name}
+          stations={stations}
           isBlack={dark}
           onClose={() => {
             // Marca de visto en el SERVIDOR (cross-device) + localStorage

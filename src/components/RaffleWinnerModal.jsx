@@ -9,12 +9,23 @@ import { BRAND_ORANGE } from '../constants/styles';
 import { rewardIconFor } from './ui/RewardIcon';
 import useBackLayer from '../hooks/useBackLayer';
 
-export default function RaffleWinnerModal({ cal, name, isBlack = false, onClose }) {
+export default function RaffleWinnerModal({ cal, name, stations = [], isBlack = false, onClose }) {
   // Botón físico de volver: cierra el modal (y marca la rifa como vista).
   useBackLayer(!!cal, onClose);
   if (!cal) return null;
   const PrizeIcon = rewardIconFor({ name: cal.name || '', icon: cal.icon || '' });
   const firstName = (name || '').trim().split(' ')[0] || 'cliente';
+
+  // D22: plazo y estación de reclamo — defaults 15 días y la primera
+  // estación (Turkaj 1); el vencimiento corre desde el sorteo (drawnAt),
+  // igual que el expires_at que estampa draw_due_raffles.
+  const claimStation = (stations.find(s => s.id === cal.claimStationId) || stations[0])?.name || null;
+  const deadline = cal.drawnAt
+    ? new Date(new Date(cal.drawnAt).getTime() + (cal.claimDays ?? 15) * 86400000)
+    : null;
+  const deadlineTxt = deadline
+    ? deadline.toLocaleDateString('es-GT', { day: 'numeric', month: 'long' })
+    : null;
 
   return (
     <div style={{
@@ -88,8 +99,19 @@ export default function RaffleWinnerModal({ cal, name, isBlack = false, onClose 
             fontSize: 12.5, fontWeight: 600, lineHeight: 1.55,
             color: isBlack ? '#CFCFCF' : '#48484A',
           }}>
-            Tu premio ya está en tus canjes pendientes. Presentá el código en
-            cualquier estación Turkaj para recibirlo.
+            Tu premio ya está en tus canjes pendientes. Presentá el código
+            {claimStation ? ` en ${claimStation}` : ' en la estación'} para recibirlo.
+          </div>
+        )}
+
+        {/* D22: dónde y hasta cuándo reclamar */}
+        {(claimStation || deadlineTxt) && (
+          <div style={{
+            fontSize: 12, fontWeight: 800, color: BRAND_ORANGE,
+            marginTop: -8, marginBottom: 16, lineHeight: 1.5,
+          }}>
+            Reclamalo{claimStation ? ` en ${claimStation}` : ''}
+            {deadlineTxt ? ` antes del ${deadlineTxt}` : ''}
           </div>
         )}
 
