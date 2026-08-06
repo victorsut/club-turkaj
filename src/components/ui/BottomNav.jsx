@@ -38,6 +38,7 @@ export default function BottomNav({ items, current, onSelect, view, tierName, da
           const qrActive = current === 'qr';
           return (
             <button key="qr" onClick={(e) => onSelect('qr', e)} style={{
+              flex: '1 1 0', minWidth: 0,
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
               background: 'none', border: 'none', cursor: 'pointer',
               padding: 0, marginTop: -26, // sube el círculo por encima de la barra
@@ -72,8 +73,9 @@ export default function BottomNav({ items, current, onSelect, view, tierName, da
         // ── Botones normales ──────────────────────────────
         return (
           <button key={n.id} onClick={(e) => onSelect(n.id, e)} style={{
+            flex: '1 1 0', minWidth: 0,
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-            padding: '4px 8px', background: 'none', border: 'none',
+            padding: '4px 0', background: 'none', border: 'none',
             color: current === n.id ? activeColor : inactiveColor,
             cursor: 'pointer', fontFamily: "'DM Sans'", fontSize: 10.5,
             fontWeight: 700,
