@@ -9,7 +9,10 @@
 // modo de clasificación (última visita / más frecuente) que existía
 // en el estado pero no tenía UI. Resultados como TARJETAS con código
 // de tarjeta y teléfono (útiles al buscar), en columnas responsivas.
+import { useState, useEffect } from 'react';
+import { sb } from '../../lib/supabaseClient';
 import { sMono, adminTheme as AT } from '../../constants/styles';
+import { getAdminToken } from '../../services/sessionTokens';
 import Badge from '../../components/ui/Badge';
 import { Search } from '../../components/ui/Icons';
 
@@ -20,6 +23,31 @@ export default function Members(ctx) {
     stationFilter, setStationFilter, stationMode, setStationMode,
     memberStations, stations = [],
   } = ctx;
+
+  // ── Modo de vista: padrón de miembros o RANKING de consumo por
+  // estación (misma fuente del Top del inicio: get_station_top_members
+  // con tope 500 — migración 20260806g). Aclara la diferencia que
+  // confundía: el FILTRO clasifica a cada miembro en UNA estación
+  // (última/frecuente); el RANKING lista a todo el que compró ahí. ──
+  const [viewMode, setViewMode] = useState('members'); // 'members' | 'ranking'
+  const [stationRank, setStationRank] = useState(null); // [{id,name,top:[…]}]
+  useEffect(() => {
+    if (viewMode !== 'ranking' || stationRank || !sb) return;
+    const tok = getAdminToken()?.token;
+    if (!tok) return;
+    sb.rpc('get_station_top_members', { p_session_token: tok, p_limit: 500 })
+      .then(({ data, error }) => {
+        if (error) { console.warn('[Members] ranking:', error.message); return; }
+        if (Array.isArray(data)) setStationRank(data);
+      });
+  }, [viewMode, stationRank]);
+
+  // En ranking se necesita una estación elegida — default: la primera.
+  useEffect(() => {
+    if (viewMode === 'ranking' && !stationFilter && stations.length) {
+      setStationFilter(stations[0].name);
+    }
+  }, [viewMode, stationFilter, stations, setStationFilter]);
 
   // SEC.C.2b: la estación del miembro viene del RPC list_member_stations
   // (derivada de purchases, con NOMBRE server-side). Regla del dueño:
@@ -51,6 +79,17 @@ export default function Members(ctx) {
     return sortDir === 'desc' ? diff : -diff;
   });
 
+  // ── Filas del RANKING por estación: rank precomputado sobre el
+  // orden real de consumo (buscar no altera el número — Alexander
+  // sigue siendo #2 de su estación aunque se filtre por su nombre) ──
+  const rankStation = stationRank?.find(s => s.name === stationFilter) || null;
+  let rankRows = (rankStation?.top || []).map((r, i) => ({ ...r, rank: i + 1 }));
+  rankRows = rankRows.filter(r =>
+    (!q || (r.member_name || '').toLowerCase().includes(q.toLowerCase())) &&
+    (memSort === 'all' || gT(+r.member_gallons || 0).name === memSort)
+  );
+  if (sortDir === 'asc') rankRows = [...rankRows].reverse();
+
   const tiers = ['all', 'ORO', 'PLATINO', 'BLACK'];
 
   // ── estilos ──
@@ -74,7 +113,9 @@ export default function Members(ctx) {
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 21, fontWeight: 800, color: '#fff' }}>Miembros</div>
         <div style={{ fontSize: 12.5, fontWeight: 600, color: '#9E9E9E', marginTop: 2 }}>
-          {filtered.length.toLocaleString('en-US')} de {custs.length.toLocaleString('en-US')} miembros
+          {viewMode === 'ranking'
+            ? `${rankRows.length.toLocaleString('en-US')} miembros con consumo en ${stationFilter || '—'}`
+            : `${filtered.length.toLocaleString('en-US')} de ${custs.length.toLocaleString('en-US')} miembros`}
         </div>
       </div>
 
@@ -95,6 +136,15 @@ export default function Members(ctx) {
         </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 22, rowGap: 14 }}>
+          {/* Vista: padrón o ranking de consumo por estación */}
+          <div>
+            <div style={groupLbl}>Vista</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button onClick={() => setViewMode('members')} style={chip(viewMode === 'members')}>Miembros</button>
+              <button onClick={() => setViewMode('ranking')} style={chip(viewMode === 'ranking')}>Consumo por estación</button>
+            </div>
+          </div>
+
           {/* Nivel */}
           <div>
             <div style={groupLbl}>Nivel</div>
@@ -111,9 +161,12 @@ export default function Members(ctx) {
           <div>
             <div style={groupLbl}>Estación</div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              <button onClick={() => setStationFilter(null)} style={chipSoft(!stationFilter)}>Todas</button>
+              {viewMode === 'members' && (
+                <button onClick={() => setStationFilter(null)} style={chipSoft(!stationFilter)}>Todas</button>
+              )}
               {stations.map(s => (
-                <button key={s.id} onClick={() => setStationFilter(stationFilter === s.name ? null : s.name)}
+                <button key={s.id}
+                  onClick={() => setStationFilter(viewMode === 'members' && stationFilter === s.name ? null : s.name)}
                   style={chipSoft(stationFilter === s.name)}>
                   {s.name}
                 </button>
@@ -121,14 +174,16 @@ export default function Members(ctx) {
             </div>
           </div>
 
-          {/* Modo de clasificación por estación */}
-          <div>
-            <div style={groupLbl}>Clasificar por</div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button onClick={() => setStationMode('last')} style={chipSoft(stationMode === 'last')}>Última visita</button>
-              <button onClick={() => setStationMode('frequent')} style={chipSoft(stationMode !== 'last')}>Más frecuente</button>
+          {/* Modo de clasificación por estación (solo en padrón) */}
+          {viewMode === 'members' && (
+            <div>
+              <div style={groupLbl}>Clasificar por</div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button onClick={() => setStationMode('last')} style={chipSoft(stationMode === 'last')}>Última visita</button>
+                <button onClick={() => setStationMode('frequent')} style={chipSoft(stationMode !== 'last')}>Más frecuente</button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Orden */}
           <div>
@@ -139,62 +194,135 @@ export default function Members(ctx) {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* ── Resultados: tarjetas en columnas responsivas ── */}
-      <div className="pp-adm-grid" style={{ columnGap: 14 }}>
-        {filtered.map(c => {
-          const t = gT(c.gallons);
-          const station = getMemberStation(c.id, stationMode);
-          return (
-            <div key={c.id} onClick={() => { setSel(c); setScr('det'); }} style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              background: AT.card, border: `1px solid ${AT.border}`,
-              borderRadius: 16, padding: '12px 14px', marginBottom: 10,
-              cursor: 'pointer',
-            }}>
-              <div style={{ width: 44, height: 44, borderRadius: 13, background: t.bg, color: t.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16, flexShrink: 0 }}>
-                {c.name.charAt(0)}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 13.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#E0E0E0' }}>{c.name}</div>
-                {/* Identificadores útiles al BUSCAR: tarjeta y teléfono */}
-                <div style={{ fontSize: 10.5, color: '#777', marginTop: 2, ...sMono, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {c.cardId || '—'}{c.phone ? ` · ${c.phone}` : ''}
-                </div>
-                <div style={{ marginTop: 5, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                  <Badge t={t} />
-                  {station && (
-                    <span style={{ fontSize: 9, fontWeight: 700, background: 'rgba(255,255,255,.08)', padding: '2px 7px', borderRadius: 6, color: '#aaa', letterSpacing: .3 }}>
-                      {station}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <div style={{ ...sMono, fontSize: 14.5, fontWeight: 800, color: '#FBBC04' }}>
-                  {c.points.toLocaleString('en-US')} <span style={{ fontSize: 10, color: '#777' }}>pts</span>
-                </div>
-                <div style={{ fontSize: 10, color: '#777', ...sMono, marginTop: 2 }}>
-                  {Math.round(c.gallons).toLocaleString('en-US')} gal
-                </div>
-                <div style={{ fontSize: 10, color: '#777', ...sMono }}>
-                  Q{Math.round(c.spent).toLocaleString('en-US')}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {filtered.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '48px 20px', color: '#777' }}>
-          <div style={{ width: 52, height: 52, borderRadius: 16, margin: '0 auto 12px', background: AT.card, border: `1px solid ${AT.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
-            <Search />
+        {viewMode === 'ranking' && (
+          <div style={{ fontSize: 11, color: '#777', fontWeight: 600, lineHeight: 1.5, marginTop: 12 }}>
+            Ranking por consumo REGISTRADO en la estación elegida — la misma fuente
+            del Top 10 del inicio. Incluye a todo miembro que haya comprado ahí,
+            aunque su estación habitual (última visita / más frecuente) sea otra.
           </div>
-          <div style={{ fontSize: 14, fontWeight: 800, color: '#9E9E9E' }}>No se encontraron miembros</div>
-          <div style={{ fontSize: 12, fontWeight: 600, marginTop: 4 }}>Probá con otro nombre, tarjeta, DPI o teléfono</div>
-        </div>
+        )}
+      </div>
+
+      {/* ── Resultados — columnas con flujo VERTICAL (el 2º debajo del
+          1º) y numerador sutil de orden en cada tarjeta ── */}
+      {viewMode === 'members' ? (
+        <>
+          <div className="pp-memb-cols">
+            {filtered.map((c, i) => {
+              const t = gT(c.gallons);
+              const station = getMemberStation(c.id, stationMode);
+              return (
+                <div key={c.id} onClick={() => { setSel(c); setScr('det'); }} style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  background: AT.card, border: `1px solid ${AT.border}`,
+                  borderRadius: 16, padding: '12px 12px', marginBottom: 10,
+                  cursor: 'pointer',
+                }}>
+                  <div style={{ width: 22, textAlign: 'center', flexShrink: 0, ...sMono, fontSize: 10.5, fontWeight: 700, color: '#555' }}>
+                    {i + 1}
+                  </div>
+                  <div style={{ width: 44, height: 44, borderRadius: 13, background: t.bg, color: t.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16, flexShrink: 0 }}>
+                    {c.name.charAt(0)}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 13.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#E0E0E0' }}>{c.name}</div>
+                    {/* Identificadores útiles al BUSCAR: tarjeta y teléfono */}
+                    <div style={{ fontSize: 10.5, color: '#777', marginTop: 2, ...sMono, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {c.cardId || '—'}{c.phone ? ` · ${c.phone}` : ''}
+                    </div>
+                    <div style={{ marginTop: 5, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <Badge t={t} />
+                      {station && (
+                        <span style={{ fontSize: 9, fontWeight: 700, background: 'rgba(255,255,255,.08)', padding: '2px 7px', borderRadius: 6, color: '#aaa', letterSpacing: .3 }}>
+                          {station}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ ...sMono, fontSize: 14.5, fontWeight: 800, color: '#FBBC04' }}>
+                      {c.points.toLocaleString('en-US')} <span style={{ fontSize: 10, color: '#777' }}>pts</span>
+                    </div>
+                    <div style={{ fontSize: 10, color: '#777', ...sMono, marginTop: 2 }}>
+                      {Math.round(c.gallons).toLocaleString('en-US')} gal
+                    </div>
+                    <div style={{ fontSize: 10, color: '#777', ...sMono }}>
+                      Q{Math.round(c.spent).toLocaleString('en-US')}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {filtered.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '48px 20px', color: '#777' }}>
+              <div style={{ width: 52, height: 52, borderRadius: 16, margin: '0 auto 12px', background: AT.card, border: `1px solid ${AT.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
+                <Search />
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#9E9E9E' }}>No se encontraron miembros</div>
+              <div style={{ fontSize: 12, fontWeight: 600, marginTop: 4 }}>Probá con otro nombre, tarjeta, DPI o teléfono</div>
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          {/* ── RANKING de consumo por estación (fuente del Top del
+              inicio) — el número es el puesto REAL en la estación y no
+              cambia al buscar ── */}
+          {!stationRank && (
+            <div style={{ textAlign: 'center', padding: 40, color: '#777', fontSize: 13, fontWeight: 700 }}>
+              Cargando ranking de consumo...
+            </div>
+          )}
+          {stationRank && (
+            <div className="pp-memb-cols">
+              {rankRows.map(r => {
+                const c = custs.find(x => x.id === r.member_id) || null;
+                const t = gT(+r.member_gallons || 0);
+                return (
+                  <div key={r.member_id}
+                    onClick={() => { if (c) { setSel(c); setScr('det'); } }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      background: AT.card, border: `1px solid ${AT.border}`,
+                      borderRadius: 16, padding: '12px 12px', marginBottom: 10,
+                      cursor: c ? 'pointer' : 'default',
+                    }}>
+                    <div style={{ width: 26, textAlign: 'center', flexShrink: 0, ...sMono, fontSize: 12, fontWeight: 800, color: r.rank <= 3 ? '#FBBC04' : '#555' }}>
+                      {r.rank}
+                    </div>
+                    <div style={{ width: 44, height: 44, borderRadius: 13, background: t.bg, color: t.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16, flexShrink: 0 }}>
+                      {(r.member_name || '?').charAt(0)}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#E0E0E0' }}>{r.member_name}</div>
+                      <div style={{ fontSize: 10.5, color: '#777', marginTop: 2 }}>
+                        {r.purchases} compras en {stationFilter}
+                      </div>
+                      <div style={{ marginTop: 5 }}><Badge t={t} /></div>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ ...sMono, fontSize: 14.5, fontWeight: 800, color: '#FBBC04' }}>
+                        {Math.round(+r.gallons).toLocaleString('en-US')} <span style={{ fontSize: 10, color: '#777' }}>gal</span>
+                      </div>
+                      <div style={{ fontSize: 10, color: '#777', ...sMono, marginTop: 2 }}>
+                        Q{Math.round(+r.amount).toLocaleString('en-US')}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {stationRank && rankRows.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '48px 20px', color: '#777' }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#9E9E9E' }}>Sin consumo registrado</div>
+              <div style={{ fontSize: 12, fontWeight: 600, marginTop: 4 }}>Nadie coincide con la búsqueda o los filtros en {stationFilter || 'esta estación'}</div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

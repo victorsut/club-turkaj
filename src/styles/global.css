@@ -251,6 +251,10 @@ body.pp-adm-wide #root { max-width: none; }
    pantalla completa de computadora (pedido del dueño 6-ago). */
 .pp-top-cols { columns: 300px 5; column-gap: 24px; }
 .pp-top-cols > div { break-inside: avoid; }
+/* Miembros: tarjetas en columnas con flujo VERTICAL (el 2º debajo
+   del 1º), máx 5 columnas en monitor. */
+.pp-memb-cols { columns: 340px 5; column-gap: 14px; }
+.pp-memb-cols > div { break-inside: avoid; }
 
 @media (min-width: 720px) {
   /* Listas del panel: las filas (su borde inferior hace de divisor
