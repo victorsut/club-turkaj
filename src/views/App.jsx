@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { sb } from '../lib/supabaseClient';
 import { makeTier, daysInactive } from '../lib/tierSystem';
+import { rewardLocationNames } from '../lib/rewardLocations';
 import { CFG_INIT, FUEL_LABELS } from '../constants/config';
 import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey, grantSpecialDayBonus, fetchPurchasePromo, fetchNotifications, markNotificationsRead, createMemberSessionOauth, getMyMember, logoutMember, fetchMembersFull, fetchMemberFull, fetchMyActivity, fetchMyRedemptions, fetchActivityStaff, fetchRaffleParticipants, fetchMemberStations, respondRedemptionConfirm, countMySurveysToday, markRaffleWinnerSeen } from '../services';
 import { logoutOperator, logoutAdmin, fetchOperatorsFull } from '../services'; // SEC.B.4: logout delega el subconjunto de localStorage (ct_op/ct_admin + token de rol)
@@ -176,6 +177,7 @@ export default function App() {
   const [opRafQty, setOpRafQty] = useState(1);              // cantidad de boletos
   const [opSearch, setOpSearch] = useState('');             // busqueda por nombre
   const [stations, setStations] = useState([]);               // gas stations from Supabase
+  const [stores, setStores] = useState([]);                   // D18: tiendas asociadas (partner_stores)
   const [authAdmin, setAuthAdmin]   = useState(savedAdmin ? 'logged' : 'login');
   const [loggedAdmin, setLoggedAdmin] = useState(savedAdmin); // admin data after login
   const [authError, setAuthError] = useState('');
@@ -461,12 +463,15 @@ export default function App() {
         // Ver migration 20260725e_degradacion_real.
         try { await sb.rpc('apply_due_degradations'); } catch (e) { console.warn('[Degrad] apply_due_degradations:', e?.message); }
 
-        const [rwRes, prRes, stRes, cfgRes, rcRes] = await Promise.all([
+        const [rwRes, prRes, stRes, cfgRes, rcRes, psRes] = await Promise.all([
           sb.from('rewards').select('*').order('sort_order'),
           sb.from('promotions').select('*').order('sort_order'),
           sb.from('stations').select('*'),
           sb.from('program_config').select('*'),
           sb.from('raffle_calendar').select('*').order('month'),
+          // D18: tiendas asociadas (antes de la migración 20260806c la
+          // tabla no existe → error silencioso y stores queda [])
+          sb.from('partner_stores').select('*').order('name'),
         ]);
         if (!mounted) return;
 
@@ -476,8 +481,14 @@ export default function App() {
             pts: r.points_cost, cat: r.category, tier: r.tier_exclusive || undefined,
             points_cost: r.points_cost, category: r.category, tier_exclusive: r.tier_exclusive,
             description: r.description, active: r.active !== false,
+            // D17: localizaciones de canje (null = todas las estaciones)
+            stationIds: r.station_ids || null, storeIds: r.store_ids || null,
+            station_ids: r.station_ids || null, store_ids: r.store_ids || null,
           })));
         }
+
+        // D18: tiendas asociadas (sin migración: error → queda [])
+        if (psRes.data) setStores(psRes.data);
 
         if (prRes.data) {
           setPromos(prRes.data.map(p => ({
@@ -1807,7 +1818,7 @@ export default function App() {
     stationFilter, setStationFilter, stationMode, setStationMode, memberStations,
     rewardQrCloseSignal,
     // Auth
-    authScreen, setAuthScreen, authOp, setAuthOp, loggedOp, setLoggedOp, opScanMode, setOpScanMode, opRedeemScan, setOpRedeemScan, stations, setStations, authAdmin, setAuthAdmin, loggedAdmin, setLoggedAdmin,
+    authScreen, setAuthScreen, authOp, setAuthOp, loggedOp, setLoggedOp, opScanMode, setOpScanMode, opRedeemScan, setOpRedeemScan, stations, setStations, stores, setStores, authAdmin, setAuthAdmin, loggedAdmin, setLoggedAdmin,
     opRafClient, setOpRafClient, opRafScan, setOpRafScan, opRafQty, setOpRafQty, opSearch, setOpSearch,
     authError, setAuthError, clearAuthErr,
     loginPhone, setLoginPhone, loginPass, setLoginPass,
@@ -2102,6 +2113,25 @@ export default function App() {
                 </div>
               </div>
             )}
+
+            {/* D17: dónde es válido el premio (null = todas las estaciones,
+                no se muestra nada — comportamiento histórico) */}
+            {(() => {
+              const locNames = rewardLocationNames(redeemConfirm.reward, stations, stores);
+              return locNames && (
+                <div style={{
+                  background: dark ? 'rgba(255,255,255,.05)' : '#F5F5F7',
+                  borderRadius: 16, padding: '14px 16px', marginBottom: 12, textAlign: 'left',
+                }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1, color: '#9E9E9E', marginBottom: 6 }}>
+                    Válido únicamente en
+                  </div>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, lineHeight: 1.6, color: dark ? '#CFCFCF' : '#48484A' }}>
+                    {locNames.join(' · ')}
+                  </div>
+                </div>
+              );
+            })()}
 
             <div style={{ background: dark ? 'rgba(255,255,255,.05)' : '#F5F5F7', borderRadius: 16, padding: '16px 20px', marginBottom: 20 }}>
               {[

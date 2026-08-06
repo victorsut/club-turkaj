@@ -24,7 +24,7 @@ const CATS  = Object.keys(CAT_LABELS);
 const TIERS = ['todos', 'ORO', 'PLATINO', 'BLACK'];
 const ICONS = ['🎁','⛽','🧴','🍪','🎟️','🏆','📱','🧽','🎨','🎵','🌮','🎮','👕','🏍️','🚗','🔑','🧳','⌚','💳','🛠️'];
 
-const EMPTY = { name: '', pts: '', icon: '🎁', cat: 'merch', tier: 'todos', active: true, description: '' };
+const EMPTY = { name: '', pts: '', icon: '🎁', cat: 'merch', tier: 'todos', active: true, description: '', stationIds: [], storeIds: [] };
 
 const TABS = [
   { id: 'canjear', label: 'Canjear'  },
@@ -33,7 +33,7 @@ const TABS = [
 ];
 
 export default function AdminPremios(ctx) {
-  const { rewards, setRewards, fire, setScr, sbConnected, loggedAdmin, cfg } = ctx;
+  const { rewards, setRewards, fire, setScr, sbConnected, loggedAdmin, cfg, stations = [], stores = [] } = ctx;
 
   // SEC.C.4: datos de auditoría del admin logueado (los altas sin
   // ReasonModal quedan igualmente registradas por el RPC).
@@ -106,13 +106,21 @@ export default function AdminPremios(ctx) {
   const openNew = () => { setEditR(null); setForm({ ...EMPTY }); setShowForm(true); };
   const openEdit = (r) => {
     setEditR(r);
-    setForm({ name: r.name || '', pts: String(r.points_cost || r.pts || ''), icon: r.icon || '🎁', cat: r.category || r.cat || 'merch', tier: r.tier_exclusive || r.tier || r.tier || 'todos', active: r.active !== false, description: r.description || '' });
+    setForm({ name: r.name || '', pts: String(r.points_cost || r.pts || ''), icon: r.icon || '🎁', cat: r.category || r.cat || 'merch', tier: r.tier_exclusive || r.tier || r.tier || 'todos', active: r.active !== false, description: r.description || '',
+      // D17: localizaciones (vacío = todas las estaciones)
+      stationIds: r.stationIds || r.station_ids || [], storeIds: r.storeIds || r.store_ids || [] });
     setShowForm(true);
   };
 
+  // D17: chip de localización (estación o tienda) del form de premios
+  const toggleLoc = (k, id) => setForm(p => ({
+    ...p, [k]: p[k].includes(id) ? p[k].filter(x => x !== id) : [...p[k], id],
+  }));
+
   const save = async () => {
     if (!form.name.trim() || !form.pts) { fire('Nombre y puntos son obligatorios'); return; }
-    const data = { name: form.name.trim(), points_cost: parseInt(form.pts), icon: form.icon, category: form.cat, tier_exclusive: form.tier !== 'todos' ? form.tier : null, active: form.active, description: form.description || null };
+    const data = { name: form.name.trim(), points_cost: parseInt(form.pts), icon: form.icon, category: form.cat, tier_exclusive: form.tier !== 'todos' ? form.tier : null, active: form.active, description: form.description || null,
+      station_ids: form.stationIds, store_ids: form.storeIds };
 
     // EDITAR: auditar via ReasonModal (el UPDATE real ocurre en confirmAction).
     if (editR) {
@@ -788,6 +796,42 @@ export default function AdminPremios(ctx) {
                 <select value={form.tier} onChange={e => setForm(p => ({ ...p, tier: e.target.value }))} style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A', appearance: 'none' }}>
                   {TIERS.map(t => <option key={t} value={t}>{t === 'todos' ? 'Todos' : t}</option>)}
                 </select>
+              </div>
+            </div>
+
+            {/* D17: localizaciones de canje — dónde es válido el premio */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={sLbl}>Válido en (ninguna = todas las estaciones)</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: (stores || []).length ? 6 : 0 }}>
+                {stations.map(s => {
+                  const on = form.stationIds.includes(s.id);
+                  return (
+                    <button key={s.id} onClick={() => toggleLoc('stationIds', s.id)} style={{
+                      padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
+                      background: on ? '#FBBC04' : '#2A2A2A', color: on ? '#0D0D0D' : '#9E9E9E',
+                      border: `1px solid ${on ? '#FBBC04' : '#3A3A3A'}`,
+                      fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 700,
+                    }}>⛽ {s.name}</button>
+                  );
+                })}
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {(stores || []).map(s => {
+                  const on = form.storeIds.includes(s.id);
+                  return (
+                    <button key={s.id} onClick={() => toggleLoc('storeIds', s.id)} style={{
+                      padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
+                      background: on ? '#80CBC4' : '#2A2A2A', color: on ? '#0D0D0D' : '#9E9E9E',
+                      border: `1px solid ${on ? '#80CBC4' : '#3A3A3A'}`,
+                      fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 700,
+                      opacity: s.active === false ? .5 : 1,
+                    }}>🏬 {s.name}</button>
+                  );
+                })}
+              </div>
+              <div style={{ fontSize: 10, color: '#777', marginTop: 6, lineHeight: 1.5 }}>
+                Las tiendas asociadas se gestionan en Configuración → Estaciones y Tiendas.
+                El cliente ve la restricción en el catálogo y al confirmar el canje.
               </div>
             </div>
 
