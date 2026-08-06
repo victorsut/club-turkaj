@@ -179,11 +179,16 @@ body.pp-adm-wide #root { max-width: none; }
 .pp-ash-content { width: 100%; }
 
 @media (min-width: 768px) {
+  /* FIJA de verdad (6-ago): position fixed — sticky se rompía porque
+     el contenedor raíz de la app lleva overflow-x hidden; el menú
+     permanece quieto aunque el contenido de la derecha haga scroll.
+     .pp-ash-main compensa el ancho con margin-left. */
   .pp-ash-side {
     display: flex; flex-direction: column; flex-shrink: 0;
-    width: 68px; position: sticky; top: 0; height: 100vh;
-    overflow-y: auto; overflow-x: hidden;
+    width: 68px; position: fixed; left: 0; top: 0; bottom: 0;
+    overflow-y: auto; overflow-x: hidden; z-index: 150;
   }
+  .pp-ash-main { margin-left: 68px; }
   .pp-ash-topbar { display: none !important; }
   /* Tableta: solo iconos — etiquetas, kickers y ficha de usuario ocultos */
   .pp-ash-side .pp-ash-label,
@@ -194,6 +199,7 @@ body.pp-adm-wide #root { max-width: none; }
 }
 @media (min-width: 1080px) {
   .pp-ash-side { width: 236px; }
+  .pp-ash-main { margin-left: 236px; }
   .pp-ash-side .pp-ash-label,
   .pp-ash-side .pp-ash-kicker,
   .pp-ash-side .pp-ash-brandtxt,
