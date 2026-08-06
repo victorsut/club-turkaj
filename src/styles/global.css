@@ -174,7 +174,9 @@ body.pp-adm-wide #root { max-width: none; }
 .pp-ash { display: flex; min-height: 100vh; }
 .pp-ash-side { display: none; }
 .pp-ash-main { flex: 1; min-width: 0; }
-.pp-ash-content { max-width: 1240px; margin: 0 auto; }
+/* Los cuadros ocupan TODO el ancho disponible del monitor (pedido del
+   dueño 6-ago — antes se centraba a 1240px) */
+.pp-ash-content { width: 100%; }
 
 @media (min-width: 768px) {
   .pp-ash-side {
@@ -199,9 +201,10 @@ body.pp-adm-wide #root { max-width: none; }
   .pp-ash-side .pp-ash-item { justify-content: flex-start; padding: 10px 14px; }
 }
 
-/* Drawer móvil del admin: panel que entra desde la izquierda */
-@keyframes ppDrawerIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
-.pp-ash-drawer { animation: ppDrawerIn .22s cubic-bezier(.32, .72, .33, 1); }
+/* Drawer móvil del admin: entra desde la izquierda y CIERRA con la
+   animación inversa (regla D35 — toda capa cierra con su opuesta) */
+@keyframes ppDrawerIn  { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@keyframes ppDrawerOut { from { transform: translateX(0); } to { transform: translateX(-100%); } }
 
 /* ── Login admin v2.1: pantalla DIVIDIDA en computadora/tablet ──
    Panel de marca a la izquierda + formulario centrado a la derecha;

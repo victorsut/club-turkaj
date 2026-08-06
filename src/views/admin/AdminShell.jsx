@@ -46,11 +46,20 @@ const ACTIVE_ALIAS = { det: 'mem' };
 export default function AdminShell({ ctx, children }) {
   const { scr, setScr, loggedAdmin, logout } = ctx;
   const [drawer, setDrawer] = useState(false);
+  const [drawerClosing, setDrawerClosing] = useState(false);
   const active = ACTIVE_ALIAS[scr] || scr;
   const activeLabel = NAV.flatMap(g => g.items).find(i => i.id === active)?.label || 'Panel';
   const adminName = loggedAdmin?.name || 'Administrador';
 
-  const go = (id) => { setScr(id); setDrawer(false); };
+  // Cierre ANIMADO del drawer (regla D35: la capa cierra con la
+  // animación inversa a la apertura) — desmonta a los 200ms.
+  const closeDrawer = () => {
+    if (drawerClosing) return;
+    setDrawerClosing(true);
+    setTimeout(() => { setDrawer(false); setDrawerClosing(false); }, 200);
+  };
+
+  const go = (id) => { setScr(id); if (drawer) closeDrawer(); };
 
   // Lista de navegación (la comparten la sidebar y el drawer móvil)
   const navList = (compactHost) => (
@@ -164,20 +173,24 @@ export default function AdminShell({ ctx, children }) {
         </div>
       </div>
 
-      {/* ── Drawer móvil ── */}
+      {/* ── Drawer móvil (abre y cierra animado) ── */}
       {drawer && (
-        <div onClick={() => setDrawer(false)} style={{
+        <div onClick={closeDrawer} style={{
           position: 'fixed', inset: 0, zIndex: 300,
-          background: 'rgba(0,0,0,.6)', animation: 'ppFade .2s ease',
+          background: 'rgba(0,0,0,.6)',
+          animation: drawerClosing ? 'ppFadeOut .2s ease forwards' : 'ppFade .2s ease',
         }}>
-          <div onClick={e => e.stopPropagation()} className="pp-ash-drawer" style={{
+          <div onClick={e => e.stopPropagation()} style={{
             width: 264, maxWidth: '82vw', height: '100%',
             background: '#1A1A1A', borderRight: `1px solid ${AT.border}`,
             display: 'flex', flexDirection: 'column',
+            animation: drawerClosing
+              ? 'ppDrawerOut .2s ease-in forwards'
+              : 'ppDrawerIn .22s cubic-bezier(.32, .72, .33, 1)',
           }}>
             <div style={{ position: 'relative' }}>
               {brand}
-              <button onClick={() => setDrawer(false)} aria-label="Cerrar menú" style={{
+              <button onClick={closeDrawer} aria-label="Cerrar menú" style={{
                 position: 'absolute', right: 10, top: 20,
                 width: 32, height: 32, borderRadius: 9, border: 'none',
                 background: 'rgba(255,255,255,.06)', color: '#9E9E9E',
