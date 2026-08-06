@@ -31,16 +31,51 @@ export default function Members(ctx) {
   // (última/frecuente); el RANKING lista a todo el que compró ahí. ──
   const [viewMode, setViewMode] = useState('members'); // 'members' | 'ranking'
   const [stationRank, setStationRank] = useState(null); // [{id,name,top:[…]}]
+
+  // ── PERÍODO de la consulta (6-ago): historial completo o fechas
+  // específicas — día calendario de Guatemala, resuelto server-side. ──
+  const [datePreset, setDatePreset] = useState('all'); // all|month|prev|custom
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const fmtD = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const rangeDates = () => {
+    const now = new Date();
+    if (datePreset === 'month') return { from: fmtD(new Date(now.getFullYear(), now.getMonth(), 1)), to: null };
+    if (datePreset === 'prev') return {
+      from: fmtD(new Date(now.getFullYear(), now.getMonth() - 1, 1)),
+      to: fmtD(new Date(now.getFullYear(), now.getMonth(), 0)),
+    };
+    if (datePreset === 'custom') return { from: dateFrom || null, to: dateTo || null };
+    return { from: null, to: null };
+  };
+
   useEffect(() => {
-    if (viewMode !== 'ranking' || stationRank || !sb) return;
+    if (viewMode !== 'ranking' || !sb) return;
     const tok = getAdminToken()?.token;
     if (!tok) return;
-    sb.rpc('get_station_top_members', { p_session_token: tok, p_limit: 500 })
+    const { from, to } = rangeDates();
+    setStationRank(null);
+    sb.rpc('get_station_top_members', { p_session_token: tok, p_limit: 500, p_from: from, p_to: to })
       .then(({ data, error }) => {
-        if (error) { console.warn('[Members] ranking:', error.message); return; }
+        if (error) {
+          // Firma vieja sin fechas (migración 20260806h pendiente):
+          // el historial completo sigue funcionando como fallback.
+          if (!from && !to) {
+            sb.rpc('get_station_top_members', { p_session_token: tok, p_limit: 500 })
+              .then(({ data: d2, error: e2 }) => {
+                if (e2) { console.warn('[Members] ranking:', e2.message); return; }
+                if (Array.isArray(d2)) setStationRank(d2);
+              });
+          } else {
+            console.warn('[Members] ranking con fechas requiere la migración 20260806h:', error.message);
+            setStationRank([]);
+          }
+          return;
+        }
         if (Array.isArray(data)) setStationRank(data);
       });
-  }, [viewMode, stationRank]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode, datePreset, dateFrom, dateTo]);
 
   // En ranking se necesita una estación elegida — default: la primera.
   useEffect(() => {
@@ -193,6 +228,28 @@ export default function Members(ctx) {
               <button onClick={() => setSortDir('asc')} style={chipSoft(sortDir === 'asc')}>Menor primero</button>
             </div>
           </div>
+
+          {/* Período (solo consulta de consumo — el padrón es acumulado) */}
+          {viewMode === 'ranking' && (
+            <div>
+              <div style={groupLbl}>Período</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                <button onClick={() => setDatePreset('all')} style={chipSoft(datePreset === 'all')}>Todo</button>
+                <button onClick={() => setDatePreset('month')} style={chipSoft(datePreset === 'month')}>Este mes</button>
+                <button onClick={() => setDatePreset('prev')} style={chipSoft(datePreset === 'prev')}>Mes anterior</button>
+                <button onClick={() => setDatePreset('custom')} style={chipSoft(datePreset === 'custom')}>Fechas específicas</button>
+                {datePreset === 'custom' && (
+                  <>
+                    <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+                      style={{ padding: '6px 10px', borderRadius: 10, border: `1px solid ${AT.border}`, background: '#1E1E1E', color: '#fff', fontFamily: "'DM Sans'", fontSize: 12, colorScheme: 'dark' }} />
+                    <span style={{ fontSize: 11, color: '#777', fontWeight: 700 }}>a</span>
+                    <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+                      style={{ padding: '6px 10px', borderRadius: 10, border: `1px solid ${AT.border}`, background: '#1E1E1E', color: '#fff', fontFamily: "'DM Sans'", fontSize: 12, colorScheme: 'dark' }} />
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {viewMode === 'ranking' && (
