@@ -39,7 +39,7 @@ function seedForm(rule) {
     name: '', description: '', effect_type: 'points_multiplier', effect_value: '2', reward_id: '',
     starts_on: '', ends_on: '', weekdays: [], specific_dates: [],
     fuel_types: [], min_amount: '', tiers: [], station_ids: [],
-    max_uses_total: '', max_uses_per_member: '', active: true,
+    max_uses_total: '', max_uses_per_member: '', max_uses_per_member_month: '', active: true,
   };
   return {
     name: rule.name || '',
@@ -57,6 +57,7 @@ function seedForm(rule) {
     station_ids: rule.station_ids || [],
     max_uses_total: rule.max_uses_total != null ? String(rule.max_uses_total) : '',
     max_uses_per_member: rule.max_uses_per_member != null ? String(rule.max_uses_per_member) : '',
+    max_uses_per_member_month: rule.max_uses_per_member_month != null ? String(rule.max_uses_per_member_month) : '',
     active: rule.active !== false,
   };
 }
@@ -100,6 +101,7 @@ export default function PromoRuleForm({ rule, stations = [], rewards = [], savin
       station_ids: f.station_ids,
       max_uses_total: f.max_uses_total ? parseInt(f.max_uses_total) : null,
       max_uses_per_member: f.max_uses_per_member ? parseInt(f.max_uses_per_member) : null,
+      max_uses_per_member_month: f.max_uses_per_member_month ? parseInt(f.max_uses_per_member_month) : null,
       active: f.active,
     });
   };
@@ -267,11 +269,26 @@ export default function PromoRuleForm({ rule, stations = [], rewards = [], savin
             <input type="number" value={f.max_uses_total} placeholder="Sin límite"
               onChange={e => set('max_uses_total', e.target.value)} style={darkInput} />
           </div>
+        </div>
+
+        {/* PROMO-2: el límite mensual habilita beneficios recurrentes
+            ("1 lavado gratis al mes") con una sola regla permanente;
+            el total es el tope histórico de siempre. Conviven. */}
+        <div style={{ display: 'flex', gap: 10, marginBottom: 4 }}>
           <div style={{ flex: 1 }}>
-            <div style={label}>Usos máx. x cliente</div>
+            <div style={label}>Usos máx. x cliente (total)</div>
             <input type="number" value={f.max_uses_per_member} placeholder="Sin límite"
               onChange={e => set('max_uses_per_member', e.target.value)} style={darkInput} />
           </div>
+          <div style={{ flex: 1 }}>
+            <div style={label}>Usos máx. x cliente / mes</div>
+            <input type="number" value={f.max_uses_per_member_month} placeholder="Sin límite"
+              onChange={e => set('max_uses_per_member_month', e.target.value)} style={darkInput} />
+          </div>
+        </div>
+        <div style={{ fontSize: 11, color: AT.sub, marginBottom: 12, lineHeight: 1.5 }}>
+          El límite mensual se reinicia cada mes calendario — ej: "1 x cliente / mes"
+          para un lavado gratis mensual permanente.
         </div>
 
         {/* Activa — solo en CREATE (en edit se gestiona con el botón de la lista) */}

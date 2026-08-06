@@ -40,6 +40,7 @@ function usesLabel(r) {
   let s = `${r.uses} uso${r.uses === 1 ? '' : 's'}`;
   if (r.max_uses_total != null) s += ` / ${r.max_uses_total}`;
   if (r.max_uses_per_member != null) s += ` · máx ${r.max_uses_per_member} x cliente`;
+  if (r.max_uses_per_member_month != null) s += ` · máx ${r.max_uses_per_member_month} x cliente/mes`;
   return s;
 }
 
