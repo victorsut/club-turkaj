@@ -162,7 +162,57 @@ body {
    cliente y operador conservan su lienzo móvil de 480. En móvil las
    clases pp-adm-* no aplican estilos (la base es el layout actual). */
 body.pp-adm-wide { background: #141414; }
-body.pp-adm-wide #root { max-width: 1080px; }
+/* Admin v2 (6-ago): el shell con menú lateral administra su propio
+   ancho — el lienzo deja de limitarse (antes 1080px). */
+body.pp-adm-wide #root { max-width: none; }
+
+/* ── Panel ADMIN v2 (6-ago-2026): shell con menú lateral ──────────
+   Desktop-first: sidebar fija con grupos y etiquetas (≥1080px),
+   colapsada a SOLO ICONOS en tableta (768–1079px) y oculta en móvil
+   (<768px, donde una topbar con hamburguesa abre el drawer). La
+   BottomNav ya no existe en el admin. */
+.pp-ash { display: flex; min-height: 100vh; }
+.pp-ash-side { display: none; }
+.pp-ash-main { flex: 1; min-width: 0; }
+.pp-ash-content { max-width: 1240px; margin: 0 auto; }
+
+@media (min-width: 768px) {
+  .pp-ash-side {
+    display: flex; flex-direction: column; flex-shrink: 0;
+    width: 68px; position: sticky; top: 0; height: 100vh;
+    overflow-y: auto; overflow-x: hidden;
+  }
+  .pp-ash-topbar { display: none !important; }
+  /* Tableta: solo iconos — etiquetas, kickers y ficha de usuario ocultos */
+  .pp-ash-side .pp-ash-label,
+  .pp-ash-side .pp-ash-kicker,
+  .pp-ash-side .pp-ash-brandtxt,
+  .pp-ash-side .pp-ash-usertxt { display: none; }
+  .pp-ash-side .pp-ash-item { justify-content: center; padding: 12px 0; }
+}
+@media (min-width: 1080px) {
+  .pp-ash-side { width: 236px; }
+  .pp-ash-side .pp-ash-label,
+  .pp-ash-side .pp-ash-kicker,
+  .pp-ash-side .pp-ash-brandtxt,
+  .pp-ash-side .pp-ash-usertxt { display: block; }
+  .pp-ash-side .pp-ash-item { justify-content: flex-start; padding: 10px 14px; }
+}
+
+/* Drawer móvil del admin: panel que entra desde la izquierda */
+@keyframes ppDrawerIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+.pp-ash-drawer { animation: ppDrawerIn .22s cubic-bezier(.32, .72, .33, 1); }
+
+/* ── Dashboard v2: rejillas del inicio ── */
+.pp-dash-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.pp-dash-cols  { display: grid; grid-template-columns: 1fr; gap: 14px; align-items: start; }
+@media (min-width: 900px) {
+  .pp-dash-stats { grid-template-columns: repeat(4, 1fr); }
+  .pp-dash-cols  { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1240px) {
+  .pp-dash-cols-3 { grid-template-columns: repeat(3, 1fr); }
+}
 
 @media (min-width: 720px) {
   /* Listas del panel: las filas (su borde inferior hace de divisor

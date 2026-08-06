@@ -74,6 +74,7 @@ import OpRaffle from './operator/OpRaffle';
 
 // Admin Views
 import AdminDash from './admin/AdminDash';
+import AdminShell from './admin/AdminShell';
 import Members from './admin/Members';
 import MemberDetail from './admin/MemberDetail';
 import AdminRaffle from './admin/AdminRaffle';
@@ -1943,8 +1944,9 @@ export default function App() {
   return (
     <>
       <div style={{
-        // Admin responsivo: lienzo ancho en computadora/tableta (4-ago)
-        maxWidth: adminWide ? 1080 : 480, margin: '0 auto', minHeight: '100vh',
+        // Admin v2 (6-ago): el shell con menú lateral administra su
+        // propio ancho — sin límite de lienzo con sesión de admin.
+        maxWidth: adminWide ? 'none' : 480, margin: '0 auto', minHeight: '100vh',
         background: isA ? adminTheme.bg
           : isO ? '#FAFAFA'
           : clientMainBg(cTier.name, dark),
@@ -1974,10 +1976,15 @@ export default function App() {
               {renderScreen()}
             </div>
           )
-          : renderScreen()}
+          : adminWide
+            // Admin v2 (6-ago): shell con menú lateral — desktop-first,
+            // iconos en tableta, drawer en móvil. Sin BottomNav.
+            ? <AdminShell ctx={ctx}>{renderScreen()}</AdminShell>
+            : renderScreen()}
 
-        {/* Bottom navigation — el cliente no la ve hasta elegir empresa */}
-        {isLoggedIn && (!isC || companyPicked) && (
+        {/* Bottom navigation — el cliente no la ve hasta elegir empresa;
+            el admin dejó de usarla (Admin v2: menú lateral) */}
+        {isLoggedIn && (!isC || companyPicked) && !adminWide && (
           <BottomNav items={nav} current={cur} onSelect={handleNav} view={view} tierName={cTier.name} dark={dark} />
         )}
       </div>

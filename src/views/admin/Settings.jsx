@@ -298,20 +298,10 @@ export default function Settings(ctx) {
         <div style={{ width: 80 }} />
       </div>
 
-      {/* Quick Links */}
-      <div style={{ display: 'flex', gap: 10, padding: '12px 20px' }}>
-        <button onClick={() => setScr('rules')} style={{ flex: 1, padding: 14, borderRadius: 14, background: AT.card, border: `1px solid ${AT.border}`, fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#FBBC04' }}>📋 Ver Reglas</button>
-        <button onClick={() => setScr('ops')} style={{ flex: 1, padding: 14, borderRadius: 14, background: AT.card, border: `1px solid ${AT.border}`, fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#64B5F6' }}>👷 Operadores</button>
-        <button onClick={() => setScr('audit')} style={{ flex: 1, padding: 14, borderRadius: 14, background: AT.card, border: `1px solid ${AT.border}`, fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#CE93D8' }}>📜 Auditoría</button>
-      </div>
-      {/* Objetivo #1 (29-jul): gestión de administradores desde el panel */}
-      <div style={{ display: 'flex', gap: 10, padding: '0 20px 12px' }}>
-        <button onClick={() => setScr('admins')} style={{ flex: 1, padding: 14, borderRadius: 14, background: AT.card, border: `1px solid ${AT.border}`, fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#90CAF9' }}>🔐 Administradores</button>
-        {/* F7a: llaves de la API externa (PROPER) */}
-        <button onClick={() => setShowApiModal(true)} style={{ flex: 1, padding: 14, borderRadius: 14, background: AT.card, border: `1px solid ${AT.border}`, fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#80CBC4' }}>🔌 API externa</button>
-        {/* F1: ficha completa de estaciones (incluye el WiFi que vivía acá) */}
-        <button onClick={() => setScr('stations')} style={{ flex: 1, padding: 14, borderRadius: 14, background: AT.card, border: `1px solid ${AT.border}`, fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#FFB74D' }}>⛽ Estaciones</button>
-      </div>
+      {/* Admin v2 (6-ago): los quick links se retiraron — la navegación
+          (Reglas, Operadores, Auditoría, Administradores, Estaciones)
+          vive en el menú lateral. La API externa quedó como sección
+          propia al final de esta vista. */}
 
       {/* F2.1: conversión y eventos POR NIVEL (editable, auditado) */}
       <div style={aSec}>Puntos por Nivel</div>
@@ -322,9 +312,9 @@ export default function Settings(ctx) {
           el nivel que el cliente tenía antes de esa compra.
         </div>
         {[
-          { k: 'oro', label: '🟡 ORO', color: '#FBBC04' },
-          { k: 'platino', label: '💎 PLATINO', color: '#9E9E9E' },
-          { k: 'black', label: '🖤 BLACK', color: '#CE93D8' },
+          { k: 'oro', label: 'ORO', color: '#FBBC04' },
+          { k: 'platino', label: 'PLATINO', color: '#9E9E9E' },
+          { k: 'black', label: 'BLACK', color: '#CE93D8' },
         ].map(t => (
           <div key={t.k} style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 10 }}>
             <span style={{ width: 88, fontSize: 12, fontWeight: 800, color: t.color, paddingBottom: 10 }}>{t.label}</span>
@@ -398,7 +388,7 @@ export default function Settings(ctx) {
           { name: 'Diésel', price: cfg.fuelPrices?.diesel ?? 0, color: '#1565C0' },
         ].map((f, i) => (
           <div key={f.name} style={{ ...row, borderBottom: i < 2 ? `1px solid ${AT.border}` : 'none' }}>
-            <span style={{ color: f.color, fontWeight: 700 }}>⛽ {f.name}</span>
+            <span style={{ color: f.color, fontWeight: 700 }}>{f.name}</span>
             <span style={{ color: '#fff', fontWeight: 800, ...sMono }}>Q{f.price.toFixed(2)}/gal</span>
           </div>
         ))}
@@ -411,12 +401,12 @@ export default function Settings(ctx) {
             fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700, cursor: 'pointer',
           }}
         >
-          ✏️ Editar precios
+          Editar precios
         </button>
       </div>
 
       {/* Canal de asistencia (WhatsApp / llamadas) */}
-      <div style={aSec}>📞 Canal de Asistencia</div>
+      <div style={aSec}>Canal de Asistencia</div>
       <div style={aCard}>
         <div style={{ fontSize: 11, color: '#777', marginBottom: 12, lineHeight: 1.5 }}>
           Número de WhatsApp y llamadas que el cliente ve en "Asistencia y Ayuda" (login y Menú). Horario mostrado: lunes a viernes, 8:00 a.m. – 4:00 p.m.
@@ -446,7 +436,7 @@ export default function Settings(ctx) {
       </div>
 
       {/* F1: identidad de la empresa (selector + tagline del inicio) */}
-      <div style={aSec}>🏢 Empresa</div>
+      <div style={aSec}>Empresa</div>
       <div style={aCard}>
         <div style={{ fontSize: 11, color: '#777', marginBottom: 12, lineHeight: 1.5 }}>
           Nombre y ubicación que el cliente ve en el selector de empresa y en el encabezado del inicio.
@@ -474,15 +464,15 @@ export default function Settings(ctx) {
       <div style={aSec}>Niveles (Tiers)</div>
       <div style={aCard}>
         <div style={row}>
-          <span style={{ color: '#FBBC04', fontWeight: 700 }}>🟡 ORO</span>
+          <span style={{ color: '#FBBC04', fontWeight: 800, letterSpacing: 1 }}>ORO</span>
           <span style={{ color: '#fff', fontWeight: 700, fontSize: 12 }}>0 – {(cfg.tiers?.platino?.gal || 150) - 1} gal</span>
         </div>
         <div style={row}>
-          <span style={{ color: '#9E9E9E', fontWeight: 700 }}>💎 PLATINO</span>
+          <span style={{ color: '#9E9E9E', fontWeight: 800, letterSpacing: 1 }}>PLATINO</span>
           <span style={{ color: '#fff', fontWeight: 700, fontSize: 12 }}>{cfg.tiers?.platino?.gal || 150} – {(cfg.tiers?.black?.gal || 500) - 1} gal</span>
         </div>
         <div style={row}>
-          <span style={{ color: '#9E9E9E', fontWeight: 700 }}>🖤 BLACK</span>
+          <span style={{ color: '#CE93D8', fontWeight: 800, letterSpacing: 1 }}>BLACK</span>
           <span style={{ color: '#fff', fontWeight: 700, fontSize: 12 }}>{cfg.tiers?.black?.gal || 500}+ gal</span>
         </div>
         {cfg.tiers?.platino && (
@@ -537,7 +527,24 @@ export default function Settings(ctx) {
             ))}
           </div>
         ))}
-        <div style={{ marginTop: 8, fontSize: 11, color: '#2E7D32', fontWeight: 700 }}>✅ Cualquier compra (hasta Q10) resetea el reloj</div>
+        <div style={{ marginTop: 8, fontSize: 11, color: '#2E7D32', fontWeight: 700 }}>Cualquier compra (desde Q10) resetea el reloj</div>
+      </div>
+
+      {/* F7a: llaves de la API externa (PROPER) — sección propia desde
+          Admin v2 (antes era un quick link) */}
+      <div style={aSec}>API Externa (PROPER)</div>
+      <div style={aCard}>
+        <div style={{ fontSize: 11, color: '#777', marginBottom: 12, lineHeight: 1.5 }}>
+          Llaves de acceso para sistemas externos que acumulan puntos y entregan
+          premios (POS de PROPER). Cada llave se muestra una sola vez al generarla.
+        </div>
+        <button onClick={() => setShowApiModal(true)} style={{
+          width: '100%', padding: '11px 16px', borderRadius: 12,
+          background: 'transparent', border: `1px solid ${AT.border}`,
+          color: '#80CBC4', fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700, cursor: 'pointer',
+        }}>
+          Generar llave de API
+        </button>
       </div>
 
       {/* ─── F7a: Modal de llaves de la API externa ─── */}
@@ -620,7 +627,7 @@ export default function Settings(ctx) {
                     display: 'block', fontSize: 12, fontWeight: 800,
                     color: f.color, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6,
                   }}>
-                    ⛽ {f.label}
+                    {f.label}
                   </label>
                   <input
                     type="number"
