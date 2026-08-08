@@ -1,673 +1,310 @@
 // src/views/admin/AdminPremios.jsx
+// FESTIVOS — Admin v2 (8-ago-2026, FORMATO GENERAL): esta vista quedó
+// SOLO para días festivos (pedido del dueño) — los premios canjeables
+// se gestionan en Catálogo de Canjes (AdminCatalog) y las rifas en la
+// vista Rifa. Sin emojis en la UI (iconos SVG: Cake cumpleaños /
+// StarLine festivo); el campo "ícono" del festivo sigue siendo dato
+// del CLIENTE (emoji del saludo del home) y se edita como texto.
+// F2.1: los puntos los define el NIVEL (tiers.evtPts) — no se editan
+// por día. CRUD auditado (SEC.C.4 admin_write_catalog + ReasonModal).
+// FIX de fondo: openNewFest seteaba campos inexistentes (label/type)
+// y dejaba message undefined — guardar un festivo nuevo sin tocar la
+// frase reventaba en message.trim().
 import { useState, useEffect } from 'react';
 import { sb } from '../../lib/supabaseClient';
-import { adminTheme as AT, btnYellow, btnDark, inputStyle, sMono } from '../../constants/styles';
-import { Back, Plus } from '../../components/ui/Icons';
+import { adminTheme as AT, btnYellow, inputStyleDark } from '../../constants/styles';
+import { Plus, Cake, StarLine } from '../../components/ui/Icons';
 import LogoSpinner from '../../components/ui/LogoSpinner';
 import ReasonModal from '../../components/ui/ReasonModal';
 import { adminWriteCatalog } from '../../services/secureReads';
 
-const CAT_LABELS = {
-  combustible: 'Combustible', servicio: 'Servicio', merch: 'Puntos Plus',
-  cultural: 'Chichi', shell: 'Shell', premium: 'Premium', apple: 'Apple',
-};
-const CAT_COLORS = {
-  combustible: { bg: '#FFF3E0', c: '#E65100' },
-  servicio:    { bg: '#E8F5E9', c: '#2E7D32' },
-  merch:       { bg: '#E3F2FD', c: '#1565C0' },
-  cultural:    { bg: '#F3E5F5', c: '#7B1FA2' },
-  shell:       { bg: '#FFEBEE', c: '#C62828' },
-  premium:     { bg: '#FFF8E1', c: '#F57F17' },
-  apple:       { bg: '#F5F5F5', c: '#333'    },
-};
-const CATS  = Object.keys(CAT_LABELS);
-const TIERS = ['todos', 'ORO', 'PLATINO', 'BLACK'];
-const ICONS = ['🎁','⛽','🧴','🍪','🎟️','🏆','📱','🧽','🎨','🎵','🌮','🎮','👕','🏍️','🚗','🔑','🧳','⌚','💳','🛠️'];
-
-const EMPTY = { name: '', pts: '', icon: '🎁', cat: 'merch', tier: 'todos', active: true, description: '', stationIds: [], storeIds: [] };
-
-// 8-ago-2026: la pestaña Rifa se MUDÓ a la vista Rifa del sidebar
-// (AdminRaffle) — acá quedan solo premios canjeables y festivos.
-const TABS = [
-  { id: 'canjear', label: 'Canjear'  },
-  { id: 'festivos',label: 'Festivos' },
-];
+const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const EMPTY_FEST = { name: '', month: '', day: '', icon: 'F', active: true, message: '' };
 
 export default function AdminPremios(ctx) {
-  const { rewards, setRewards, fire, setScr, sbConnected, loggedAdmin, cfg, stations = [], stores = [] } = ctx;
+  const { fire, sbConnected, loggedAdmin, cfg } = ctx;
 
-  // SEC.C.4: datos de auditoría del admin logueado (los altas sin
-  // ReasonModal quedan igualmente registradas por el RPC).
   const adminAudit = (reasonText = null) => ({
     adminId: loggedAdmin?.id, adminName: loggedAdmin?.name,
     adminEmail: loggedAdmin?.email, reasonText,
   });
 
-  const [sub, setSub]             = useState('canjear');
-  const [showForm, setShowForm]   = useState(false);
-  const [editR, setEditR]         = useState(null);
-  const [form, setForm]           = useState(EMPTY);
-  const [saving, setSaving]       = useState(false);
-  const [filterCat, setFilterCat] = useState('todos');
-  // F0.3.6: ReasonModal unificado para acciones sensibles (edit/delete/toggle).
-  const [showReasonModal, setShowReasonModal] = useState(false);
-  const [pendingAction, setPendingAction]     = useState(null);
+  const [festList, setFestList]     = useState(null); // null = cargando
+  const [showForm, setShowForm]     = useState(false);
+  const [editFest, setEditFest]     = useState(null);
+  const [form, setForm]             = useState(EMPTY_FEST);
+  const [saving, setSaving]         = useState(false);
+  const [showReason, setShowReason] = useState(false);
+  const [pending, setPending]       = useState(null);
 
-  // Estados Festivos
-  const [festList, setFestList]       = useState([]);
-  const [loadingFest, setLoadingFest] = useState(false);
-  const [showFestForm, setShowFestForm] = useState(false);
-  const [editFest, setEditFest]       = useState(null);
-  const [festForm, setFestForm]       = useState({ name: '', month: '', day: '', points: '70', icon: 'F', active: true, message: '' });
-  const [savingFest, setSavingFest]   = useState(false);
-
-  // Cargar festivos al abrir esa pestana
   useEffect(() => {
-    console.log('[Festivos] sub:', sub, 'sb:', !!sb, 'sbConnected:', sbConnected, 'festList:', festList.length);
-    if (sub !== 'festivos') return;
-    if (!sb) { fire('Sin conexion a base de datos'); return; }
-    setLoadingFest(true);
-    setFestList([]); // resetear para forzar recarga
+    if (!sb || !sbConnected) { setFestList([]); return; }
     sb.from('special_days').select('id, name, month, day, points, icon, active, system, message').order('created_at', { ascending: true })
       .then(({ data, error }) => {
-        setLoadingFest(false);
-        console.log('[Festivos] resultado:', error?.message || (data?.length + ' registros'), data);
-        if (error) { fire('Error: ' + error.message); return; }
-        // Ordenar localmente: primero los del sistema, luego por mes/dia
-        const sorted = (data || []).sort((a, b) => {
+        if (error) { fire('Error: ' + error.message); setFestList([]); return; }
+        // Primero los del sistema, luego por mes/día
+        setFestList((data || []).sort((a, b) => {
           if (a.system && !b.system) return -1;
           if (!a.system && b.system) return 1;
           if (a.month !== b.month) return a.month - b.month;
           return a.day - b.day;
-        });
-        setFestList(sorted);
+        }));
       });
-  }, [sub]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sbConnected]);
 
-  const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-
-  const filtered = (rewards || []).filter(r => filterCat === 'todos' || (r.category || r.cat) === filterCat);
-
-  const openNew = () => { setEditR(null); setForm({ ...EMPTY }); setShowForm(true); };
-  const openEdit = (r) => {
-    setEditR(r);
-    setForm({ name: r.name || '', pts: String(r.points_cost || r.pts || ''), icon: r.icon || '🎁', cat: r.category || r.cat || 'merch', tier: r.tier_exclusive || r.tier || r.tier || 'todos', active: r.active !== false, description: r.description || '',
-      // D17: localizaciones (vacío = todas las estaciones)
-      stationIds: r.stationIds || r.station_ids || [], storeIds: r.storeIds || r.store_ids || [] });
+  const openNew = () => { setEditFest(null); setForm({ ...EMPTY_FEST }); setShowForm(true); };
+  const openEdit = (f) => {
+    setEditFest(f);
+    setForm({ name: f.name || '', month: String(f.month ?? ''), day: String(f.day ?? ''), icon: f.icon || 'F', active: f.active !== false, message: f.message || '' });
     setShowForm(true);
   };
 
-  // D17: chip de localización (estación o tienda) del form de premios
-  const toggleLoc = (k, id) => setForm(p => ({
-    ...p, [k]: p[k].includes(id) ? p[k].filter(x => x !== id) : [...p[k], id],
-  }));
-
   const save = async () => {
-    if (!form.name.trim() || !form.pts) { fire('Nombre y puntos son obligatorios'); return; }
-    const data = { name: form.name.trim(), points_cost: parseInt(form.pts), icon: form.icon, category: form.cat, tier_exclusive: form.tier !== 'todos' ? form.tier : null, active: form.active, description: form.description || null,
-      station_ids: form.stationIds, store_ids: form.storeIds };
-
-    // EDITAR: auditar via ReasonModal (el UPDATE real ocurre en confirmAction).
-    if (editR) {
-      if (!loggedAdmin?.id) { fire('Error: sesion admin no disponible. Cerra sesion y volve a ingresar.'); return; }
-      setPendingAction({
-        type: 'edit_reward',
-        entityId: editR.id,
-        payload: { updates: data },
-        actionLabel: 'Editar premio: ' + data.name,
-        oldSnapshot: {
-          name: editR.name,
-          points_cost: editR.points_cost ?? editR.pts,
-          icon: editR.icon,
-          category: editR.category ?? editR.cat,
-          tier_exclusive: editR.tier_exclusive ?? editR.tier ?? null,
-          active: editR.active,
-          description: editR.description ?? null,
-        },
-      });
-      setShowForm(false);
-      setShowReasonModal(true);
-      return;
-    }
-
-    // CREAR: SEC.C.4 — rewards perdió la escritura abierta (cualquiera
-    // podía poner points_cost = 0 y canjear gratis); va por RPC con la
-    // sesión de admin.
-    setSaving(true);
-    if (sb && sbConnected) {
-      const res = await adminWriteCatalog('reward', 'create', { data, audit: adminAudit() });
-      if (res.error) { fire('Error: ' + res.error); setSaving(false); return; }
-      setRewards(p => [...p, { ...data, id: res.id, pts: data.points_cost, cat: data.category, tier: data.tier_exclusive }]);
-      fire('Premio creado');
-    }
-    setSaving(false); setShowForm(false); setEditR(null);
-  };
-
-  // F0.3.6: toggle ahora es accion auditada. Encola y abre ReasonModal.
-  const toggle = (r) => {
-    if (!loggedAdmin?.id) { fire('Error: sesion admin no disponible. Cerra sesion y volve a ingresar.'); return; }
-    const isActive = r.active !== false;   // misma semantica que el render (active null/undefined = activo)
-    const newActive = !isActive;
-    setPendingAction({
-      type: 'toggle_reward_active',
-      entityId: r.id,
-      payload: { newActive },
-      actionLabel: (isActive ? 'Desactivar premio: ' : 'Activar premio: ') + r.name,
-      oldSnapshot: { active: isActive },
-    });
-    setShowReasonModal(true);
-  };
-
-  // F0.3.6: eliminar ahora pasa por ReasonModal (sin modal de confirmacion intermedio).
-  const del = (r) => {
-    if (!loggedAdmin?.id) { fire('Error: sesion admin no disponible. Cerra sesion y volve a ingresar.'); return; }
-    setPendingAction({
-      type: 'delete_reward',
-      entityId: r.id,
-      payload: { entity: r },
-      actionLabel: 'Eliminar premio: ' + r.name,
-      oldSnapshot: r,
-    });
-    setShowReasonModal(true);
-  };
-
-  // Los festivos con system=true no se pueden eliminar
-
-  const openNewFest = () => {
-    setEditFest(null);
-    // F2.1: points ya no se edita — se guarda el valor ORO como fallback
-    // de BD (el motor otorga por nivel desde tiers.evtPts).
-    setFestForm({ label: '', month: '', day: '', points: String(cfg?.tiers?.oro?.evtPts ?? 25), type: 'custom', active: true });
-    setShowFestForm(true);
-  };
-  const openEditFest = (f) => {
-    setEditFest(f);
-    setFestForm({ name: f.name || '', month: String(f.month || ''), day: String(f.day || ''), points: String(f.points || '70'), icon: f.icon || 'F', active: f.active !== false, message: f.message || '' });
-    setShowFestForm(true);
-  };
-
-  const saveFest = async () => {
-    if (!festForm.name.trim() || !festForm.month) { fire('Nombre y mes son obligatorios'); return; }
-    const messageTrimmed = festForm.message.trim();
-    if (!messageTrimmed) {
-      fire('Frase motivacional es obligatoria');
-      return;
-    }
-    if (messageTrimmed.length > 300) {
-      fire('Frase motivacional excede 300 caracteres');
-      return;
-    }
+    if (!form.name.trim() || !form.month) { fire('Nombre y mes son obligatorios'); return; }
+    const messageTrimmed = (form.message || '').trim();
+    if (!messageTrimmed) { fire('Frase motivacional es obligatoria'); return; }
+    if (messageTrimmed.length > 300) { fire('Frase motivacional excede 300 caracteres'); return; }
     const data = {
-      name: festForm.name.trim(),
-      month: parseInt(festForm.month),
-      day: festForm.day ? parseInt(festForm.day) : 0,
-      points: parseInt(festForm.points) || 70,
-      icon: festForm.icon || 'F',
-      active: festForm.active,
+      name: form.name.trim(),
+      month: parseInt(form.month),
+      day: form.day ? parseInt(form.day) : 0,
+      // F2.1: fallback de BD — el motor otorga por nivel (tiers.evtPts)
+      points: cfg?.tiers?.oro?.evtPts ?? 25,
+      icon: form.icon || 'F',
+      active: form.active,
       message: messageTrimmed,
     };
 
-    // EDITAR: auditar via ReasonModal.
     if (editFest) {
       if (!loggedAdmin?.id) { fire('Error: sesion admin no disponible. Cerra sesion y volve a ingresar.'); return; }
-      setPendingAction({
-        type: 'edit_special_day',
-        entityId: editFest.id,
-        payload: { updates: data },
-        actionLabel: 'Editar festivo: ' + data.name,
-        oldSnapshot: {
-          name: editFest.name,
-          month: editFest.month,
-          day: editFest.day,
-          points: editFest.points,
-          icon: editFest.icon,
-          active: editFest.active,
-          message: editFest.message,
-        },
-      });
-      setShowFestForm(false);
-      setShowReasonModal(true);
+      setPending({ type: 'edit', entityId: editFest.id, data, label: 'Editar festivo: ' + data.name });
+      setShowForm(false);
+      setShowReason(true);
       return;
     }
 
-    // CREAR: directo.
-    setSavingFest(true);
+    setSaving(true);
     if (sb && sbConnected) {
       const res = await adminWriteCatalog('special_day', 'create', { data, audit: adminAudit() });
-      if (res.error) { fire('Error: ' + res.error); setSavingFest(false); return; }
-      setFestList(p => [...p, { ...data, id: res.id }].sort((a,b) => a.month !== b.month ? a.month-b.month : a.day-b.day));
+      if (res.error) { fire('Error: ' + res.error); setSaving(false); return; }
+      setFestList(p => [...(p || []), { ...data, id: res.id }].sort((a, b) => a.month !== b.month ? a.month - b.month : a.day - b.day));
       fire('Festivo creado');
     }
-    setSavingFest(false); setShowFestForm(false); setEditFest(null);
+    setSaving(false); setShowForm(false); setEditFest(null);
   };
 
-  // F0.3.6: eliminar festivo pasa por ReasonModal.
-  const delFest = (f) => {
+  // Los festivos con system=true no se pueden eliminar
+  const del = (f) => {
     if (!loggedAdmin?.id) { fire('Error: sesion admin no disponible. Cerra sesion y volve a ingresar.'); return; }
-    setPendingAction({
-      type: 'delete_special_day',
-      entityId: f.id,
-      payload: { entity: f },
-      actionLabel: 'Eliminar festivo: ' + f.name,
-      oldSnapshot: f,
-    });
-    setShowReasonModal(true);
+    setPending({ type: 'delete', entityId: f.id, data: null, label: 'Eliminar festivo: ' + f.name });
+    setShowReason(true);
   };
 
-  // F0.3.6: ejecutor unificado de acciones sensibles (edit/delete/toggle de
-  // premios y festivos — la rifa vive en AdminRaffle desde el 8-ago).
-  // Patron client-first: muta primero, audita despues; si el log
-  // falla NO se revierte (warning + console.error). Espeja OpManagement F0.3.5.4.
   const confirmAction = async (reason) => {
-    if (!loggedAdmin?.id) {
-      setShowReasonModal(false);
-      fire('Error: sesion admin no disponible. Cerra sesion y volve a ingresar.');
-      return;
-    }
-    if (!pendingAction) { setShowReasonModal(false); return; }
-
-    const audit = {
-      adminId: loggedAdmin.id,
-      adminName: loggedAdmin.name,
-      adminEmail: loggedAdmin.email,
-      reasonText: reason,
-    };
-    const eid = pendingAction.entityId;
+    if (!pending || !loggedAdmin?.id) { setShowReason(false); return; }
+    const audit = adminAudit(reason);
+    const eid = pending.entityId;
     setSaving(true);
     try {
-      switch (pendingAction.type) {
-        case 'edit_reward':
-        case 'edit_special_day': {
-          // SEC.C.4: escritura + auditoría ATÓMICA en el RPC (antes el
-          // log era client-first y podía dejar el cambio sin rastro).
-          const entityMap = { edit_reward: 'reward', edit_special_day: 'special_day' };
-          const updates = pendingAction.payload.updates;
-
-          if (sb && sbConnected) {
-            const res = await adminWriteCatalog(entityMap[pendingAction.type], 'update', {
-              id: eid, data: updates, audit,
-            });
-            if (res.error) {
-              setShowReasonModal(false);
-              // Reabrir el modal de edicion correspondiente (form intacto).
-              if (pendingAction.type === 'edit_reward') setShowForm(true);
-              else setShowFestForm(true);
-              fire('Error: ' + res.error);
-              return;
-            }
-          }
-
-          if (pendingAction.type === 'edit_reward') {
-            setRewards(prev => prev.map(r => r.id === eid ? { ...r, ...updates, pts: updates.points_cost, cat: updates.category, tier: updates.tier_exclusive } : r));
-            setShowForm(false); setEditR(null); setForm({ ...EMPTY });
-            fire('Premio actualizado');
-          } else {
-            setFestList(prev => prev.map(x => x.id === eid ? { ...x, ...updates } : x));
-            setShowFestForm(false); setEditFest(null);
-            fire('Festivo actualizado');
-          }
-          break;
-        }
-
-        case 'delete_reward':
-        case 'delete_special_day': {
-          const entityMap = { delete_reward: 'reward', delete_special_day: 'special_day' };
-
-          if (sb && sbConnected) {
-            const res = await adminWriteCatalog(entityMap[pendingAction.type], 'delete', { id: eid, audit });
-            if (res.error) { setShowReasonModal(false); fire('Error: ' + res.error); return; }
-          }
-
-          if (pendingAction.type === 'delete_reward') { setRewards(prev => prev.filter(r => r.id !== eid)); fire('Premio eliminado'); }
-          else { setFestList(prev => prev.filter(x => x.id !== eid)); fire('Festivo eliminado'); }
-          break;
-        }
-
-        case 'toggle_reward_active': {
-          if (sb && sbConnected) {
-            const res = await adminWriteCatalog('reward', 'update', {
-              id: eid, data: { active: pendingAction.payload.newActive }, audit,
-            });
-            if (res.error) { setShowReasonModal(false); fire('Error: ' + res.error); return; }
-          }
-          setRewards(prev => prev.map(r => r.id === eid ? { ...r, active: pendingAction.payload.newActive } : r));
-          fire(pendingAction.payload.newActive ? 'Premio activado' : 'Premio desactivado');
-          break;
-        }
-
-        default:
-          break;
+      if (pending.type === 'edit') {
+        const res = sb && sbConnected
+          ? await adminWriteCatalog('special_day', 'update', { id: eid, data: pending.data, audit })
+          : {};
+        if (res.error) { setShowReason(false); setShowForm(true); fire('Error: ' + res.error); return; }
+        setFestList(prev => prev.map(x => x.id === eid ? { ...x, ...pending.data } : x));
+        setEditFest(null);
+        fire('Festivo actualizado');
+      } else {
+        const res = sb && sbConnected
+          ? await adminWriteCatalog('special_day', 'delete', { id: eid, audit })
+          : {};
+        if (res.error) { setShowReason(false); fire('Error: ' + res.error); return; }
+        setFestList(prev => prev.filter(x => x.id !== eid));
+        fire('Festivo eliminado');
       }
+      setShowReason(false);
+      setPending(null);
     } finally {
       setSaving(false);
-      setPendingAction(null);
-      setShowReasonModal(false);
     }
   };
 
-  const sLbl = { display: 'block', fontSize: 11, fontWeight: 700, color: '#757575', marginBottom: 4, textTransform: 'uppercase', letterSpacing: .8 };
+  // ── estilos (FORMATO GENERAL Admin v2) ──
+  const lbl = { display: 'block', fontSize: 11, fontWeight: 800, color: '#9E9E9E', marginBottom: 5, textTransform: 'uppercase', letterSpacing: .8 };
+  const miniBtn = (color) => ({
+    padding: '5px 10px', borderRadius: 8, border: `1px solid ${AT.border}`,
+    background: 'transparent', color, fontSize: 11, fontWeight: 700,
+    cursor: 'pointer', fontFamily: "'DM Sans'", flexShrink: 0,
+  });
+  const evtPts = `${cfg?.tiers?.oro?.evtPts ?? 25} / ${cfg?.tiers?.platino?.evtPts ?? 35} / ${cfg?.tiers?.black?.evtPts ?? 50}`;
 
   return (
-    <div style={{ paddingBottom: 90 }}>
-      {/* Header */}
-      <div style={{ padding: '14px 20px', borderBottom: `1px solid ${AT.border}`, background: '#252525', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button onClick={() => setScr('dash')} style={{ background: 'none', border: 'none', color: '#9E9E9E', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 600 }}><Back /> Inicio</button>
-        <div style={{ fontSize: 17, fontWeight: 700, color: '#fff' }}>Premios</div>
-        <div style={{ width: 60 }} />
-      </div>
-
-      {/* Sub-tabs */}
-      <div style={{ display: 'flex', gap: 8, padding: '12px 20px' }}>
-        {TABS.map(t => (
-          <button key={t.id} onClick={() => setSub(t.id)} style={{ flex: 1, padding: '10px 6px', borderRadius: 12, background: sub === t.id ? '#FBBC04' : AT.card, color: sub === t.id ? '#0D0D0D' : AT.sub, border: sub === t.id ? 'none' : `1px solid ${AT.border}`, fontFamily: "'DM Sans'", fontWeight: 800, fontSize: 11, cursor: 'pointer' }}>{t.label}</button>
-        ))}
-      </div>
-
-      {/* CANJEAR */}
-      {sub === 'canjear' && (
-        <div>
-          <div style={{ padding: '0 20px 12px' }}>
-            <button onClick={openNew} style={{ ...btnYellow, borderRadius: 14, fontSize: 14 }}><Plus /> Nuevo Premio</button>
-          </div>
-
-          {/* Filtro categorias */}
-          <div style={{ display: 'flex', gap: 6, padding: '0 20px', overflowX: 'auto', marginBottom: 12 }}>
-            {['todos', ...CATS].map(c => (
-              <button key={c} onClick={() => setFilterCat(c)} style={{ padding: '6px 12px', borderRadius: 20, border: 'none', background: filterCat === c ? '#FBBC04' : 'rgba(255,255,255,.07)', color: filterCat === c ? '#0D0D0D' : '#9E9E9E', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans'", whiteSpace: 'nowrap', flexShrink: 0 }}>
-                {c === 'todos' ? 'Todos' : (CAT_LABELS[c] || c)}
-              </button>
-            ))}
-          </div>
-
-          <div style={{ padding: '0 20px 8px', fontSize: 12, color: '#777' }}>
-            {filtered.length} premios — {filtered.filter(r => r.active !== false).length} activos
-          </div>
-
-          {filtered.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: '#555', fontSize: 13 }}>Sin premios</div>}
-
-          <div className="pp-adm-grid">
-          {filtered.map(r => {
-            const cs = CAT_COLORS[r.category || r.cat] || { bg: '#F5F5F5', c: '#616161' };
-            const isActive = r.active !== false;
-            return (
-              <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: `1px solid ${AT.border}`, opacity: isActive ? 1 : .5 }}>
-                <div style={{ fontSize: 28, flexShrink: 0 }}>{r.icon || '🎁'}</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: isActive ? '#E0E0E0' : '#777', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {r.name}
-                    {!isActive && <span style={{ fontSize: 10, color: '#EF5350', marginLeft: 6, fontWeight: 700 }}>INACTIVO</span>}
-                  </div>
-                  <div style={{ display: 'flex', gap: 6, marginTop: 3, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <span style={{ fontSize: 10, background: cs.bg, color: cs.c, padding: '2px 7px', borderRadius: 8, fontWeight: 700 }}>{CAT_LABELS[r.category || r.cat] || r.category || r.cat}</span>
-                    {r.tier_exclusive || r.tier && <span style={{ fontSize: 10, background: 'rgba(251,188,4,.15)', color: '#FBBC04', padding: '2px 7px', borderRadius: 8, fontWeight: 700 }}>{r.tier_exclusive || r.tier}</span>}
-                    <span style={{ ...sMono, fontSize: 11, color: '#FBBC04', fontWeight: 800 }}>{r.points_cost || r.pts || '-'} pts</span>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
-                  <button onClick={() => openEdit(r)} style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, color: '#64B5F6', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans'" }}>Editar</button>
-                  <button onClick={() => toggle(r)} style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, color: isActive ? '#FF8F00' : '#2E7D32', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans'" }}>{isActive ? 'Desact.' : 'Activar'}</button>
-                  <button onClick={() => del(r)} style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, color: '#EF5350', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans'" }}>Borrar</button>
-                </div>
-              </div>
-            );
-          })}
+    <div style={{ padding: '22px 22px 60px' }}>
+      {/* Encabezado */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <div style={{ fontSize: 21, fontWeight: 800, color: '#fff' }}>Festivos</div>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: '#9E9E9E', marginTop: 2 }}>
+            Días especiales que regalan puntos por nivel ({evtPts} pts ORO / PLATINO / BLACK)
           </div>
         </div>
+        <button onClick={openNew}
+          style={{ ...btnYellow, display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 12, fontSize: 13, padding: '11px 18px' }}>
+          <span style={{ display: 'flex', transform: 'scale(.8)' }}><Plus /></span> Nuevo festivo
+        </button>
+      </div>
+
+      {festList === null && <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}><LogoSpinner size={34} dark /></div>}
+
+      {festList !== null && festList.length === 0 && (
+        <div style={{ textAlign: 'center', padding: 40, color: '#777', fontSize: 13, fontWeight: 700 }}>Sin días festivos configurados</div>
       )}
 
-      {/* FESTIVOS */}
-      {sub === 'festivos' && (
-        <div>
-          <div style={{ padding: '0 20px 12px' }}>
-            <button onClick={openNewFest} style={{ ...btnYellow, borderRadius: 14, fontSize: 14 }}><Plus /> Nuevo Festivo</button>
-          </div>
-
-          {loadingFest && <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}><LogoSpinner size={34} dark /></div>}
-
-          {!loadingFest && festList.length === 0 && (
-            <div style={{ textAlign: 'center', padding: 40, color: '#555', fontSize: 13 }}>Sin dias festivos configurados</div>
-          )}
-
-          <div className="pp-adm-grid">
-          {!loadingFest && festList.map(f => {
-            const isBirthday = f.month === 0;
-            const isFixed    = f.system === true;
-            const isActive   = f.active !== false;
-            const monthStr   = isBirthday ? null : (MONTHS[(f.month || 1) - 1] + (f.day > 0 ? ' ' + f.day : ''));
-            return (
-              <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: `1px solid ${AT.border}`, opacity: isActive ? 1 : .5 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: isBirthday ? 'rgba(123,31,162,.15)' : 'rgba(251,188,4,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 22 }}>
-                  {f.icon || (isBirthday ? 'B' : 'F')}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 10 }}>
+        {(festList || []).map(f => {
+          const isBirthday = f.month === 0;
+          const isFixed    = f.system === true;
+          const isActive   = f.active !== false;
+          const monthStr   = isBirthday ? null : (MONTHS[(f.month || 1) - 1] + (f.day > 0 ? ' ' + f.day : ' (todo el mes)'));
+          return (
+            <div key={f.id} style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              background: AT.card, border: `1px solid ${AT.border}`,
+              borderRadius: 16, padding: '12px 14px', opacity: isActive ? 1 : .55,
+            }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: isBirthday ? 'rgba(123,31,162,.15)' : 'rgba(251,188,4,.12)', color: isBirthday ? '#CE93D8' : '#FBBC04', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                {isBirthday ? <Cake /> : <StarLine />}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 800, color: isActive ? '#E0E0E0' : '#777', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {f.name}
+                  {!isActive && <span style={{ fontSize: 9, color: '#EF5350', marginLeft: 6, fontWeight: 800, letterSpacing: .5 }}>INACTIVO</span>}
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: isActive ? '#E0E0E0' : '#777', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {f.name}
-                    {!isActive && <span style={{ fontSize: 10, color: '#EF5350', marginLeft: 6, fontWeight: 700 }}>INACTIVO</span>}
-                  </div>
-                  <div style={{ display: 'flex', gap: 6, marginTop: 3, alignItems: 'center', flexWrap: 'wrap' }}>
-                    {isBirthday ? (
-                      <span style={{ fontSize: 10, background: 'rgba(123,31,162,.2)', color: '#CE93D8', padding: '2px 8px', borderRadius: 8, fontWeight: 700 }}>
-                        Fecha de nacimiento de cada miembro
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: 11, color: '#9E9E9E' }}>{monthStr}</span>
-                    )}
-                    {isFixed && !isBirthday && <span style={{ fontSize: 10, background: 'rgba(255,143,0,.15)', color: '#FF8F00', padding: '2px 7px', borderRadius: 8, fontWeight: 700 }}>Sistema</span>}
-                    {/* F2.1: los puntos los define el NIVEL del cliente (config tiers.evtPts) */}
-                    <span style={{ fontSize: 11, fontWeight: 800, color: '#FBBC04' }}>
-                      {cfg?.tiers?.oro?.evtPts ?? 25} / {cfg?.tiers?.platino?.evtPts ?? 35} / {cfg?.tiers?.black?.evtPts ?? 50} pts por nivel
+                <div style={{ display: 'flex', gap: 6, marginTop: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+                  {isBirthday ? (
+                    <span style={{ fontSize: 9, background: 'rgba(123,31,162,.2)', color: '#CE93D8', padding: '2px 7px', borderRadius: 6, fontWeight: 800 }}>
+                      CUMPLEAÑOS DE CADA MIEMBRO
                     </span>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
-                  <button onClick={() => openEditFest(f)} style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, color: '#64B5F6', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans'" }}>Editar</button>
-                  {!isFixed && <button onClick={() => delFest(f)} style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, color: '#EF5350', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans'" }}>Borrar</button>}
+                  ) : (
+                    <span style={{ fontSize: 11, color: '#9E9E9E', fontWeight: 700 }}>{monthStr}</span>
+                  )}
+                  {isFixed && !isBirthday && <span style={{ fontSize: 9, background: 'rgba(255,143,0,.15)', color: '#FF8F00', padding: '2px 7px', borderRadius: 6, fontWeight: 800 }}>SISTEMA</span>}
+                  <span style={{ fontSize: 10.5, fontWeight: 800, color: '#FBBC04' }}>{evtPts} pts</span>
                 </div>
               </div>
-            );
-          })}
-          </div>
-
-          {/* MODAL FORM FESTIVO */}
-          {showFestForm && (
-            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 400, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => !savingFest && setShowFestForm(false)}>
-              <div onClick={e => e.stopPropagation()} style={{ background: '#1E1E1E', borderRadius: '24px 24px 0 0', width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto', padding: '20px 20px 40px' }}>
-                <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,.2)', borderRadius: 4, margin: '0 auto 20px' }} />
-                <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginBottom: 18 }}>{editFest ? 'Editar Festivo' : 'Nuevo Festivo'}</div>
-
-                <div style={{ marginBottom: 14 }}>
-                  <label style={sLbl}>Nombre del dia festivo *</label>
-                  <input value={festForm.name} onChange={e => setFestForm(p => ({ ...p, name: e.target.value }))} placeholder="Ej: Día del Trabajador" style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A' }} />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-                  <div>
-                    <label style={sLbl}>Mes *</label>
-                    <select value={festForm.month} onChange={e => setFestForm(p => ({ ...p, month: e.target.value }))} style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A', appearance: 'none' }}>
-                      <option value="">Seleccionar</option>
-                      {MONTHS.map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={sLbl}>Dia (0 = cumpleanos)</label>
-                    <input value={festForm.day} onChange={e => setFestForm(p => ({ ...p, day: e.target.value.replace(/[^0-9]/g,'') }))} placeholder="Ej: 15" inputMode="numeric" maxLength={2} style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A' }} />
-                  </div>
-                </div>
-
-                {/* F2.1: los puntos del festivo ya NO se editan por día — los
-                    define el nivel del cliente (Configuración → Puntos por
-                    Nivel). El campo points se conserva en BD solo de fallback. */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-                  <div>
-                    <label style={sLbl}>Puntos bonus</label>
-                    <div style={{ ...inputStyle, background: '#242424', color: '#9E9E9E', border: '1px dashed #3A3A3A', display: 'flex', alignItems: 'center', fontSize: 12, fontWeight: 700 }}>
-                      Por nivel: {cfg?.tiers?.oro?.evtPts ?? 25} / {cfg?.tiers?.platino?.evtPts ?? 35} / {cfg?.tiers?.black?.evtPts ?? 50}
-                    </div>
-                  </div>
-                  <div>
-                    <label style={sLbl}>Icono (emoji)</label>
-                    <input value={festForm.icon} onChange={e => setFestForm(p => ({ ...p, icon: e.target.value }))} placeholder="Emoji" style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A', fontSize: 20, textAlign: 'center' }} />
-                  </div>
-                </div>
-                <div style={{ fontSize: 10, color: '#777', marginTop: -8, marginBottom: 14, lineHeight: 1.5 }}>
-                  ORO / PLATINO / BLACK — se editan en Configuración → Puntos por Nivel.
-                </div>
-
-                <div style={{ marginBottom: 14 }}>
-                  <label style={sLbl}>Frase motivacional *</label>
-                  <textarea
-                    value={festForm.message}
-                    onChange={e => setFestForm(p => ({ ...p, message: e.target.value }))}
-                    placeholder="Ej: ¡Gracias por ser parte del Club!"
-                    maxLength={300}
-                    rows={3}
-                    style={{
-                      ...inputStyle,
-                      background: '#2A2A2A',
-                      color: '#fff',
-                      border: '1px solid #3A3A3A',
-                      resize: 'vertical',
-                      minHeight: 72,
-                      fontFamily: "'DM Sans'",
-                      width: '100%',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                  <div style={{
-                    fontSize: 11,
-                    color: festForm.message.length > 280 ? '#FFA500' : '#757575',
-                    textAlign: 'right',
-                    marginTop: 4,
-                  }}>
-                    {festForm.message.length}/300
-                  </div>
-                </div>
-
-                <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(255,255,255,.05)', borderRadius: 12 }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: '#E0E0E0' }}>Dia activo</span>
-                  <button onClick={() => setFestForm(p => ({ ...p, active: !p.active }))} style={{ padding: '6px 16px', borderRadius: 10, border: 'none', background: festForm.active ? '#2E7D32' : '#616161', color: '#fff', fontFamily: "'DM Sans'", fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>
-                    {festForm.active ? 'Activo' : 'Inactivo'}
-                  </button>
-                </div>
-
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <button onClick={() => setShowFestForm(false)} disabled={savingFest} style={{ ...btnDark, flex: 1 }}>Cancelar</button>
-                  <button onClick={saveFest} disabled={savingFest} style={{ ...btnYellow, flex: 2, opacity: savingFest ? .7 : 1 }}>
-                    {savingFest ? 'Guardando...' : editFest ? 'Guardar cambios' : 'Crear festivo'}
-                  </button>
-                </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
+                <button onClick={() => openEdit(f)} style={miniBtn('#64B5F6')}>Editar</button>
+                {!isFixed && <button onClick={() => del(f)} style={miniBtn('#EF5350')}>Eliminar</button>}
               </div>
             </div>
-          )}
+          );
+        })}
+      </div>
 
-        </div>
-      )}
-
-      {/* MODAL FORM */}
+      {/* ── Form (modal oscuro centrado, patrón ReasonModal) ── */}
       {showForm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 400, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => !saving && setShowForm(false)}>
-          <div onClick={e => e.stopPropagation()} style={{ background: '#1E1E1E', borderRadius: '24px 24px 0 0', width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto', padding: '20px 20px 40px' }}>
-            <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,.2)', borderRadius: 4, margin: '0 auto 20px' }} />
-            <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginBottom: 18 }}>{editR ? 'Editar Premio' : 'Nuevo Premio'}</div>
+        <div onClick={() => !saving && setShowForm(false)} style={{
+          position: 'fixed', inset: 0, zIndex: 200,
+          background: 'rgba(0,0,0,.6)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: AT.bg, border: `1px solid ${AT.border}`,
+            borderRadius: 20, padding: 24, width: '100%', maxWidth: 460,
+            maxHeight: '90vh', overflowY: 'auto',
+          }}>
+            <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginBottom: 16 }}>{editFest ? 'Editar festivo' : 'Nuevo festivo'}</div>
 
-            <div style={{ marginBottom: 14 }}>
-              <label style={sLbl}>Nombre *</label>
-              <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="Ej: Lavado de auto" style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A' }} />
-            </div>
-            <div style={{ marginBottom: 14 }}>
-              <label style={sLbl}>Puntos *</label>
-              <input value={form.pts} onChange={e => setForm(p => ({ ...p, pts: e.target.value.replace(/[^0-9]/g, '') }))} placeholder="Ej: 150" inputMode="numeric" style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A' }} />
-            </div>
-            <div style={{ marginBottom: 14 }}>
-              <label style={sLbl}>Descripcion</label>
-              <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={5}
-                placeholder="Detalle del premio: describe el servicio o bien que el cliente adquiere con el canje (se muestra al confirmar el canje)"
-                style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A', resize: 'vertical', lineHeight: 1.5 }} />
+            <div style={{ marginBottom: 12 }}>
+              <label style={lbl}>Nombre del día festivo *</label>
+              <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                placeholder="Ej: Día del Trabajador" style={{ ...inputStyleDark, fontSize: 13, padding: '10px 12px' }} />
             </div>
 
-            <div style={{ marginBottom: 14 }}>
-              <label style={sLbl}>Icono</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {ICONS.map(ico => (
-                  <button key={ico} onClick={() => setForm(p => ({ ...p, icon: ico }))} style={{ fontSize: 22, padding: '6px 8px', borderRadius: 10, border: form.icon === ico ? '2px solid #FBBC04' : '2px solid transparent', background: form.icon === ico ? 'rgba(251,188,4,.15)' : 'rgba(255,255,255,.05)', cursor: 'pointer' }}>{ico}</button>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
               <div>
-                <label style={sLbl}>Categoria</label>
-                <select value={form.cat} onChange={e => setForm(p => ({ ...p, cat: e.target.value }))} style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A', appearance: 'none' }}>
-                  {CATS.map(c => <option key={c} value={c}>{CAT_LABELS[c]}</option>)}
+                <label style={lbl}>Mes *</label>
+                <select value={form.month} onChange={e => setForm(p => ({ ...p, month: e.target.value }))}
+                  style={{ ...inputStyleDark, appearance: 'none', fontSize: 13, padding: '10px 12px' }}>
+                  <option value="">Seleccionar</option>
+                  {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
                 </select>
               </div>
               <div>
-                <label style={sLbl}>Nivel exclusivo</label>
-                <select value={form.tier} onChange={e => setForm(p => ({ ...p, tier: e.target.value }))} style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A', appearance: 'none' }}>
-                  {TIERS.map(t => <option key={t} value={t}>{t === 'todos' ? 'Todos' : t}</option>)}
-                </select>
+                <label style={lbl}>Día (vacío = todo el mes)</label>
+                <input value={form.day} onChange={e => setForm(p => ({ ...p, day: e.target.value.replace(/[^0-9]/g, '') }))}
+                  placeholder="Ej: 15" inputMode="numeric" maxLength={2} style={{ ...inputStyleDark, fontSize: 13, padding: '10px 12px' }} />
               </div>
             </div>
 
-            {/* D17: localizaciones de canje — dónde es válido el premio */}
-            <div style={{ marginBottom: 14 }}>
-              <label style={sLbl}>Válido en (ninguna = todas las estaciones)</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: (stores || []).length ? 6 : 0 }}>
-                {stations.map(s => {
-                  const on = form.stationIds.includes(s.id);
-                  return (
-                    <button key={s.id} onClick={() => toggleLoc('stationIds', s.id)} style={{
-                      padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
-                      background: on ? '#FBBC04' : '#2A2A2A', color: on ? '#0D0D0D' : '#9E9E9E',
-                      border: `1px solid ${on ? '#FBBC04' : '#3A3A3A'}`,
-                      fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 700,
-                    }}>⛽ {s.name}</button>
-                  );
-                })}
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10, marginBottom: 12 }}>
+              <div>
+                <label style={lbl}>Puntos bonus</label>
+                <div style={{ ...inputStyleDark, padding: '10px 12px', color: '#9E9E9E', border: `1px dashed ${AT.border}`, fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center' }}>
+                  Por nivel: {evtPts}
+                </div>
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {(stores || []).map(s => {
-                  const on = form.storeIds.includes(s.id);
-                  return (
-                    <button key={s.id} onClick={() => toggleLoc('storeIds', s.id)} style={{
-                      padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
-                      background: on ? '#80CBC4' : '#2A2A2A', color: on ? '#0D0D0D' : '#9E9E9E',
-                      border: `1px solid ${on ? '#80CBC4' : '#3A3A3A'}`,
-                      fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 700,
-                      opacity: s.active === false ? .5 : 1,
-                    }}>🏬 {s.name}</button>
-                  );
-                })}
+              <div>
+                <label style={lbl}>Ícono del saludo</label>
+                <input value={form.icon} onChange={e => setForm(p => ({ ...p, icon: e.target.value }))}
+                  style={{ ...inputStyleDark, fontSize: 18, padding: '8px 12px', textAlign: 'center' }} />
               </div>
-              <div style={{ fontSize: 10, color: '#777', marginTop: 6, lineHeight: 1.5 }}>
-                Las tiendas asociadas se gestionan en Configuración → Estaciones y Tiendas.
-                El cliente ve la restricción en el catálogo y al confirmar el canje.
+            </div>
+            <div style={{ fontSize: 10.5, color: '#777', marginTop: -6, marginBottom: 12, lineHeight: 1.5 }}>
+              Los puntos por nivel se editan en Configuración → Puntos por Nivel. El ícono solo aparece en el saludo del cliente.
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={lbl}>Frase motivacional *</label>
+              <textarea value={form.message} onChange={e => setForm(p => ({ ...p, message: e.target.value }))}
+                placeholder="Ej: ¡Gracias por ser parte del Club!" maxLength={300} rows={3}
+                style={{ ...inputStyleDark, fontSize: 13, padding: '10px 12px', resize: 'vertical', minHeight: 72, lineHeight: 1.5 }} />
+              <div style={{ fontSize: 11, color: form.message.length > 280 ? '#FF8F00' : '#777', textAlign: 'right', marginTop: 4 }}>
+                {form.message.length}/300
               </div>
             </div>
 
-            <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(255,255,255,.05)', borderRadius: 12 }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: '#E0E0E0' }}>Premio activo</span>
-              <button onClick={() => setForm(p => ({ ...p, active: !p.active }))} style={{ padding: '6px 16px', borderRadius: 10, border: 'none', background: form.active ? '#2E7D32' : '#616161', color: '#fff', fontFamily: "'DM Sans'", fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>
+            <div style={{ marginBottom: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(255,255,255,.05)', borderRadius: 12 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#E0E0E0' }}>Día activo</span>
+              <button onClick={() => setForm(p => ({ ...p, active: !p.active }))} style={{
+                padding: '6px 16px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                background: form.active ? '#2E7D32' : '#616161', color: '#fff',
+                fontFamily: "'DM Sans'", fontWeight: 800, fontSize: 12,
+              }}>
                 {form.active ? 'Activo' : 'Inactivo'}
               </button>
             </div>
 
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setShowForm(false)} disabled={saving} style={{ ...btnDark, flex: 1 }}>Cancelar</button>
-              <button onClick={save} disabled={saving} style={{ ...btnYellow, flex: 2, opacity: saving ? .7 : 1 }}>
-                {saving ? 'Guardando...' : editR ? 'Guardar cambios' : 'Crear premio'}
+              <button onClick={() => setShowForm(false)} disabled={saving} style={{
+                flex: 1, padding: 13, borderRadius: 12, cursor: 'pointer',
+                border: `1px solid ${AT.border}`, background: 'transparent', color: '#9E9E9E',
+                fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700,
+              }}>Cancelar</button>
+              <button onClick={save} disabled={saving} style={{
+                flex: 2, padding: 13, borderRadius: 12, cursor: 'pointer', border: 'none',
+                background: '#FBBC04', color: '#0D0D0D', opacity: saving ? .7 : 1,
+                fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 800,
+              }}>
+                {saving ? 'Guardando...' : editFest ? 'Guardar cambios' : 'Crear festivo'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* F0.3.6: ReasonModal unificado para edit/delete/toggle de las 3 entidades */}
+      {/* Motivo obligatorio para editar/eliminar (auditado) */}
       <ReasonModal
-        open={showReasonModal}
-        onClose={() => { if (!saving) { setShowReasonModal(false); setPendingAction(null); } }}
+        open={showReason}
+        onClose={() => {
+          setShowReason(false);
+          // Editar cancelado → reabrir el form con lo editado intacto
+          if (pending?.type === 'edit') setShowForm(true);
+          setPending(null);
+        }}
         onConfirm={confirmAction}
-        actionLabel={pendingAction?.actionLabel || 'Confirmar accion'}
+        actionLabel={pending?.label || ''}
         loading={saving}
       />
     </div>

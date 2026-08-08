@@ -84,6 +84,7 @@ import AdminPromos from './admin/AdminPromos';
 import PromoRules from './admin/PromoRules';
 import OpManagement from './admin/OpManagement';
 import AdminManagement from './admin/AdminManagement';
+import AdminCatalog from './admin/AdminCatalog';
 import AnClientes from './admin/analytics/AnClientes';
 import AnOperadores from './admin/analytics/AnOperadores';
 import AnPromos from './admin/analytics/AnPromos';
@@ -1902,7 +1903,7 @@ export default function App() {
     if (isA) {
       if (scr === 'mem') return <Members {...ctx} />;
       if (scr === 'det') return <MemberDetail {...ctx} />;
-      if (scr === 'cat') return <Catalog {...ctx} client={false} />;
+      if (scr === 'cat') return <AdminCatalog {...ctx} />; // 8-ago: Catálogo de Canjes (gestión; la vista Catalog compartida queda solo para el cliente)
       if (scr === 'raf') return <AdminRaffle {...ctx} />;
       if (scr === 'premios') return <AdminPremios {...ctx} />;
       if (scr === 'cfg') return <Settings {...ctx} />;

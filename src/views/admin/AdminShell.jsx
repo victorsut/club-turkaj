@@ -12,18 +12,20 @@ import { adminTheme as AT, BRAND_ORANGE } from '../../constants/styles';
 import {
   House, Users, Gift, TicketStar, Tag, Megaphone, Percent,
   IdCard, Lock, Gear, Fuel, Clipboard, Info, Menu, Logout, XMark,
-  ChartBar, StarLine, Ticket, Shield,
+  ChartBar, StarLine, Ticket, Shield, Cake,
 } from '../../components/ui/Icons';
 
 const NAV = [
   { group: null, items: [
     { id: 'dash', label: 'Inicio', Icon: House },
   ] },
+  // 8-ago: Catálogo de Canjes absorbe la gestión de premios (antes en
+  // "Premios y Festivos", que queda solo como Festivos).
   { group: 'Programa', items: [
     { id: 'mem',     label: 'Miembros',           Icon: Users },
-    { id: 'premios', label: 'Premios y Festivos', Icon: Gift },
+    { id: 'cat',     label: 'Catálogo de Canjes', Icon: Gift },
+    { id: 'premios', label: 'Festivos',           Icon: Cake },
     { id: 'raf',     label: 'Rifa',               Icon: TicketStar },
-    { id: 'cat',     label: 'Catálogo',           Icon: Tag },
   ] },
   // Análisis (8-ago-2026): consultas de SOLO LECTURA sobre el
   // consumo — separadas de la gestión (Programa) y de la
