@@ -12,6 +12,7 @@ import { adminTheme as AT, BRAND_ORANGE } from '../../constants/styles';
 import {
   House, Users, Gift, TicketStar, Tag, Megaphone, Percent,
   IdCard, Lock, Gear, Fuel, Clipboard, Info, Menu, Logout, XMark,
+  ChartBar, StarLine, Ticket, Shield,
 } from '../../components/ui/Icons';
 
 const NAV = [
@@ -23,6 +24,15 @@ const NAV = [
     { id: 'premios', label: 'Premios y Festivos', Icon: Gift },
     { id: 'raf',     label: 'Rifa',               Icon: TicketStar },
     { id: 'cat',     label: 'Catálogo',           Icon: Tag },
+  ] },
+  // Análisis (8-ago-2026): consultas de SOLO LECTURA sobre el
+  // consumo — separadas de la gestión (Programa) y de la
+  // configuración (Sistema). Integridad = investigación interna.
+  { group: 'Análisis', items: [
+    { id: 'anCli', label: 'Clientes',       Icon: ChartBar },
+    { id: 'anOps', label: 'Operadores',     Icon: StarLine },
+    { id: 'anPro', label: 'Promos y Rifas', Icon: Ticket },
+    { id: 'anInt', label: 'Integridad',     Icon: Shield },
   ] },
   { group: 'Promociones', items: [
     { id: 'promos',     label: 'Promociones',     Icon: Megaphone },

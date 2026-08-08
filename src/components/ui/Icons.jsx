@@ -283,6 +283,23 @@ export const Clipboard = () => (
   </svg>
 );
 
+// Barras de gráfica (grupo Análisis del panel de administrador)
+export const ChartBar = () => (
+  <svg {...s}>
+    <path d="M3 3v16a2 2 0 0 0 2 2h16" />
+    <path d="M8 17v-6" />
+    <path d="M13 17V7" />
+    <path d="M18 17v-3" />
+  </svg>
+);
+
+// Escudo (Análisis → Integridad)
+export const Shield = () => (
+  <svg {...s}>
+    <path d="M12 22s8-3.5 8-9.5V5l-8-3-8 3v7.5C4 18.5 12 22 12 22z" />
+  </svg>
+);
+
 // Estrella en línea (registro en historiales)
 export const StarLine = () => (
   <svg {...s}>

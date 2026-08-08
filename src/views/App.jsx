@@ -84,6 +84,10 @@ import AdminPromos from './admin/AdminPromos';
 import PromoRules from './admin/PromoRules';
 import OpManagement from './admin/OpManagement';
 import AdminManagement from './admin/AdminManagement';
+import AnClientes from './admin/analytics/AnClientes';
+import AnOperadores from './admin/analytics/AnOperadores';
+import AnPromos from './admin/analytics/AnPromos';
+import AnIntegridad from './admin/analytics/AnIntegridad';
 import AdminStations from './admin/AdminStations';
 import AuditLog from './admin/AuditLog';
 import VehiclesSoon from './client/VehiclesSoon';
@@ -1909,6 +1913,10 @@ export default function App() {
       if (scr === 'rules') return <Rules {...ctx} />;
       if (scr === 'promos') return <AdminPromos {...ctx} />;
       if (scr === 'promorules') return <PromoRules {...ctx} />;
+      if (scr === 'anCli') return <AnClientes {...ctx} />;
+      if (scr === 'anOps') return <AnOperadores {...ctx} />;
+      if (scr === 'anPro') return <AnPromos {...ctx} />;
+      if (scr === 'anInt') return <AnIntegridad {...ctx} />;
       return <AdminDash {...ctx} />;
     }
 

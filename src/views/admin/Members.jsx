@@ -14,6 +14,7 @@ import { sb } from '../../lib/supabaseClient';
 import { sMono, adminTheme as AT } from '../../constants/styles';
 import { getAdminToken } from '../../services/sessionTokens';
 import Badge from '../../components/ui/Badge';
+import PeriodPicker, { rangeFromPreset } from '../../components/ui/PeriodPicker';
 import { Search } from '../../components/ui/Icons';
 
 export default function Members(ctx) {
@@ -33,27 +34,18 @@ export default function Members(ctx) {
   const [stationRank, setStationRank] = useState(null); // [{id,name,top:[…]}]
 
   // ── PERÍODO de la consulta (6-ago): historial completo o fechas
-  // específicas — día calendario de Guatemala, resuelto server-side. ──
+  // específicas — día calendario de Guatemala, resuelto server-side.
+  // (8-ago) UI y resolución extraídas a PeriodPicker (compartido con
+  // el grupo Análisis). ──
   const [datePreset, setDatePreset] = useState('all'); // all|month|prev|custom
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const fmtD = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  const rangeDates = () => {
-    const now = new Date();
-    if (datePreset === 'month') return { from: fmtD(new Date(now.getFullYear(), now.getMonth(), 1)), to: null };
-    if (datePreset === 'prev') return {
-      from: fmtD(new Date(now.getFullYear(), now.getMonth() - 1, 1)),
-      to: fmtD(new Date(now.getFullYear(), now.getMonth(), 0)),
-    };
-    if (datePreset === 'custom') return { from: dateFrom || null, to: dateTo || null };
-    return { from: null, to: null };
-  };
 
   useEffect(() => {
     if (viewMode !== 'ranking' || !sb) return;
     const tok = getAdminToken()?.token;
     if (!tok) return;
-    const { from, to } = rangeDates();
+    const { from, to } = rangeFromPreset(datePreset, dateFrom, dateTo);
     setStationRank(null);
     sb.rpc('get_station_top_members', { p_session_token: tok, p_limit: 500, p_from: from, p_to: to })
       .then(({ data, error }) => {
@@ -231,24 +223,11 @@ export default function Members(ctx) {
 
           {/* Período (solo consulta de consumo — el padrón es acumulado) */}
           {viewMode === 'ranking' && (
-            <div>
-              <div style={groupLbl}>Período</div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                <button onClick={() => setDatePreset('all')} style={chipSoft(datePreset === 'all')}>Todo</button>
-                <button onClick={() => setDatePreset('month')} style={chipSoft(datePreset === 'month')}>Este mes</button>
-                <button onClick={() => setDatePreset('prev')} style={chipSoft(datePreset === 'prev')}>Mes anterior</button>
-                <button onClick={() => setDatePreset('custom')} style={chipSoft(datePreset === 'custom')}>Fechas específicas</button>
-                {datePreset === 'custom' && (
-                  <>
-                    <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-                      style={{ padding: '6px 10px', borderRadius: 10, border: `1px solid ${AT.border}`, background: '#1E1E1E', color: '#fff', fontFamily: "'DM Sans'", fontSize: 12, colorScheme: 'dark' }} />
-                    <span style={{ fontSize: 11, color: '#777', fontWeight: 700 }}>a</span>
-                    <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-                      style={{ padding: '6px 10px', borderRadius: 10, border: `1px solid ${AT.border}`, background: '#1E1E1E', color: '#fff', fontFamily: "'DM Sans'", fontSize: 12, colorScheme: 'dark' }} />
-                  </>
-                )}
-              </div>
-            </div>
+            <PeriodPicker
+              preset={datePreset} setPreset={setDatePreset}
+              from={dateFrom} setFrom={setDateFrom}
+              to={dateTo} setTo={setDateTo}
+            />
           )}
         </div>
 
