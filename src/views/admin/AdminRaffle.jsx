@@ -221,7 +221,7 @@ export default function AdminRaffle(ctx) {
           </div>
         </div>
         <button onClick={() => { setEditRaf(null); setFormOpen(true); }}
-          style={{ ...btnYellow, display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 12, fontSize: 13, padding: '11px 18px' }}>
+          style={{ ...btnYellow, width: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 12, fontSize: 13, padding: '11px 18px' }}>
           <span style={{ display: 'flex', transform: 'scale(.8)' }}><Plus /></span> Nueva rifa
         </button>
       </div>

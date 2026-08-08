@@ -186,7 +186,7 @@ export default function AdminCatalog(ctx) {
           </div>
         </div>
         <button onClick={openNew}
-          style={{ ...btnYellow, display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 12, fontSize: 13, padding: '11px 18px' }}>
+          style={{ ...btnYellow, width: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 12, fontSize: 13, padding: '11px 18px' }}>
           <span style={{ display: 'flex', transform: 'scale(.8)' }}><Plus /></span> Nuevo premio
         </button>
       </div>
