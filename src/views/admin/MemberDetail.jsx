@@ -15,7 +15,7 @@ import InactivityWarning from '../../components/ui/InactivityWarning';
 import { Back, Plus } from '../../components/ui/Icons';
 import ReasonModal from '../../components/ui/ReasonModal';
 import { VEHICLE_TYPES } from '../../components/ui/VehicleIcons';
-import { EditMemberModal, PwResetModal, VehicleModal } from './MemberDetailModals';
+import { EditMemberModal, PwResetModal, VehicleModal, buildDiff, validateForm } from './MemberDetailModals';
 import { updateMemberWithAudit, adminResetMemberPassword } from '../../services/rpcServices';
 import { fetchActivityStaff } from '../../services/secureReads';
 import { plateMask } from '../../lib/inputMasks';
@@ -79,7 +79,8 @@ export default function MemberDetail(ctx) {
         const m = memRes.data;
         setFreshMember({
           ...sel,
-          name: m.name, phone: m.phone || '—', dpi: m.dpi || '—',
+          name: m.name, nickname: m.nickname || '',
+          phone: m.phone || '—', dpi: m.dpi || '—',
           plate: m.plate || '—', email: m.email || '—',
           nit: m.nit || '—', bday: m.birthday || '—',
           address: m.address || null,
@@ -104,86 +105,19 @@ export default function MemberDetail(ctx) {
     entrega: '#00838F',
   };
 
-  const PROFILE_FIELDS = ['name', 'phone', 'dpi', 'plate', 'email', 'nit', 'birthday'];
+  // Reglas de edición (validateForm/buildDiff) importadas de
+  // MemberDetailModals — el diff maneja '—' como vacío y compara la
+  // dirección como JSON (8-ago).
 
-  // Construye el diff por categoria: solo campos/categorias modificados.
-  // `original` y `edited` usan nombres de campo del cliente (bday, no birthday).
-  const buildDiff = (original, edited) => {
-    const changes = {};
-    const profileDiff = {};
-
-    PROFILE_FIELDS.forEach(field => {
-      // El cliente guarda el cumpleaños en `bday`; el server lo espera como `birthday`.
-      const clientField = field === 'birthday' ? 'bday' : field;
-      if ((edited[clientField] || '') !== (original[clientField] || '')) {
-        profileDiff[field] = edited[clientField] || null;
-      }
+  // Abrir el editor SIN los placeholders '—' de la ficha (si entraran
+  // al form, la validación los rechazaría como formato inválido).
+  const openEditor = () => {
+    const strip = (v) => (v === '—' ? '' : v || '');
+    setEditMember({
+      ...c,
+      nickname: strip(c.nickname), phone: strip(c.phone), dpi: strip(c.dpi),
+      email: strip(c.email), nit: strip(c.nit), bday: strip(c.bday),
     });
-    if (Object.keys(profileDiff).length > 0) changes.profile = profileDiff;
-
-    const editedPoints = +edited.points || 0;
-    const originalPoints = +original.points || 0;
-    if (editedPoints !== originalPoints) changes.points = editedPoints;
-
-    const editedGallons = +edited.gallons || 0;
-    const originalGallons = +original.gallons || 0;
-    if (editedGallons !== originalGallons) changes.gallons = editedGallons;
-
-    return changes;
-  };
-
-  // F0.3.8.6: validacion por campo. Devuelve mensaje de error o null.
-  // phone/dpi son bloqueantes (formato estricto); el resto valida solo
-  // si no esta vacio. name se valida en validateForm (pre-submit).
-  const validateField = (field, value) => {
-    const v = (value || '').toString().trim();
-    switch (field) {
-      case 'name':
-        return null;
-      case 'phone':
-        if (!v) return null;
-        if (!/^\d{8}$/.test(v)) return 'Telefono debe tener exactamente 8 digitos';
-        return null;
-      case 'dpi':
-        if (!v) return null;
-        if (!/^\d{13}$/.test(v)) return 'DPI debe tener exactamente 13 digitos';
-        return null;
-      case 'email':
-        if (!v) return null;
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'Email invalido';
-        return null;
-      case 'bday':
-        if (!v) return null;
-        // Acepta MM-DD (registros viejos) y YYYY-MM-DD (fecha completa)
-        if (!/^(\d{4}-)?(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(v)) return 'Formato MM-DD o YYYY-MM-DD';
-        return null;
-      case 'points': {
-        if (v === '') return null;
-        const p = Number(v);
-        if (isNaN(p) || p < 0 || !Number.isInteger(p)) return 'Debe ser entero >= 0';
-        return null;
-      }
-      case 'gallons': {
-        if (v === '') return null;
-        const g = Number(v);
-        if (isNaN(g) || g < 0) return 'Debe ser numero >= 0';
-        return null;
-      }
-      default:
-        return null;
-    }
-  };
-
-  // F0.3.8.6: validacion completa pre-submit. Devuelve mapa de errores.
-  const validateForm = (edited) => {
-    const errors = {};
-    ['phone', 'dpi', 'email', 'bday', 'points', 'gallons'].forEach(f => {
-      const err = validateField(f, edited[f]);
-      if (err) errors[f] = err;
-    });
-    const name = (edited.name || '').trim();
-    if (!name || name.length < 2) errors.name = 'Nombre requerido (minimo 2 caracteres)';
-    return errors;
   };
 
   // F0.3.8.4: la edicion pasa por auditoria atomica (RPC
@@ -401,7 +335,7 @@ export default function MemberDetail(ctx) {
 
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <button onClick={() => { setSel(c); setModal('buy'); }} style={{ ...btnYellow, flex: 1, minWidth: 140, padding: 12, borderRadius: 12, fontSize: 13 }}>Registrar compra</button>
-              <button onClick={() => setEditMember({ ...c })} style={{ ...ghostBtn('#E0E0E0'), flex: 1, minWidth: 120 }}>Editar datos</button>
+              <button onClick={openEditor} style={{ ...ghostBtn('#E0E0E0'), flex: 1, minWidth: 120 }}>Editar datos</button>
               <button onClick={() => setPwModal({ pass: '', confirm: '' })} style={{ ...ghostBtn('#CE93D8'), width: '100%' }}>Restablecer contraseña</button>
             </div>
           </div>
@@ -410,12 +344,13 @@ export default function MemberDetail(ctx) {
           <div style={card}>
             <div style={cardLbl}>Datos del miembro</div>
             {[
+              { l: 'Apodo', v: c.nickname || '—' },
               { l: 'Teléfono', v: c.phone || '—' },
               { l: 'DPI', v: c.dpi || '—' },
               { l: 'Email', v: c.email || '—' },
               { l: 'NIT', v: c.nit || '—' },
               { l: 'Dirección', v: c.address ? [c.address.canton, c.address.muni].filter(Boolean).join(', ') : '—' },
-              { l: 'Cumpleaños', v: c.bday || '—' },
+              { l: 'Fecha de nacimiento', v: c.bday || '—' },
               { l: 'Registro', v: c.registered || '—' },
               { l: 'Última compra', v: c.lastBuy || 'Sin compras' },
             ].map((r, i, arr) => (
@@ -499,7 +434,6 @@ export default function MemberDetail(ctx) {
         <EditMemberModal
           editMember={editMember} setEditMember={setEditMember}
           fieldErrors={fieldErrors} setFieldErrors={setFieldErrors}
-          validateField={validateField}
           onSave={saveMember}
           onClose={() => { setEditMember(null); setFieldErrors({}); }}
         />
