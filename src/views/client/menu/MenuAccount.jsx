@@ -32,7 +32,7 @@ const fmtBday = v => {
 };
 
 export default function MenuAccount({ ctx, TH, onBack }) {
-  const { me, setMe, fire, sbConnected } = ctx;
+  const { me, setMe, fire, sbConnected, cfg } = ctx;
 
   const [form, setForm] = useState({
     nickname: me?.nickname || '', email: me?.email || '', nit: me?.nit || '', bday: '',
@@ -238,8 +238,9 @@ export default function MenuAccount({ ctx, TH, onBack }) {
         </div>
       ))}
 
-      {/* ── Teléfono: bloqueado — solo cambia con código SMS (8-ago) ── */}
-      <PhoneChangeSection ctx={{ me, setMe, fire }} TH={TH} />
+      {/* ── Teléfono: bloqueado — el cambio se solicita por WhatsApp
+          y lo aplica el admin (8-ago v2) ── */}
+      <PhoneChangeSection ctx={{ me, cfg }} TH={TH} />
 
       {/* ── NIT: editable cada 2 meses (candado server-side 8-ago) ── */}
       <div style={{ marginBottom: 14 }}>

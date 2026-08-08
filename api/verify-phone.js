@@ -1,24 +1,23 @@
 // ============================================================
-// Puntos Plus — /api/verify-phone (8-ago-2026)
+// Puntos Plus — /api/verify-phone (8-ago-2026, v2 mismo día)
 // ============================================================
-// Cambio de TELÉFONO del miembro con verificación OTP (pedido del
-// dueño: "para cambiar el teléfono deberá verificarlo"). El código
-// viaja por SMS al NÚMERO NUEVO vía Twilio Verify (genera, expira
-// y limita reintentos server-side de Twilio — aquí no se guarda
-// ningún código). update_my_profile ya NO acepta cambios de phone:
-// este endpoint es el ÚNICO camino.
+// Verificación OTP del teléfono AL REGISTRARSE (cambio de método
+// decidido por el dueño: la verificación es SOLO en el registro;
+// el cambio de número se solicita por WhatsApp y lo aplica el
+// ADMIN desde la ficha del miembro). Cumple la promesa del wizard:
+// "Verificaremos este número al finalizar tu registro".
 //
-// Flujo:
-//   POST { action:'start', token, phone }        → envía el código
-//   POST { action:'check', token, phone, code }  → verifica y aplica
+// Flujo (sin sesión — el miembro aún no existe):
+//   POST { action:'start', phone }        → envía el código SMS
+//   POST { action:'check', phone, code }  → verifica y deja la
+//     aprobación en phone_verifications (service key); luego
+//     register_member la exige y la CONSUME (interruptor
+//     program_config 'phone_verification', migración 20260808c).
 //
-// Seguridad:
-//   · Sesión de MIEMBRO obligatoria (member_sessions, patrón
-//     /api/upload-avatar: vigente, no revocada, no expirada).
-//   · Unicidad del número comprobada en start Y de nuevo en check
-//     (carrera entre dos clientes registrando el mismo número).
-//   · El UPDATE de members.phone se hace con la service key SOLO
-//     tras status 'approved' de Twilio.
+// Abuso: el endpoint es público por naturaleza (registro). Twilio
+// Verify limita por número destino (5 envíos / 10 min, bloqueos
+// progresivos) y el código expira solo — aquí no se guarda ningún
+// código, solo la APROBACIÓN final.
 //
 // Env (Vercel): TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN,
 //               TWILIO_VERIFY_SERVICE_SID (servicio Verify).
@@ -63,12 +62,13 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'SUPABASE_SERVICE_KEY no configurada en Vercel' });
   }
   if (!TW_SID || !TW_TOKEN || !TW_VERIFY) {
+    // El wizard interpreta este mensaje como "OTP apagado" y sigue sin
+    // código (coherente con el interruptor server-side en OFF).
     return res.status(500).json({ error: 'Verificación no configurada (faltan variables TWILIO_* en Vercel)' });
   }
 
   try {
-    const { action, token, phone, code } = req.body || {};
-    if (!token) return res.status(401).json({ error: 'Sesión requerida' });
+    const { action, phone, code } = req.body || {};
     if (action !== 'start' && action !== 'check') {
       return res.status(400).json({ error: 'Acción inválida' });
     }
@@ -79,31 +79,18 @@ export default async function handler(req, res) {
 
     const sb = createClient(SUPABASE_URL, SERVICE_KEY);
 
-    // ── Sesión de miembro (espejo de validate_session_token) ──
-    const { data: session, error: sesErr } = await sb
-      .from('member_sessions')
-      .select('member_id, expires_at, revoked_at')
-      .eq('token', token)
-      .maybeSingle();
-    if (sesErr) return res.status(500).json({ error: sesErr.message });
-    if (!session || session.revoked_at || new Date(session.expires_at) <= new Date()) {
-      return res.status(401).json({ error: 'Sesión inválida o expirada' });
-    }
-    const memberId = session.member_id;
-
-    // ── Unicidad: el número no puede pertenecer a OTRA cuenta ──
+    // ── El número no puede estar ya registrado ──
     const { data: dup, error: dupErr } = await sb
       .from('members')
       .select('id')
       .eq('phone', cleanPhone)
-      .neq('id', memberId)
       .maybeSingle();
     if (dupErr) return res.status(500).json({ error: dupErr.message });
-    if (dup) return res.status(409).json({ error: 'Ese teléfono ya está registrado en otra cuenta' });
+    if (dup) return res.status(409).json({ error: 'Este número ya está registrado. Si ya tenés cuenta, iniciá sesión.' });
 
     const to = `+502${cleanPhone}`;
 
-    // ── start: enviar el código SMS al número NUEVO ──
+    // ── start: enviar el código SMS ──
     if (action === 'start') {
       const tw = await twilioVerify('Verifications', { To: to, Channel: 'sms', Locale: 'es' });
       if (!tw.ok) {
@@ -113,7 +100,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
 
-    // ── check: verificar el código y APLICAR el cambio ──
+    // ── check: verificar el código y dejar la APROBACIÓN ──
     if (!/^\d{4,8}$/.test(String(code || ''))) {
       return res.status(400).json({ error: 'Código inválido' });
     }
@@ -126,13 +113,14 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Código incorrecto' });
     }
 
+    // Aprobación de un solo uso: register_member la exige (con el
+    // interruptor encendido) y la consume al crear la cuenta.
     const { error: upErr } = await sb
-      .from('members')
-      .update({ phone: cleanPhone, updated_at: new Date().toISOString() })
-      .eq('id', memberId);
+      .from('phone_verifications')
+      .upsert({ phone: cleanPhone, verified_at: new Date().toISOString() });
     if (upErr) return res.status(500).json({ error: upErr.message });
 
-    return res.status(200).json({ ok: true, phone: cleanPhone });
+    return res.status(200).json({ ok: true });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

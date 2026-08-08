@@ -9,6 +9,7 @@ import { User, IdCard, Mail, Receipt, Eye, EyeOff, Plus, XMark, Phone } from '..
 import { DatePickerSheet } from '../../components/ui/DrumDatePicker';
 import { VEHICLE_TYPES } from '../../components/ui/VehicleIcons';
 import { WizardHeader, PtsCard, Field, DateField, InfoBubble } from './registerUi';
+import PhoneVerifyStep from './PhoneVerifyStep';
 import AddressPicker, { EMPTY_ADDRESS } from '../../components/ui/AddressPicker';
 import { isAddressComplete, packAddress } from '../../constants/geoGt';
 import { phoneMask, dpiMask, plateMask, capWords } from '../../lib/inputMasks';
@@ -74,10 +75,43 @@ export default function GoogleProfile(ctx) {
 
   const [saving, setSaving] = useState(false);
 
-  // ── Guardar ───────────────────────────────────────────────
+  // ── Verificación OTP del número al FINALIZAR (8-ago, pedido del
+  // dueño): con Twilio configurado se pide el código SMS ANTES de
+  // crear la cuenta; si el endpoint responde 'no configurada' el
+  // registro sigue como siempre (interruptor server-side apagado). ──
+  const [verifying, setVerifying]         = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
+
   const doFinish = async () => {
     if (!password.trim() || password.length < 6) { setAuthError('La contrasena debe tener al menos 6 caracteres'); return; }
     if (password !== passConfirm) { setAuthError('Las contrasenas no coinciden'); return; }
+    if (!phoneVerified && sbConnected && /^\d{8}$/.test((regProfile.phone || '').trim())) {
+      setSaving(true);
+      try {
+        const res = await fetch('/api/verify-phone', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'start', phone: regProfile.phone.trim() }),
+        });
+        const j = await res.json().catch(() => ({}));
+        setSaving(false);
+        if (res.ok) { clearAuthErr(); setVerifying(true); return; }
+        if (!(j.error || '').includes('no configurada')) {
+          setAuthError(j.error || 'No se pudo enviar el código de verificación'); return;
+        }
+        // Twilio sin configurar → registro sin código
+      } catch {
+        // endpoint inaccesible (p. ej. npm run dev local) → sin código;
+        // si el interruptor server-side está encendido, register_member
+        // devolverá phone_not_verified igualmente.
+        setSaving(false);
+      }
+    }
+    await finishCore();
+  };
+
+  // ── Guardar (núcleo del alta) ─────────────────────────────
+  const finishCore = async () => {
     setSaving(true);
     try {
       const firstPlate = vehicles[0]?.plate || '';
@@ -140,6 +174,14 @@ export default function GoogleProfile(ctx) {
           fire('Este DPI ya esta registrado. Inicia sesion.', 'warn');
           setSaving(false); return;
         }
+        if (reg?.error === 'phone_not_verified') {
+          // El candado server-side exige el código y no llegó la
+          // aprobación (p. ej. expiró) — reintentar la verificación.
+          setAuthScreen('googleProfile'); setGoogleStep('step3');
+          setPhoneVerified(false);
+          setAuthError('Falta verificar tu número — tocá Finalizar de nuevo para recibir otro código.');
+          setSaving(false); return;
+        }
         if (reg?.error) { setAuthError(reg.error); setSaving(false); return; }
 
         setMemberToken({ token: reg.session_token, expiresAt: reg.session_expires_at });
@@ -167,6 +209,18 @@ export default function GoogleProfile(ctx) {
   const errBox = authError ? (
     <div style={{ background: dark ? 'rgba(214,40,26,.18)' : '#FFEBEE', color: dark ? '#FF8A80' : '#C62828', padding: '10px 14px', borderRadius: 12, fontSize: 12, fontWeight: 700, marginBottom: 16, textAlign: 'center' }}>{authError}</div>
   ) : null;
+
+  // ══ Verificación del número (entre "Finalizar" y el alta real) ══
+  if (verifying) {
+    return (
+      <PhoneVerifyStep
+        phone={(regProfile.phone || '').trim()}
+        dark={dark}
+        onVerified={() => { setPhoneVerified(true); setVerifying(false); finishCore(); }}
+        onBack={() => { setVerifying(false); setGoogleStep('step1'); }}
+      />
+    );
+  }
 
   // ══ PASO 1 — Datos personales (todos obligatorios, sin bonus) ═
   if (googleStep === 'step1' || googleStep === 'welcome') {
