@@ -84,12 +84,12 @@ export default function AdminPromoForm({ promo, saving, onCancel, onSubmit, fire
     setUploading(true);
     const { data: url, error } = await uploadPromoImage(file);
     setUploading(false);
-    if (error) { fire('❌ ' + error.message); return; }
+    if (error) { fire('Error: ' + error.message); return; }
     set('image_url', url);
   };
 
   const submit = () => {
-    if (!f.title.trim()) { fire('❌ El título es obligatorio'); return; }
+    if (!f.title.trim()) { fire('El título es obligatorio'); return; }
     onSubmit({
       title:       f.title.trim(),
       description: f.desc.trim(),
@@ -128,21 +128,22 @@ export default function AdminPromoForm({ promo, saving, onCancel, onSubmit, fire
     <div
       style={{
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 400,
-        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+        backdropFilter: 'blur(4px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
       }}
       onClick={() => !saving && !uploading && onCancel()}
     >
+      {/* Modal oscuro CENTRADO (patrón ReasonModal — Admin v2 8-ago) */}
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: AT.card, border: '1px solid #FBBC04',
-          borderRadius: '24px 24px 0 0', width: '100%', maxWidth: 480,
-          maxHeight: '92vh', overflowY: 'auto', padding: '20px 20px 40px',
+          background: AT.bg, border: `1px solid ${AT.border}`,
+          borderRadius: 20, width: '100%', maxWidth: 480,
+          maxHeight: '90vh', overflowY: 'auto', padding: 24,
         }}
       >
-        <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,.2)', borderRadius: 4, margin: '0 auto 20px' }} />
-        <div style={{ fontSize: 14, fontWeight: 800, color: AT.txt, marginBottom: 16 }}>
-          {isNew ? '➕ Nueva promoción' : '✏️ Editar promoción'}
+        <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', marginBottom: 16 }}>
+          {isNew ? 'Nueva promoción' : 'Editar promoción'}
         </div>
 
         {/* Los tres textos van ENCIMA de la imagen de fondo: Enter agrega
@@ -189,7 +190,7 @@ export default function AdminPromoForm({ promo, saving, onCancel, onSubmit, fire
               textAlign: 'center', cursor: uploading ? 'wait' : 'pointer',
               color: AT.sub, fontSize: 12.5, fontWeight: 700, background: '#2b2b2b',
             }}>
-              {uploading ? '⏳ Subiendo...' : f.image_url ? '🔁 Reemplazar imagen' : '📷 Subir imagen'}
+              {uploading ? 'Subiendo...' : f.image_url ? 'Reemplazar imagen' : 'Subir imagen'}
               <input type="file" accept="image/png,image/jpeg,image/webp" style={{ display: 'none' }}
                 disabled={uploading}
                 onChange={e => { pickImage(e.target.files?.[0]); e.target.value = ''; }} />

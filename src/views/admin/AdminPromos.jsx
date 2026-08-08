@@ -5,9 +5,14 @@
 // Storage, vínculo con regla PROMO-1). Acá queda la lista + acciones
 // auditadas (patrón F0.3.7: edit/delete/toggle vía ReasonModal,
 // client-first; create sin auditoría, consistente con F0.3.5/F0.3.6).
+// Admin v2 (8-ago-2026, FORMATO GENERAL): flat sin emojis; el botón
+// "Motor" se retiró (la navegación vive en el sidebar). El mini
+// preview de cada card SÍ conserva el contenido real de la promo
+// (imagen/ícono elegidos) — es la vista previa de lo que ve el cliente.
 import { useState } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { btnYellow, adminTheme as AT } from '../../constants/styles';
+import { Plus, Megaphone } from '../../components/ui/Icons';
 import ReasonModal from '../../components/ui/ReasonModal';
 import { adminWriteCatalog } from '../../services/secureReads';
 import AdminPromoForm from './AdminPromoForm';
@@ -43,7 +48,7 @@ const mapRow = (r) => ({
 });
 
 export default function AdminPromos(ctx) {
-  const { promos, setPromos, fire, sbConnected, loggedAdmin, setScr } = ctx;
+  const { promos, setPromos, fire, sbConnected, loggedAdmin } = ctx;
 
   const [editing, setEditing] = useState(null);   // null | 'new' | promo
   const [saving, setSaving]   = useState(false);
@@ -54,7 +59,7 @@ export default function AdminPromos(ctx) {
 
   // ── Submit del form (create directo / edit vía ReasonModal) ──
   const onFormSubmit = async (data) => {
-    if (!sb || !sbConnected) { fire('❌ Sin conexión a Supabase'); return; }
+    if (!sb || !sbConnected) { fire('Sin conexión a Supabase'); return; }
 
     if (editing !== 'new') {
       if (!loggedAdmin?.id) { fire('Error: sesion admin no disponible'); return; }
@@ -79,9 +84,9 @@ export default function AdminPromos(ctx) {
       audit: { adminId: loggedAdmin?.id, adminName: loggedAdmin?.name, adminEmail: loggedAdmin?.email },
     });
     setSaving(false);
-    if (res.error) { fire('❌ Error: ' + res.error); return; }
+    if (res.error) { fire('Error: ' + res.error); return; }
     setPromos(p => [...p, mapRow(res.row || { ...data, id: res.id })].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
-    fire('✅ Promoción creada');
+    fire('Promoción creada');
     setEditing(null);
   };
 
@@ -176,38 +181,37 @@ export default function AdminPromos(ctx) {
     }
   };
 
+  const activeCount = promos.filter(p => p.active !== false).length;
+
   return (
-    <div style={{ paddingBottom: 100, background: AT.bg, minHeight: '100vh' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 20px 12px' }}>
-        <div style={{ fontSize: 20, fontWeight: 800, color: AT.txt }}>📢 Promociones</div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {/* PROMO-1: acceso al motor de reglas (dobles puntos, bonus) */}
-          <button onClick={() => setScr('promorules')} style={{
-            padding: '10px 14px', fontSize: 13, borderRadius: 12, cursor: 'pointer',
-            border: `1px solid ${AT.border}`, background: 'none', color: AT.txt,
-            fontFamily: "'DM Sans'", fontWeight: 700,
-          }}>
-            ⚙️ Motor
-          </button>
-          <button onClick={() => setEditing('new')} style={{ ...btnYellow, padding: '10px 18px', fontSize: 13, width: 'auto' }}>
-            + Nueva
-          </button>
+    <div style={{ padding: '22px 22px 60px' }}>
+      {/* Encabezado (FORMATO GENERAL Admin v2 — la navegación al Motor
+          vive en el sidebar) */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <div style={{ fontSize: 21, fontWeight: 800, color: '#fff' }}>Promociones</div>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: '#9E9E9E', marginTop: 2 }}>
+            {promos.length.toLocaleString('en-US')} promociones — {activeCount.toLocaleString('en-US')} activas · las cards que ve el cliente
+          </div>
         </div>
+        <button onClick={() => setEditing('new')}
+          style={{ ...btnYellow, display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 12, fontSize: 13, padding: '11px 18px', width: 'auto' }}>
+          <span style={{ display: 'flex', transform: 'scale(.8)' }}><Plus /></span> Nueva promoción
+        </button>
       </div>
 
-      <div style={{ padding: '0 20px' }}>
-        {promos.length === 0 && !editing && (
-          <div style={{ textAlign: 'center', padding: 40, color: AT.sub }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>📢</div>
-            No hay promociones creadas aún.<br />Presioná "+ Nueva" para comenzar.
-          </div>
-        )}
+      {promos.length === 0 && !editing && (
+        <div style={{ textAlign: 'center', padding: '40px 20px', color: '#777' }}>
+          <div style={{ width: 52, height: 52, borderRadius: 16, margin: '0 auto 12px', background: AT.card, border: `1px solid ${AT.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}><Megaphone /></div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: '#9E9E9E' }}>No hay promociones creadas aún</div>
+          <div style={{ fontSize: 12, fontWeight: 600, marginTop: 4 }}>Creá la primera con "Nueva promoción"</div>
+        </div>
+      )}
 
-        <div className="pp-adm-grid">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 12 }}>
         {promos.map(p => (
-          <div key={p.id} style={{ ...AT_card, opacity: p.active ? 1 : .5 }}>
-            {/* Preview mini */}
+          <div key={p.id} style={{ ...AT_card, marginBottom: 0, opacity: p.active ? 1 : .55 }}>
+            {/* Preview mini — contenido REAL de la promo (lo que ve el cliente) */}
             <div style={{ borderRadius: 12, padding: '12px 16px', background: p.bg || '#333', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, position: 'relative', overflow: 'hidden' }}>
               {p.image_url
                 ? <img src={p.image_url} alt="" style={{ width: 44, height: 44, objectFit: 'contain', flexShrink: 0 }} />
@@ -216,43 +220,51 @@ export default function AdminPromos(ctx) {
                 <div style={{ fontSize: 13, fontWeight: 800, color: p.color || '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</div>
                 {p.desc && <div style={{ fontSize: 11, color: p.color || '#fff', opacity: .7, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.desc}</div>}
               </div>
-              <div style={{ fontSize: 9, fontWeight: 800, padding: '3px 8px', borderRadius: 6, background: p.active ? 'rgba(76,175,80,.3)' : 'rgba(158,158,158,.3)', color: p.active ? '#66BB6A' : AT.sub, flexShrink: 0 }}>
+              <div style={{ fontSize: 9, fontWeight: 800, padding: '3px 8px', borderRadius: 6, background: p.active ? 'rgba(76,175,80,.3)' : 'rgba(158,158,158,.3)', color: p.active ? '#81C784' : AT.sub, flexShrink: 0, letterSpacing: .5 }}>
                 {p.active ? 'ACTIVA' : 'INACTIVA'}
               </div>
             </div>
 
-            {/* Meta R1b.2: categoría + vigencia */}
-            <div style={{ fontSize: 11, color: AT.sub, marginBottom: 12 }}>
-              {CATEGORY_LABELS[p.category] || 'Sin categoría'}
-              {p.valid_until && ` · Válido hasta ${p.valid_until.split('-').reverse().join('/')}`}
-              {p.conditions && ` · ${p.conditions}`}
+            {/* Meta R1b.2: categoría + vigencia + vínculo con el motor */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontSize: 9, fontWeight: 800, background: 'rgba(255,255,255,.08)', color: '#aaa', padding: '2px 8px', borderRadius: 6, letterSpacing: .3 }}>
+                {(CATEGORY_LABELS[p.category] || 'Sin categoría').toUpperCase()}
+              </span>
+              {p.valid_until && (
+                <span style={{ fontSize: 10.5, color: '#9E9E9E', fontWeight: 700 }}>Válido hasta {p.valid_until.split('-').reverse().join('/')}</span>
+              )}
+              {p.promo_rule_id && (
+                <span style={{ fontSize: 9, fontWeight: 800, background: 'rgba(251,188,4,.15)', color: '#FBBC04', padding: '2px 8px', borderRadius: 6, letterSpacing: .3 }}>VINCULADA AL MOTOR</span>
+              )}
+              {p.conditions && (
+                <span style={{ fontSize: 10.5, color: '#777', fontWeight: 600, width: '100%' }}>{p.conditions}</span>
+              )}
             </div>
 
             {/* Acciones */}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => toggleActive(p)} style={{
-                flex: 1, padding: '9px 0', borderRadius: 10, border: `1px solid ${AT.border}`,
-                background: 'none', color: p.active ? '#FF8F00' : '#66BB6A',
-                fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 12, cursor: 'pointer',
-              }}>
-                {p.active ? '⏸ Desactivar' : '▶ Activar'}
-              </button>
               <button onClick={() => setEditing(p)} style={{
                 flex: 1, padding: '9px 0', borderRadius: 10, border: `1px solid ${AT.border}`,
-                background: 'none', color: '#FBBC04', fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 12, cursor: 'pointer',
+                background: 'none', color: '#64B5F6', fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 12, cursor: 'pointer',
               }}>
-                ✏️ Editar
+                Editar
+              </button>
+              <button onClick={() => toggleActive(p)} style={{
+                flex: 1, padding: '9px 0', borderRadius: 10, border: `1px solid ${AT.border}`,
+                background: 'none', color: p.active ? '#FF8F00' : '#81C784',
+                fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 12, cursor: 'pointer',
+              }}>
+                {p.active ? 'Desactivar' : 'Activar'}
               </button>
               <button onClick={() => deletePromo(p)} style={{
                 padding: '9px 14px', borderRadius: 10, border: `1px solid ${AT.border}`,
                 background: 'none', color: '#EF5350', fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 12, cursor: 'pointer',
               }}>
-                🗑
+                Eliminar
               </button>
             </div>
           </div>
         ))}
-        </div>
       </div>
 
       {/* R1b.2: form en bottom-sheet propio */}

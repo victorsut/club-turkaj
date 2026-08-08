@@ -8,11 +8,15 @@ import { adminTheme as AT, inputStyleDark } from '../../constants/styles';
 
 export default function ReasonModal({ open, onClose, onConfirm, actionLabel, loading = false }) {
   const [reason, setReason] = useState('');
+  // Fix 8-ago (caso real: eliminar promoción "no lo permitía" en la
+  // computadora): el botón deshabilitado no comunicaba POR QUÉ. Ahora
+  // el clic con motivo inválido resalta el aviso en un recuadro rojo.
+  const [tried, setTried] = useState(false);
 
   // Resetear el textarea cada vez que el modal se abre, para no
   // arrastrar el motivo de una acción anterior.
   useEffect(() => {
-    if (open) setReason('');
+    if (open) { setReason(''); setTried(false); }
   }, [open]);
 
   if (!open) return null;
@@ -26,7 +30,10 @@ export default function ReasonModal({ open, onClose, onConfirm, actionLabel, loa
   const confirmDisabled = !valid || loading;
 
   const handleConfirm = () => {
-    if (confirmDisabled) return;
+    // Motivo inválido: NO deshabilitar en silencio — marcar el aviso
+    // (el usuario reportó "no lo permite" sin saber que faltaban chars)
+    if (!valid) { setTried(true); return; }
+    if (loading) return;
     // Se entrega el texto SIN trim: el server persiste el original
     // (estricto al leer, generoso al guardar — F0.3.1.5).
     onConfirm(reason);
@@ -88,7 +95,7 @@ export default function ReasonModal({ open, onClose, onConfirm, actionLabel, loa
         {/* Hint + contador */}
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          marginTop: 6, marginBottom: 20, fontSize: 11, fontWeight: 700,
+          marginTop: 6, marginBottom: tried && !valid ? 10 : 20, fontSize: 11, fontWeight: 700,
         }}>
           <span style={{ color: tooShort ? '#EF5350' : '#2E7D32' }}>
             {tooShort
@@ -100,6 +107,19 @@ export default function ReasonModal({ open, onClose, onConfirm, actionLabel, loa
             {rawLen} / 500
           </span>
         </div>
+
+        {/* Aviso REFORZADO tras intentar confirmar con motivo inválido */}
+        {tried && !valid && (
+          <div style={{
+            background: 'rgba(239,83,80,.12)', border: '1px solid rgba(239,83,80,.45)',
+            borderRadius: 12, padding: '10px 12px', marginBottom: 16,
+            fontSize: 12, color: '#EF9A9A', fontWeight: 700, lineHeight: 1.5,
+          }}>
+            {tooShort
+              ? `Para confirmar, el motivo debe tener al menos 8 caracteres — llevás ${trimmedLen}.`
+              : 'El motivo supera los 500 caracteres — recortalo para confirmar.'}
+          </div>
+        )}
 
         {/* Botones */}
         <div style={{ display: 'flex', gap: 10 }}>
@@ -118,14 +138,14 @@ export default function ReasonModal({ open, onClose, onConfirm, actionLabel, loa
           </button>
           <button
             onClick={handleConfirm}
-            disabled={confirmDisabled}
+            disabled={loading}
             style={{
               flex: 1, padding: '14px 16px',
               background: confirmDisabled ? '#3A3A3A' : '#FBBC04',
               border: 'none', borderRadius: 14,
               color: confirmDisabled ? '#777' : '#0D0D0D',
               fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 800,
-              cursor: confirmDisabled ? 'not-allowed' : 'pointer',
+              cursor: loading ? 'not-allowed' : 'pointer',
             }}
           >
             {loading ? 'Procesando...' : 'Confirmar'}

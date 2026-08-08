@@ -74,15 +74,15 @@ export default function PromoRuleForm({ rule, stations = [], rewards = [], savin
 
   const submit = () => {
     const name = f.name.trim();
-    if (name.length < 3) { fire('❌ El nombre debe tener al menos 3 caracteres'); return; }
+    if (name.length < 3) { fire('El nombre debe tener al menos 3 caracteres'); return; }
     const isGrant = f.effect_type === 'grant_reward';
     const val = isGrant ? null : parseFloat(f.effect_value);
     if (isGrant) {
-      if (!f.reward_id) { fire('❌ Elegí el premio del catálogo'); return; }
+      if (!f.reward_id) { fire('Elegí el premio del catálogo'); return; }
     } else {
-      if (!val || val <= 0) { fire('❌ Ingresá el valor del efecto'); return; }
+      if (!val || val <= 0) { fire('Ingresá el valor del efecto'); return; }
       if (f.effect_type === 'points_multiplier' && (val <= 1 || val > 10)) {
-        fire('❌ El multiplicador debe ser mayor a 1 y hasta 10'); return;
+        fire('El multiplicador debe ser mayor a 1 y hasta 10'); return;
       }
     }
     onSubmit({
@@ -110,21 +110,22 @@ export default function PromoRuleForm({ rule, stations = [], rewards = [], savin
     <div
       style={{
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 400,
-        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+        backdropFilter: 'blur(4px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
       }}
       onClick={() => !saving && onCancel()}
     >
+      {/* Modal oscuro CENTRADO (patrón ReasonModal — Admin v2 8-ago) */}
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: AT.card, border: '1px solid #FBBC04',
-          borderRadius: '24px 24px 0 0', width: '100%', maxWidth: 480,
-          maxHeight: '92vh', overflowY: 'auto', padding: '20px 20px 40px',
+          background: AT.bg, border: `1px solid ${AT.border}`,
+          borderRadius: 20, width: '100%', maxWidth: 480,
+          maxHeight: '90vh', overflowY: 'auto', padding: 24,
         }}
       >
-        <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,.2)', borderRadius: 4, margin: '0 auto 20px' }} />
-        <div style={{ fontSize: 14, fontWeight: 800, color: AT.txt, marginBottom: 16 }}>
-          {isNew ? '➕ Nueva regla de promoción' : '✏️ Editar regla'}
+        <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', marginBottom: 16 }}>
+          {isNew ? 'Nueva regla de promoción' : 'Editar regla'}
         </div>
 
         {/* Nombre + descripción */}
@@ -145,15 +146,15 @@ export default function PromoRuleForm({ rule, stations = [], rewards = [], savin
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
             <Chip on={f.effect_type === 'points_multiplier'} minWidth={0}
               onClick={() => setF(p => ({ ...p, effect_type: 'points_multiplier', effect_value: '2' }))}>
-              ✖️ Multiplicar puntos
+              Multiplicar puntos
             </Chip>
             <Chip on={f.effect_type === 'bonus_points'} minWidth={0}
               onClick={() => setF(p => ({ ...p, effect_type: 'bonus_points', effect_value: '' }))}>
-              ➕ Bonus fijo
+              Bonus fijo
             </Chip>
             <Chip on={f.effect_type === 'grant_reward'} minWidth={0}
               onClick={() => setF(p => ({ ...p, effect_type: 'grant_reward', effect_value: '' }))}>
-              🎁 Premio gratis
+              Premio gratis
             </Chip>
           </div>
           {f.effect_type === 'grant_reward' ? (
@@ -161,7 +162,7 @@ export default function PromoRuleForm({ rule, stations = [], rewards = [], savin
               <select value={f.reward_id} onChange={e => set('reward_id', e.target.value)} style={darkInput}>
                 <option value="">Elegí el premio del catálogo…</option>
                 {rewards.filter(r => r.active !== false).map(r => (
-                  <option key={r.id} value={r.id}>{r.icon ? r.icon + ' ' : ''}{r.name} ({r.pts} pts)</option>
+                  <option key={r.id} value={r.id}>{r.name} ({r.pts} pts)</option>
                 ))}
               </select>
               <div style={{ fontSize: 11, color: AT.sub, marginTop: 6, lineHeight: 1.5 }}>

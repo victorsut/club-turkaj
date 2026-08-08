@@ -6,6 +6,7 @@
 // logAdminAction client-first) y ofrece el simulador preview_promo.
 import { useEffect, useState } from 'react';
 import { btnYellow, inputStyle, adminTheme as AT } from '../../constants/styles';
+import { Plus, Percent } from '../../components/ui/Icons';
 import ReasonModal from '../../components/ui/ReasonModal';
 import { fetchPromoRules, managePromoRule, previewPromo } from '../../services';
 import PromoRuleForm from './PromoRuleForm';
@@ -15,16 +16,16 @@ const FUEL_LABELS = { super: 'Súper', regular: 'Regular', diesel: 'Diésel' };
 const darkInput = { ...inputStyle, background: '#333', border: `1px solid ${AT.border}`, color: AT.txt };
 
 function effectLabel(r, rewards = []) {
-  if (r.effect_type === 'points_multiplier') return `✖️ Puntos x${+r.effect_value}`;
-  if (r.effect_type === 'bonus_points') return `➕ +${Math.floor(r.effect_value)} pts extra`;
+  if (r.effect_type === 'points_multiplier') return `Puntos ×${+r.effect_value}`;
+  if (r.effect_type === 'bonus_points') return `+${Math.floor(r.effect_value)} pts extra`;
   const rw = rewards.find(x => x.id === r.reward_id);
-  return `🎁 ${rw ? (rw.icon ? rw.icon + ' ' : '') + rw.name : 'Premio'} gratis`;
+  return `Premio gratis: ${rw ? rw.name : 'Premio'}`;
 }
 
 // Resumen humano de vigencia + condiciones para la card de la lista.
 function condsSummary(r, stations) {
   const parts = [];
-  if (r.starts_on || r.ends_on) parts.push(`📅 ${r.starts_on || '…'} → ${r.ends_on || '…'}`);
+  if (r.starts_on || r.ends_on) parts.push(`${r.starts_on || '…'} → ${r.ends_on || '…'}`);
   if (r.weekdays?.length) parts.push(r.weekdays.map(d => DAY_LABELS[d]).join('/'));
   if (r.specific_dates?.length) parts.push(`Fechas: ${r.specific_dates.join(', ')}`);
   if (r.fuel_types?.length) parts.push(r.fuel_types.map(f => FUEL_LABELS[f] || f).join('/'));
@@ -45,7 +46,7 @@ function usesLabel(r) {
 }
 
 export default function PromoRules(ctx) {
-  const { stations = [], rewards = [], fire, sbConnected, loggedAdmin, setScr } = ctx;
+  const { stations = [], rewards = [], fire, sbConnected, loggedAdmin } = ctx;
 
   const [rules, setRules]     = useState([]);
   const [loading, setLoading] = useState(true);
@@ -68,7 +69,7 @@ export default function PromoRules(ctx) {
   // Toda acción de escritura pasa por ReasonModal → manage_promo_rule.
   const queue = (action, rule, payload, labelText) => {
     if (!loggedAdmin?.id) { fire('Error: sesion admin no disponible'); return; }
-    if (!sbConnected) { fire('❌ Sin conexión a Supabase'); return; }
+    if (!sbConnected) { fire('Sin conexión a Supabase'); return; }
     setPendingAction({ action, ruleId: rule === 'new' ? null : rule?.id, payload, actionLabel: labelText });
     setShowReasonModal(true);
   };
@@ -100,7 +101,7 @@ export default function PromoRules(ctx) {
       // Reabrir el form con lo tipeado si falló un create/update
       if (pendingAction.payload?.reopen) setEditing(pendingAction.payload.reopen);
       setPendingAction(null);
-      fire('❌ ' + (error?.message || 'Error desconocido'));
+      fire('Error: ' + (error?.message || 'desconocido'));
       return;
     }
     const doneRuleId = pendingAction.ruleId;
@@ -110,19 +111,19 @@ export default function PromoRules(ctx) {
     switch (data?.action) {
       case 'create':
         setRules(p => [{ ...rule, uses: 0 }, ...p]);
-        fire('✅ Regla creada');
+        fire('Regla creada');
         break;
       case 'update':
         setRules(p => p.map(r => r.id === rule.id ? rule : r));
-        fire('✅ Regla actualizada');
+        fire('Regla actualizada');
         break;
       case 'toggle':
         setRules(p => p.map(r => r.id === rule.id ? rule : r));
-        fire(rule.active ? '▶ Regla activada' : '⏸ Regla desactivada');
+        fire(rule.active ? 'Regla activada' : 'Regla desactivada');
         break;
       case 'delete':
         setRules(p => p.filter(r => r.id !== doneRuleId));
-        fire('🗑 Regla eliminada');
+        fire('Regla eliminada');
         break;
       default:
         load();
@@ -131,13 +132,13 @@ export default function PromoRules(ctx) {
 
   const runPreview = async () => {
     const amount = parseFloat(sim.amount);
-    if (!amount || amount < 10) { fire('❌ Monto mínimo Q10'); return; }
+    if (!amount || amount < 10) { fire('Monto mínimo Q10'); return; }
     setSimLoading(true);
     const { data, error, sessionExpired } = await previewPromo({
       amount, fuelType: sim.fuel, stationId: sim.stationId || null, tier: sim.tier,
     });
     setSimLoading(false);
-    if (error) { if (!sessionExpired) fire('❌ ' + error.message); return; }
+    if (error) { if (!sessionExpired) fire('Error: ' + error.message); return; }
     setSimResult(data);
   };
 
@@ -145,27 +146,27 @@ export default function PromoRules(ctx) {
   const btnGhost = { padding: '9px 0', borderRadius: 10, border: `1px solid ${AT.border}`, background: 'none', fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 12, cursor: 'pointer' };
 
   return (
-    <div style={{ paddingBottom: 100, background: AT.bg, minHeight: '100vh' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 20px 12px' }}>
-        <div>
-          <div onClick={() => setScr('promos')} style={{ fontSize: 12, color: AT.sub, cursor: 'pointer', marginBottom: 4 }}>← Promociones</div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: AT.txt }}>⚙️ Motor de promos</div>
+    <div style={{ padding: '22px 22px 60px' }}>
+      {/* Encabezado (FORMATO GENERAL Admin v2 — navegación en el sidebar) */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <div style={{ fontSize: 21, fontWeight: 800, color: '#fff' }}>Motor de promos</div>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: '#9E9E9E', marginTop: 2 }}>
+            Las reglas se aplican solas al registrar compras — si varias aplican, gana la de mayor beneficio (sin acumulación)
+          </div>
         </div>
-        <button onClick={() => setEditing('new')} style={{ ...btnYellow, padding: '10px 18px', fontSize: 13, width: 'auto' }}>
-          + Nueva regla
+        <button onClick={() => setEditing('new')}
+          style={{ ...btnYellow, display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 12, fontSize: 13, padding: '11px 18px', width: 'auto' }}>
+          <span style={{ display: 'flex', transform: 'scale(.8)' }}><Plus /></span> Nueva regla
         </button>
       </div>
 
-      <div style={{ padding: '0 20px' }}>
-        <div style={{ fontSize: 12, color: AT.sub, marginBottom: 14, lineHeight: 1.5 }}>
-          Las reglas se aplican automáticamente al registrar compras. Si varias
-          aplican a la misma compra, gana la de mayor beneficio (sin acumulación).
-        </div>
-
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 16, alignItems: 'start' }}>
         {/* ── Simulador ── */}
-        <div style={{ ...card, border: `1px solid #FBBC0455` }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: AT.txt, marginBottom: 10 }}>🧪 Probar: ¿qué aplicaría hoy?</div>
+        <div style={{ ...card, marginBottom: 0 }}>
+          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1.2, textTransform: 'uppercase', color: '#777', marginBottom: 12 }}>
+            Simulador — qué aplicaría hoy
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
             <input type="number" value={sim.amount} placeholder="Monto Q"
               onChange={e => setSim(p => ({ ...p, amount: e.target.value }))} style={darkInput} />
@@ -182,16 +183,16 @@ export default function PromoRules(ctx) {
               {['ORO', 'PLATINO', 'BLACK'].map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
-          <button onClick={runPreview} disabled={simLoading} style={{ ...btnYellow, width: '100%', padding: 10, fontSize: 13, opacity: simLoading ? .7 : 1 }}>
+          <button onClick={runPreview} disabled={simLoading} style={{ ...btnYellow, width: '100%', padding: 11, borderRadius: 12, fontSize: 13, opacity: simLoading ? .7 : 1 }}>
             {simLoading ? 'Probando...' : 'Probar'}
           </button>
           {simResult && (
-            <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, background: '#333', fontSize: 12, color: AT.txt, lineHeight: 1.6 }}>
+            <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 12, background: 'rgba(255,255,255,.05)', fontSize: 12, color: '#E0E0E0', lineHeight: 1.6 }}>
               {simResult.promo?.effect_type === 'grant_reward' ? (
-                <>🎁 Aplicaría <b>{simResult.promo.name}</b>: <b style={{ color: '#FBBC04' }}>{simResult.promo.reward_name} gratis</b>
+                <>Aplicaría <b>{simResult.promo.name}</b>: <b style={{ color: '#FBBC04' }}>{simResult.promo.reward_name} gratis</b>
                   {' '}(+{simResult.base_points} pts base de la compra)</>
               ) : simResult.promo ? (
-                <>🎉 Aplicaría <b>{simResult.promo.name}</b>: {simResult.base_points} pts base
+                <>Aplicaría <b>{simResult.promo.name}</b>: {simResult.base_points} pts base
                   {' '}+ <b style={{ color: '#FBBC04' }}>{simResult.promo.extra_points} extra</b> = {simResult.final_points} pts</>
               ) : (
                 <>Ninguna promoción aplicaría — {simResult.base_points} pts base.</>
@@ -201,50 +202,51 @@ export default function PromoRules(ctx) {
         </div>
 
         {/* ── Lista de reglas ── */}
-        {loading && <div style={{ textAlign: 'center', padding: 30, color: AT.sub }}>Cargando reglas...</div>}
-        {!loading && rules.length === 0 && (
-          <div style={{ textAlign: 'center', padding: 40, color: AT.sub }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>⚙️</div>
-            No hay reglas de promoción.<br />Presioná "+ Nueva regla" para crear la primera.
-          </div>
-        )}
+        <div>
+          {loading && <div style={{ textAlign: 'center', padding: 30, color: '#777', fontSize: 13, fontWeight: 700 }}>Cargando reglas...</div>}
+          {!loading && rules.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '30px 20px', color: '#777' }}>
+              <div style={{ width: 52, height: 52, borderRadius: 16, margin: '0 auto 12px', background: AT.card, border: `1px solid ${AT.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}><Percent /></div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#9E9E9E' }}>No hay reglas de promoción</div>
+              <div style={{ fontSize: 12, fontWeight: 600, marginTop: 4 }}>Creá la primera con "Nueva regla"</div>
+            </div>
+          )}
 
-        <div className="pp-adm-grid">
-        {rules.map(r => (
-          <div key={r.id} style={{ ...card, opacity: r.active ? 1 : .5 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: AT.txt }}>{r.name}</div>
-                {r.description && <div style={{ fontSize: 11, color: AT.sub, marginTop: 2 }}>{r.description}</div>}
+          {rules.map(r => (
+            <div key={r.id} style={{ ...card, opacity: r.active ? 1 : .55 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: '#E0E0E0' }}>{r.name}</div>
+                  {r.description && <div style={{ fontSize: 11, color: AT.sub, marginTop: 2 }}>{r.description}</div>}
+                </div>
+                <div style={{ fontSize: 9, fontWeight: 800, padding: '3px 8px', borderRadius: 6, flexShrink: 0, letterSpacing: .5, background: r.active ? 'rgba(76,175,80,.3)' : 'rgba(158,158,158,.3)', color: r.active ? '#81C784' : AT.sub }}>
+                  {r.active ? 'ACTIVA' : 'INACTIVA'}
+                </div>
               </div>
-              <div style={{ fontSize: 9, fontWeight: 800, padding: '3px 8px', borderRadius: 6, flexShrink: 0, background: r.active ? 'rgba(76,175,80,.3)' : 'rgba(158,158,158,.3)', color: r.active ? '#66BB6A' : AT.sub }}>
-                {r.active ? 'ACTIVA' : 'INACTIVA'}
+              <div style={{ fontSize: 13, fontWeight: 800, color: '#FBBC04', marginBottom: 6 }}>{effectLabel(r, rewards)}</div>
+              <div style={{ fontSize: 11, color: AT.sub, lineHeight: 1.6, marginBottom: 10 }}>
+                {condsSummary(r, stations)}<br />
+                Usos: {usesLabel(r)}
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => setEditing(r)} style={{ ...btnGhost, flex: 1, color: '#64B5F6' }}>
+                  Editar
+                </button>
+                <button onClick={() => queue('toggle', r, null, (r.active ? 'Desactivar regla: ' : 'Activar regla: ') + r.name)}
+                  style={{ ...btnGhost, flex: 1, color: r.active ? '#FF8F00' : '#81C784' }}>
+                  {r.active ? 'Desactivar' : 'Activar'}
+                </button>
+                <button
+                  onClick={() => {
+                    if (r.uses > 0) { fire('La regla tiene usos registrados — desactivala en su lugar'); return; }
+                    queue('delete', r, null, 'Eliminar regla: ' + r.name);
+                  }}
+                  style={{ ...btnGhost, padding: '9px 14px', color: '#EF5350' }}>
+                  Eliminar
+                </button>
               </div>
             </div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#FBBC04', marginBottom: 6 }}>{effectLabel(r, rewards)}</div>
-            <div style={{ fontSize: 11, color: AT.sub, lineHeight: 1.6, marginBottom: 10 }}>
-              {condsSummary(r, stations)}<br />
-              🔢 {usesLabel(r)}
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => queue('toggle', r, null, (r.active ? 'Desactivar regla: ' : 'Activar regla: ') + r.name)}
-                style={{ ...btnGhost, flex: 1, color: r.active ? '#FF8F00' : '#66BB6A' }}>
-                {r.active ? '⏸ Desactivar' : '▶ Activar'}
-              </button>
-              <button onClick={() => setEditing(r)} style={{ ...btnGhost, flex: 1, color: '#FBBC04' }}>
-                ✏️ Editar
-              </button>
-              <button
-                onClick={() => {
-                  if (r.uses > 0) { fire('❌ La regla tiene usos registrados — desactivala en su lugar'); return; }
-                  queue('delete', r, null, 'Eliminar regla: ' + r.name);
-                }}
-                style={{ ...btnGhost, padding: '9px 14px', color: '#EF5350' }}>
-                🗑
-              </button>
-            </div>
-          </div>
-        ))}
+          ))}
         </div>
       </div>
 
