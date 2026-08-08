@@ -26,9 +26,10 @@ const ICONS = ['🎁','⛽','🧴','🍪','🎟️','🏆','📱','🧽','🎨',
 
 const EMPTY = { name: '', pts: '', icon: '🎁', cat: 'merch', tier: 'todos', active: true, description: '', stationIds: [], storeIds: [] };
 
+// 8-ago-2026: la pestaña Rifa se MUDÓ a la vista Rifa del sidebar
+// (AdminRaffle) — acá quedan solo premios canjeables y festivos.
 const TABS = [
   { id: 'canjear', label: 'Canjear'  },
-  { id: 'rifa',    label: 'Rifa'     },
   { id: 'festivos',label: 'Festivos' },
 ];
 
@@ -82,22 +83,6 @@ export default function AdminPremios(ctx) {
         setFestList(sorted);
       });
   }, [sub]);
-
-  // Estados Rifa
-  const [raffleList, setRaffleList]   = useState([]);
-  const [loadingRaf, setLoadingRaf]   = useState(false);
-  const [showRafForm, setShowRafForm] = useState(false);
-  const [editRaf, setEditRaf]         = useState(null);
-  const [rafForm, setRafForm]         = useState({ month: '', year: new Date().getFullYear(), prize_name: '', prize_icon: '🎁', prize_value: '', prize_image_url: '', ticket_points: '', claim_days: '', claim_station_id: '' });
-  const [savingRaf, setSavingRaf]     = useState(false);
-
-  // Cargar rifas al abrir esa pestana
-  useEffect(() => {
-    if (sub !== 'rifa' || !sb || !sbConnected || raffleList.length > 0) return;
-    setLoadingRaf(true);
-    sb.from('raffle_calendar').select('*').order('year').order('month')
-      .then(({ data }) => { setLoadingRaf(false); if (data) setRaffleList(data); });
-  }, [sub, sbConnected]);
 
   const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
@@ -269,67 +254,9 @@ export default function AdminPremios(ctx) {
     setShowReasonModal(true);
   };
 
-  const openNewRaf = () => { setEditRaf(null); setRafForm({ month: '', year: new Date().getFullYear(), prize_name: '', prize_icon: '🎁', prize_value: '', prize_image_url: '', prize_detail: '', ticket_points: '', claim_days: '', claim_station_id: '' }); setShowRafForm(true); };
-  const openEditRaf = (r) => { setEditRaf(r); setRafForm({ month: r.month, year: r.year, prize_name: r.prize_name, prize_icon: r.prize_icon || '🎁', prize_value: String(r.prize_value), prize_image_url: r.prize_image_url || '', prize_detail: r.prize_detail || '', ticket_points: r.ticket_points != null ? String(r.ticket_points) : '', claim_days: r.claim_days != null ? String(r.claim_days) : '', claim_station_id: r.claim_station_id || '' }); setShowRafForm(true); };
-
-  const saveRaf = async () => {
-    if (!rafForm.month || !rafForm.prize_name || !rafForm.prize_value) { fire('Mes, premio y valor son obligatorios'); return; }
-    const data = { month: parseInt(rafForm.month), year: parseInt(rafForm.year), prize_name: rafForm.prize_name.trim(), prize_icon: rafForm.prize_icon, prize_value: parseFloat(rafForm.prize_value), prize_image_url: rafForm.prize_image_url.trim() || null, prize_detail: (rafForm.prize_detail || '').trim() || null, ticket_points: rafForm.ticket_points ? parseInt(rafForm.ticket_points) : null,
-      // D22: plazo/estación de reclamo (vacío = defaults 15 días / Turkaj 1)
-      claim_days: rafForm.claim_days ? parseInt(rafForm.claim_days) : null, claim_station_id: rafForm.claim_station_id || null };
-
-    // EDITAR: auditar via ReasonModal.
-    if (editRaf) {
-      if (!loggedAdmin?.id) { fire('Error: sesion admin no disponible. Cerra sesion y volve a ingresar.'); return; }
-      setPendingAction({
-        type: 'edit_raffle',
-        entityId: editRaf.id,
-        payload: { updates: data },
-        actionLabel: 'Editar rifa: ' + data.prize_name,
-        oldSnapshot: {
-          month: editRaf.month,
-          year: editRaf.year,
-          prize_name: editRaf.prize_name,
-          prize_icon: editRaf.prize_icon,
-          prize_value: editRaf.prize_value,
-          prize_image_url: editRaf.prize_image_url || null,
-          prize_detail: editRaf.prize_detail || null,
-          ticket_points: editRaf.ticket_points ?? null,
-          claim_days: editRaf.claim_days ?? null,
-          claim_station_id: editRaf.claim_station_id || null,
-        },
-      });
-      setShowRafForm(false);
-      setShowReasonModal(true);
-      return;
-    }
-
-    // CREAR: directo.
-    setSavingRaf(true);
-    if (sb && sbConnected) {
-      const res = await adminWriteCatalog('raffle', 'create', { data, audit: adminAudit() });
-      if (res.error) { fire('Error: ' + res.error); setSavingRaf(false); return; }
-      setRaffleList(p => [...p, { ...data, id: res.id }].sort((a,b) => a.year !== b.year ? a.year-b.year : a.month-b.month));
-      fire('Rifa creada');
-    }
-    setSavingRaf(false); setShowRafForm(false); setEditRaf(null);
-  };
-
-  // F0.3.6: eliminar rifa pasa por ReasonModal.
-  const delRaf = (r) => {
-    if (!loggedAdmin?.id) { fire('Error: sesion admin no disponible. Cerra sesion y volve a ingresar.'); return; }
-    setPendingAction({
-      type: 'delete_raffle_entry',
-      entityId: r.id,
-      payload: { entity: r },
-      actionLabel: 'Eliminar rifa: ' + (r.prize_name || ''),
-      oldSnapshot: r,
-    });
-    setShowReasonModal(true);
-  };
-
-  // F0.3.6: ejecutor unificado de acciones sensibles (edit/delete/toggle de las
-  // 3 entidades). Patron client-first: muta primero, audita despues; si el log
+  // F0.3.6: ejecutor unificado de acciones sensibles (edit/delete/toggle de
+  // premios y festivos — la rifa vive en AdminRaffle desde el 8-ago).
+  // Patron client-first: muta primero, audita despues; si el log
   // falla NO se revierte (warning + console.error). Espeja OpManagement F0.3.5.4.
   const confirmAction = async (reason) => {
     if (!loggedAdmin?.id) {
@@ -350,11 +277,10 @@ export default function AdminPremios(ctx) {
     try {
       switch (pendingAction.type) {
         case 'edit_reward':
-        case 'edit_special_day':
-        case 'edit_raffle': {
+        case 'edit_special_day': {
           // SEC.C.4: escritura + auditoría ATÓMICA en el RPC (antes el
           // log era client-first y podía dejar el cambio sin rastro).
-          const entityMap = { edit_reward: 'reward', edit_special_day: 'special_day', edit_raffle: 'raffle' };
+          const entityMap = { edit_reward: 'reward', edit_special_day: 'special_day' };
           const updates = pendingAction.payload.updates;
 
           if (sb && sbConnected) {
@@ -365,8 +291,7 @@ export default function AdminPremios(ctx) {
               setShowReasonModal(false);
               // Reabrir el modal de edicion correspondiente (form intacto).
               if (pendingAction.type === 'edit_reward') setShowForm(true);
-              else if (pendingAction.type === 'edit_special_day') setShowFestForm(true);
-              else setShowRafForm(true);
+              else setShowFestForm(true);
               fire('Error: ' + res.error);
               return;
             }
@@ -376,22 +301,17 @@ export default function AdminPremios(ctx) {
             setRewards(prev => prev.map(r => r.id === eid ? { ...r, ...updates, pts: updates.points_cost, cat: updates.category, tier: updates.tier_exclusive } : r));
             setShowForm(false); setEditR(null); setForm({ ...EMPTY });
             fire('Premio actualizado');
-          } else if (pendingAction.type === 'edit_special_day') {
+          } else {
             setFestList(prev => prev.map(x => x.id === eid ? { ...x, ...updates } : x));
             setShowFestForm(false); setEditFest(null);
             fire('Festivo actualizado');
-          } else {
-            setRaffleList(prev => prev.map(r => r.id === eid ? { ...r, ...updates } : r));
-            setShowRafForm(false); setEditRaf(null);
-            fire('Rifa actualizada');
           }
           break;
         }
 
         case 'delete_reward':
-        case 'delete_special_day':
-        case 'delete_raffle_entry': {
-          const entityMap = { delete_reward: 'reward', delete_special_day: 'special_day', delete_raffle_entry: 'raffle' };
+        case 'delete_special_day': {
+          const entityMap = { delete_reward: 'reward', delete_special_day: 'special_day' };
 
           if (sb && sbConnected) {
             const res = await adminWriteCatalog(entityMap[pendingAction.type], 'delete', { id: eid, audit });
@@ -399,8 +319,7 @@ export default function AdminPremios(ctx) {
           }
 
           if (pendingAction.type === 'delete_reward') { setRewards(prev => prev.filter(r => r.id !== eid)); fire('Premio eliminado'); }
-          else if (pendingAction.type === 'delete_special_day') { setFestList(prev => prev.filter(x => x.id !== eid)); fire('Festivo eliminado'); }
-          else { setRaffleList(prev => prev.filter(x => x.id !== eid)); fire('Rifa eliminada'); }
+          else { setFestList(prev => prev.filter(x => x.id !== eid)); fire('Festivo eliminado'); }
           break;
         }
 
@@ -493,137 +412,6 @@ export default function AdminPremios(ctx) {
             );
           })}
           </div>
-        </div>
-      )}
-
-      {/* RIFA */}
-      {sub === 'rifa' && (
-        <div>
-          <div style={{ padding: '0 20px 12px' }}>
-            <button onClick={openNewRaf} style={{ ...btnYellow, borderRadius: 14, fontSize: 14 }}><Plus /> Nueva Rifa</button>
-          </div>
-
-          {loadingRaf && <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}><LogoSpinner size={34} dark /></div>}
-
-          {!loadingRaf && raffleList.length === 0 && (
-            <div style={{ textAlign: 'center', padding: 40, color: '#555', fontSize: 13 }}>Sin rifas configuradas</div>
-          )}
-
-          <div className="pp-adm-grid">
-          {!loadingRaf && raffleList.map(r => {
-            const hasWinner = !!r.winner_id;
-            return (
-              <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: `1px solid ${AT.border}` }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: hasWinner ? 'rgba(46,125,50,.2)' : 'rgba(251,188,4,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 18 }}>{r.prize_icon || '🎁'}</div>
-                  </div>
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#E0E0E0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {MONTHS[(r.month || 1) - 1]} {r.year}
-                  </div>
-                  <div style={{ fontSize: 12, color: '#9E9E9E', marginTop: 2 }}>{r.prize_name}</div>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 3, alignItems: 'center' }}>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: '#FBBC04' }}>Q{r.prize_value}</span>
-                    <span style={{ fontSize: 10, color: '#9E9E9E', fontWeight: 700 }}>{r.ticket_points ?? cfg?.ticketPts ?? 5} pts/boleto</span>
-                    {hasWinner && <span style={{ fontSize: 10, background: 'rgba(46,125,50,.3)', color: '#69F0AE', padding: '2px 7px', borderRadius: 8, fontWeight: 700 }}>Sorteada</span>}
-                    {!hasWinner && <span style={{ fontSize: 10, background: 'rgba(251,188,4,.15)', color: '#FBBC04', padding: '2px 7px', borderRadius: 8, fontWeight: 700 }}>Pendiente</span>}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
-                  <button onClick={() => openEditRaf(r)} style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, color: '#64B5F6', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans'" }}>Editar</button>
-                  <button onClick={() => delRaf(r)} style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, color: '#EF5350', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans'" }}>Borrar</button>
-                </div>
-              </div>
-            );
-          })}
-          </div>
-
-          {/* MODAL FORM RIFA */}
-          {showRafForm && (
-            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 400, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => !savingRaf && setShowRafForm(false)}>
-              <div onClick={e => e.stopPropagation()} style={{ background: '#1E1E1E', borderRadius: '24px 24px 0 0', width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto', padding: '20px 20px 40px' }}>
-                <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,.2)', borderRadius: 4, margin: '0 auto 20px' }} />
-                <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginBottom: 18 }}>{editRaf ? 'Editar Rifa' : 'Nueva Rifa'}</div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-                  <div>
-                    <label style={sLbl}>Mes *</label>
-                    <select value={rafForm.month} onChange={e => setRafForm(p => ({ ...p, month: e.target.value }))} style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A', appearance: 'none' }}>
-                      <option value="">Seleccionar</option>
-                      {MONTHS.map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={sLbl}>Ano *</label>
-                    <input value={rafForm.year} onChange={e => setRafForm(p => ({ ...p, year: e.target.value.replace(/[^0-9]/g,'') }))} placeholder="2026" inputMode="numeric" maxLength={4} style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A' }} />
-                  </div>
-                </div>
-
-                <div style={{ marginBottom: 14 }}>
-                  <label style={sLbl}>Premio *</label>
-                  <input value={rafForm.prize_name} onChange={e => setRafForm(p => ({ ...p, prize_name: e.target.value }))} placeholder="Ej: iPhone 17 Pro" style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A' }} />
-                </div>
-
-                <div style={{ marginBottom: 14 }}>
-                  <label style={sLbl}>Valor estimado (Q) *</label>
-                  <input value={rafForm.prize_value} onChange={e => setRafForm(p => ({ ...p, prize_value: e.target.value.replace(/[^0-9.]/g,'') }))} placeholder="Ej: 15000" inputMode="decimal" style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A' }} />
-                </div>
-
-                <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#9E9E9E', marginBottom: 6 }}>Costo del boleto en puntos (opcional — vacío usa el global de {cfg?.ticketPts ?? 5} pts)</div>
-                  <input value={rafForm.ticket_points} onChange={e => setRafForm(p => ({ ...p, ticket_points: e.target.value.replace(/[^0-9]/g,'') }))} placeholder={`Global: ${cfg?.ticketPts ?? 5} pts`} inputMode="numeric" style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A' }} />
-                </div>
-                {/* D22: plazo y estación de reclamo del ganador */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-                  <div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#9E9E9E', marginBottom: 6 }}>Plazo para reclamar (días)</div>
-                    <input value={rafForm.claim_days} onChange={e => setRafForm(p => ({ ...p, claim_days: e.target.value.replace(/[^0-9]/g,'') }))} placeholder="15 (default)" inputMode="numeric" style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A' }} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#9E9E9E', marginBottom: 6 }}>Estación de reclamo</div>
-                    <select value={rafForm.claim_station_id} onChange={e => setRafForm(p => ({ ...p, claim_station_id: e.target.value }))} style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A', appearance: 'none' }}>
-                      <option value="">{(stations[0]?.name || 'Turkaj 1') + ' (default)'}</option>
-                      {stations.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div style={{ fontSize: 10, color: '#777', marginTop: -8, marginBottom: 14, lineHeight: 1.5 }}>
-                  El premio del ganador vence pasado el plazo (desde el sorteo) y ya no puede entregarse.
-                </div>
-
-                <div style={{ marginTop: 10, marginBottom: 14 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#9E9E9E', marginBottom: 6 }}>Imagen real del premio (URL, opcional — si se omite se usa el ícono)</div>
-                  <input value={rafForm.prize_image_url} onChange={e => setRafForm(p => ({ ...p, prize_image_url: e.target.value }))} placeholder="https://..." style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A' }} />
-                </div>
-
-                <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#9E9E9E', marginBottom: 6 }}>Detalle para el ganador (opcional — descripción del regalo y dónde recogerlo; SOLO lo ve el ganador en su notificación)</div>
-                  <textarea value={rafForm.prize_detail} onChange={e => setRafForm(p => ({ ...p, prize_detail: e.target.value }))} rows={4}
-                    placeholder="Ej: Bocinas Bluetooth JBL nuevas en caja. Pasá a recogerlas en Turkaj I (7a Av 6-10 Z1) presentando tu código de canje y tu DPI."
-                    style={{ ...inputStyle, background: '#2A2A2A', color: '#fff', border: '1px solid #3A3A3A', resize: 'vertical', lineHeight: 1.5 }} />
-                </div>
-
-                <div style={{ marginBottom: 20 }}>
-                  <label style={sLbl}>Icono</label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {ICONS.map(ico => (
-                      <button key={ico} onClick={() => setRafForm(p => ({ ...p, prize_icon: ico }))} style={{ fontSize: 22, padding: '6px 8px', borderRadius: 10, border: rafForm.prize_icon === ico ? '2px solid #FBBC04' : '2px solid transparent', background: rafForm.prize_icon === ico ? 'rgba(251,188,4,.15)' : 'rgba(255,255,255,.05)', cursor: 'pointer' }}>{ico}</button>
-                    ))}
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <button onClick={() => setShowRafForm(false)} disabled={savingRaf} style={{ ...btnDark, flex: 1 }}>Cancelar</button>
-                  <button onClick={saveRaf} disabled={savingRaf} style={{ ...btnYellow, flex: 2, opacity: savingRaf ? .7 : 1 }}>
-                    {savingRaf ? 'Guardando...' : editRaf ? 'Guardar cambios' : 'Crear rifa'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
         </div>
       )}
 
