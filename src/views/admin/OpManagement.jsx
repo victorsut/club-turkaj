@@ -1,14 +1,23 @@
 // src/views/admin/OpManagement.jsx
+// OPERADORES — Admin v2 (8-ago-2026, FORMATO GENERAL): flat sin
+// emojis, encabezado v2 con botón a la derecha, tarjetas en grid,
+// form y ficha como modales OSCUROS centrados (patrón ReasonModal),
+// máscaras de DPI/teléfono (regla ampliada 8-ago: también en admin) y
+// rating con CONTEO de calificaciones. La LÓGICA no cambió: alta por
+// create_operator, edición/contraseña/toggle auditadas vía
+// ReasonModal → RPCs (Objetivo #1), historial por RPCs SEC.C.2.
 import { useState, useEffect } from 'react';
 import { sb } from '../../lib/supabaseClient';
-import { sMono, adminTheme as AT, btnYellow, btnDark, inputStyle } from '../../constants/styles';
-import { Back, Plus } from '../../components/ui/Icons';
+import { sMono, adminTheme as AT, btnYellow, inputStyleDark } from '../../constants/styles';
+import { Plus, XMark } from '../../components/ui/Icons';
+import RewardIcon from '../../components/ui/RewardIcon';
+import { phoneMask, dpiMask } from '../../lib/inputMasks';
 import { createOperatorRPC, updateOperatorPassword, toggleOperatorActive, updateOperatorProfile } from '../../services/operatorAuthService';
 import { fetchOperatorPurchases, fetchOperatorRedemptions } from '../../services/secureReads';
 import ReasonModal from '../../components/ui/ReasonModal';
 
 export default function OpManagement(ctx) {
-  const { operators, setOperators, stations, setScr, fire, opRatings, showOpReg, setShowOpReg, editOp, setEditOp, newOp, setNewOp, sbConnected, loggedAdmin } = ctx;
+  const { operators, setOperators, stations, fire, opRatings, showOpReg, setShowOpReg, editOp, setEditOp, newOp, setNewOp, sbConnected, loggedAdmin } = ctx;
   const [saving, setSaving]           = useState(false);
   const [selOp, setSelOp]             = useState(null);
   const [histTab, setHistTab]         = useState('compras'); // 'compras' | 'canjes'
@@ -31,7 +40,6 @@ export default function OpManagement(ctx) {
       fetchOperatorRedemptions(selOp.id, { limit: 100 }),
     ]).then(([purchRows, redeemRows]) => {
       setLoadingHist(false);
-      console.log('[OpMgmt] Compras:', purchRows.length, '· Canjes:', redeemRows.length);
       if (purchRows.length) setOpHistory(purchRows.map(p => ({
         id: p.id,
         memberName: p.member_name || '-',
@@ -157,7 +165,7 @@ export default function OpManagement(ctx) {
       adminEmail: loggedAdmin.email,
       reasonText: reason,
     };
-    const { type, operatorId, operatorUsername, payload } = pendingAction;
+    const { type, operatorId, payload } = pendingAction;
 
     setSaving(true);
     try {
@@ -237,90 +245,122 @@ export default function OpManagement(ctx) {
     setShowReasonModal(true);
   };
 
-  const aSec = { padding: '20px 20px 8px', fontSize: 12, fontWeight: 800, color: '#9E9E9E', textTransform: 'uppercase', letterSpacing: 2 };
-  const sLbl = { display: 'block', fontSize: 11, fontWeight: 700, color: '#757575', marginBottom: 4, textTransform: 'uppercase', letterSpacing: .8 };
+  // ── estilos (FORMATO GENERAL Admin v2) ──────────────────────
+  const lbl = { display: 'block', fontSize: 11, fontWeight: 800, color: '#9E9E9E', marginBottom: 5, textTransform: 'uppercase', letterSpacing: .8 };
+  const miniBtn = (color) => ({
+    padding: '6px 10px', borderRadius: 8, border: `1px solid ${AT.border}`,
+    background: 'transparent', color, fontSize: 11, fontWeight: 700,
+    cursor: 'pointer', fontFamily: "'DM Sans'", flexShrink: 0,
+  });
+  const overlay = {
+    position: 'fixed', inset: 0, zIndex: 200,
+    background: 'rgba(0,0,0,.6)', backdropFilter: 'blur(4px)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+  };
+  const sheet = {
+    background: AT.bg, border: `1px solid ${AT.border}`,
+    borderRadius: 20, padding: 24, width: '100%', maxWidth: 460,
+    maxHeight: '90vh', overflowY: 'auto',
+  };
   const stationNames = (stations || []).length > 0 ? stations.filter(s => s.active !== false).map(s => s.name) : ['Turkaj I', 'Turkaj II', 'Turkaj III'];
+  const ratingOf = (id) => {
+    const rats = opRatings[id] || [];
+    if (!rats.length) return null;
+    return { avg: (rats.reduce((s, r) => s + (r.stars || 0), 0) / rats.length).toFixed(1), n: rats.length };
+  };
+
+  const activeCount = operators.filter(o => o.active).length;
 
   return (
-    <div style={{ paddingBottom: 90 }}>
-
-      <div style={{ padding: '14px 20px', borderBottom: `1px solid ${AT.border}`, background: '#252525', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button onClick={() => setScr('dash')} style={{ background: 'none', border: 'none', color: '#9E9E9E', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 600 }}><Back /> Inicio</button>
-        <div style={{ fontSize: 17, fontWeight: 700, color: '#fff' }}>Operadores</div>
-        <button onClick={() => { setShowOpReg(true); setEditOp(null); setNewOp({ name: '', user: '', password: '', dpi: '', gafete: '', phone: '', station: stationNames[0] || 'Turkaj I', bomba: '', turno: 'Matutino', email: '' }); }} style={{ ...btnYellow, padding: '8px 16px', fontSize: 12, width: 'auto', borderRadius: 12 }}><Plus /> Nuevo</button>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, padding: '12px 20px' }}>
-        <div style={{ background: AT.card, borderRadius: 14, padding: 14, border: `1px solid ${AT.border}`, textAlign: 'center' }}>
-          <div style={{ ...sMono, fontSize: 28, color: '#2E7D32' }}>{operators.filter(o => o.active).length}</div>
-          <div style={{ fontSize: 10, color: '#9E9E9E', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700, marginTop: 4 }}>Activos</div>
-        </div>
-        <div style={{ background: AT.card, borderRadius: 14, padding: 14, border: `1px solid ${AT.border}`, textAlign: 'center' }}>
-          <div style={{ ...sMono, fontSize: 28, color: '#C62828' }}>{operators.filter(o => !o.active).length}</div>
-          <div style={{ fontSize: 10, color: '#9E9E9E', textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700, marginTop: 4 }}>Inactivos</div>
-        </div>
-      </div>
-
-      <div style={aSec}>Lista de Operadores ({operators.length})</div>
-
-      {operators.length === 0 && <div style={{ textAlign: 'center', padding: 32, color: '#777', fontSize: 13 }}>No hay operadores registrados</div>}
-
-      <div className="pp-adm-grid">
-      {operators.map(op => {
-        const rats = opRatings[op.id] || [];
-        const avg  = rats.length > 0 ? (rats.reduce((s, r) => s + (r.stars || 0), 0) / rats.length).toFixed(1) : null;
-        return (
-          <div key={op.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: `1px solid ${AT.border}`, opacity: op.active ? 1 : .5 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 14, background: op.active ? '#2E7D32' : '#616161', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16, flexShrink: 0 }}>{op.name.charAt(0)}</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div onClick={() => setSelOp(op)} style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 14, color: '#64B5F6', cursor: 'pointer' }}>
-                <span style={{ textDecoration: 'underline', textDecorationStyle: 'dotted', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{op.name}</span>
-                {op.external === 'proper' && <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 800, letterSpacing: 1, padding: '2px 7px', borderRadius: 7, background: 'rgba(250,84,8,.15)', color: '#FA5408' }}>PROPER</span>}
-              </div>
-              {/* Espejo de PROPER: su estación es la última donde despachó
-                  (viaja con cada factura, ya no es una asignación fija). */}
-              <div style={{ fontSize: 11, color: '#777', marginTop: 2 }}>{op.external === 'proper' ? `Despachó en ${op.station || '-'}` : (op.station || '-')} | #{op.gafete} | {op.turno}</div>
-              <div style={{ fontSize: 10, color: '#555', marginTop: 2 }}>@{op.user}{op.phone ? ' | ' + op.phone : ''}{avg ? ' | ' + avg + ' pts' : ''}</div>
-            </div>
-            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-              <button onClick={() => { setEditOp(op); setNewOp({ name: op.name, user: op.user, password: '', dpi: op.dpi, gafete: op.gafete, phone: op.phone, station: op.station || stationNames[0], bomba: op.bomba, turno: op.turno, email: op.email }); setShowOpReg(true); }} style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, fontFamily: "'DM Sans'", fontSize: 11, fontWeight: 700, cursor: 'pointer', color: '#64B5F6' }}>Editar</button>
-              <button onClick={() => toggleOp(op)} style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${AT.border}`, background: AT.card, fontFamily: "'DM Sans'", fontSize: 11, fontWeight: 700, cursor: 'pointer', color: op.active ? '#EF5350' : '#2E7D32' }}>{op.active ? 'Desact.' : 'Activar'}</button>
-            </div>
+    <div style={{ padding: '22px 22px 60px' }}>
+      {/* Encabezado */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <div style={{ fontSize: 21, fontWeight: 800, color: '#fff' }}>Operadores</div>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: '#9E9E9E', marginTop: 2 }}>
+            {operators.length.toLocaleString('en-US')} operadores — {activeCount.toLocaleString('en-US')} activos · {(operators.length - activeCount).toLocaleString('en-US')} inactivos
           </div>
-        );
-      })}
+        </div>
+        <button onClick={() => { setShowOpReg(true); setEditOp(null); setNewOp({ name: '', user: '', password: '', dpi: '', gafete: '', phone: '', station: stationNames[0] || 'Turkaj I', bomba: '', turno: 'Matutino', email: '' }); }}
+          style={{ ...btnYellow, width: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 12, fontSize: 13, padding: '11px 18px' }}>
+          <span style={{ display: 'flex', transform: 'scale(.8)' }}><Plus /></span> Nuevo operador
+        </button>
       </div>
 
+      {operators.length === 0 && <div style={{ textAlign: 'center', padding: 32, color: '#777', fontSize: 13, fontWeight: 700 }}>No hay operadores registrados</div>}
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 10 }}>
+        {operators.map(op => {
+          const rat = ratingOf(op.id);
+          return (
+            <div key={op.id} style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              background: AT.card, border: `1px solid ${AT.border}`,
+              borderRadius: 16, padding: '12px 14px', opacity: op.active ? 1 : .55,
+            }}>
+              <div style={{ width: 44, height: 44, borderRadius: 13, background: op.active ? 'rgba(46,125,50,.25)' : 'rgba(255,255,255,.08)', color: op.active ? '#81C784' : '#999', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16, flexShrink: 0 }}>{op.name.charAt(0)}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div onClick={() => setSelOp(op)} style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, fontSize: 13.5, color: '#E0E0E0', cursor: 'pointer' }}>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{op.name}</span>
+                  {op.external === 'proper' && <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 800, letterSpacing: 1, padding: '2px 7px', borderRadius: 7, background: 'rgba(250,84,8,.15)', color: '#FA5408' }}>PROPER</span>}
+                  {!op.active && <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 800, letterSpacing: .5, padding: '2px 7px', borderRadius: 7, background: 'rgba(255,255,255,.08)', color: '#999' }}>INACTIVO</span>}
+                </div>
+                {/* Espejo de PROPER: su estación es la última donde despachó
+                    (viaja con cada factura, ya no es una asignación fija). */}
+                <div style={{ fontSize: 11, color: '#777', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {op.external === 'proper' ? `Despachó en ${op.station || '—'}` : (op.station || '—')} · Gafete {op.gafete} · {op.turno}
+                </div>
+                <div style={{ fontSize: 10.5, color: '#555', marginTop: 2, ...sMono, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  @{op.user}{op.phone ? ` · ${phoneMask.format(op.phone)}` : ''}{rat ? ` · ${rat.avg} (${rat.n} calif.)` : ''}
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
+                <button onClick={() => { setEditOp(op); setNewOp({ name: op.name, user: op.user, password: '', dpi: op.dpi, gafete: op.gafete, phone: op.phone, station: op.station || stationNames[0], bomba: op.bomba, turno: op.turno, email: op.email }); setShowOpReg(true); }} style={miniBtn('#64B5F6')}>Editar</button>
+                <button onClick={() => toggleOp(op)} style={miniBtn(op.active ? '#FF8F00' : '#81C784')}>{op.active ? 'Desactivar' : 'Activar'}</button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Form alta/edición (modal oscuro centrado) ── */}
       {showOpReg && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', backdropFilter: 'blur(6px)', zIndex: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => { if (!saving) { setShowOpReg(false); setEditOp(null); } }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '28px 28px 0 0', padding: '28px 24px 32px', maxWidth: 480, width: '100%', maxHeight: '85vh', overflowY: 'auto' }}>
-            <div style={{ width: 40, height: 4, background: '#E0E0E0', borderRadius: 2, margin: '0 auto 20px' }} />
-            <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 16 }}>{editOp ? 'Editar' : 'Nuevo'} Operador</div>
+        <div style={overlay} onClick={() => { if (!saving) { setShowOpReg(false); setEditOp(null); } }}>
+          <div onClick={e => e.stopPropagation()} style={sheet}>
+            <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginBottom: 16 }}>{editOp ? 'Editar operador' : 'Nuevo operador'}</div>
             {[
               { k: 'name', l: 'Nombre completo *', p: 'Juan Perez' },
               { k: 'user', l: 'Usuario *', p: 'jperez' },
-              { k: 'password', l: editOp ? 'Contrasena (dejar vacio para no cambiar)' : 'Contrasena *', p: editOp ? 'Dejar vacio para no cambiar' : '******', t: 'password' },
-              { k: 'dpi', l: 'DPI *', p: '1234567890101', num: true, max: 13 },
+              { k: 'password', l: editOp ? 'Contraseña (vacío = no cambiar)' : 'Contraseña *', p: editOp ? 'Dejar vacío para no cambiar' : 'Mínimo 6 caracteres', t: 'password' },
+              { k: 'dpi', l: 'DPI *', p: '1234 56789 0123', mask: dpiMask, inputMode: 'numeric' },
               { k: 'gafete', l: 'No. Gafete *', p: 'GAF-001' },
-              { k: 'phone', l: 'Telefono', p: '55512345', num: true, max: 8 },
+              { k: 'phone', l: 'Teléfono', p: '5551 2345', mask: phoneMask, inputMode: 'numeric' },
               { k: 'bomba', l: 'No. Bomba', p: '1' },
               { k: 'email', l: 'Email', p: 'operador@turkaj.com', t: 'email' },
             ].map(f => (
               <div key={f.k} style={{ marginBottom: 12 }}>
-                <label style={sLbl}>{f.l}</label>
-                <input type={f.t || 'text'} placeholder={f.p} inputMode={f.num ? 'numeric' : undefined} maxLength={f.max} value={newOp[f.k] || ''} onChange={e => { const val = f.num ? e.target.value.replace(/[^0-9]/g, '') : e.target.value; setNewOp(p => ({ ...p, [f.k]: val })); }} style={inputStyle} />
+                <label style={lbl}>{f.l}</label>
+                <input
+                  type={f.t || 'text'} placeholder={f.p} inputMode={f.inputMode}
+                  value={f.mask ? f.mask.format(newOp[f.k] || '') : (newOp[f.k] || '')}
+                  onChange={e => {
+                    const val = f.mask ? f.mask.clean(e.target.value) : e.target.value;
+                    setNewOp(p => ({ ...p, [f.k]: val }));
+                  }}
+                  style={{ ...inputStyleDark, fontSize: 13, padding: '10px 12px', ...(f.mask ? { fontVariantNumeric: 'tabular-nums', letterSpacing: .5 } : {}) }}
+                />
               </div>
             ))}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
               <div>
-                <label style={sLbl}>Estacion</label>
-                <select value={newOp.station} onChange={e => setNewOp(p => ({ ...p, station: e.target.value }))} style={{ ...inputStyle, appearance: 'none' }}>
+                <label style={lbl}>Estación</label>
+                <select value={newOp.station} onChange={e => setNewOp(p => ({ ...p, station: e.target.value }))} style={{ ...inputStyleDark, appearance: 'none', fontSize: 13, padding: '10px 12px' }}>
                   {stationNames.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               <div>
-                <label style={sLbl}>Turno</label>
-                <select value={newOp.turno} onChange={e => setNewOp(p => ({ ...p, turno: e.target.value }))} style={{ ...inputStyle, appearance: 'none' }}>
+                <label style={lbl}>Turno</label>
+                <select value={newOp.turno} onChange={e => setNewOp(p => ({ ...p, turno: e.target.value }))} style={{ ...inputStyleDark, appearance: 'none', fontSize: 13, padding: '10px 12px' }}>
                   <option>Matutino</option>
                   <option>Vespertino</option>
                   <option>Nocturno</option>
@@ -328,56 +368,61 @@ export default function OpManagement(ctx) {
               </div>
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => { setShowOpReg(false); setEditOp(null); }} disabled={saving} style={{ ...btnDark, flex: 1, opacity: saving ? .5 : 1 }}>Cancelar</button>
-              <button onClick={saveOp} disabled={saving} style={{ ...btnYellow, flex: 2, opacity: saving ? .7 : 1 }}>{saving ? 'Guardando...' : editOp ? 'Guardar Cambios' : 'Registrar Operador'}</button>
+              <button onClick={() => { setShowOpReg(false); setEditOp(null); }} disabled={saving} style={{
+                flex: 1, padding: 13, borderRadius: 12, cursor: 'pointer',
+                border: `1px solid ${AT.border}`, background: 'transparent', color: '#9E9E9E',
+                fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700, opacity: saving ? .5 : 1,
+              }}>Cancelar</button>
+              <button onClick={saveOp} disabled={saving} style={{
+                flex: 2, padding: 13, borderRadius: 12, cursor: 'pointer', border: 'none',
+                background: '#FBBC04', color: '#0D0D0D', opacity: saving ? .7 : 1,
+                fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 800,
+              }}>{saving ? 'Guardando...' : editOp ? 'Guardar cambios' : 'Registrar operador'}</button>
             </div>
           </div>
         </div>
       )}
 
+      {/* ── Ficha del operador (historial de compras y entregas) ── */}
       {selOp && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 300, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={() => { setSelOp(null); setOpHistory([]); setOpRedeems([]); setHistTab('compras'); }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: '#1E1E1E', borderRadius: '24px 24px 0 0', width: '100%', maxWidth: 480, maxHeight: '80vh', display: 'flex', flexDirection: 'column', animation: 'slideUp .3s ease' }}>
-
-            <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,.2)', borderRadius: 4, margin: '12px auto 0' }} />
-
-            <div style={{ padding: '16px 20px 12px', borderBottom: `1px solid ${AT.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>{selOp.name}</div>
-                <div style={{ fontSize: 11, color: '#777', marginTop: 2 }}>{selOp.station || '-'} | #{selOp.gafete} | {selOp.turno}</div>
+        <div style={{ ...overlay, zIndex: 300 }} onClick={() => { setSelOp(null); setOpHistory([]); setOpRedeems([]); setHistTab('compras'); }}>
+          <div onClick={e => e.stopPropagation()} style={{ ...sheet, padding: 0, maxWidth: 520, display: 'flex', flexDirection: 'column', maxHeight: '85vh' }}>
+            <div style={{ padding: '18px 20px 12px', borderBottom: `1px solid ${AT.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selOp.name}</div>
+                <div style={{ fontSize: 11, color: '#777', marginTop: 2 }}>{selOp.station || '—'} · Gafete {selOp.gafete} · {selOp.turno}</div>
               </div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
                 {(() => {
-                  const rats = opRatings[selOp.id] || [];
-                  const avg  = rats.length > 0 ? (rats.reduce((s, r) => s + (r.stars || 0), 0) / rats.length).toFixed(1) : null;
-                  return avg ? <div style={{ fontSize: 13, fontWeight: 800, color: '#FBBC04' }}>* {avg} ({rats.length})</div> : null;
+                  const rat = ratingOf(selOp.id);
+                  return rat ? <div style={{ fontSize: 13, fontWeight: 800, color: '#FBBC04', ...sMono }}>{rat.avg} <span style={{ fontSize: 10, color: '#777' }}>({rat.n})</span></div> : null;
                 })()}
-                <button onClick={() => setSelOp(null)} style={{ background: 'none', border: 'none', color: '#9E9E9E', fontSize: 20, cursor: 'pointer' }}>X</button>
+                <button onClick={() => setSelOp(null)} aria-label="Cerrar" style={{ background: 'none', border: 'none', color: '#9E9E9E', cursor: 'pointer', display: 'flex', padding: 4 }}><XMark /></button>
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, padding: '12px 20px', borderBottom: `1px solid ${AT.border}` }}>
               {[
-                { l: 'Compras', v: opHistory.length, c: '#FBBC04' },
-                { l: 'Pts otorgados', v: opHistory.reduce((s, t) => s + (t.pts || 0), 0).toLocaleString(), c: '#4CAF50' },
-                { l: 'Canjes', v: opRedeems.length, c: '#64B5F6' },
+                { l: 'Compras', v: opHistory.length.toLocaleString('en-US'), c: '#FBBC04' },
+                { l: 'Pts otorgados', v: opHistory.reduce((s, t) => s + (t.pts || 0), 0).toLocaleString('en-US'), c: '#81C784' },
+                { l: 'Canjes', v: opRedeems.length.toLocaleString('en-US'), c: '#64B5F6' },
               ].map(s => (
                 <div key={s.l} style={{ background: 'rgba(255,255,255,.05)', borderRadius: 10, padding: '10px 8px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 16, fontWeight: 900, color: s.c }}>{s.v}</div>
+                  <div style={{ ...sMono, fontSize: 16, fontWeight: 800, color: s.c }}>{s.v}</div>
                   <div style={{ fontSize: 9, color: '#777', textTransform: 'uppercase', letterSpacing: .5, fontWeight: 700, marginTop: 3 }}>{s.l}</div>
                 </div>
               ))}
             </div>
 
-            <div style={{ overflowY: 'auto', flex: 1, paddingBottom: 24 }}>
+            <div style={{ overflowY: 'auto', flex: 1, paddingBottom: 20 }}>
               {/* Pestañas */}
               <div style={{ display: 'flex', gap: 8, padding: '10px 20px 0' }}>
-                {[{ id: 'compras', l: 'Compras (' + opHistory.length + ')' }, { id: 'canjes', l: 'Canjes (' + opRedeems.length + ')' }].map(t => (
+                {[{ id: 'compras', l: `Compras (${opHistory.length})` }, { id: 'canjes', l: `Canjes (${opRedeems.length})` }].map(t => (
                   <button key={t.id} onClick={() => setHistTab(t.id)} style={{ flex: 1, padding: '8px 4px', borderRadius: 10, border: 'none', background: histTab === t.id ? '#FBBC04' : 'rgba(255,255,255,.07)', color: histTab === t.id ? '#0D0D0D' : '#9E9E9E', fontFamily: "'DM Sans'", fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>{t.l}</button>
                 ))}
               </div>
 
-              {loadingHist && <div style={{ textAlign: 'center', padding: 32, color: '#777' }}>Cargando...</div>}
+              {loadingHist && <div style={{ textAlign: 'center', padding: 32, color: '#777', fontSize: 13, fontWeight: 700 }}>Cargando...</div>}
 
               {/* Lista compras */}
               {!loadingHist && histTab === 'compras' && (
@@ -388,14 +433,14 @@ export default function OpManagement(ctx) {
                       const dateStr = d ? d.toLocaleDateString('es-GT', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
                       const timeStr = d ? d.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' }) : '';
                       return (
-                        <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: `1px solid ${AT.border}` }}>
-                          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(251,188,4,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, color: '#FBBC04', flexShrink: 0 }}>Q</div>
+                        <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 20px', borderBottom: `1px solid ${AT.border}` }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(251,188,4,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: '#FBBC04', flexShrink: 0, ...sMono }}>Q</div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 13, fontWeight: 800, color: '#E0E0E0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.memberName}</div>
-                            <div style={{ fontSize: 11, color: '#777', marginTop: 2 }}>{h.desc} | {h.fuel}</div>
+                            <div style={{ fontSize: 11, color: '#777', marginTop: 2 }}>{h.desc} · {h.fuel}</div>
                           </div>
                           <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                            <div style={{ fontSize: 12, fontWeight: 800, color: '#FBBC04' }}>+{h.pts} pts</div>
+                            <div style={{ fontSize: 12, fontWeight: 800, color: '#FBBC04', ...sMono }}>+{h.pts} pts</div>
                             <div style={{ fontSize: 10, color: '#555', marginTop: 2 }}>{dateStr}</div>
                             <div style={{ fontSize: 9, color: '#444' }}>{timeStr}</div>
                           </div>
@@ -413,15 +458,17 @@ export default function OpManagement(ctx) {
                       const dateStr = d ? d.toLocaleDateString('es-GT', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
                       const timeStr = d ? d.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' }) : '';
                       return (
-                        <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: `1px solid ${AT.border}` }}>
-                          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(100,181,246,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>{h.rewardIcon || 'P'}</div>
+                        <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 20px', borderBottom: `1px solid ${AT.border}` }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(100,181,246,.15)', color: '#64B5F6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <RewardIcon reward={{ icon: h.rewardIcon, name: h.rewardName }} />
+                          </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 13, fontWeight: 800, color: '#E0E0E0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.memberName}</div>
                             <div style={{ fontSize: 11, color: '#777', marginTop: 2 }}>{h.rewardName}</div>
-                            <div style={{ fontSize: 10, color: '#555', fontFamily: 'monospace', marginTop: 1 }}>{h.code}</div>
+                            <div style={{ fontSize: 10, color: '#555', ...sMono, marginTop: 1 }}>{h.code}</div>
                           </div>
                           <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                            <div style={{ fontSize: 12, fontWeight: 800, color: '#64B5F6' }}>-{h.pts} pts</div>
+                            <div style={{ fontSize: 12, fontWeight: 800, color: '#64B5F6', ...sMono }}>-{h.pts} pts</div>
                             <div style={{ fontSize: 10, color: '#555', marginTop: 2 }}>{dateStr}</div>
                             <div style={{ fontSize: 9, color: '#444' }}>{timeStr}</div>
                           </div>
@@ -430,7 +477,6 @@ export default function OpManagement(ctx) {
                     })
               )}
             </div>
-
           </div>
         </div>
       )}
