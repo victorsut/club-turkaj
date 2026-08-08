@@ -226,6 +226,10 @@ export default function App() {
   const [cfg, setCfg] = useState(CFG_INIT);
   const [cards, setCards] = useState([]);
   const [raffleCal, setRaffleCal] = useState([]);
+  // Rifa multi-año (8-ago): rifas SORTEADAS de otros años — solo para
+  // que el modal de ganador las encuentre al cruzar el año (raffleCal
+  // conserva sus 12 slots del año en curso para todos los consumidores).
+  const [crossYearWins, setCrossYearWins] = useState([]);
   const [rafData, setRafData] = useState(Array(12).fill(null).map(() => ({ participants: [] })));
   const [rafWinners, setRafWinners] = useState({});
   const [opRatings, setOpRatings] = useState({});
@@ -283,14 +287,19 @@ export default function App() {
   // localStorage queda como guarda instantánea secundaria.
   const [raffleWin, setRaffleWin] = useState(null);
   useEffect(() => {
-    if (!me?.id || !raffleCal.length) return;
+    if (!me?.id || (!raffleCal.length && !crossYearWins.length)) return;
     try {
-      const win = raffleCal.find(r => r?.winnerId === me.id && r.drawnAt && r.dbId
+      // Rifa multi-año (8-ago): el pool incluye las sorteadas de OTROS
+      // años (la de diciembre se sortea en enero del año siguiente y ya
+      // no vive en los 12 slots del año en curso — sin esto el ganador
+      // nunca veía su felicitación al cruzar el año).
+      const pool = [...raffleCal, ...crossYearWins];
+      const win = pool.find(r => r?.winnerId === me.id && r.drawnAt && r.dbId
         && !r.winnerSeenAt
         && !localStorage.getItem(`pp_rafwin_${r.dbId}`));
       if (win) setRaffleWin(win);
     } catch { /* localStorage no disponible */ }
-  }, [me?.id, raffleCal]);
+  }, [me?.id, raffleCal, crossYearWins]);
 
   // Cierre animado del sheet del código QR (misma regla).
   const [qrClosing, setQrClosing] = useState(false);
@@ -586,23 +595,33 @@ export default function App() {
             winnerId: null, drawnAt: null, winnerSeenAt: null, ticketPts: null,
             claimDays: null, claimStationId: null,
           }));
+          // Mismo shape para el slot del año en curso y para las
+          // sorteadas de otros años (el modal de ganador consume ambos)
+          const mapRaffleSlot = (r) => ({
+            m: months[r.month - 1], p: `${r.prize_icon} ${r.prize_name}`,
+            name: r.prize_name, icon: r.prize_icon, img: r.prize_image_url || null,
+            detail: r.prize_detail || null,
+            v: `Q${r.prize_value}`, cost: r.prize_value, dbId: r.id,
+            month: r.month, year: r.year || yr,
+            winnerId: r.winner_id || null, drawnAt: r.drawn_at || null,
+            winnerSeenAt: r.winner_seen_at || null,
+            // Costo del boleto de ESTA rifa; null = global cfg.ticketPts.
+            ticketPts: r.ticket_points ?? null,
+            // D22: plazo/estación de reclamo (null = 15 días / Turkaj 1)
+            claimDays: r.claim_days ?? null,
+            claimStationId: r.claim_station_id || null,
+          });
           rcRes.data.filter(r => !r.year || r.year === yr).forEach(r => {
-            cal[r.month - 1] = {
-              m: months[r.month - 1], p: `${r.prize_icon} ${r.prize_name}`,
-              name: r.prize_name, icon: r.prize_icon, img: r.prize_image_url || null,
-              detail: r.prize_detail || null,
-              v: `Q${r.prize_value}`, cost: r.prize_value, dbId: r.id,
-              month: r.month, year: r.year || yr,
-              winnerId: r.winner_id || null, drawnAt: r.drawn_at || null,
-              winnerSeenAt: r.winner_seen_at || null,
-              // Costo del boleto de ESTA rifa; null = global cfg.ticketPts.
-              ticketPts: r.ticket_points ?? null,
-              // D22: plazo/estación de reclamo (null = 15 días / Turkaj 1)
-              claimDays: r.claim_days ?? null,
-              claimStationId: r.claim_station_id || null,
-            };
+            cal[r.month - 1] = mapRaffleSlot(r);
           });
           setRaffleCal(cal);
+          // Rifa multi-año (8-ago): las SORTEADAS de otros años entran a
+          // un pool aparte — caso real: la rifa de diciembre se sortea en
+          // enero del año siguiente, cuando raffleCal ya solo trae los
+          // slots del año nuevo, y el ganador no veía su felicitación.
+          setCrossYearWins(
+            rcRes.data.filter(r => r.year && r.year !== yr && r.winner_id).map(mapRaffleSlot)
+          );
         }
 
         // Load members — SEC.C.1/C.5: en el boot solo columnas NO
@@ -2371,6 +2390,9 @@ export default function App() {
             // deja al GANADOR marcar su propia felicitación.
             if (sb) markRaffleWinnerSeen(raffleWin.dbId);
             setRaffleCal(p => p.map(r => r?.dbId === raffleWin.dbId
+              ? { ...r, winnerSeenAt: new Date().toISOString() } : r));
+            // Rifa multi-año: la ganada puede vivir en el pool de otros años
+            setCrossYearWins(p => p.map(r => r?.dbId === raffleWin.dbId
               ? { ...r, winnerSeenAt: new Date().toISOString() } : r));
             setRaffleWin(null);
           }}
