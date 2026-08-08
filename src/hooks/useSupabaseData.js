@@ -32,6 +32,7 @@ export function mapMember(m) {
     dpi: m.dpi || '',
     plate: m.plate || '',
     nit: m.nit || '',
+    nitChangedAt: m.nit_changed_at || null, // candado 8-ago: cambio cada 60 días
     bday: m.birthday || '',
     address: m.address || null,
     points: m.points || 0,

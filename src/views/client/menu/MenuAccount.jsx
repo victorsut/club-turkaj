@@ -1,22 +1,25 @@
 // src/views/client/menu/MenuAccount.jsx
 // Sección Mi Cuenta (FORMATO GENERAL): datos editables con las máscaras
-// de inputMasks, datos bloqueados (DPI/nacimiento), vehículos con
-// iconos SVG (alta Y baja persisten en members) y cambio de contraseña.
+// de inputMasks, datos bloqueados (DPI/nacimiento), cambio de contraseña
+// y biometría. CANDADOS 8-ago-2026 (pedido del dueño): el TELÉFONO solo
+// cambia con verificación OTP (PhoneChangeSection) y el NIT cada 2 meses
+// (candado server-side en update_my_profile — aquí solo se refleja).
+// Vehículos extraídos a VehiclesSection (límite de 500 líneas).
 import { useState, useEffect } from 'react';
 import { sb } from '../../../lib/supabaseClient';
 import { inputFlat, btnStyle, bento, BRAND_ORANGE } from '../../../constants/styles';
-import { User, Phone, Mail, Receipt, IdCard, Cake, Lock, Key, Eye, EyeOff, Plus, XMark, Chev, Fingerprint, Check } from '../../../components/ui/Icons';
+import { User, Mail, Receipt, IdCard, Cake, Lock, Key, Eye, EyeOff, Chev, Fingerprint, Check } from '../../../components/ui/Icons';
 import { biometricsAvailable, registerBiometric, isUserCancel } from '../../../lib/webauthnClient';
 import { getMemberToken } from '../../../services/sessionTokens';
-import { VEHICLE_TYPES } from '../../../components/ui/VehicleIcons';
 import { DatePickerSheet } from '../../../components/ui/DrumDatePicker';
-import { phoneMask, dpiMask, plateMask, capWords } from '../../../lib/inputMasks';
+import { dpiMask, capWords } from '../../../lib/inputMasks';
 import AddressPicker, { EMPTY_ADDRESS } from '../../../components/ui/AddressPicker';
 import { packAddress } from '../../../constants/geoGt';
 import { SectionHeader } from './menuUi';
 import AvatarEditor from './AvatarEditor';
 import DeleteAccountSection from './DeleteAccountSection';
-import useBackLayer from '../../../hooks/useBackLayer';
+import PhoneChangeSection from './PhoneChangeSection';
+import VehiclesSection from './VehiclesSection';
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 // Fecha legible desde 'YYYY-MM-DD' (completa) o 'MM-DD' (registros viejos)
@@ -28,19 +31,11 @@ const fmtBday = v => {
   return v;
 };
 
-const parseVehicles = (v) => {
-  if (!v) return [];
-  if (Array.isArray(v)) return v;
-  if (typeof v === 'object') return Object.values(v);
-  try { return JSON.parse(v); } catch { return []; }
-};
-const typeInfo = k => VEHICLE_TYPES.find(t => t.k === k) || VEHICLE_TYPES[0];
-
 export default function MenuAccount({ ctx, TH, onBack }) {
   const { me, setMe, fire, sbConnected } = ctx;
 
   const [form, setForm] = useState({
-    nickname: me?.nickname || '', phone: me?.phone || '', email: me?.email || '', nit: me?.nit || '', bday: '',
+    nickname: me?.nickname || '', email: me?.email || '', nit: me?.nit || '', bday: '',
   });
   // Dirección en cascada (dep → muni → cantón); sin dato guardado
   // arranca con Quiché/Chichicastenango preseleccionados
@@ -53,14 +48,12 @@ export default function MenuAccount({ ctx, TH, onBack }) {
   const [showBdayPicker, setShowBdayPicker] = useState(false);
   const [tempDate, setTempDate] = useState('2000-01-01');
 
-  const [vehicles, setVehicles] = useState(() => parseVehicles(me?.vehicles));
-  useEffect(() => {
-    const parsed = parseVehicles(me?.vehicles);
-    if (parsed.length > 0) setVehicles(parsed);
-  }, [me?.vehicles]);
-  const [addingV, setAddingV]     = useState(false);
-  const [newVType, setNewVType]   = useState('liviano');
-  const [newVPlate, setNewVPlate] = useState('');
+  // NIT: candado de 2 meses desde el último cambio (nit_changed_at
+  // viene del perfil; el candado REAL vive en update_my_profile)
+  const nitLockUntil = me?.nitChangedAt
+    ? new Date(new Date(me.nitChangedAt).getTime() + 60 * 86400000) : null;
+  const nitLocked = !!(nitLockUntil && nitLockUntil > new Date());
+  const fmtLockDate = d => `${d.getDate()} / ${MONTHS[d.getMonth()]} / ${d.getFullYear()}`;
 
   const [showPassSec, setShowPassSec] = useState(false);
   const [passForm, setPassForm]       = useState({ current: '', newPass: '', confirm: '' });
@@ -117,18 +110,23 @@ export default function MenuAccount({ ctx, TH, onBack }) {
   const btnPrimary = { ...btnStyle, background: BRAND_ORANGE, color: '#fff' };
 
   // ── Guardar datos de cuenta ──────────────────────────────
+  // 8-ago: el TELÉFONO ya no viaja aquí (solo PhoneChangeSection con
+  // OTP) y el NIT solo se envía si CAMBIÓ (enviar el mismo valor no
+  // debe disparar el candado de 2 meses).
   const saveAccount = async () => {
     // 1-ago: el nombre REAL ya no es editable por el cliente — el
     // sobrenombre visible es el APODO (nickname, máx 20).
     if (form.nickname && form.nickname.trim().length > 20) { fire('El apodo no puede superar 20 caracteres', 'error'); return; }
-    if (form.phone && !/^\d{8}$/.test(form.phone.trim())) { fire('El teléfono debe tener 8 dígitos', 'error'); return; }
     setSaving(true);
     // Completa = dep+muni (cantón solo exigible en Chichicastenango);
     // incompleta → null (no se inventan datos con los preseleccionados)
     const addressStored = packAddress(addr);
+    const nitTrim = form.nit?.trim() || null;
+    const nitChanged = nitTrim !== (me?.nit || null);
     const updates = {
-      nickname: form.nickname?.trim() || null, phone: form.phone?.trim() || me.phone, email: form.email?.trim() || null, nit: form.nit?.trim() || null,
+      nickname: form.nickname?.trim() || null, email: form.email?.trim() || null,
       address: addressStored,
+      ...(nitChanged ? { nit: nitTrim } : {}),
       ...(form.bday ? { birthday: form.bday } : {}),
     };
     if (sbConnected && sb) {
@@ -147,67 +145,15 @@ export default function MenuAccount({ ctx, TH, onBack }) {
       }
     }
     const { birthday, ...local } = updates;
-    setMe(p => ({ ...p, ...local, ...(birthday ? { bday: birthday } : {}) }));
+    setMe(p => ({
+      ...p, ...local,
+      ...(birthday ? { bday: birthday } : {}),
+      // refleja el candado sin esperar el refetch del perfil
+      ...(nitChanged ? { nit: nitTrim || '', nitChangedAt: new Date().toISOString() } : {}),
+    }));
     setSaving(false);
     fire('Datos actualizados', 'success');
     onBack();
-  };
-
-  // ── Vehículos (alta y baja persisten en members) ─────────
-  // persistVehicles DEVUELVE el error de la BD (antes se tragaba el
-  // fallo y el cliente celebraba éxito con la lista sin guardar —
-  // bug reportado por el dueño 27-jul); solo refleja en `me` si guardó.
-  const persistVehicles = async (updated) => {
-    if (sb && sbConnected) {
-      // SEC.C.1: vía update_my_profile (plate se deriva server-side)
-      const { data, error } = await sb.rpc('update_my_profile', {
-        p_session_token: getMemberToken()?.token ?? null,
-        p_changes: { vehicles: updated },
-      });
-      const err = error || (data?.error ? { message: data.error } : null);
-      if (err) { console.error('[Vehicles]', err); return err; }
-    }
-    setMe(p => ({ ...p, vehicles: updated, plate: updated[0]?.plate || '' }));
-    return null;
-  };
-  // Alta/baja de vehículos NO se registran en activity_log (decisión
-  // del dueño 27-jul: no mueven puntos — el historial de vehículos
-  // vivirá en la pestaña VEHÍCULOS, F6). Solo el bonus del wizard de
-  // registro persiste ahí porque sí suma puntos.
-  const addVehicle = async () => {
-    if (!newVPlate.trim()) { fire('Ingresa la placa del vehículo', 'error'); return; }
-    if (!plateMask.complete(newVPlate)) { fire('Placa incompleta — formato: P 123 ABC', 'error'); return; }
-    const prev = vehicles;
-    const added = { type: newVType, plate: newVPlate };
-    const updated = [...prev, added];
-    setVehicles(updated); setAddingV(false); setNewVPlate(''); setNewVType('liviano');
-    const err = await persistVehicles(updated);
-    if (err) { setVehicles(prev); fire('No se pudo guardar el vehículo: ' + err.message, 'error'); return; }
-    fire('Vehículo agregado', 'success');
-  };
-  // Eliminar vehículo pide CONFIRMACIÓN (pedido del dueño 27-jul):
-  // borra el dato guardado y todo lo relacionado a ese vehículo.
-  const [delVehicle, setDelVehicle] = useState(null); // { v, i } | null
-  const [delClosing, setDelClosing] = useState(false);
-  const [deleting, setDeleting]     = useState(false);
-  const closeDelSheet = () => {
-    setDelClosing(true);
-    setTimeout(() => { setDelVehicle(null); setDelClosing(false); }, 200);
-  };
-  useBackLayer(!!delVehicle, closeDelSheet);
-
-  const confirmRemoveVehicle = async () => {
-    if (!delVehicle || deleting) return;
-    setDeleting(true);
-    const { i } = delVehicle;
-    const prev = vehicles;
-    const updated = prev.filter((_, j) => j !== i);
-    setVehicles(updated);
-    const err = await persistVehicles(updated);
-    setDeleting(false);
-    closeDelSheet();
-    if (err) { setVehicles(prev); fire('No se pudo eliminar el vehículo: ' + err.message, 'error'); return; }
-    fire('Vehículo eliminado', 'success');
   };
 
   // ── Contraseña (SEC-lite 25-jul): RPC con bcrypt server-side,
@@ -239,9 +185,7 @@ export default function MenuAccount({ ctx, TH, onBack }) {
   const editFields = [
     { k: 'nickname', l: 'Apodo', icon: <User />, autoCap: 'words', transform: capWords,
       hint: 'Así te verán los demás participantes en la rifa' },
-    { k: 'phone', l: 'Teléfono',           icon: <Phone />,   mask: phoneMask, inputMode: 'numeric' },
-    { k: 'email', l: 'Correo electrónico', icon: <Mail />,    type: 'email' },
-    { k: 'nit',   l: 'NIT',               icon: <Receipt /> },
+    { k: 'email', l: 'Correo electrónico', icon: <Mail />, type: 'email' },
   ];
   const readonlyFields = [
     { l: 'DPI', icon: <IdCard />, val: me?.dpi ? dpiMask.format(me.dpi) : '—' },
@@ -293,6 +237,36 @@ export default function MenuAccount({ ctx, TH, onBack }) {
           {f.hint && <div style={{ fontSize: 11, color: TH.sub, marginTop: 5 }}>{f.hint}</div>}
         </div>
       ))}
+
+      {/* ── Teléfono: bloqueado — solo cambia con código SMS (8-ago) ── */}
+      <PhoneChangeSection ctx={{ me, setMe, fire }} TH={TH} />
+
+      {/* ── NIT: editable cada 2 meses (candado server-side 8-ago) ── */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={label}>NIT</div>
+        {nitLocked ? (
+          <>
+            <div style={{ ...field, display: 'flex', alignItems: 'center', color: TH.sub, position: 'relative' }}>
+              <div style={iconL}><Receipt /></div>
+              <span style={{ flex: 1 }}>{me?.nit || '—'}</span>
+              <span style={{ display: 'flex', color: TH.sub, opacity: .6 }}><Lock /></span>
+            </div>
+            <div style={{ fontSize: 11, color: TH.sub, marginTop: 5 }}>
+              El NIT se cambia cada 2 meses — podrás cambiarlo el {fmtLockDate(nitLockUntil)}.
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ position: 'relative' }}>
+              <div style={iconL}><Receipt /></div>
+              <input value={form.nit || ''} onChange={e => setForm(p => ({ ...p, nit: e.target.value }))} style={field} />
+            </div>
+            <div style={{ fontSize: 11, color: TH.sub, marginTop: 5 }}>
+              Solo puede cambiarse cada 2 meses — revisalo antes de guardar.
+            </div>
+          </>
+        )}
+      </div>
 
       {/* ── Dirección (cascada dep → muni → cantón) ── */}
       <div style={{ marginBottom: 14 }}>
@@ -348,60 +322,8 @@ export default function MenuAccount({ ctx, TH, onBack }) {
         {saving ? 'Guardando...' : 'Guardar cambios'}
       </button>
 
-      {/* ── Vehículos ── */}
-      <div style={{ fontSize: 13, fontWeight: 800, color: TH.header, marginBottom: 10 }}>Tus vehículos</div>
-      {vehicles.map((v, i) => {
-        const t = typeInfo(v.type);
-        return (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: TH.surface, borderRadius: 16, padding: '12px 14px', marginBottom: 10 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 12, background: TH.iconBox, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <t.Icon size={22} />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: TH.header }}>{t.label}</div>
-              <div style={{ fontSize: 12, color: TH.sub, fontFamily: "'JetBrains Mono', monospace", marginTop: 2 }}>{plateMask.format(plateMask.clean(v.plate || '')) || v.plate}</div>
-            </div>
-            <button onClick={() => setDelVehicle({ v, i })} aria-label="Quitar vehículo"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: TH.sub, padding: 4, display: 'flex' }}><XMark /></button>
-          </div>
-        );
-      })}
-
-      {addingV ? (
-        <div style={{ background: TH.surface, borderRadius: 20, padding: 16, marginBottom: 24 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: TH.header, marginBottom: 12 }}>Tipo de vehículo</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
-            {VEHICLE_TYPES.map(t => {
-              const on = newVType === t.k;
-              return (
-                <button key={t.k} onClick={() => setNewVType(t.k)} style={{
-                  padding: '10px 8px', borderRadius: 12, border: 'none',
-                  background: on ? (TH.isDark ? '#fff' : '#0D0D0D') : TH.inset,
-                  color: on ? (TH.isDark ? '#0D0D0D' : '#fff') : TH.sub,
-                  cursor: 'pointer', fontFamily: "'DM Sans'", fontWeight: 700, fontSize: 12,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                }}>
-                  <t.Icon size={18} />{t.label}
-                </button>
-              );
-            })}
-          </div>
-          <input placeholder="Placa (ej: P 123 ABC)" value={plateMask.format(newVPlate)} autoCapitalize="characters"
-            onChange={e => setNewVPlate(plateMask.clean(e.target.value))}
-            style={{ ...field, paddingLeft: 16, marginBottom: 12, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, letterSpacing: 2 }} />
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={() => { setAddingV(false); setNewVPlate(''); }}
-              style={{ flex: 1, padding: 12, borderRadius: 12, border: 'none', background: TH.inset, color: TH.sub, fontFamily: "'DM Sans'", fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>Cancelar</button>
-            <button onClick={addVehicle}
-              style={{ flex: 2, padding: 12, borderRadius: 12, border: 'none', background: BRAND_ORANGE, color: '#fff', fontFamily: "'DM Sans'", fontWeight: 800, cursor: 'pointer', fontSize: 13 }}>Agregar</button>
-          </div>
-        </div>
-      ) : (
-        <button onClick={() => setAddingV(true)} style={{ width: '100%', padding: 14, borderRadius: 16, border: 'none', background: TH.surface, color: TH.header, fontFamily: "'DM Sans'", fontWeight: 800, fontSize: 14, cursor: 'pointer', marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          <span style={{ color: BRAND_ORANGE, display: 'flex' }}><Plus /></span>
-          Agregar vehículo
-        </button>
-      )}
+      {/* ── Vehículos (extraídos a su propio componente, 8-ago) ── */}
+      <VehiclesSection ctx={{ me, setMe, fire, sbConnected }} TH={TH} />
 
       {/* ── Contraseña ── */}
       <button onClick={() => setShowPassSec(p => !p)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderRadius: 16, border: 'none', background: TH.surface, fontFamily: "'DM Sans'", cursor: 'pointer', marginBottom: showPassSec ? 12 : 0, textAlign: 'left' }}>
@@ -508,43 +430,6 @@ export default function MenuAccount({ ctx, TH, onBack }) {
           6-ago) — al FINAL a propósito: el cliente pasa por todos sus
           datos antes de llegar acá y el flujo exige tipear ELIMINAR ── */}
       <DeleteAccountSection ctx={ctx} TH={TH} />
-
-      {/* ── Confirmación de eliminación de vehículo (bottom sheet) ── */}
-      {delVehicle && (() => {
-        const t = typeInfo(delVehicle.v.type);
-        const plateTxt = plateMask.format(plateMask.clean(delVehicle.v.plate || '')) || delVehicle.v.plate;
-        return (
-          <div onClick={closeDelSheet}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 500, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', animation: delClosing ? 'ppFadeOut .2s ease forwards' : 'fadeIn .2s ease' }}>
-            <div onClick={e => e.stopPropagation()}
-              style={{ background: TH.isDark ? '#16161A' : '#fff', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 480, padding: '24px 20px 36px', animation: delClosing ? 'slideDownOut .22s ease forwards' : 'slideUp .25s ease' }}>
-              <div style={{ fontSize: 18, fontWeight: 900, color: TH.header, marginBottom: 4 }}>¿Eliminar este vehículo?</div>
-              <div style={{ fontSize: 13, color: TH.sub, lineHeight: 1.5, marginBottom: 16 }}>
-                Se eliminará de tu cuenta junto con todos sus datos relacionados. Esta acción no se puede deshacer.
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: TH.isDark ? 'rgba(255,255,255,.07)' : '#F5F5F7', borderRadius: 16, padding: '12px 14px', marginBottom: 18 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: bento.red, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <t.Icon size={22} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: TH.header }}>{t.label}</div>
-                  <div style={{ fontSize: 12, color: TH.sub, fontFamily: "'JetBrains Mono', monospace", marginTop: 2 }}>{plateTxt}</div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={closeDelSheet}
-                  style={{ flex: 1, padding: 14, borderRadius: 14, border: 'none', background: TH.isDark ? 'rgba(255,255,255,.08)' : '#F5F5F7', color: TH.sub, fontFamily: "'DM Sans'", fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
-                  Cancelar
-                </button>
-                <button onClick={confirmRemoveVehicle} disabled={deleting}
-                  style={{ flex: 1, padding: 14, borderRadius: 14, border: 'none', background: bento.red, color: '#fff', fontFamily: "'DM Sans'", fontWeight: 800, cursor: 'pointer', fontSize: 14, opacity: deleting ? .7 : 1 }}>
-                  {deleting ? 'Eliminando...' : 'Eliminar'}
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
     </>
   );
 }
