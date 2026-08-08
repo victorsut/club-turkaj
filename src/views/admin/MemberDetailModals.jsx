@@ -15,7 +15,7 @@ import { VEHICLE_TYPES } from '../../components/ui/VehicleIcons';
 import { DatePickerSheet } from '../../components/ui/DrumDatePicker';
 import AddressPicker, { EMPTY_ADDRESS } from '../../components/ui/AddressPicker';
 import { packAddress } from '../../constants/geoGt';
-import { plateMask } from '../../lib/inputMasks';
+import { plateMask, phoneMask, dpiMask } from '../../lib/inputMasks';
 
 // ═══ Reglas de edición (las usa MemberDetail para validar/diff) ═══
 
@@ -165,11 +165,14 @@ export function EditMemberModal({ editMember, setEditMember, fieldErrors, setFie
     setShowBday(true);
   };
 
+  // phone/dpi con MÁSCARA del registro (estado crudo, display con
+  // espacios — mask.clean ya limita 8/13 dígitos); NIT sin máscara
+  // (regla del 23-jul: texto plano en form y BD).
   const FIELDS = [
     { k: 'name',     l: 'Nombre',     t: 'text',  max: 60 },
     { k: 'nickname', l: 'Apodo',      t: 'text',  max: 20 },
-    { k: 'phone',    l: 'Teléfono',   t: 'tel',   max: 8,  numeric: true },
-    { k: 'dpi',      l: 'DPI',        t: 'text',  max: 13, numeric: true },
+    { k: 'phone',    l: 'Teléfono',   t: 'tel',   mask: phoneMask, inputMode: 'numeric' },
+    { k: 'dpi',      l: 'DPI',        t: 'text',  mask: dpiMask,   inputMode: 'numeric' },
     { k: 'email',    l: 'Email',      t: 'email', max: 80 },
     { k: 'nit',      l: 'NIT',        t: 'text',  max: 12 },
   ];
@@ -196,24 +199,24 @@ export function EditMemberModal({ editMember, setEditMember, fieldErrors, setFie
             <label style={lbl}>{f.l}</label>
             <input
               type={f.t}
-              value={editMember[f.k] || ''}
+              value={f.mask ? f.mask.format(editMember[f.k] || '') : (editMember[f.k] || '')}
               maxLength={f.max}
-              inputMode={f.numeric ? 'numeric' : undefined}
+              inputMode={f.inputMode}
               onChange={e => {
-                let val = e.target.value;
-                if (f.numeric) val = val.replace(/[^0-9]/g, '');
+                const val = f.mask ? f.mask.clean(e.target.value) : e.target.value;
                 setEditMember(p => ({ ...p, [f.k]: val }));
                 if (fieldErrors[f.k]) setFieldErrors(prev => ({ ...prev, [f.k]: null }));
               }}
               onBlur={e => {
-                let val = e.target.value;
-                if (!f.numeric && val !== val.trim()) {
+                // Validar siempre el valor CRUDO (la máscara agrega espacios)
+                let val = f.mask ? f.mask.clean(e.target.value) : e.target.value;
+                if (!f.mask && val !== val.trim()) {
                   val = val.trim();
                   setEditMember(p => ({ ...p, [f.k]: val }));
                 }
                 setFieldErrors(prev => ({ ...prev, [f.k]: validateField(f.k, val) }));
               }}
-              style={{ ...inputStyleDark, fontSize: 13, padding: '10px 12px', borderColor: fieldErrors[f.k] ? '#EF5350' : undefined }}
+              style={{ ...inputStyleDark, fontSize: 13, padding: '10px 12px', borderColor: fieldErrors[f.k] ? '#EF5350' : undefined, ...(f.mask ? { fontVariantNumeric: 'tabular-nums', letterSpacing: .5 } : {}) }}
             />
             {fieldErrors[f.k] && <div style={errTxt}>{fieldErrors[f.k]}</div>}
           </div>
@@ -272,7 +275,7 @@ export function PwResetModal({ pwModal, setPwModal, member, onSubmit, onClose })
       <div onClick={e => e.stopPropagation()} style={sheet}>
         <div style={{ ...title, marginBottom: 6 }}>Restablecer contraseña</div>
         <div style={{ fontSize: 12.5, color: '#9E9E9E', marginBottom: 18, lineHeight: 1.55 }}>
-          Se asignará una contraseña nueva a <strong style={{ color: '#E0E0E0' }}>{member.name}</strong> ({member.phone}).
+          Se asignará una contraseña nueva a <strong style={{ color: '#E0E0E0' }}>{member.name}</strong> ({member.phone && member.phone !== '—' ? phoneMask.format(member.phone) : '—'}).
           Entregásela al cliente y pedile que la cambie desde Mi Cuenta.
         </div>
         {[

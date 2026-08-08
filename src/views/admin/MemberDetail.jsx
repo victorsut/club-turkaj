@@ -18,7 +18,7 @@ import { VEHICLE_TYPES } from '../../components/ui/VehicleIcons';
 import { EditMemberModal, PwResetModal, VehicleModal, buildDiff, validateForm } from './MemberDetailModals';
 import { updateMemberWithAudit, adminResetMemberPassword } from '../../services/rpcServices';
 import { fetchActivityStaff } from '../../services/secureReads';
-import { plateMask } from '../../lib/inputMasks';
+import { plateMask, phoneMask, dpiMask } from '../../lib/inputMasks';
 import { stripEmojis } from '../../lib/text';
 import { getAdminToken } from '../../services/sessionTokens';
 
@@ -345,8 +345,9 @@ export default function MemberDetail(ctx) {
             <div style={cardLbl}>Datos del miembro</div>
             {[
               { l: 'Apodo', v: c.nickname || '—' },
-              { l: 'Teléfono', v: c.phone || '—' },
-              { l: 'DPI', v: c.dpi || '—' },
+              // Formato visual del registro (los datos crudos no cambian)
+              { l: 'Teléfono', v: c.phone && c.phone !== '—' ? phoneMask.format(c.phone) : '—' },
+              { l: 'DPI', v: c.dpi && c.dpi !== '—' ? dpiMask.format(c.dpi) : '—' },
               { l: 'Email', v: c.email || '—' },
               { l: 'NIT', v: c.nit || '—' },
               { l: 'Dirección', v: c.address ? [c.address.canton, c.address.muni].filter(Boolean).join(', ') : '—' },
