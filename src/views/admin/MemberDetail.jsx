@@ -8,7 +8,7 @@
 // sigue auditado (ReasonModal → RPCs de siempre).
 import { useState, useEffect } from 'react';
 import { sb } from '../../lib/supabaseClient';
-import { sMono, adminTheme as AT, btnYellow } from '../../constants/styles';
+import { sMono, adminTheme as AT } from '../../constants/styles';
 import Badge from '../../components/ui/Badge';
 import TierBenefitsCard from '../../components/ui/TierBenefitsCard';
 import InactivityWarning from '../../components/ui/InactivityWarning';
@@ -27,8 +27,8 @@ const vType = (k) => VEHICLE_TYPES.find(t => t.k === k) || VEHICLE_TYPES.find(t 
 
 export default function MemberDetail(ctx) {
   const {
-    sel, setSel, setScr, custs, setCusts, gT, cfg, fire,
-    activityLog, setModal, me, setMe, loggedAdmin,
+    sel, setScr, custs, setCusts, gT, cfg, fire,
+    activityLog, me, setMe, loggedAdmin,
     editMember, setEditMember,
   } = ctx;
 
@@ -333,10 +333,11 @@ export default function MemberDetail(ctx) {
               ))}
             </div>
 
+            {/* Sin "Registrar compra" (8-ago, decisión del dueño): las
+                compras las registran los OPERADORES vía la API de PROPER */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button onClick={() => { setSel(c); setModal('buy'); }} style={{ ...btnYellow, flex: 1, minWidth: 140, padding: 12, borderRadius: 12, fontSize: 13 }}>Registrar compra</button>
-              <button onClick={openEditor} style={{ ...ghostBtn('#E0E0E0'), flex: 1, minWidth: 120 }}>Editar datos</button>
-              <button onClick={() => setPwModal({ pass: '', confirm: '' })} style={{ ...ghostBtn('#CE93D8'), width: '100%' }}>Restablecer contraseña</button>
+              <button onClick={openEditor} style={{ ...ghostBtn('#E0E0E0'), flex: 1, minWidth: 140 }}>Editar datos</button>
+              <button onClick={() => setPwModal({ pass: '', confirm: '' })} style={{ ...ghostBtn('#CE93D8'), flex: 1, minWidth: 140 }}>Restablecer contraseña</button>
             </div>
           </div>
 
