@@ -1,33 +1,54 @@
 // src/views/shared/Rules.jsx
-// Reglas del Programa — hoy solo se llega desde el panel admin
-// (Ajustes → "Ver Reglas"); el cliente ve esta información en el Menú
-// (Niveles/Inactividad). Tema oscuro del admin y tarjetas de nivel del
-// FORMATO GENERAL (TierBenefitsCard: banda por tier + iconos SVG, sin
-// emojis ni "invitar amigo").
+// REGLAS Y TÉRMINOS — Admin v2 (11-ago-2026, FORMATO GENERAL): flat
+// sin emojis, encabezado v2 sin back-link (navegación en el sidebar),
+// secciones en grid auto-fill 340px. Vista de SOLO CONSULTA del panel;
+// el cliente ve esta información en su Menú (Niveles/Inactividad y
+// Términos). Tarjetas de nivel del FORMATO GENERAL (TierBenefitsCard:
+// banda por tier + iconos SVG, sin emojis ni "invitar amigo").
+// Términos de Canje (cfg.termsCanje) gana tarjeta propia — el dato
+// existía en config pero no se mostraba en ninguna vista.
 import { adminTheme as AT, bento, BRAND_ORANGE } from '../../constants/styles';
 import TierBenefitsCard from '../../components/ui/TierBenefitsCard';
 import { makeTier } from '../../lib/tierSystem';
-import { Back, Warn } from '../../components/ui/Icons';
+import { Warn } from '../../components/ui/Icons';
 
 export default function Rules(ctx) {
-  const { cfg, cTier, me, setScr } = ctx;
+  const { cfg, cTier, me } = ctx;
   const ptGal = cfg.tiers?.platino?.gal ?? 150;
   const bkGal = cfg.tiers?.black?.gal ?? 500;
   const tiers = [0, ptGal, bkGal].map(g => makeTier(g, cfg));
 
-  const secHdr = { display: 'flex', alignItems: 'center', gap: 8, padding: '18px 20px 12px', fontSize: 13, fontWeight: 800, color: '#E0E0E0', textTransform: 'uppercase', letterSpacing: 1.5 };
+  // ── estilos (FORMATO GENERAL Admin v2) ──────────────────
+  const secTitle = { display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 800, color: '#9E9E9E', textTransform: 'uppercase', letterSpacing: 1.5, margin: '18px 0 4px' };
+  const secHint = { fontSize: 11, color: '#777', lineHeight: 1.5, marginBottom: 10 };
+  const grid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 10, alignItems: 'start' };
+  const card = { background: AT.card, borderRadius: 16, border: `1px solid ${AT.border}`, padding: '14px 16px' };
+
+  const termCard = (title, terms) => (
+    <div style={card}>
+      <div style={{ fontSize: 13, fontWeight: 800, color: '#E0E0E0', marginBottom: 10 }}>{title}</div>
+      {terms.map((t, i) => (
+        <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 800, color: BRAND_ORANGE, flexShrink: 0, width: 18 }}>{i + 1}.</span>
+          <span style={{ fontSize: 12.5, color: AT.txt, lineHeight: 1.6 }}>{t}</span>
+        </div>
+      ))}
+    </div>
+  );
 
   return (
-    <div style={{ paddingBottom: 90, minHeight: '100vh', background: AT.bg }}>
-      {/* Header (mismo patrón de MemberDetail) */}
-      <div style={{ padding: '14px 20px', borderBottom: `1px solid ${AT.border}`, background: '#252525', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button onClick={() => setScr('cfg')} style={{ background: 'none', border: 'none', color: '#9E9E9E', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 600 }}><Back /> Ajustes</button>
-        <div style={{ fontSize: 17, fontWeight: 700, color: '#fff' }}>Reglas del Programa</div>
-        <div style={{ width: 80 }} />
+    <div style={{ padding: '22px 22px 60px' }}>
+      {/* Encabezado v2 (solo consulta — sin botón de acción) */}
+      <div style={{ marginBottom: 4 }}>
+        <div style={{ fontSize: 21, fontWeight: 800, color: '#fff' }}>Reglas y términos</div>
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: '#9E9E9E', marginTop: 2 }}>
+          Referencia del programa — niveles y beneficios, inactividad y términos · el cliente ve esta información en su Menú
+        </div>
       </div>
 
       {/* Niveles y beneficios */}
-      <div style={{ padding: '16px 20px 0', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={secTitle}>Niveles y Beneficios</div>
+      <div style={grid}>
         {tiers.map(t => (
           <TierBenefitsCard
             key={t.name} t={t} cfg={cfg}
@@ -38,13 +59,18 @@ export default function Rules(ctx) {
       </div>
 
       {/* Reglas de inactividad */}
-      <div style={secHdr}>
+      <div style={secTitle}>
         <span style={{ color: bento.amber, display: 'flex' }}><Warn /></span>
         Reglas de Inactividad
       </div>
-      <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={secHint}>
+        {cfg.degradEnabled
+          ? 'Motor de degradación ACTIVO — estas reglas se están aplicando.'
+          : 'Motor de degradación apagado — las reglas se muestran pero NO se aplican (se enciende en Configuración).'}
+      </div>
+      <div style={grid}>
         {(cfg.degrad || []).map((d, i) => (
-          <div key={i} style={{ background: AT.card, borderRadius: 16, padding: '14px 16px' }}>
+          <div key={i} style={card}>
             <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 8, color: bento.amber }}>{d.tier}</div>
             {d.rules.map((r, j) => (
               <div key={j} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 6 }}>
@@ -56,16 +82,17 @@ export default function Rules(ctx) {
         ))}
       </div>
 
-      {/* Términos de uso (numeración naranja — patrón del menú) */}
-      <div style={secHdr}>Términos de Uso</div>
-      <div style={{ margin: '0 20px', background: AT.card, borderRadius: 16, padding: '14px 16px' }}>
-        {(cfg.termsUse || []).map((t, i) => (
-          <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
-            <span style={{ fontSize: 12, fontWeight: 800, color: BRAND_ORANGE, flexShrink: 0, width: 18 }}>{i + 1}.</span>
-            <span style={{ fontSize: 12.5, color: AT.txt, lineHeight: 1.6 }}>{t}</span>
-          </div>
-        ))}
+      {/* Términos (numeración naranja — patrón del menú del cliente) */}
+      <div style={secTitle}>Términos</div>
+      <div style={grid}>
+        {(cfg.termsUse || []).length > 0 && termCard('Términos de Uso', cfg.termsUse)}
+        {(cfg.termsCanje || []).length > 0 && termCard('Términos de Canje', cfg.termsCanje)}
       </div>
+      {(cfg.termsUse || []).length === 0 && (cfg.termsCanje || []).length === 0 && (
+        <div style={{ padding: 32, textAlign: 'center', color: '#777', fontSize: 13, fontWeight: 700 }}>
+          Sin términos cargados en la configuración.
+        </div>
+      )}
     </div>
   );
 }
