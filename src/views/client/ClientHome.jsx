@@ -13,7 +13,7 @@ import TierCardBento from '../../components/ui/TierCardBento';
 import InactivityWarning from '../../components/ui/InactivityWarning';
 import HistorySheet from './HistorySheet';
 import useShortScreen from '../../hooks/useShortScreen';
-import { Menu, Bell, Fuel, Tag, Wifi, Door, Cake, Pin, Clock, Chev, Check, HelpCircle } from '../../components/ui/Icons';
+import { Menu, Bell, Fuel, Tag, Wifi, Cake, Pin, Clock, Chev, Check, HelpCircle } from '../../components/ui/Icons';
 import NotificationsSheet from './NotificationsSheet';
 import SupportSheet from '../../components/ui/SupportSheet';
 import { getPosition, nearestStation } from '../../lib/geo';
@@ -175,12 +175,12 @@ export default function ClientHome(ctx) {
   // Beneficios del nivel (detalle al tocar la tarjeta — FORMATO GENERAL,
   // iconos SVG sin emojis). El WiFi gratis solo aparece en PLATINO/BLACK
   // (en ORO se omite la línea); sin "invitar amigos" (feedback 21-jul).
-  // Sin descuento por galón ni rifa mensual (decisión del dueño 24-jul).
+  // Sin descuento por galón ni rifa mensual (decisión del dueño 24-jul)
+  // ni acceso a baños (decisión del dueño 11-ago).
   const bens = [
     { icon: <Fuel />, t: `1 pt por cada Q${cTier.qPerPt ?? cfg.qPerPt}` },
     ...(cTier.redeemDisc > 0 ? [{ icon: <Tag />, t: `-${Math.round(cTier.redeemDisc * 100)}% en canje de premios` }] : []),
     ...(cTier.name !== 'ORO' ? [{ icon: <Wifi />, t: 'WiFi gratis ilimitado' }] : []),
-    ...(cTier.bath ? [{ icon: <Door />, t: 'Acceso a baños' }] : []),
     { icon: <Cake />, t: `${cTier.evtPts} pts en eventos especiales` },
   ];
   // Acento de los iconos según la identidad del nivel.

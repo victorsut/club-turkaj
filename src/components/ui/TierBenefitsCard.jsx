@@ -7,7 +7,7 @@
 // (Niveles) y el admin (Rules, MemberDetail) — `surface`/`ink`
 // adaptan la tarjeta al tema claro u oscuro de cada vista.
 import { tierAccent, tierBand } from '../../constants/styles';
-import { Fuel, Tag, Wifi, Door, Cake } from './Icons';
+import { Fuel, Tag, Wifi, Cake } from './Icons';
 
 export default function TierBenefitsCard({ t, cfg, pill, surface = '#fff', ink = '#424242', style }) {
   const ptGal = cfg.tiers?.platino?.gal ?? 150;
@@ -18,12 +18,12 @@ export default function TierBenefitsCard({ t, cfg, pill, surface = '#fff', ink =
     BLACK: `${bkGal}+ galones`,
   };
   // Sin línea de descuento por galón ni de rifa mensual (decisión del
-  // dueño 24-jul-2026: ya no se muestran como beneficio del nivel).
+  // dueño 24-jul-2026) ni de acceso a baños (decisión del dueño
+  // 11-ago-2026): ya no se muestran como beneficio del nivel.
   const bens = [
     { icon: <Fuel />, txt: `1 pt por cada Q${t.qPerPt ?? cfg.qPerPt}` },
     ...(t.redeemDisc > 0 ? [{ icon: <Tag />, txt: `-${Math.round(t.redeemDisc * 100)}% en canje de premios` }] : []),
     ...(t.name !== 'ORO' ? [{ icon: <Wifi />, txt: 'WiFi gratis ilimitado' }] : []),
-    ...(t.bath ? [{ icon: <Door />, txt: 'Acceso a baños' }] : []),
     { icon: <Cake />, txt: `${t.evtPts} pts en eventos especiales` },
   ];
 

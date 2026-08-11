@@ -31,7 +31,8 @@ export function makeTier(gal, cfg = DEFAULT_CONFIG) {
       discount: bk.discGal ?? 0,
       redeemDisc: bk.discRedeem,
       wifi: 'Ilimitado',
-      bath: true,
+      bath: true, // retirado de la UI (dueño 11-ago-2026) — sin consumidores, queda por compatibilidad
+
       evtPts: bk.evtPts,
       qPerPt: bk.qPerPt ?? cfg.qPerPt ?? 10,
       next: null,
