@@ -682,13 +682,15 @@ export default function App() {
         if (opRes.data?.length > 0) {
           const stById = {};
           (stRes.data || []).forEach(s => { stById[s.id] = s.name; });
-          setOperators(opRes.data.map(o => ({
+          const bootOps = opRes.data.map(o => ({
             id: o.id, name: o.name, user: o.username,
             dpi: '', gafete: '', phone: '', email: '',
             station: stById[o.station_id] || '', stationId: o.station_id || null,
             bomba: o.bomba || '', turno: o.turno || '',
             active: o.active !== false,
-          })));
+          }));
+          // No pisar la ficha completa si ya la trajo el efecto de staff.
+          setOperators(prev => (opsFullRef.current ? prev : bootOps));
           console.log('[Puntos Plus] Operadores cargados:', opRes.data.length);
         }
 
@@ -813,6 +815,12 @@ export default function App() {
   // SEC.C.2b: última carga de members del boot (columnas abiertas) —
   // respaldo si el fetch de fichas completas falla tras ganarle al boot.
   const bootCustsRef = useRef(null);
+  // FIX (11-ago): misma guarda anti-carrera para operadores. El efecto
+  // de staff (fetchOperatorsFull) puede ganarle al boot cuando hay
+  // sesión de admin cacheada; sin esta bandera el boot (columnas
+  // mínimas: sin DPI/gafete/teléfono) pisaba la ficha completa y
+  // OpManagement mostraba tarjetas incompletas y bloqueaba la edición.
+  const opsFullRef = useRef(false);
   useEffect(() => {
     if (authOp !== 'logged' && authAdmin !== 'logged') { custsFullRef.current = false; return; }
     if (custsFullRef.current || !sb) return;
@@ -864,7 +872,7 @@ export default function App() {
   // completo del miembro logueado en este navegador no se pisa.
   const actMapStaffRef = useRef(false);
   useEffect(() => {
-    if (authOp !== 'logged' && authAdmin !== 'logged') { actMapStaffRef.current = false; return; }
+    if (authOp !== 'logged' && authAdmin !== 'logged') { actMapStaffRef.current = false; opsFullRef.current = false; return; }
     if (actMapStaffRef.current || !sb) return;
     actMapStaffRef.current = true;
     fetchActivityStaff(null, 300).then(rows => {
@@ -885,6 +893,7 @@ export default function App() {
     // su sesión para la pestaña Operadores.
     fetchOperatorsFull().then(rows => {
       if (!rows.length) return;
+      opsFullRef.current = true; // gana la carrera: el boot ya no pisa
       setOperators(rows.map(o => ({
         id: o.id, name: o.name, user: o.username,
         dpi: o.dpi || '', gafete: o.gafete || '',
@@ -1466,9 +1475,12 @@ export default function App() {
   //   - Si hay cambio de tier → actualiza physical_cards
   //
   // El cliente solo: muestra toast, optimistic UI, push notification.
+  // Devuelve true solo si la compra se registró (el confirm del modal
+  // usa el resultado — antes se llamaba sin await y el toast de éxito
+  // salía siempre, incluso si el RPC rechazaba).
   const addPurchase = useCallback(async (cid, a, f) => {
-    if (!a || a < 10) { fire('Mínimo Q10'); return; }
-    if (!sb || !sbConnected) { fire('Sin conexión'); return; }
+    if (!a || a < 10) { fire('Mínimo Q10'); return false; }
+    if (!sb || !sbConnected) { fire('Sin conexión'); return false; }
 
     const stationName = loggedOp?.station || '';
 
@@ -1483,9 +1495,9 @@ export default function App() {
 
     if (error) {
       console.error('[Purchase] RPC error:', error.message);
-      if (sessionExpired) return; // SEC.B.8.2: expireSession ya manejó el rechazo; no pisar el toast con el crudo.
+      if (sessionExpired) return false; // SEC.B.8.2: expireSession ya manejó el rechazo; no pisar el toast con el crudo.
       fire('Error: ' + error.message);
-      return;
+      return false;
     }
 
     const { points: pts, gallons: gal, tier_changed, new_tier, new_card_code, promo } = data;
@@ -1564,6 +1576,7 @@ export default function App() {
     if (tier_changed && new_card_code) {
       fire('⭐ ¡Subiste a ' + new_tier + '! Tu código es ' + new_card_code);
     }
+    return true;
   }, [me, fire, sbConnected, loggedOp]);
 
   // ──────────────────────────────────────────────
@@ -2275,12 +2288,14 @@ export default function App() {
                 background: '#fff', color: '#424242', fontFamily: "'DM Sans'",
                 fontSize: 14, fontWeight: 700, cursor: 'pointer',
               }}>Cancelar</button>
-              <button onClick={() => {
+              <button onClick={async () => {
                 const { client, amt, fuel, onConfirm } = purchaseConfirm;
                 setPurchaseConfirm(null);
-                addPurchase(client.id, amt, fuel);
-                fire('✅ Compra registrada · El cliente recibirá notificación');
-                onConfirm?.();
+                // addPurchase ya muestra su propio toast (puntos ganados
+                // en éxito, o el error). Solo limpiamos la selección si
+                // de verdad se registró — antes el éxito salía siempre.
+                const ok = await addPurchase(client.id, amt, fuel);
+                if (ok) onConfirm?.();
               }} style={{
                 flex: 2, padding: 16, borderRadius: 14, border: 'none',
                 background: '#FBBC04', color: '#0D0D0D', fontFamily: "'DM Sans'",

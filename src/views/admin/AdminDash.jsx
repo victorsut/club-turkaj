@@ -45,7 +45,7 @@ function Donut({ parts, size = 128, stroke = 18 }) {
 export default function AdminDash(ctx) {
   const {
     custs, gT, cfg, setScr, setSel, loggedAdmin,
-    surveys, raffleCal, curMonth,
+    raffleCal, curMonth, activityLog, rewards,
   } = ctx;
 
   // ===== KPIs =====
@@ -55,7 +55,14 @@ export default function AdminDash(ctx) {
   const tRedeemed = custs.reduce((s, c) => s + (c.redeemed || 0), 0);
   const curYM = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
   const newThisMonth = custs.filter(c => c.registered?.startsWith(curYM)).length;
-  const ptsRedeemed = tRedeemed * 175;
+  // Puntos canjeados ESTIMADOS: no tenemos el costo exacto de cada canje
+  // histórico en el inicio (redemptions está cerrada), así que se usa el
+  // costo PROMEDIO REAL del catálogo × la cantidad de canjes — antes era
+  // una constante mágica 175 sin relación con los premios reales.
+  const avgRewardCost = rewards?.length
+    ? Math.round(rewards.reduce((s, r) => s + (r.points_cost || 0), 0) / rewards.length)
+    : 0;
+  const ptsRedeemed = tRedeemed * avgRewardCost;
   const ptsUnredeemed = tP;
   const ptsTotal = ptsUnredeemed + ptsRedeemed;
   const qUnredeemed = (ptsUnredeemed / cfg.qPerPt).toFixed(0);
@@ -184,10 +191,13 @@ export default function AdminDash(ctx) {
       });
   }, []);
 
-  // Encuestas
-  const totalSurveys = surveys.length;
-  const totalSPts = surveys.reduce((s, sv) => s + sv.pts, 0);
-  const uniqueSurveyMembers = [...new Set(surveys.map(s => s.cid))].length;
+  // Encuestas — derivadas de la actividad reciente cargada (activityLog
+  // global, ~300 eventos). Antes se leía de ctx.surveys, que NUNCA se
+  // poblaba (setSurveys no se llamaba) → la tarjeta mostraba 0 fijo.
+  const surveyActs = Object.values(activityLog || {}).flat().filter(a => a.type === 'encuesta');
+  const totalSurveys = surveyActs.length;
+  const totalSPts = surveyActs.reduce((s, a) => s + (a.pts || 0), 0);
+  const uniqueSurveyMembers = Object.values(activityLog || {}).filter(acts => acts.some(a => a.type === 'encuesta')).length;
 
   const firstName = (loggedAdmin?.name || '').trim().split(' ')[0] || 'Admin';
 
@@ -409,9 +419,9 @@ export default function AdminDash(ctx) {
               <Clipboard />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 14.5, fontWeight: 800, color: '#fff' }}>{totalSurveys} completadas</div>
+              <div style={{ fontSize: 14.5, fontWeight: 800, color: '#fff' }}>{totalSurveys.toLocaleString('en-US')} en actividad reciente</div>
               <div style={{ fontSize: 11.5, color: '#9E9E9E', fontWeight: 700, marginTop: 3 }}>
-                {totalSPts} pts otorgados · {uniqueSurveyMembers} miembros · límite {cfg.surveyDaily}/día
+                {totalSPts.toLocaleString('en-US')} pts otorgados · {uniqueSurveyMembers.toLocaleString('en-US')} miembros · límite {cfg.surveyDaily}/día
               </div>
             </div>
           </div>

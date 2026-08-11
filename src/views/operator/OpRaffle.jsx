@@ -1,10 +1,14 @@
 // src/views/operator/OpRaffle.jsx
 // Operator view — sell raffle tickets to clients via card scan
+import { useState } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { buyRaffleTickets } from '../../services';
 import { getOperatorToken } from '../../services/sessionTokens';
+import { resolveCardStaff } from '../../services/secureReads';
+import { parseCardCode } from '../../lib/cardCodes';
 import { sMono, inputStyle } from '../../constants/styles';
 import Badge from '../../components/ui/Badge';
+import QRScanner from '../../components/ui/QRScanner';
 import { Back } from '../../components/ui/Icons';
 
 export default function OpRaffle(ctx) {
@@ -15,7 +19,6 @@ export default function OpRaffle(ctx) {
     opRafScan, setOpRafScan,
     opRafQty, setOpRafQty,
     opSearch, setOpSearch,
-    cards,
   } = ctx;
 
   const rm = raffleCal[curMonth];
@@ -25,21 +28,29 @@ export default function OpRaffle(ctx) {
   // o el global cfg.ticketPts si la rifa no define uno.
   const tPts = rm?.ticketPts ?? cfg.ticketPts;
 
-  // Scan card simulation (TODO: replace with real QR/NFC)
-  const scanCard = () => {
-    setOpRafScan('scanning');
-    setTimeout(() => {
-      const activeCards = (cards || []).filter(c => c.status === 'active');
-      if (activeCards.length === 0) { setOpRafScan('nocard'); return; }
-      const pick = activeCards[Math.floor(Math.random() * activeCards.length)];
-      const cust = custs.find(c => c.cardId === pick.id);
-      if (cust) {
-        setOpRafScan({ id: pick.id, tier: pick.tier });
-        setOpRafClient(cust);
-      } else {
-        setOpRafScan('nocard');
-      }
-    }, 1500);
+  // Escaneo REAL del QR del cliente (11-ago) — mismo patrón que
+  // OpClients: valida el formato, busca en la caché local y si no,
+  // resuelve por RPC con la sesión del operador. Reemplaza la
+  // simulación con Math.random sobre `cards` (que nunca se llenaban y
+  // siempre daba "tarjeta no encontrada"); QR solo digital.
+  const [scanning, setScanning] = useState(false);
+  const handleScan = async (code) => {
+    setScanning(false);
+    const parsed = parseCardCode(code);
+    if (!parsed.valid) { fire('❌ Código no reconocido'); return; }
+    const local = (custs || []).find(c => c.cardId === parsed.normalized);
+    if (local) { setOpRafClient(local); setOpRafScan({ id: parsed.normalized, tier: gT(local.gallons).name }); return; }
+    if (!sb) { fire('Sin conexión. Buscá al cliente por nombre.'); return; }
+    const { data, error, reason } = await resolveCardStaff(parsed.normalized);
+    if (error) { fire('Sin conexión, intentá de nuevo'); return; }
+    if (reason === 'card_not_found') { fire('❌ QR no reconocido en el sistema'); return; }
+    if (reason === 'card_blocked') { fire('⚠️ Tarjeta no activa'); return; }
+    if (reason === 'card_not_assigned') { fire('⚠️ Tarjeta sin asignar. Pedí el QR de la app.'); return; }
+    if (data) {
+      const inCusts = custs.find(c => c.id === data.id);
+      if (inCusts) { setOpRafClient(inCusts); setOpRafScan({ id: parsed.normalized, tier: gT(inCusts.gallons).name }); return; }
+      fire(`${data.name} encontrado. Buscalo por nombre.`);
+    }
   };
 
   const cl = opRafClient;
@@ -57,14 +68,13 @@ export default function OpRaffle(ctx) {
     if (!n || n < 1) { fire('Cantidad inválida'); return; }
     if (!sb) { fire('Sin conexión'); return; }
 
-    // Obtener ID de la rifa del mes actual (igual que buyTickets en App)
-    const { data: rafRow, error: rafErr } = await sb
-      .from('raffle_calendar')
-      .select('id')
-      .eq('month', curMonth + 1)
-      .maybeSingle();
-
-    if (rafErr || !rafRow?.id) {
+    // FIX (11-ago): la rifa del mes ya viene resuelta en rm.dbId. Antes
+    // se consultaba raffle_calendar por month SIN year, y desde que hay
+    // rifas de varios años maybeSingle() reventaba con 2+ filas del
+    // mismo mes → "Rifa no disponible" y venta rota. Se usa el id ya
+    // mapeado en el boot (mismo dato que el resto de la vista).
+    const raffleId = rm?.dbId;
+    if (!raffleId) {
       fire('Rifa no disponible para este mes');
       return;
     }
@@ -73,7 +83,7 @@ export default function OpRaffle(ctx) {
     // Si está expirado/ausente → null (el server lo ignora hasta B.6).
     const { data, error, sessionExpired } = await buyRaffleTickets({
       memberId: cl.id,
-      raffleId: rafRow.id,
+      raffleId,
       quantity: n,
       sessionToken: getOperatorToken()?.token ?? null,
       sessionRole: 'operator',
@@ -141,33 +151,11 @@ export default function OpRaffle(ctx) {
             <div style={{ fontSize: 16, fontWeight: 800, color: '#424242', marginBottom: 4 }}>Comprar boletos con tarjeta</div>
             <div style={{ fontSize: 13, color: '#9E9E9E', marginBottom: 20 }}>El cliente presenta su tarjeta para comprar boletos de rifa</div>
 
-            {!opRafScan && (
-              <button onClick={scanCard} style={{
-                width: '100%', padding: 16, borderRadius: 16, border: '2px dashed #FBBC04',
-                background: '#FFF8E1', fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 800,
-                cursor: 'pointer', color: '#F0A500', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              }}>📷 Escanear Tarjeta</button>
-            )}
-
-            {opRafScan === 'scanning' && (
-              <div style={{ padding: 20, textAlign: 'center' }}>
-                <div style={{ fontSize: 32, marginBottom: 8, animation: 'pulse 1s infinite' }}>📷</div>
-                <div style={{ height: 4, borderRadius: 2, overflow: 'hidden', background: '#eee', margin: '12px 0' }}>
-                  <div style={{ height: '100%', borderRadius: 2, background: '#FBBC04', animation: 'scanBar 1.5s ease forwards' }} />
-                </div>
-                <div style={{ fontSize: 13, color: '#9E9E9E' }}>Leyendo tarjeta...</div>
-              </div>
-            )}
-
-            {opRafScan === 'nocard' && (
-              <div style={{ padding: 16, background: '#FFF3E0', borderRadius: 14, border: '1px solid #FFCC80' }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#E65100' }}>⚠️ Tarjeta no encontrada</div>
-                <button onClick={() => setOpRafScan(null)} style={{
-                  marginTop: 10, padding: '8px 20px', borderRadius: 10, border: 'none',
-                  background: '#FBBC04', fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                }}>Reintentar</button>
-              </div>
-            )}
+            <button onClick={() => setScanning(true)} style={{
+              width: '100%', padding: 16, borderRadius: 16, border: '2px dashed #FBBC04',
+              background: '#FFF8E1', fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 800,
+              cursor: 'pointer', color: '#F0A500', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}>📷 Escanear QR</button>
           </div>
 
           {/* Search by name */}
@@ -291,6 +279,8 @@ export default function OpRaffle(ctx) {
           </div>
         </div>
       )}
+
+      {scanning && <QRScanner onScan={handleScan} onClose={() => setScanning(false)} />}
     </div>
   );
 }
