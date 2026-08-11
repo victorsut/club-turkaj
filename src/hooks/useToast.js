@@ -1,7 +1,7 @@
 // ============================================================
 // Puntos Plus — useToast Hook
 // ============================================================
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 /**
  * Hook para mostrar notificaciones temporales (toasts).
@@ -15,11 +15,17 @@ import { useState, useCallback } from 'react';
  */
 export function useToast(duration = 3000) {
   const [toast, setToast] = useState(null);
+  // FIX (11-ago): un timer compartido. Sin cancelar el anterior, dos
+  // fire() seguidos hacían que el timeout del PRIMERO apagara el
+  // SEGUNDO antes de tiempo (se veía en el flujo de encuestas, que
+  // dispara dos toasts). Ahora cada fire reinicia el reloj.
+  const timerRef = useRef(null);
 
   const fire = useCallback(
     (message, type) => {
+      if (timerRef.current) clearTimeout(timerRef.current);
       setToast(type ? { msg: message, type } : message);
-      setTimeout(() => setToast(null), duration);
+      timerRef.current = setTimeout(() => { setToast(null); timerRef.current = null; }, duration);
     },
     [duration]
   );

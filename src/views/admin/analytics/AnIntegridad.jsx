@@ -12,6 +12,7 @@
 // acción 'consulta_integridad') — visible en Sistema → Auditoría.
 import { useState, useEffect } from 'react';
 import { sMono, adminTheme as AT } from '../../../constants/styles';
+import { phoneMask } from '../../../lib/inputMasks';
 import PeriodPicker, { rangeFromPreset } from '../../../components/ui/PeriodPicker';
 import { rpcReport, fmtInt, groupLbl, chip, chipSoft, cardBox, AnHeader, AnStatus, downloadCSV, CsvButton } from './anShared';
 
@@ -150,7 +151,7 @@ export default function AnIntegridad() {
             <div style={{ flex: 1, minWidth: 170 }}>
               <div style={{ fontWeight: 800, fontSize: 13.5, color: '#E0E0E0' }}>{r.member_name}</div>
               <div style={{ fontSize: 10.5, color: '#777', marginTop: 2, ...sMono }}>
-                {r.day}{r.phone ? ` · ${r.phone}` : ''}
+                {r.day}{r.phone ? ` · ${phoneMask.format(r.phone)}` : ''}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 16 }}>
@@ -176,7 +177,7 @@ export default function AnIntegridad() {
             <div style={{ fontWeight: 800, fontSize: 13.5, color: '#E0E0E0' }}>{r.member_name}</div>
             <div style={{ fontSize: 10.5, color: '#777', marginTop: 2 }}>
               atendido por <span style={{ color: '#FBBC04', fontWeight: 800 }}>{r.operator_name}</span>
-              {r.phone ? <span style={{ ...sMono }}> · {r.phone}</span> : null}
+              {r.phone ? <span style={{ ...sMono }}> · {phoneMask.format(r.phone)}</span> : null}
             </div>
           </div>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
@@ -204,7 +205,7 @@ export default function AnIntegridad() {
               </span>
             </div>
             <div style={{ fontSize: 10.5, color: '#777', marginTop: 3, ...sMono }}>
-              {r.staff_ref || '—'} · cuenta de miembro: {r.member_name}{r.phone ? ` · ${r.phone}` : ''}
+              {r.staff_ref || '—'} · cuenta de miembro: {r.member_name}{r.phone ? ` · ${phoneMask.format(r.phone)}` : ''}
             </div>
           </div>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>

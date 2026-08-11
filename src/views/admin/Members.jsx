@@ -9,9 +9,10 @@
 // modo de clasificación (última visita / más frecuente) que existía
 // en el estado pero no tenía UI. Resultados como TARJETAS con código
 // de tarjeta y teléfono (útiles al buscar), en columnas responsivas.
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { sMono, adminTheme as AT } from '../../constants/styles';
+import { phoneMask } from '../../lib/inputMasks';
 import { getAdminToken } from '../../services/sessionTokens';
 import Badge from '../../components/ui/Badge';
 import PeriodPicker, { rangeFromPreset } from '../../components/ui/PeriodPicker';
@@ -70,10 +71,18 @@ export default function Members(ctx) {
   }, [viewMode, datePreset, dateFrom, dateTo]);
 
   // En ranking se necesita una estación elegida — default: la primera.
+  // FIX (11-ago): al VOLVER de ranking a la lista, se limpia el filtro
+  // que ranking forzó — en la lista el filtro por estación es opcional
+  // (chips Todas/estación) y antes quedaba pegado en silencio, mostrando
+  // solo la primera estación como si fueran todos los miembros.
+  const prevViewMode = useRef(viewMode);
   useEffect(() => {
     if (viewMode === 'ranking' && !stationFilter && stations.length) {
       setStationFilter(stations[0].name);
+    } else if (prevViewMode.current === 'ranking' && viewMode === 'members' && stationFilter) {
+      setStationFilter(null);
     }
+    prevViewMode.current = viewMode;
   }, [viewMode, stationFilter, stations, setStationFilter]);
 
   // SEC.C.2b: la estación del miembro viene del RPC list_member_stations
@@ -265,7 +274,7 @@ export default function Members(ctx) {
                     <div style={{ fontWeight: 700, fontSize: 13.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#E0E0E0' }}>{c.name}</div>
                     {/* Identificadores útiles al BUSCAR: tarjeta y teléfono */}
                     <div style={{ fontSize: 10.5, color: '#777', marginTop: 2, ...sMono, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {c.cardId || '—'}{c.phone ? ` · ${c.phone}` : ''}
+                      {c.cardId || '—'}{c.phone ? ` · ${phoneMask.format(c.phone)}` : ''}
                     </div>
                     <div style={{ marginTop: 5, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                       <Badge t={t} />

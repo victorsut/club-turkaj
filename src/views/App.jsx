@@ -1504,10 +1504,13 @@ export default function App() {
     const today = localDate();
     // PROMO-1: pts ya viene FINAL (base + extra); promo trae {name, extra_points} si aplicó.
     // PROMO-1b: grant_reward regala un canje (reward_name, redemption_code) en vez de puntos.
+    // Sin emojis (11-ago): promoTag viaja también al body del PUSH, que
+    // el SO renderiza sin pasar por stripEmojis del Toast — el cliente
+    // veía 🎁/🎉 en la pantalla de bloqueo.
     const promoTag = promo
       ? (promo.effect_type === 'grant_reward'
-        ? ` · 🎁 ${promo.reward_name} GRATIS`
-        : ` · 🎉 ${promo.name} (+${promo.extra_points})`)
+        ? ` · ${promo.reward_name} GRATIS`
+        : ` · ${promo.name} (+${promo.extra_points})`)
       : '';
 
     // Optimistic update del state local con los valores REALES devueltos por el server

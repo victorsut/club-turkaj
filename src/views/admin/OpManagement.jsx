@@ -193,9 +193,19 @@ export default function OpManagement(ctx) {
             }
           }
 
+          // Pick explícito (11-ago): antes `...newOp` metía la CONTRASEÑA
+          // en claro al estado global de operadores, que se comparte con
+          // toda la app (incl. la vista cliente, que usa `operators` para
+          // el modal de calificación). Solo se copian los campos de perfil.
           setOperators(prev => prev.map(o =>
             o.id === operatorId
-              ? { ...o, ...newOp, station: payload.station, stationId: payload.stationId }
+              ? {
+                  ...o,
+                  name: newOp.name, user: newOp.user, dpi: newOp.dpi,
+                  gafete: newOp.gafete, phone: newOp.phone, email: newOp.email,
+                  bomba: newOp.bomba, turno: newOp.turno,
+                  station: payload.station, stationId: payload.stationId,
+                }
               : o
           ));
           setShowReasonModal(false);

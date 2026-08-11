@@ -158,7 +158,7 @@ export default function AnClientes(ctx) {
                     <div style={{ width: 26, textAlign: 'center', flexShrink: 0, ...sMono, fontSize: 12, fontWeight: 800, color: r.rank <= 3 ? '#FBBC04' : '#555' }}>{r.rank}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 700, fontSize: 13.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#E0E0E0' }}>{r.member_name}</div>
-                      <div style={{ fontSize: 10.5, color: '#777', marginTop: 2 }}>{r.purchases} compras</div>
+                      <div style={{ fontSize: 10.5, color: '#777', marginTop: 2 }}>{fmtInt(r.purchases)} compras</div>
                       <div style={{ marginTop: 5 }}><Badge t={t} /></div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
