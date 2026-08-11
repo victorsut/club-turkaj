@@ -91,6 +91,7 @@ export default function MemberDetail(ctx) {
           registered: m.created_at ? new Date(m.created_at).toLocaleDateString('es-GT') : '—',
           lastBuy: m.last_buy ? new Date(m.last_buy).toLocaleDateString('es-GT') : 'Sin compras',
           lastBuyRaw: m.last_buy || null, // fecha cruda para daysInactive (lastBuy va formateada)
+          termsAcceptedAt: m.terms_accepted_at || null, // constancia 11-ago
           vehicles: m.vehicles || [],
         });
       }

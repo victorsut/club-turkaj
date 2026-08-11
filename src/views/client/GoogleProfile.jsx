@@ -135,13 +135,12 @@ export default function GoogleProfile(ctx) {
       // Dirección solo si está completa (los preseleccionados sin cantón no se guardan)
       const addressStored = packAddress(addr);
 
-      const updated = { ...me, name: regProfile.name, nickname: regProfile.nickname?.trim() || '', phone: regProfile.phone || '', dpi: regProfile.dpi || '', plate: firstPlate, email: regProfile.email || me?.email || '', bday: bdayStored, nit: regProfile.nit || '', address: addressStored, points: totalPts, cardId: fallbackCard };
-      setMe(updated);
-      setCusts(p => [...p, updated]);
-      setAuthScreen('logged');
-      setGoogleStep('welcome');
-      fire('Bienvenido a Puntos Plus! +' + totalPts + ' pts de registro', 'success');
-
+      // FIX (11-ago): NO marcar la sesión como iniciada antes de saber si
+      // el alta funcionó. Antes se ponía authScreen='logged' + toast de
+      // bienvenida ANTES del RPC; si el RPC fallaba, el usuario quedaba
+      // "dentro" con id temporal, sin cuenta real, y el error no se veía
+      // (GoogleProfile ya estaba desmontado). Ahora el RPC va PRIMERO y
+      // solo en éxito se entra.
       if (sb && sbConnected) {
         const provider   = me?.authProvider || 'manual';
         const providerId = me?.id?.startsWith('temp-') ? null : me?.id;
@@ -195,6 +194,7 @@ export default function GoogleProfile(ctx) {
         }
         if (reg?.error) { setAuthError(reg.error); setSaving(false); return; }
 
+        // ── Éxito: recién ahora se entra a la app ──
         setMemberToken({ token: reg.session_token, expiresAt: reg.session_expires_at });
         // Apodo (1-ago): register_member no lo recibe — se guarda con la
         // sesión recién emitida vía update_my_profile (whitelist nickname).
@@ -206,9 +206,21 @@ export default function GoogleProfile(ctx) {
           }).then(({ error }) => { if (error) console.error('[Reg] apodo:', error.message); });
         }
         setMe({ ...mapMember(reg.member), ...(nick ? { nickname: nick } : {}) });
+        setCusts(p => [...p, mapMember(reg.member)]);
+        setAuthScreen('logged');
+        setGoogleStep('welcome');
+        fire('Bienvenido a Puntos Plus! +' + (reg.points ?? totalPts) + ' pts de registro', 'success');
         console.log('[Reg] Registro completado, ID:', reg.member_id, 'tarjeta:', reg.card_code);
       } else {
+        // Sin conexión: alta optimista solo en memoria (se persiste al
+        // reconectar/reloguear). No hay RPC que pueda fallar acá.
         console.warn('[Reg] Sin conexion a Supabase — registro solo en memoria');
+        const updated = { ...me, name: regProfile.name, nickname: regProfile.nickname?.trim() || '', phone: regProfile.phone || '', dpi: regProfile.dpi || '', plate: firstPlate, email: regProfile.email || me?.email || '', bday: bdayStored, nit: regProfile.nit || '', address: addressStored, points: totalPts, cardId: fallbackCard };
+        setMe(updated);
+        setCusts(p => [...p, updated]);
+        setAuthScreen('logged');
+        setGoogleStep('welcome');
+        fire('Bienvenido a Puntos Plus! +' + totalPts + ' pts de registro', 'success');
       }
     } catch (err) {
       console.error('[Reg] Error inesperado:', err.message);

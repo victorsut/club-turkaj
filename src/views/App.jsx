@@ -113,6 +113,7 @@ function mapFullMember(m) {
     lastBuy: utcToLocal(m.last_buy) || '',
     station: m.last_station || '',
     cardId: m.card_code || m.card_id || '',
+    termsAcceptedAt: m.terms_accepted_at || null, // constancia 11-ago (member_profile_json lo expone)
     supabaseUser: true, authProvider: m.auth_provider || 'google',
     authProviderId: m.auth_provider_id || '',
   };
