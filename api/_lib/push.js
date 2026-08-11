@@ -3,6 +3,7 @@
 // /api/degradation-alerts (cron diario). No es una ruta: Vercel
 // ignora los archivos bajo carpetas con guión bajo.
 import webpush from 'web-push';
+import { createHmac } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 
 const VAPID_PUBLIC = process.env.VAPID_PUBLIC_KEY;
@@ -15,6 +16,16 @@ if (VAPID_PUBLIC && VAPID_PRIVATE) {
 }
 
 export const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// SEC.C.6: firma del registro de inbox. /api/log-notification lo llama
+// el Service Worker (sin sesión de usuario), así que el payload del
+// push viaja firmado con un secreto server-side y el endpoint valida
+// la firma — así nadie puede plantar filas en la bandeja de otro. El
+// HMAC no expone la service key (es unidireccional).
+const SIGN_SECRET = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'dev';
+export function signNotif(notifId, memberId) {
+  return createHmac('sha256', SIGN_SECRET).update(`${notifId}:${memberId}`).digest('hex');
+}
 
 // Tipos SUPRIMIBLES: el SW del dispositivo no los muestra si la app está
 // a la vista (el modal Realtime ya cubre ese caso). Su registro en
@@ -51,6 +62,7 @@ export async function pushToMembers(memberIds, notification) {
 
     // notifId POR MIEMBRO: si tiene varios dispositivos, todos loguean
     // el mismo id y el upsert de log-notification deduplica.
+    const notifId = logOnDisplay ? crypto.randomUUID() : null;
     const payload = JSON.stringify({
       title: title || 'Puntos Plus',
       body: body || 'Tenés una notificación',
@@ -58,7 +70,7 @@ export async function pushToMembers(memberIds, notification) {
       tag: `${type}-${Date.now()}`,
       type,
       url,
-      ...(logOnDisplay ? { logOnDisplay: true, notifId: crypto.randomUUID(), memberId } : {}),
+      ...(logOnDisplay ? { logOnDisplay: true, notifId, memberId, sig: signNotif(notifId, memberId) } : {}),
       ...data,
     });
 

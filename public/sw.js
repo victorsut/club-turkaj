@@ -177,6 +177,7 @@ self.addEventListener('push', (event) => {
           body: JSON.stringify({
             id: data.notifId,
             member_id: data.memberId,
+            sig: data.sig, // SEC.C.6: firma que el motor puso en el push
             type: data.type,
             title: data.title,
             body: data.body,

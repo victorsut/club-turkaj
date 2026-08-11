@@ -1,6 +1,7 @@
 // src/lib/pushNotifications.js
 import { sb } from './supabaseClient';
 import { savePushSubscription } from '../services/secureReads';
+import { getOperatorToken } from '../services/sessionTokens'; // SEC.C.6: send-push exige sesión de operador
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
@@ -67,6 +68,9 @@ export async function sendPushToMember(memberId, { title, body, type = 'general'
         type,
         url,
         data: data || {},
+        // SEC.C.6: el envío lo dispara el navegador del operador tras
+        // registrar una compra — su token autoriza el push.
+        operator_token: getOperatorToken()?.token || null,
       }),
     });
     const result = await res.json();
