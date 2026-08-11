@@ -227,6 +227,14 @@ export async function resolveCardStaff(code) {
   });
   if (error) { console.warn('[SecureReads:resolveCard]', error.message); return { data: null, error: error.message }; }
   if (!data) return { data: null, error: null, reason: 'card_not_found' };
+  // Tarjeta no activa (11-ago): bloqueada o stock físico inactivo —
+  // no identifica aunque exista (la API de PROPER hace el mismo corte).
+  if (data.status && data.status !== 'active') {
+    return {
+      data: null, error: null, reason: 'card_blocked',
+      cardInfo: { card_code: data.card_code, card_status: data.status, card_tier: data.tier },
+    };
+  }
   if (!data.assigned_to) {
     return {
       data: null, error: null, reason: 'card_not_assigned',

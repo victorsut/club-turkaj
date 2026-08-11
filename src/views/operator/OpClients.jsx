@@ -71,8 +71,15 @@ export default function OpClients(ctx) {
       return;
     }
 
+    if (reason === 'card_blocked') {
+      fire('⚠️ Tarjeta no activa — no identifica a ningún cliente.');
+      return;
+    }
+
     if (reason === 'card_not_assigned') {
-      fire('⚠️ Tarjeta sin registrar. Pedile al cliente que pase con el admin.');
+      // Sin tarjetas físicas por ahora (decisión 11-ago): el programa
+      // funciona con el QR digital de la app del cliente.
+      fire('⚠️ Tarjeta sin asignar. Pedile al cliente su QR de la app.');
       return;
     }
 

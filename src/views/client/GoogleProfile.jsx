@@ -121,10 +121,11 @@ export default function GoogleProfile(ctx) {
     setSaving(true);
     try {
       const firstPlate = vehicles[0]?.plate || '';
-      // SEC.C.3: physical_cards quedó cerrada al cliente — este código
-      // es solo un placeholder VISUAL del estado optimista; la tarjeta
-      // real la asigna register_member y llega en reg.member.
-      const fallbackCard = 'CTOD-00001';
+      // SEC.C.3: physical_cards quedó cerrada al cliente — la tarjeta
+      // real la asigna register_member y llega en reg.member. El estado
+      // optimista va VACÍO (antes 'CTOD-00001', que colisionaba con una
+      // tarjeta real del stock seed): la UI muestra '—' unos instantes.
+      const fallbackCard = '';
 
       // Fecha COMPLETA YYYY-MM-DD (antes se recortaba a MM-DD; desde
       // jul-2026 se conserva el año — el RPC del bonus acepta ambos)
