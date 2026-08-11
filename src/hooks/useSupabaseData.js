@@ -33,6 +33,7 @@ export function mapMember(m) {
     plate: m.plate || '',
     nit: m.nit || '',
     nitChangedAt: m.nit_changed_at || null, // candado 8-ago: cambio cada 60 días
+    termsAcceptedAt: m.terms_accepted_at || null, // constancia 11-ago (null = registro previo a la casilla)
     bday: m.birthday || '',
     address: m.address || null,
     points: m.points || 0,

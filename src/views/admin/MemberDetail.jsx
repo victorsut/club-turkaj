@@ -354,6 +354,10 @@ export default function MemberDetail(ctx) {
               { l: 'Dirección', v: c.address ? [c.address.canton, c.address.muni].filter(Boolean).join(', ') : '—' },
               { l: 'Fecha de nacimiento', v: c.bday || '—' },
               { l: 'Registro', v: c.registered || '—' },
+              // Constancia legal (11-ago): '—' = registro previo a la casilla
+              { l: 'Términos aceptados', v: c.termsAcceptedAt
+                  ? new Date(c.termsAcceptedAt).toLocaleString('es-GT', { timeZone: 'America/Guatemala', day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
+                  : '—' },
               { l: 'Última compra', v: c.lastBuy || 'Sin compras' },
             ].map((r, i, arr) => (
               <div key={r.l} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '9px 0', borderBottom: i < arr.length - 1 ? `1px solid ${AT.border}` : 'none', fontSize: 13 }}>

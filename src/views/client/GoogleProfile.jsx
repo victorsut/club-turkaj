@@ -162,6 +162,10 @@ export default function GoogleProfile(ctx) {
             birthday:         bdayStored || null,
             address:          addressStored,
             avatar_url:       me?.avatar || null,
+            // Constancia de aceptación (11-ago): el RPC estampa
+            // members.terms_accepted_at server-side (migración 20260811b;
+            // la versión vieja del RPC ignora la clave sin romperse).
+            terms_accepted:   termsOk,
           },
           p_password: password,
         });
