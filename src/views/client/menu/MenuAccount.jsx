@@ -173,6 +173,7 @@ export default function MenuAccount({ ctx, TH, onBack }) {
           p_member_id: me.id,
           p_current_password: passForm.current,
           p_new_password: passForm.newPass,
+          p_session_token: getMemberToken()?.token ?? null, // SEC.C.6
         });
     setSavingPass(false);
     if (error) { fire('Error: ' + error.message, 'error'); return; }

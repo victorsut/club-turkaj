@@ -10,7 +10,7 @@
 // ============================================================
 
 import { sb } from '../lib/supabaseClient';
-import { getOperatorToken, getAdminToken } from './sessionTokens';
+import { getOperatorToken, getAdminToken, getMemberToken } from './sessionTokens';
 import { notifySessionExpired } from './sessionExpiry'; // SEC.B.8.2: rechazo reactivo de sesión (28000)
 
 // ──────────────────────────────────────────────
@@ -102,11 +102,13 @@ export async function redeemReward({
   rewardId,
   operatorId = null,
 }) {
+  // SEC.C.6: el token de miembro decide sobre qué cuenta se canjea
+  // (el server sobrescribe p_member_id con el id de la sesión).
   return callRpc('redeem_reward', {
     p_member_id: memberId,
     p_reward_id: rewardId,
     p_operator_id: operatorId,
-  });
+  }, { sessionToken: getMemberToken()?.token ?? null });
 }
 
 // ──────────────────────────────────────────────
@@ -153,9 +155,10 @@ export async function buyRaffleTickets({
 // } | error}
 // ──────────────────────────────────────────────
 export async function completeSurvey(memberId) {
+  // SEC.C.6: sesión de miembro (el server valida y usa su propio id).
   return callRpc('complete_survey', {
     p_member_id: memberId,
-  });
+  }, { sessionToken: getMemberToken()?.token ?? null });
 }
 
 // ──────────────────────────────────────────────
@@ -258,6 +261,7 @@ export async function adminResetMemberPassword(memberId, newPassword, audit = {}
     p_admin_name: audit.adminName,
     p_admin_email: audit.adminEmail,
     p_reason_text: audit.reasonText,
+    p_session_token: getAdminToken()?.token ?? null, // SEC.C.6: exige sesión de admin
   });
   if (error) {
     console.error('[RPC:admin_reset_member_password]', error.message);
@@ -476,8 +480,10 @@ export async function grantSpecialDayBonus(memberId) {
   }
 
   // Llamar RPC con patron crudo (sin callRpc)
+  // SEC.C.6: sesión de miembro (el server valida y usa su propio id).
   const { data, error } = await sb.rpc('grant_special_day_bonus', {
     p_member_id: memberId,
+    p_session_token: getMemberToken()?.token ?? null,
   });
 
   if (error) {
