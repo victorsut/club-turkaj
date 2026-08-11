@@ -1,16 +1,23 @@
 // src/views/admin/Settings.jsx
-// Admin settings — program config, fuel prices, tier thresholds
+// CONFIGURACIÓN — Admin v2 (11-ago-2026, FORMATO GENERAL): flat sin
+// emojis, encabezado v2 sin back-link (navegación en el sidebar),
+// tarjetas de sección en grid auto-fill 340px, modales oscuros
+// centrados. La LÓGICA no cambió: todos los RPCs auditados intactos
+// (set_loyalty_config, updateFuelPrices, set_support_phone,
+// set_company_info, set_degradation_enabled, createApiClient).
+// "Pts referido" queda OMITIDO (pedido del dueño 11-ago): la función
+// "Refiere a un amigo" está fuera del programa por ahora — posible
+// implementación futura; cfg.referralPts sigue en config como dato.
 import { useState, useEffect } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { sMono, adminTheme as AT, inputStyleDark } from '../../constants/styles';
-import { Back } from '../../components/ui/Icons';
 import { updateFuelPrices } from '../../services/rpcServices';
 import { createApiClient } from '../../services/adminAuthService';
 import { getAdminToken } from '../../services/sessionTokens';
 import ReasonModal from '../../components/ui/ReasonModal';
 
 export default function Settings(ctx) {
-  const { cfg, setCfg, setScr, fire, operators, setScr: navTo, loggedAdmin } = ctx;
+  const { cfg, setCfg, fire, loggedAdmin } = ctx;
 
   // ─── Interruptor del motor de degradación (25-jul) ───
   // Apagado hasta el lanzamiento oficial. Al encender, el servidor
@@ -285,266 +292,244 @@ export default function Settings(ctx) {
     }
   };
 
-  const aSec = { padding: '20px 20px 8px', fontSize: 12, fontWeight: 800, color: '#9E9E9E', textTransform: 'uppercase', letterSpacing: 2 };
-  const aCard = { background: AT.card, borderRadius: 18, border: `1px solid ${AT.border}`, margin: '0 20px 12px', padding: 16 };
+  // ── estilos (FORMATO GENERAL Admin v2) ──────────────────
+  const card = { background: AT.card, borderRadius: 16, border: `1px solid ${AT.border}`, padding: 16 };
+  const cardTitle = { fontSize: 11, fontWeight: 800, color: '#9E9E9E', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 };
+  const cardHint = { fontSize: 11, color: '#777', marginBottom: 12, lineHeight: 1.5 };
   const row = { display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: `1px solid ${AT.border}`, fontSize: 13 };
+  const lbl = { display: 'block', fontSize: 11, fontWeight: 800, color: '#9E9E9E', textTransform: 'uppercase', letterSpacing: .8, marginBottom: 6 };
+  const saveBtn = (busy, invalid) => ({
+    padding: '11px 16px', borderRadius: 12, border: 'none',
+    background: busy || invalid ? '#3A3A3A' : '#FBBC04',
+    color: busy || invalid ? '#777' : '#0D0D0D',
+    fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 800,
+    cursor: busy || invalid ? 'not-allowed' : 'pointer',
+  });
+  const ghostCardBtn = (color) => ({
+    width: '100%', padding: '11px 16px', borderRadius: 12,
+    background: 'transparent', border: `1px solid ${AT.border}`,
+    color, fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700, cursor: 'pointer',
+  });
 
   return (
-    <div style={{ paddingBottom: 90 }}>
-      {/* Header */}
-      <div style={{ padding: '14px 20px', borderBottom: `1px solid ${AT.border}`, background: '#252525', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button onClick={() => setScr('dash')} style={{ background: 'none', border: 'none', color: '#9E9E9E', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 600 }}><Back /> Inicio</button>
-        <div style={{ fontSize: 17, fontWeight: 700, color: '#fff' }}>Configuración</div>
-        <div style={{ width: 80 }} />
+    <div style={{ padding: '22px 22px 60px' }}>
+      {/* Encabezado v2 (sin back-link: la navegación vive en el sidebar) */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 21, fontWeight: 800, color: '#fff' }}>Configuración</div>
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: '#9E9E9E', marginTop: 2 }}>
+          Parámetros del programa — los cambios sensibles piden motivo y quedan auditados
+        </div>
       </div>
 
-      {/* Admin v2 (6-ago): los quick links se retiraron — la navegación
-          (Reglas, Operadores, Auditoría, Administradores, Estaciones)
-          vive en el menú lateral. La API externa quedó como sección
-          propia al final de esta vista. */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 10, alignItems: 'start' }}>
 
-      {/* F2.1: conversión y eventos POR NIVEL (editable, auditado) */}
-      <div style={aSec}>Puntos por Nivel</div>
-      <div style={aCard}>
-        <div style={{ fontSize: 11, color: '#777', marginBottom: 12, lineHeight: 1.5 }}>
-          Quetzales necesarios para ganar 1 punto y puntos otorgados por evento
-          especial, según el nivel del cliente. La conversión de cada compra usa
-          el nivel que el cliente tenía antes de esa compra.
-        </div>
-        {[
-          { k: 'oro', label: 'ORO', color: '#FBBC04' },
-          { k: 'platino', label: 'PLATINO', color: '#9E9E9E' },
-          { k: 'black', label: 'BLACK', color: '#CE93D8' },
-        ].map(t => (
-          <div key={t.k} style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 10 }}>
-            <span style={{ width: 88, fontSize: 12, fontWeight: 800, color: t.color, paddingBottom: 10 }}>{t.label}</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 9, color: '#777', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase', letterSpacing: .5 }}>Q por punto</div>
-              <input
-                value={loyaltyForm[t.k].qPerPt}
-                onChange={e => setLoyaltyField(t.k, 'qPerPt', e.target.value)}
-                inputMode="numeric"
-                style={{ ...inputStyleDark, width: '100%', boxSizing: 'border-box', ...sMono, fontSize: 13 }}
-              />
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 9, color: '#777', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase', letterSpacing: .5 }}>Pts por evento</div>
-              <input
-                value={loyaltyForm[t.k].evtPts}
-                onChange={e => setLoyaltyField(t.k, 'evtPts', e.target.value)}
-                inputMode="numeric"
-                style={{ ...inputStyleDark, width: '100%', boxSizing: 'border-box', ...sMono, fontSize: 13 }}
-              />
-            </div>
+        {/* F2.1: conversión y eventos POR NIVEL (editable, auditado) */}
+        <div style={card}>
+          <div style={cardTitle}>Puntos por Nivel</div>
+          <div style={cardHint}>
+            Quetzales necesarios para ganar 1 punto y puntos otorgados por evento
+            especial, según el nivel del cliente. La conversión de cada compra usa
+            el nivel que el cliente tenía antes de esa compra.
           </div>
-        ))}
-        <button
-          onClick={() => { if (!loyaltyInvalid) setShowLoyaltyReason(true); }}
-          disabled={loyaltyInvalid || savingLoyalty}
-          style={{
-            marginTop: 6, width: '100%', padding: '11px 16px',
-            background: loyaltyInvalid || savingLoyalty ? '#3A3A3A' : '#FBBC04',
-            border: 'none', borderRadius: 12,
-            color: loyaltyInvalid || savingLoyalty ? '#777' : '#0D0D0D',
-            fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 800,
-            cursor: loyaltyInvalid || savingLoyalty ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {savingLoyalty ? 'Guardando...' : 'Guardar puntos por nivel'}
-        </button>
-      </div>
-
-      {/* Conversión */}
-      <div style={aSec}>Conversión</div>
-      <div style={aCard}>
-        <div style={row}>
-          <span style={{ color: '#9E9E9E', fontWeight: 600 }}>Pts por boleto rifa (global)</span>
-          <span style={{ color: '#FBBC04', fontWeight: 800, ...sMono }}>{cfg.ticketPts} pts</span>
-        </div>
-        <div style={row}>
-          <span style={{ color: '#9E9E9E', fontWeight: 600 }}>Pts registro base</span>
-          <span style={{ color: '#2E7D32', fontWeight: 800, ...sMono }}>{cfg.regBase} pts</span>
-        </div>
-        <div style={row}>
-          <span style={{ color: '#9E9E9E', fontWeight: 600 }}>Pts campo opcional</span>
-          <span style={{ color: '#2E7D32', fontWeight: 800, ...sMono }}>+{cfg.regOptional} pts</span>
-        </div>
-        <div style={row}>
-          <span style={{ color: '#9E9E9E', fontWeight: 600 }}>Pts referido</span>
-          <span style={{ color: '#7B1FA2', fontWeight: 800, ...sMono }}>{cfg.referralPts} pts</span>
-        </div>
-        <div style={{ ...row, borderBottom: 'none' }}>
-          <span style={{ color: '#9E9E9E', fontWeight: 600 }}>Encuestas diarias</span>
-          <span style={{ color: '#1565C0', fontWeight: 800, ...sMono }}>{cfg.surveyDaily}/día · {cfg.surveyPts} pts</span>
-        </div>
-      </div>
-
-      {/* Fuel Prices */}
-      <div style={aSec}>Precios de Combustible</div>
-      <div style={aCard}>
-        {[
-          { name: 'Súper', price: cfg.fuelPrices?.super ?? 0, color: '#E65100' },
-          { name: 'Regular', price: cfg.fuelPrices?.regular ?? 0, color: '#2E7D32' },
-          { name: 'Diésel', price: cfg.fuelPrices?.diesel ?? 0, color: '#1565C0' },
-        ].map((f, i) => (
-          <div key={f.name} style={{ ...row, borderBottom: i < 2 ? `1px solid ${AT.border}` : 'none' }}>
-            <span style={{ color: f.color, fontWeight: 700 }}>{f.name}</span>
-            <span style={{ color: '#fff', fontWeight: 800, ...sMono }}>Q{f.price.toFixed(2)}/gal</span>
-          </div>
-        ))}
-        <button
-          onClick={openPriceModal}
-          style={{
-            marginTop: 14, width: '100%', padding: '11px 16px',
-            background: 'transparent', border: `1px solid ${AT.border}`,
-            borderRadius: 12, color: '#FBBC04',
-            fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700, cursor: 'pointer',
-          }}
-        >
-          Editar precios
-        </button>
-      </div>
-
-      {/* Canal de asistencia (WhatsApp / llamadas) */}
-      <div style={aSec}>Canal de Asistencia</div>
-      <div style={aCard}>
-        <div style={{ fontSize: 11, color: '#777', marginBottom: 12, lineHeight: 1.5 }}>
-          Número de WhatsApp y llamadas que el cliente ve en "Asistencia y Ayuda" (login y Menú). Horario mostrado: lunes a viernes, 8:00 a.m. – 4:00 p.m.
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <input
-            value={supportForm}
-            onChange={e => setSupportForm(e.target.value.replace(/[^0-9]/g, '').slice(0, 8))}
-            placeholder="8 dígitos (ej: 49741067)"
-            inputMode="numeric"
-            style={{ ...inputStyleDark, flex: 1, ...sMono, fontSize: 13 }}
-          />
-          <button
-            onClick={saveSupport}
-            disabled={savingSupport}
-            style={{
-              padding: '0 18px', borderRadius: 12, border: 'none',
-              background: savingSupport ? '#3A3A3A' : '#FBBC04',
-              color: savingSupport ? '#777' : '#0D0D0D',
-              fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 800,
-              cursor: savingSupport ? 'not-allowed' : 'pointer',
-            }}
-          >
-            {savingSupport ? '...' : 'Guardar'}
-          </button>
-        </div>
-      </div>
-
-      {/* F1: identidad de la empresa (selector + tagline del inicio) */}
-      <div style={aSec}>Empresa</div>
-      <div style={aCard}>
-        <div style={{ fontSize: 11, color: '#777', marginBottom: 12, lineHeight: 1.5 }}>
-          Nombre y ubicación que el cliente ve en el selector de empresa y en el encabezado del inicio.
-        </div>
-        <label style={{ display: 'block', fontSize: 11, fontWeight: 800, color: '#9E9E9E', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Nombre</label>
-        <input value={companyForm.name} onChange={e => setCompanyForm(p => ({ ...p, name: e.target.value }))}
-          placeholder="Gasolineras Turkaj" style={{ ...inputStyleDark, marginBottom: 10 }} />
-        <label style={{ display: 'block', fontSize: 11, fontWeight: 800, color: '#9E9E9E', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Ubicación</label>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <input value={companyForm.location} onChange={e => setCompanyForm(p => ({ ...p, location: e.target.value }))}
-            placeholder="Chichicastenango" style={{ ...inputStyleDark, flex: 1 }} />
-          <button onClick={saveCompany} disabled={savingCompany} style={{
-            padding: '0 18px', borderRadius: 12, border: 'none',
-            background: savingCompany ? '#3A3A3A' : '#FBBC04',
-            color: savingCompany ? '#777' : '#0D0D0D',
-            fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 800,
-            cursor: savingCompany ? 'not-allowed' : 'pointer',
-          }}>
-            {savingCompany ? '...' : 'Guardar'}
-          </button>
-        </div>
-      </div>
-
-      {/* Tiers */}
-      <div style={aSec}>Niveles (Tiers)</div>
-      <div style={aCard}>
-        <div style={row}>
-          <span style={{ color: '#FBBC04', fontWeight: 800, letterSpacing: 1 }}>ORO</span>
-          <span style={{ color: '#fff', fontWeight: 700, fontSize: 12 }}>0 – {(cfg.tiers?.platino?.gal || 150) - 1} gal</span>
-        </div>
-        <div style={row}>
-          <span style={{ color: '#9E9E9E', fontWeight: 800, letterSpacing: 1 }}>PLATINO</span>
-          <span style={{ color: '#fff', fontWeight: 700, fontSize: 12 }}>{cfg.tiers?.platino?.gal || 150} – {(cfg.tiers?.black?.gal || 500) - 1} gal</span>
-        </div>
-        <div style={row}>
-          <span style={{ color: '#CE93D8', fontWeight: 800, letterSpacing: 1 }}>BLACK</span>
-          <span style={{ color: '#fff', fontWeight: 700, fontSize: 12 }}>{cfg.tiers?.black?.gal || 500}+ gal</span>
-        </div>
-        {cfg.tiers?.platino && (
-          <>
-            <div style={{ height: 1, background: AT.border, margin: '8px 0' }} />
-            {/* El descuento por galón se retiró de los beneficios del
-                programa (decisión del dueño 24-jul-2026) — ya no se lista. */}
-            <div style={row}>
-              <span style={{ color: '#9E9E9E', fontWeight: 600 }}>PLATINO desc canje</span>
-              <span style={{ ...sMono, color: '#64B5F6' }}>{Math.round(cfg.tiers.platino.discRedeem * 100)}%</span>
-            </div>
-            <div style={{ ...row, borderBottom: 'none' }}>
-              <span style={{ color: '#9E9E9E', fontWeight: 600 }}>BLACK desc canje</span>
-              <span style={{ ...sMono, color: '#CE93D8' }}>{Math.round(cfg.tiers.black.discRedeem * 100)}%</span>
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Degradation */}
-      <div style={aSec}>Degradación por Inactividad</div>
-      <div style={aCard}>
-        {/* Interruptor del motor (lanzamiento oficial) */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#E0E0E0' }}>Motor de degradación</div>
-            <div style={{ fontSize: 11, color: '#777', marginTop: 2 }}>
-              {cfg.degradEnabled
-                ? `Activo — contando inactividad desde ${cfg.degradEnabledAt ? new Date(cfg.degradEnabledAt).toLocaleDateString('es-GT') : 'la activación'}`
-                : 'Apagado — las reglas se muestran pero NO se aplican'}
-            </div>
-          </div>
-          <button onClick={toggleDegrad} disabled={savingDegrad} style={{
-            padding: '8px 16px', borderRadius: 20, border: 'none',
-            background: savingDegrad ? '#3A3A3A' : cfg.degradEnabled ? 'rgba(46,125,50,.25)' : 'rgba(255,255,255,.08)',
-            color: savingDegrad ? '#777' : cfg.degradEnabled ? '#69F0AE' : '#9E9E9E',
-            fontFamily: "'DM Sans'", fontWeight: 800, fontSize: 12,
-            cursor: savingDegrad ? 'not-allowed' : 'pointer',
-          }}>
-            {savingDegrad ? '...' : cfg.degradEnabled ? 'ACTIVADO' : 'APAGADO'}
-          </button>
-        </div>
-        <div style={{ height: 1, background: AT.border, margin: '8px 0 12px' }} />
-        {(cfg.degrad || []).map((d, i) => (
-          <div key={i} style={{ marginBottom: i < (cfg.degrad || []).length - 1 ? 12 : 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 6, color: d.tier === 'BLACK' ? '#CE93D8' : d.tier === 'PLATINO' ? '#64B5F6' : '#FFB74D' }}>{d.tier}</div>
-            {d.rules.map((r, j) => (
-              <div key={j} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 12 }}>
-                <span style={{ color: '#aaa', fontWeight: 700 }}>{r.days} días</span>
-                <span style={{ color: '#EF5350', fontWeight: 600 }}>{r.effect}</span>
+          {[
+            { k: 'oro', label: 'ORO', color: '#FBBC04' },
+            { k: 'platino', label: 'PLATINO', color: '#9E9E9E' },
+            { k: 'black', label: 'BLACK', color: '#CE93D8' },
+          ].map(t => (
+            <div key={t.k} style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 10 }}>
+              <span style={{ width: 74, fontSize: 12, fontWeight: 800, color: t.color, paddingBottom: 10 }}>{t.label}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 9, color: '#777', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase', letterSpacing: .5 }}>Q por punto</div>
+                <input
+                  value={loyaltyForm[t.k].qPerPt}
+                  onChange={e => setLoyaltyField(t.k, 'qPerPt', e.target.value)}
+                  inputMode="numeric"
+                  style={{ ...inputStyleDark, width: '100%', boxSizing: 'border-box', ...sMono, fontSize: 13 }}
+                />
               </div>
-            ))}
-          </div>
-        ))}
-        <div style={{ marginTop: 8, fontSize: 11, color: '#2E7D32', fontWeight: 700 }}>Cualquier compra (desde Q10) resetea el reloj</div>
-      </div>
-
-      {/* F7a: llaves de la API externa (PROPER) — sección propia desde
-          Admin v2 (antes era un quick link) */}
-      <div style={aSec}>API Externa (PROPER)</div>
-      <div style={aCard}>
-        <div style={{ fontSize: 11, color: '#777', marginBottom: 12, lineHeight: 1.5 }}>
-          Llaves de acceso para sistemas externos que acumulan puntos y entregan
-          premios (POS de PROPER). Cada llave se muestra una sola vez al generarla.
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 9, color: '#777', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase', letterSpacing: .5 }}>Pts por evento</div>
+                <input
+                  value={loyaltyForm[t.k].evtPts}
+                  onChange={e => setLoyaltyField(t.k, 'evtPts', e.target.value)}
+                  inputMode="numeric"
+                  style={{ ...inputStyleDark, width: '100%', boxSizing: 'border-box', ...sMono, fontSize: 13 }}
+                />
+              </div>
+            </div>
+          ))}
+          <button
+            onClick={() => { if (!loyaltyInvalid) setShowLoyaltyReason(true); }}
+            disabled={loyaltyInvalid || savingLoyalty}
+            style={{ ...saveBtn(savingLoyalty, loyaltyInvalid), marginTop: 6, width: '100%' }}
+          >
+            {savingLoyalty ? 'Guardando...' : 'Guardar puntos por nivel'}
+          </button>
         </div>
-        <button onClick={() => setShowApiModal(true)} style={{
-          width: '100%', padding: '11px 16px', borderRadius: 12,
-          background: 'transparent', border: `1px solid ${AT.border}`,
-          color: '#80CBC4', fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700, cursor: 'pointer',
-        }}>
-          Generar llave de API
-        </button>
+
+        {/* Conversión */}
+        <div style={card}>
+          <div style={cardTitle}>Conversión</div>
+          <div style={row}>
+            <span style={{ color: '#9E9E9E', fontWeight: 600 }}>Pts por boleto rifa (global)</span>
+            <span style={{ color: '#FBBC04', fontWeight: 800, ...sMono }}>{cfg.ticketPts} pts</span>
+          </div>
+          <div style={row}>
+            <span style={{ color: '#9E9E9E', fontWeight: 600 }}>Pts registro base</span>
+            <span style={{ color: '#81C784', fontWeight: 800, ...sMono }}>{cfg.regBase} pts</span>
+          </div>
+          <div style={row}>
+            <span style={{ color: '#9E9E9E', fontWeight: 600 }}>Pts campo opcional</span>
+            <span style={{ color: '#81C784', fontWeight: 800, ...sMono }}>+{cfg.regOptional} pts</span>
+          </div>
+          {/* "Pts referido" OMITIDO (11-ago-2026, pedido del dueño): la
+              función "Refiere a un amigo" queda fuera del programa por
+              ahora — posible implementación futura. cfg.referralPts
+              sigue existiendo en config solo como dato. */}
+          <div style={{ ...row, borderBottom: 'none' }}>
+            <span style={{ color: '#9E9E9E', fontWeight: 600 }}>Encuestas diarias</span>
+            <span style={{ color: '#64B5F6', fontWeight: 800, ...sMono }}>{cfg.surveyDaily}/día · {cfg.surveyPts} pts</span>
+          </div>
+        </div>
+
+        {/* Precios de combustible */}
+        <div style={card}>
+          <div style={cardTitle}>Precios de Combustible</div>
+          {[
+            { name: 'Súper', price: cfg.fuelPrices?.super ?? 0, color: '#FF8F00' },
+            { name: 'Regular', price: cfg.fuelPrices?.regular ?? 0, color: '#81C784' },
+            { name: 'Diésel', price: cfg.fuelPrices?.diesel ?? 0, color: '#64B5F6' },
+          ].map((f, i) => (
+            <div key={f.name} style={{ ...row, borderBottom: i < 2 ? `1px solid ${AT.border}` : 'none' }}>
+              <span style={{ color: f.color, fontWeight: 700 }}>{f.name}</span>
+              <span style={{ color: '#fff', fontWeight: 800, ...sMono }}>Q{f.price.toFixed(2)}/gal</span>
+            </div>
+          ))}
+          <button onClick={openPriceModal} style={{ ...ghostCardBtn('#FBBC04'), marginTop: 14 }}>
+            Editar precios
+          </button>
+        </div>
+
+        {/* Canal de asistencia (WhatsApp / llamadas) */}
+        <div style={card}>
+          <div style={cardTitle}>Canal de Asistencia</div>
+          <div style={cardHint}>
+            Número de WhatsApp y llamadas que el cliente ve en "Asistencia y Ayuda" (login y Menú). Horario mostrado: lunes a viernes, 8:00 a.m. – 4:00 p.m.
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              value={supportForm}
+              onChange={e => setSupportForm(e.target.value.replace(/[^0-9]/g, '').slice(0, 8))}
+              placeholder="8 dígitos (ej: 49741067)"
+              inputMode="numeric"
+              style={{ ...inputStyleDark, flex: 1, ...sMono, fontSize: 13 }}
+            />
+            <button onClick={saveSupport} disabled={savingSupport} style={{ ...saveBtn(savingSupport), padding: '0 18px' }}>
+              {savingSupport ? '...' : 'Guardar'}
+            </button>
+          </div>
+        </div>
+
+        {/* F1: identidad de la empresa (selector + tagline del inicio) */}
+        <div style={card}>
+          <div style={cardTitle}>Empresa</div>
+          <div style={cardHint}>
+            Nombre y ubicación que el cliente ve en el selector de empresa y en el encabezado del inicio.
+          </div>
+          <label style={lbl}>Nombre</label>
+          <input value={companyForm.name} onChange={e => setCompanyForm(p => ({ ...p, name: e.target.value }))}
+            placeholder="Gasolineras Turkaj" style={{ ...inputStyleDark, marginBottom: 10 }} />
+          <label style={lbl}>Ubicación</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input value={companyForm.location} onChange={e => setCompanyForm(p => ({ ...p, location: e.target.value }))}
+              placeholder="Chichicastenango" style={{ ...inputStyleDark, flex: 1 }} />
+            <button onClick={saveCompany} disabled={savingCompany} style={{ ...saveBtn(savingCompany), padding: '0 18px' }}>
+              {savingCompany ? '...' : 'Guardar'}
+            </button>
+          </div>
+        </div>
+
+        {/* Niveles (informativo — los umbrales no se editan acá) */}
+        <div style={card}>
+          <div style={cardTitle}>Niveles</div>
+          <div style={row}>
+            <span style={{ color: '#FBBC04', fontWeight: 800, letterSpacing: 1 }}>ORO</span>
+            <span style={{ color: '#fff', fontWeight: 700, fontSize: 12, ...sMono }}>0 – {(cfg.tiers?.platino?.gal || 150) - 1} gal</span>
+          </div>
+          <div style={row}>
+            <span style={{ color: '#9E9E9E', fontWeight: 800, letterSpacing: 1 }}>PLATINO</span>
+            <span style={{ color: '#fff', fontWeight: 700, fontSize: 12, ...sMono }}>{cfg.tiers?.platino?.gal || 150} – {(cfg.tiers?.black?.gal || 500) - 1} gal</span>
+          </div>
+          <div style={row}>
+            <span style={{ color: '#CE93D8', fontWeight: 800, letterSpacing: 1 }}>BLACK</span>
+            <span style={{ color: '#fff', fontWeight: 700, fontSize: 12, ...sMono }}>{cfg.tiers?.black?.gal || 500}+ gal</span>
+          </div>
+          {cfg.tiers?.platino && (
+            <>
+              {/* El descuento por galón se retiró de los beneficios del
+                  programa (decisión del dueño 24-jul-2026) — ya no se lista. */}
+              <div style={row}>
+                <span style={{ color: '#9E9E9E', fontWeight: 600 }}>PLATINO desc canje</span>
+                <span style={{ ...sMono, color: '#64B5F6' }}>{Math.round(cfg.tiers.platino.discRedeem * 100)}%</span>
+              </div>
+              <div style={{ ...row, borderBottom: 'none' }}>
+                <span style={{ color: '#9E9E9E', fontWeight: 600 }}>BLACK desc canje</span>
+                <span style={{ ...sMono, color: '#CE93D8' }}>{Math.round(cfg.tiers.black.discRedeem * 100)}%</span>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Degradación por inactividad */}
+        <div style={card}>
+          <div style={cardTitle}>Degradación por Inactividad</div>
+          {/* Interruptor del motor (lanzamiento oficial) */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: '#E0E0E0' }}>Motor de degradación</div>
+              <div style={{ fontSize: 11, color: '#777', marginTop: 2 }}>
+                {cfg.degradEnabled
+                  ? `Activo — contando inactividad desde ${cfg.degradEnabledAt ? new Date(cfg.degradEnabledAt).toLocaleDateString('es-GT') : 'la activación'}`
+                  : 'Apagado — las reglas se muestran pero NO se aplican'}
+              </div>
+            </div>
+            <button onClick={toggleDegrad} disabled={savingDegrad} style={{
+              padding: '8px 16px', borderRadius: 20, border: 'none', flexShrink: 0,
+              background: savingDegrad ? '#3A3A3A' : cfg.degradEnabled ? 'rgba(46,125,50,.25)' : 'rgba(255,255,255,.08)',
+              color: savingDegrad ? '#777' : cfg.degradEnabled ? '#69F0AE' : '#9E9E9E',
+              fontFamily: "'DM Sans'", fontWeight: 800, fontSize: 12,
+              cursor: savingDegrad ? 'not-allowed' : 'pointer',
+            }}>
+              {savingDegrad ? '...' : cfg.degradEnabled ? 'ACTIVADO' : 'APAGADO'}
+            </button>
+          </div>
+          <div style={{ height: 1, background: AT.border, margin: '8px 0 12px' }} />
+          {(cfg.degrad || []).map((d, i) => (
+            <div key={i} style={{ marginBottom: i < (cfg.degrad || []).length - 1 ? 12 : 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 6, color: d.tier === 'BLACK' ? '#CE93D8' : d.tier === 'PLATINO' ? '#64B5F6' : '#FFB74D' }}>{d.tier}</div>
+              {d.rules.map((r, j) => (
+                <div key={j} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 12 }}>
+                  <span style={{ color: '#aaa', fontWeight: 700 }}>{r.days} días</span>
+                  <span style={{ color: '#EF5350', fontWeight: 600 }}>{r.effect}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+          <div style={{ marginTop: 8, fontSize: 11, color: '#81C784', fontWeight: 700 }}>Cualquier compra (desde Q10) resetea el reloj</div>
+        </div>
+
+        {/* F7a: llaves de la API externa (PROPER) */}
+        <div style={card}>
+          <div style={cardTitle}>API Externa (PROPER)</div>
+          <div style={cardHint}>
+            Llaves de acceso para sistemas externos que acumulan puntos y entregan
+            premios (POS de PROPER). Cada llave se muestra una sola vez al generarla.
+          </div>
+          <button onClick={() => setShowApiModal(true)} style={ghostCardBtn('#80CBC4')}>
+            Generar llave de API
+          </button>
+        </div>
+
       </div>
 
       {/* ─── F7a: Modal de llaves de la API externa ─── */}
@@ -616,9 +601,9 @@ export default function Settings(ctx) {
             </div>
 
             {[
-              { k: 'super', label: 'Súper', color: '#E65100' },
-              { k: 'regular', label: 'Regular', color: '#2E7D32' },
-              { k: 'diesel', label: 'Diésel', color: '#1565C0' },
+              { k: 'super', label: 'Súper', color: '#FF8F00' },
+              { k: 'regular', label: 'Regular', color: '#81C784' },
+              { k: 'diesel', label: 'Diésel', color: '#64B5F6' },
             ].map((f) => {
               const err = fieldError(priceForm[f.k]);
               return (
