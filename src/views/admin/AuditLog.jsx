@@ -9,7 +9,7 @@
 // observadas en admin_audit_log + las que generan los RPCs actuales
 // (admin_write_catalog arma `{create|update|delete}_{entidad}`).
 import { useState, useEffect, useCallback } from 'react';
-import { adminTheme as AT, inputStyleDark } from '../../constants/styles';
+import { adminTheme as AT, inputStyleDark, sMono } from '../../constants/styles';
 import { getAdminAuditLog } from '../../services/rpcServices';
 
 const PAGE_SIZE = 20;
@@ -199,50 +199,61 @@ export default function AuditLog(ctx) {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 10, alignItems: 'start' }}>
-        {rows.map(r => {
+      {/* Lista VERTICAL de una columna (pedido del dueño 11-ago): tarjetas
+          uniformes a todo el ancho, una debajo de la otra, con número de
+          orden sutil al estilo de Miembros (columna 22px mono gris). La
+          numeración es GLOBAL al filtro: continúa entre páginas para que
+          coincida con el contador "X–Y de N". */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {rows.map((r, i) => {
           const c = actionColor(r.action);
           const isOpen = expanded === r.id;
           const diff = changedKeys(r.old_value, r.new_value);
           return (
             <div key={r.id} style={{ background: AT.card, borderRadius: 16, border: `1px solid ${AT.border}`, overflow: 'hidden' }}>
               {/* Fila resumen */}
-              <div onClick={() => setExpanded(isOpen ? null : r.id)} style={{ padding: 14, cursor: 'pointer' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <span style={{ fontSize: 10, fontWeight: 800, padding: '3px 8px', borderRadius: 8, background: c.bg, color: c.txt, letterSpacing: .5 }}>{r.action}</span>
-                  <span style={{ flex: 1 }} />
-                  <span style={{ fontSize: 11, color: AT.sub, fontWeight: 600 }}>{fmtDate(r.created_at)}</span>
+              <div onClick={() => setExpanded(isOpen ? null : r.id)} style={{ padding: '14px 14px 14px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 22, textAlign: 'center', flexShrink: 0, ...sMono, fontSize: 10.5, fontWeight: 700, color: '#555' }}>
+                  {page * PAGE_SIZE + i + 1}
                 </div>
-                <div style={{ fontSize: 12, color: AT.txt, fontWeight: 700 }}>
-                  {r.admin_name || '—'}
-                  {r.entity_type && <span style={{ color: AT.sub, fontWeight: 600 }}> · {r.entity_type}</span>}
-                </div>
-                {(() => {
-                  // Nombre de la entidad afectada: resuelto server-side; si la
-                  // fila ya no existe (deletes), cae al snapshot del log; último
-                  // recurso: id truncado.
-                  const name = r.entity_name
-                    || r.old_value?.name || r.new_value?.name
-                    || r.old_value?.title || r.new_value?.title
-                    || (r.entity_id ? `#${String(r.entity_id).slice(0, 8)}` : null);
-                  if (!name) return null;
-                  return (
-                    <div style={{ fontSize: 12, color: '#64B5F6', fontWeight: 700, marginTop: 3 }}>
-                      {name}
-                      {r.entity_detail && <span style={{ color: AT.sub, fontWeight: 600 }}> · {r.entity_detail}</span>}
-                    </div>
-                  );
-                })()}
-                {r.reason_text && (
-                  <div style={{ fontSize: 12, color: AT.sub, marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: isOpen ? 'normal' : 'nowrap' }}>
-                    Motivo: {r.reason_text}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <span style={{ fontSize: 10, fontWeight: 800, padding: '3px 8px', borderRadius: 8, background: c.bg, color: c.txt, letterSpacing: .5 }}>{r.action}</span>
+                    <span style={{ flex: 1 }} />
+                    <span style={{ fontSize: 11, color: AT.sub, fontWeight: 600 }}>{fmtDate(r.created_at)}</span>
                   </div>
-                )}
+                  <div style={{ fontSize: 12, color: AT.txt, fontWeight: 700 }}>
+                    {r.admin_name || '—'}
+                    {r.entity_type && <span style={{ color: AT.sub, fontWeight: 600 }}> · {r.entity_type}</span>}
+                  </div>
+                  {(() => {
+                    // Nombre de la entidad afectada: resuelto server-side; si la
+                    // fila ya no existe (deletes), cae al snapshot del log; último
+                    // recurso: id truncado.
+                    const name = r.entity_name
+                      || r.old_value?.name || r.new_value?.name
+                      || r.old_value?.title || r.new_value?.title
+                      || (r.entity_id ? `#${String(r.entity_id).slice(0, 8)}` : null);
+                    if (!name) return null;
+                    return (
+                      <div style={{ fontSize: 12, color: '#64B5F6', fontWeight: 700, marginTop: 3 }}>
+                        {name}
+                        {r.entity_detail && <span style={{ color: AT.sub, fontWeight: 600 }}> · {r.entity_detail}</span>}
+                      </div>
+                    );
+                  })()}
+                  {r.reason_text && (
+                    <div style={{ fontSize: 12, color: AT.sub, marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: isOpen ? 'normal' : 'nowrap' }}>
+                      Motivo: {r.reason_text}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Detalle expandido: diff before/after */}
+              {/* Detalle expandido: diff before/after — sangrado a la
+                  altura del contenido (columna del número = 12+22+10px) */}
               {isOpen && (
-                <div style={{ padding: '0 14px 14px', borderTop: `1px solid ${AT.border}` }}>
+                <div style={{ padding: '0 14px 14px 44px', borderTop: `1px solid ${AT.border}` }}>
                   {diff.length > 0 ? (
                     <div style={{ marginTop: 10 }}>
                       <div style={{ ...lbl, marginBottom: 8 }}>Cambios ({diff.length})</div>
