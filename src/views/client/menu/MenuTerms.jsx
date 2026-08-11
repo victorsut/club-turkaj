@@ -38,7 +38,7 @@ export const TERMS_SECS = [
   },
   {
     title: 'RIFA MENSUAL',
-    body: 'Cada mes el Programa realiza una rifa entre los miembros participantes. Los boletos de rifa tienen un costo de 5 puntos cada uno. La participación en la rifa es voluntaria. El ganador se determina de forma aleatoria entre los boletos adquiridos para ese mes. Los puntos utilizados en la compra de boletos no son reembolsables en ningún caso.',
+    body: 'Cada mes el Programa realiza una rifa entre los miembros participantes. Los boletos de rifa tienen un costo en puntos definido por el Programa, visible en la sección Rifa de la aplicación. La participación en la rifa es voluntaria. El ganador se determina de forma aleatoria entre los boletos adquiridos para ese mes. Los puntos utilizados en la compra de boletos no son reembolsables en ningún caso.',
   },
   {
     title: 'INACTIVIDAD Y DEGRADACIÓN',
