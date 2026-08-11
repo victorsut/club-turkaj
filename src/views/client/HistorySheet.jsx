@@ -3,13 +3,15 @@
 // canjes). Períodos DERIVADOS de los datos (feedback del dueño):
 // "Hoy" solo aparece si hay movimientos hoy; "Mes" y "Año" abren un
 // selector solo con los meses/años que tienen movimientos.
+// Objetivo #3 (11-ago): filtro por TIPO de movimiento (chips también
+// derivados de los datos) + paginado incremental de 30 en 30.
 // Entra desde su tile (container transform D35) y se guarda al cerrar.
 import { useState, useEffect, useRef } from 'react';
-import { sMono, bento, BRAND_ORANGE, clientMainBg } from '../../constants/styles';
+import { sMono, bento, clientMainBg } from '../../constants/styles';
 import { ArrowLeft, Gift, Clock, Fuel, Ticket, Cake, Car, Clipboard, StarLine } from '../../components/ui/Icons';
 import RewardIcon, { rewardIconFor } from '../../components/ui/RewardIcon';
 import ChipScroller from '../../components/ui/ChipScroller';
-import QRCode from '../../components/ui/QRCode';
+import RewardQrSheet from './RewardQrSheet';
 import useBackLayer from '../../hooks/useBackLayer';
 import { stripEmojis } from '../../lib/text';
 
@@ -26,6 +28,24 @@ const actIconFor = (a) => {
   if (a.type === 'canje') return rewardIconFor({ name: a.desc || '' });
   return TYPE_ICONS[a.type] || StarLine;
 };
+
+// Objetivo #3: grupos de TIPO para el filtro del libro mayor. Los
+// chips solo aparecen para grupos CON movimientos (mismo criterio de
+// los períodos derivados). 'entrega' acompaña al canje; los tipos de
+// alta (registro/vehículos) van juntos en "Otros".
+const TYPE_GROUPS = [
+  { id: 'compra',   label: 'Compras',   match: ['compra'] },
+  { id: 'canje',    label: 'Canjes',    match: ['canje', 'entrega'] },
+  { id: 'rifa',     label: 'Rifa',      match: ['rifa'] },
+  { id: 'encuesta', label: 'Encuestas', match: ['encuesta'] },
+  { id: 'evento',   label: 'Eventos',   match: ['evento'] },
+  { id: 'otros',    label: 'Otros',     match: ['registro', 'registro_vehiculos', 'vehiculo'] },
+];
+const typeGroupOf = (t) =>
+  TYPE_GROUPS.find(g => g.match.includes(t))?.id || 'otros';
+
+// Paginado incremental (Objetivo #3): filas por tanda.
+const PAGE = 30;
 
 const MES_CORTO = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 const monthLabel = (ym) => `${MES_CORTO[parseInt(ym.slice(5, 7), 10) - 1] || '?'} ${ym.slice(0, 4)}`;
@@ -68,6 +88,9 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
   const [selMonth, setSelMonth] = useState(() => months[0] || null);
   const [selYear, setSelYear] = useState(() => years[0] || null);
   const [closing, setClosing] = useState(false);
+  // Objetivo #3: filtro por tipo (solo libro mayor) + paginado.
+  const [typeFilter, setTypeFilter] = useState('todos');
+  const [shown, setShown] = useState(PAGE);
   // Canjes: vista de PENDIENTES de usar (ícono esquina superior derecha).
   // Ignora el período — un canje pendiente importa hoy, sin importar
   // cuándo se hizo. initialPending: abrir ya filtrado (reloj de CANJES).
@@ -123,7 +146,17 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
   };
   const items = (!isCompras && pendingOnly)
     ? base.filter(x => !x.collected)
-    : base.filter(x => inPeriod(itemDay(x.date)));
+    : base.filter(x => inPeriod(itemDay(x.date))
+        && (!isCompras || typeFilter === 'todos' || typeGroupOf(x.type) === typeFilter));
+
+  // Grupos de tipo presentes en los datos (chips solo si hay variedad)
+  const typeGroups = isCompras
+    ? TYPE_GROUPS.filter(g => base.some(a => g.match.includes(a.type)))
+    : [];
+
+  // Al cambiar cualquier filtro, el paginado vuelve a la primera tanda
+  useEffect(() => { setShown(PAGE); }, [mode, selMonth, selYear, typeFilter, pendingOnly]);
+  const visible = items.slice(0, shown);
 
   const ganados = isCompras
     ? items.reduce((s, a) => s + Math.max(0, parseInt(a.pts, 10) || 0), 0)
@@ -274,6 +307,21 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
           ))}
         </ChipScroller>
       )}
+
+      {/* Objetivo #3: filtro por TIPO de movimiento (solo libro mayor;
+          chips derivados de los datos — sin variedad, sin fila) */}
+      {isCompras && typeGroups.length > 1 && (
+        <ChipScroller padding="2px 14px 10px">
+          <button onClick={() => setTypeFilter('todos')} style={subChip(typeFilter === 'todos')}>
+            Todos
+          </button>
+          {typeGroups.map(g => (
+            <button key={g.id} onClick={() => setTypeFilter(g.id)} style={subChip(typeFilter === g.id)}>
+              {g.label}
+            </button>
+          ))}
+        </ChipScroller>
+      )}
       </>)}
 
       {/* Lista */}
@@ -294,7 +342,7 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
 
       <div style={{ padding: '0 16px' }}>
         {isCompras
-          ? items.map((a, i) => {
+          ? visible.map((a, i) => {
               const day = itemDay(a.date);
               const pts = parseInt(a.pts, 10) || 0;
               const pos = pts > 0;
@@ -325,7 +373,7 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
                 </div>
               );
             })
-          : items.map((rd, i) => {
+          : visible.map((rd, i) => {
             // D22: premio de rifa con plazo vencido — ya no es reclamable
             const expired = !rd.collected && rd.expiresAt && new Date(rd.expiresAt) < new Date();
             return (
@@ -380,81 +428,29 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
               </div>
             );
           })}
+
+        {/* Objetivo #3: paginado incremental — el resto carga por tandas */}
+        {items.length > shown && (
+          <button onClick={() => setShown(s => s + PAGE)} style={{
+            width: '100%', padding: 13, borderRadius: 16, border: 'none',
+            background: TH.surface, color: TH.txt, cursor: 'pointer',
+            fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700,
+            marginTop: 2, marginBottom: 8,
+          }}>
+            Mostrar más ({(items.length - shown).toLocaleString('en-US')} restantes)
+          </button>
+        )}
       </div>
 
-      {/* ── Bottom sheet: QR único del canje pendiente (25-jul) ──
-          El operador escanea este código (TK-XXXXXX) y le aparecen los
-          datos del cliente y del premio; la entrega se confirma después
-          en este dispositivo (flujo Realtime intacto). El panel del QR
-          es SIEMPRE blanco (escaneabilidad) con esquinas de escáner en
-          BRAND_ORANGE — mismo lenguaje del sheet Código QR. */}
-      {qrItem && (
-        <div onClick={closeQr} style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)',
-          zIndex: 400, display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-          animation: qrClosing ? 'ppFadeOut .22s ease forwards' : 'ppFade .2s ease',
-        }}>
-          <div onClick={e => e.stopPropagation()} style={{
-            background: dark ? '#101018' : '#fff',
-            borderRadius: '24px 24px 0 0',
-            // paddingBottom alto: este sheet vive DENTRO de HistorySheet
-            // (zIndex 90, bajo la BottomNav 100) — el círculo QR central
-            // sobresale encima, así que el contenido debe librarlo.
-            width: '100%', maxWidth: 480, padding: '12px 24px 104px',
-            animation: qrClosing ? 'slideDownOut .22s ease-in forwards' : 'slideUp .3s cubic-bezier(.32,1.2,.64,1)',
-            textAlign: 'center',
-          }}>
-            <div style={{ width: 40, height: 4, borderRadius: 4, background: dark ? 'rgba(255,255,255,.2)' : '#E0E0E0', margin: '0 auto 18px' }} />
-
-            <div style={{
-              fontSize: 10.5, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase',
-              color: dark ? '#FFD54F' : '#B58000', marginBottom: 8,
-            }}>
-              Canje pendiente
-            </div>
-            <div style={{
-              width: 56, height: 56, borderRadius: 16, margin: '0 auto 10px',
-              background: TH.chipOn, color: TH.chipInk,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <div style={{ transform: 'scale(1.4)', lineHeight: 0 }}><RewardIcon reward={qrItem.reward} /></div>
-            </div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: TH.header }}>{stripEmojis(qrItem.reward?.name) || 'Premio'}</div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: TH.sub, marginTop: 3 }}>
-              {fmtDay(itemDay(qrItem.date))} · -{qrItem.cost} pts
-            </div>
-            {/* D22: vencimiento del premio de rifa (los canjes normales no expiran) */}
-            {qrItem.expiresAt && (
-              <div style={{ fontSize: 11.5, fontWeight: 800, marginTop: 5, color: dark ? '#FFD54F' : '#B58000' }}>
-                Válido hasta el {new Date(qrItem.expiresAt).toLocaleDateString('es-GT', { day: 'numeric', month: 'long' })}
-              </div>
-            )}
-
-            {/* QR sobre panel blanco con esquinas de escáner */}
-            <div style={{ position: 'relative', width: 194, margin: '18px auto 12px', padding: 12, background: '#fff', borderRadius: 16 }}>
-              {[
-                { top: -6, left: -6, borderTop: `3px solid ${BRAND_ORANGE}`, borderLeft: `3px solid ${BRAND_ORANGE}`, borderTopLeftRadius: 14 },
-                { top: -6, right: -6, borderTop: `3px solid ${BRAND_ORANGE}`, borderRight: `3px solid ${BRAND_ORANGE}`, borderTopRightRadius: 14 },
-                { bottom: -6, left: -6, borderBottom: `3px solid ${BRAND_ORANGE}`, borderLeft: `3px solid ${BRAND_ORANGE}`, borderBottomLeftRadius: 14 },
-                { bottom: -6, right: -6, borderBottom: `3px solid ${BRAND_ORANGE}`, borderRight: `3px solid ${BRAND_ORANGE}`, borderBottomRightRadius: 14 },
-              ].map((s, ci) => <div key={ci} style={{ position: 'absolute', width: 28, height: 28, ...s }} />)}
-              <QRCode code={qrItem.code} sz={170} />
-            </div>
-
-            <div style={{
-              ...sMono, display: 'inline-block', fontSize: 13, fontWeight: 800, letterSpacing: 1.5,
-              padding: '8px 14px', borderRadius: 10,
-              background: dark ? 'rgba(255,255,255,.08)' : '#F5F5F7',
-              color: TH.header,
-            }}>
-              {qrItem.code}
-            </div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: TH.sub, lineHeight: 1.6, marginTop: 12, padding: '0 8px' }}>
-              Mostrá este código al operador para recibir tu premio. Después de que lo escanee, confirmás la entrega en este dispositivo.
-            </div>
-          </div>
-        </div>
-      )}
+      {/* QR único del canje pendiente (25-jul; extraído a RewardQrSheet) */}
+      <RewardQrSheet
+        item={qrItem}
+        closing={qrClosing}
+        onClose={closeQr}
+        dark={dark}
+        TH={TH}
+        dateLabel={qrItem ? fmtDay(itemDay(qrItem.date)) : ''}
+      />
     </div>
   );
 }
