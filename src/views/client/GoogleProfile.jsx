@@ -10,6 +10,7 @@ import { DatePickerSheet } from '../../components/ui/DrumDatePicker';
 import { VEHICLE_TYPES } from '../../components/ui/VehicleIcons';
 import { WizardHeader, PtsCard, Field, DateField, InfoBubble } from './registerUi';
 import PhoneVerifyStep from './PhoneVerifyStep';
+import TermsSheet, { TermsAcceptRow } from './TermsSheet';
 import AddressPicker, { EMPTY_ADDRESS } from '../../components/ui/AddressPicker';
 import { isAddressComplete, packAddress } from '../../constants/geoGt';
 import { phoneMask, dpiMask, plateMask, capWords } from '../../lib/inputMasks';
@@ -46,6 +47,10 @@ export default function GoogleProfile(ctx) {
   const [showPassConfirm, setShowPassConfirm] = useState(false);
   const [checkingPhone, setCheckingPhone] = useState(false);
   const [phoneFocus, setPhoneFocus]       = useState(false);
+  // Aceptación de Términos y Condiciones (11-ago, pedido del dueño):
+  // obligatoria para finalizar; el visor los muestra completos.
+  const [termsOk, setTermsOk]     = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
 
   // ── Verificar si el telefono o DPI ya existe en Supabase ─
   const checkPhoneDuplicate = async (phone) => {
@@ -85,6 +90,7 @@ export default function GoogleProfile(ctx) {
   const doFinish = async () => {
     if (!password.trim() || password.length < 6) { setAuthError('La contrasena debe tener al menos 6 caracteres'); return; }
     if (password !== passConfirm) { setAuthError('Las contrasenas no coinciden'); return; }
+    if (!termsOk) { setAuthError('Para continuar debes aceptar los Términos y Condiciones'); return; }
     if (!phoneVerified && sbConnected && /^\d{8}$/.test((regProfile.phone || '').trim())) {
       setSaving(true);
       try {
@@ -484,9 +490,17 @@ export default function GoogleProfile(ctx) {
         )}
 
         <PtsCard total={totalPts} base={cfg.regBase || 15} optional={optFields * regOptional} vehicles={vehiclePts} dark={dark} />
+        <TermsAcceptRow accepted={termsOk} dark={dark}
+          onToggle={() => { setTermsOk(v => !v); clearAuthErr(); }}
+          onRead={() => setShowTerms(true)} />
         <button onClick={doFinish} disabled={saving} style={{ ...btnPrimary, background: saving ? (dark ? 'rgba(255,255,255,.15)' : '#E0E0E0') : BRAND_ORANGE, color: saving ? '#9E9E9E' : '#fff', opacity: saving ? .8 : 1 }}>
           {saving ? 'Guardando...' : 'Finalizar registro (' + totalPts + ' pts)'}
         </button>
+        {showTerms && (
+          <TermsSheet dark={dark}
+            onClose={() => setShowTerms(false)}
+            onAccept={() => { setTermsOk(true); setShowTerms(false); clearAuthErr(); }} />
+        )}
       </div>
     );
   }

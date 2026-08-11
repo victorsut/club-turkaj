@@ -5,7 +5,9 @@
 import { BRAND_ORANGE } from '../../../constants/styles';
 import { SectionHeader } from './menuUi';
 
-const SECS = [
+// Exportados (11-ago): el visor de términos del REGISTRO (TermsSheet)
+// usa estos mismos textos — una sola fuente, sin copias.
+export const TERMS_SECS = [
   {
     title: 'OBJETO',
     body: 'Los presentes Términos y Condiciones regulan el uso del programa de fidelización Puntos Plus ("el Programa"), disponible a través de su aplicación web progresiva oficial, y la relación entre el operador del Programa y el usuario. Puntos Plus es una plataforma de fidelización independiente en la que Gasolineras Turkaj I, II y III de Chichicastenango participan como comercio afiliado. Al acceder y utilizar el Programa, el usuario acepta expresamente haber leído, comprendido y adherirse a los presentes términos, así como a las leyes vigentes de la República de Guatemala.',
@@ -72,7 +74,7 @@ export default function MenuTerms({ TH, onBack }) {
   return (
     <>
       <SectionHeader title="Términos y Condiciones" sub="Aplica en Gasolineras Turkaj, Chichicastenango" onBack={onBack} TH={TH} />
-      {SECS.map((s, i) => (
+      {TERMS_SECS.map((s, i) => (
         <div key={i} style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 11, fontWeight: 900, color: BRAND_ORANGE, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
             {String(i + 1).padStart(2, '0')}. {s.title}
