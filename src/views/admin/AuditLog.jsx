@@ -199,18 +199,20 @@ export default function AuditLog(ctx) {
         </div>
       )}
 
-      {/* Lista VERTICAL de una columna (pedido del dueño 11-ago): tarjetas
-          uniformes a todo el ancho, una debajo de la otra, con número de
-          orden sutil al estilo de Miembros (columna 22px mono gris). La
-          numeración es GLOBAL al filtro: continúa entre páginas para que
-          coincida con el contador "X–Y de N". */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {/* Lista en COLUMNAS RESPONSIVAS (pedido del dueño 11-ago): CSS
+          multicol — columnas de ~340px, tantas como quepan con MÁXIMO 5
+          (celular = 1). El flujo sigue siendo VERTICAL: el registro 2 va
+          debajo del 1 y la lectura continúa arriba de la columna
+          siguiente; el número de orden (patrón de Miembros, columna 22px
+          mono gris) es GLOBAL al filtro y continúa entre páginas para
+          coincidir con el contador "X–Y de N". */}
+      <div style={{ columnWidth: 340, columnCount: 5, columnGap: 10 }}>
         {rows.map((r, i) => {
           const c = actionColor(r.action);
           const isOpen = expanded === r.id;
           const diff = changedKeys(r.old_value, r.new_value);
           return (
-            <div key={r.id} style={{ background: AT.card, borderRadius: 16, border: `1px solid ${AT.border}`, overflow: 'hidden' }}>
+            <div key={r.id} style={{ background: AT.card, borderRadius: 16, border: `1px solid ${AT.border}`, overflow: 'hidden', breakInside: 'avoid', WebkitColumnBreakInside: 'avoid', marginBottom: 10 }}>
               {/* Fila resumen */}
               <div onClick={() => setExpanded(isOpen ? null : r.id)} style={{ padding: '14px 14px 14px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ width: 22, textAlign: 'center', flexShrink: 0, ...sMono, fontSize: 10.5, fontWeight: 700, color: '#555' }}>
