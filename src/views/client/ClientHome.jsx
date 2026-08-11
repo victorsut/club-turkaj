@@ -34,6 +34,14 @@ export default function ClientHome(ctx) {
     rafData, curMonth, setCScr, setNavOrigin, dark,
     myNotifs, markNotifsRead, rewardQrCloseSignal } = ctx;
 
+  // FIX (11-ago): el guard va ANTES de todos los hooks (Rules of Hooks).
+  // Antes vivía en medio (línea ~76), tras 2 hooks y antes de otros 13:
+  // un render con me=null habría lanzado "rendered fewer hooks" (pantalla
+  // blanca). Hoy no truena porque los setMe(null) van batcheados con el
+  // cambio de authScreen, pero era un crash latente. No hay ESLint que
+  // lo detecte en el proyecto.
+  if (!me) return null;
+
   // Campana de notificaciones (28-jul): badge con las sin leer; abre
   // el inbox (NotificationsSheet) con container transform desde el ícono.
   const [showNotifs, setShowNotifs] = useState(null); // { origin } | null
@@ -72,8 +80,6 @@ export default function ClientHome(ctx) {
       <HelpCircle />
     </button>
   );
-
-  if (!me) return null;
 
   // Boletos válidos solo para el mes en curso
   const currentMonthTickets = (rafData?.[curMonth]?.participants || [])
@@ -266,7 +272,7 @@ export default function ClientHome(ctx) {
       <div className="pp-home-fit" style={{ paddingBottom: 76 }}>
       {/* Inactivity warning */}
       {/* Aviso de inactividad — solo con el motor de degradación ACTIVO */}
-      {cfg.degradEnabled && <InactivityWarning lastBuy={me.lastBuy} tierName={cTier.name} />}
+      {cfg.degradEnabled && <InactivityWarning lastBuy={me.lastBuy} tierName={cTier.name} dark={dark} />}
 
       {/* Header + saludo (FORMATO GENERAL). En pantallas cortas se OMITE
           el logo (decisión del dueño 23-jul): solo saludo compacto +
