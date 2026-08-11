@@ -13,6 +13,7 @@ import { sMono, adminTheme as AT, BRAND_ORANGE } from '../../constants/styles';
 import { getAdminToken } from '../../services/sessionTokens';
 import { fetchRaffleParticipants } from '../../services';
 import Badge from '../../components/ui/Badge';
+import DashHistoryModal from './DashHistoryModal';
 import { Users, Gift, Fuel, Receipt, TicketStar, Clipboard, Chev } from '../../components/ui/Icons';
 
 const TIER_COLORS = { ORO: '#FFB74D', PLATINO: '#64B5F6', BLACK: '#CE93D8' };
@@ -63,6 +64,11 @@ export default function AdminDash(ctx) {
   // Distribución por nivel (galones acumulados de cada miembro)
   const tierCount = { ORO: 0, PLATINO: 0, BLACK: 0 };
   custs.forEach(c => { tierCount[gT(c.gallons).name] += 1; });
+  // Altas del MES por nivel (nivel ACTUAL del miembro — no hay
+  // snapshot del nivel que tenía al inscribirse)
+  const newByTier = { ORO: 0, PLATINO: 0, BLACK: 0 };
+  custs.filter(c => c.registered?.startsWith(curYM)).forEach(c => { newByTier[gT(c.gallons).name] += 1; });
+  const maxNewTier = Math.max(...Object.values(newByTier), 1);
 
   // Fallback estimado del desglose de combustible (sin RPC)
   const gSuper = +(tG * 0.45).toFixed(0);
@@ -103,7 +109,49 @@ export default function AdminDash(ctx) {
   const fuelTotalQ = fuelReal ? fuelRows.reduce((s, f) => s + f.q, 0) : tSpent;
 
   const stationRows = kpis?.stations || [];
-  const maxStationG = Math.max(...stationRows.map(s => +s.gallons || 0), 1);
+
+  // ── MES ACTUAL en las gráficas (pedido del dueño 11-ago): cada
+  // cuadro muestra el mes en curso, el encabezado lleva el TOTAL
+  // acumulado y al presionarlo se abre el historial mensual.
+  // fuel_month/stations_month ya venían en get_admin_kpis (F1, mes
+  // calendario GT) — stations_month solo trae estaciones con ventas,
+  // por eso se mezcla sobre la lista completa con 0 de default.
+  const monthReal = !!kpis;
+  const mesNombre = (() => {
+    const s = new Date().toLocaleDateString('es-GT', { month: 'long' });
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  })();
+  const monthFuelRows = (kpis?.fuel_month || []).map(f => ({
+    key: f.fuel_type,
+    label: FUEL_META[f.fuel_type]?.label || (f.fuel_type[0].toUpperCase() + f.fuel_type.slice(1)),
+    color: FUEL_META[f.fuel_type]?.color || '#9E9E9E',
+    g: +f.gallons || 0, q: +f.amount || 0,
+  }));
+  const galMes = monthFuelRows.reduce((s, f) => s + f.g, 0);
+  const qMes = monthFuelRows.reduce((s, f) => s + f.q, 0);
+  const stationsMes = stationRows.map(s => {
+    const m = (kpis?.stations_month || []).find(x => x.id === s.id);
+    return { ...s, mg: +(m?.gallons) || 0, ma: +(m?.amount) || 0, mp: +(m?.purchases) || 0 };
+  });
+  const maxStationMesG = Math.max(...stationsMes.map(s => s.mg), 1);
+  const totalStationQ = stationRows.reduce((s, x) => s + (+x.amount || 0), 0);
+
+  // Historial mensual (modal): RPC get_dash_monthly, carga perezosa la
+  // primera vez que se abre un cuadro; 'missing' = migración 20260811
+  // sin ejecutar (el modal avisa). El historial de miembros no usa RPC.
+  const [histMetric, setHistMetric] = useState(null);
+  const [histMonths, setHistMonths] = useState(null); // null | 'loading' | 'missing' | rows[]
+  const openHistory = (metric) => {
+    setHistMetric(metric);
+    if (metric === 'mem' || Array.isArray(histMonths)) return;
+    const tok = getAdminToken()?.token;
+    if (!sb || !tok) { setHistMonths('missing'); return; }
+    setHistMonths('loading');
+    sb.rpc('get_dash_monthly', { p_session_token: tok }).then(({ data, error }) => {
+      if (error || data?.error) { setHistMonths('missing'); return; }
+      setHistMonths(Array.isArray(data) ? data : []);
+    });
+  };
 
   const rm = raffleCal[curMonth] || { m: '—', name: null };
 
@@ -179,81 +227,118 @@ export default function AdminDash(ctx) {
           sub={`+${newThisMonth} este mes`} onClick={() => setScr('mem')} />
         <Stat icon={<Gift />} label="Puntos sin canjear" value={ptsUnredeemed.toLocaleString('en-US')}
           sub={`Equivalen a Q${(+qUnredeemed).toLocaleString('en-US')}`} onClick={() => setScr('cat')} accent="#66BB6A" />
-        <Stat icon={<Fuel />} label={`Galones${fuelReal ? '' : ' (est.)'}`} value={Math.round(fuelTotalG).toLocaleString('en-US')}
-          sub="Acumulados por el programa" />
-        <Stat icon={<Receipt />} label={`Ventas${fuelReal ? '' : ' (est.)'}`} value={`Q${Math.round(fuelTotalQ).toLocaleString('en-US')}`}
-          sub="Combustible facturado" accent="#FBBC04" />
+        <Stat icon={<Fuel />} label={monthReal ? `Galones · ${mesNombre}` : 'Galones (est.)'}
+          value={Math.round(monthReal ? galMes : fuelTotalG).toLocaleString('en-US')}
+          sub={monthReal ? `Total: ${Math.round(fuelTotalG).toLocaleString('en-US')} gal acumulados` : 'Acumulados por el programa'}
+          onClick={() => openHistory('gal')} />
+        <Stat icon={<Receipt />} label={monthReal ? `Ventas · ${mesNombre}` : 'Ventas (est.)'}
+          value={`Q${Math.round(monthReal ? qMes : fuelTotalQ).toLocaleString('en-US')}`}
+          sub={monthReal ? `Total: Q${Math.round(fuelTotalQ).toLocaleString('en-US')} facturados` : 'Combustible facturado'}
+          accent="#FBBC04" onClick={() => openHistory('ventas')} />
       </div>
 
       {/* ── Gráficos ── */}
       <div className="pp-dash-cols pp-dash-cols-3" style={{ marginBottom: 14 }}>
-        {/* Barras: ventas por estación */}
-        <div style={rowCard}>
-          <div style={cardTitle}>Ventas por estación</div>
-          {stationRows.length === 0 && (
+        {/* Barras: ventas por estación — el MES en las barras, el total
+            acumulado en el encabezado y en cada fila; clic = historial */}
+        <div style={{ ...rowCard, cursor: 'pointer' }} onClick={() => openHistory('est')}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 800, color: '#E0E0E0' }}>Ventas por estación · {mesNombre}</div>
+            <div style={{ ...sMono, fontSize: 11, color: '#9E9E9E', whiteSpace: 'nowrap' }}>Total Q{Math.round(totalStationQ).toLocaleString('en-US')}</div>
+          </div>
+          {stationsMes.length === 0 && (
             <div style={{ fontSize: 12, color: '#777', fontWeight: 600, lineHeight: 1.6 }}>
               Sin datos de compras todavía — el gráfico se construye con las
               facturas registradas (RPC de KPIs).
             </div>
           )}
-          {stationRows.map((s, i) => {
-            const m = (kpis?.stations_month || []).find(x => x.id === s.id);
-            const pct = Math.max((+s.gallons || 0) / maxStationG * 100, 3);
+          {stationsMes.map((s, i) => {
+            const pct = Math.max(s.mg / maxStationMesG * 100, 3);
             return (
-              <div key={s.id || i} style={{ marginBottom: i < stationRows.length - 1 ? 14 : 0 }}>
+              <div key={s.id || i} style={{ marginBottom: i < stationsMes.length - 1 ? 14 : 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
                   <span style={{ fontSize: 12.5, fontWeight: 800, color: '#E0E0E0' }}>{s.name}</span>
                   <span style={{ ...sMono, fontSize: 13, color: '#FBBC04' }}>
-                    {Math.round(s.gallons).toLocaleString('en-US')}<span style={{ fontSize: 10, color: '#777' }}> gal</span>
+                    {Math.round(s.mg).toLocaleString('en-US')}<span style={{ fontSize: 10, color: '#777' }}> gal</span>
                   </span>
                 </div>
                 <div style={{ height: 8, borderRadius: 5, background: 'rgba(255,255,255,.06)', overflow: 'hidden' }}>
                   <div style={{ width: `${pct}%`, height: '100%', borderRadius: 5, background: BRAND_ORANGE }} />
                 </div>
                 <div style={{ fontSize: 10.5, color: '#9E9E9E', fontWeight: 700, marginTop: 4, display: 'flex', justifyContent: 'space-between' }}>
-                  <span>{s.purchases} compras · Q{Math.round(s.amount).toLocaleString('en-US')}</span>
-                  <span style={{ color: '#66BB6A' }}>Mes: {Math.round(m?.gallons || 0).toLocaleString('en-US')} gal</span>
+                  <span>{s.mp} compras · Q{Math.round(s.ma).toLocaleString('en-US')} en el mes</span>
+                  <span style={{ color: '#66BB6A' }}>Total: {Math.round(s.gallons).toLocaleString('en-US')} gal</span>
                 </div>
               </div>
             );
           })}
         </div>
 
-        {/* Dona: mezcla de combustible */}
-        <div style={rowCard}>
-          <div style={cardTitle}>Mezcla de combustible{fuelReal ? '' : ' (estimado)'}</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-            <div style={{ position: 'relative', width: 128, height: 128, flexShrink: 0 }}>
-              <Donut parts={fuelRows.map(f => ({ value: f.g, color: f.color }))} />
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ ...sMono, fontSize: 17, color: '#fff', letterSpacing: -0.5 }}>{Math.round(fuelTotalG / 1000)}k</div>
-                <div style={{ fontSize: 9, fontWeight: 800, color: '#777', letterSpacing: 1 }}>GALONES</div>
-              </div>
+        {/* Dona: mezcla de combustible — el MES en la dona, el total
+            acumulado en el encabezado; clic = historial. Sin RPC cae al
+            estimado 45/35/20 sobre los acumulados (comportamiento F1). */}
+        <div style={{ ...rowCard, cursor: 'pointer' }} onClick={() => openHistory('fuel')}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 800, color: '#E0E0E0' }}>
+              {monthReal ? `Mezcla de combustible · ${mesNombre}` : 'Mezcla de combustible (estimado)'}
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              {fuelRows.map(f => (
-                <div key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0' }}>
-                  <span style={{ width: 10, height: 10, borderRadius: 3, background: f.color, flexShrink: 0 }} />
-                  <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: '#E0E0E0' }}>{f.label}</span>
-                  <span style={{ ...sMono, fontSize: 12, color: '#fff' }}>{Math.round(f.g).toLocaleString('en-US')}</span>
-                  <span style={{ fontSize: 10, color: '#777', fontWeight: 700, width: 54, textAlign: 'right' }}>Q{Math.round(f.q / 1000)}k</span>
-                </div>
-              ))}
-            </div>
+            <div style={{ ...sMono, fontSize: 11, color: '#9E9E9E', whiteSpace: 'nowrap' }}>Total {Math.round(fuelTotalG).toLocaleString('en-US')} gal</div>
           </div>
+          {monthReal && monthFuelRows.length === 0 && (
+            <div style={{ fontSize: 12, color: '#777', fontWeight: 600, lineHeight: 1.6 }}>
+              Sin compras registradas este mes todavía.
+            </div>
+          )}
+          {(() => {
+            const donutRows = monthReal ? monthFuelRows : fuelRows;
+            const donutG = monthReal ? galMes : fuelTotalG;
+            if (monthReal && donutRows.length === 0) return null;
+            return (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+                <div style={{ position: 'relative', width: 128, height: 128, flexShrink: 0 }}>
+                  <Donut parts={donutRows.map(f => ({ value: f.g, color: f.color }))} />
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ ...sMono, fontSize: 17, color: '#fff', letterSpacing: -0.5 }}>
+                      {donutG >= 10000 ? `${Math.round(donutG / 1000)}k` : Math.round(donutG).toLocaleString('en-US')}
+                    </div>
+                    <div style={{ fontSize: 9, fontWeight: 800, color: '#777', letterSpacing: 1 }}>GALONES</div>
+                  </div>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {donutRows.map(f => (
+                    <div key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0' }}>
+                      <span style={{ width: 10, height: 10, borderRadius: 3, background: f.color, flexShrink: 0 }} />
+                      <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: '#E0E0E0' }}>{f.label}</span>
+                      <span style={{ ...sMono, fontSize: 12, color: '#fff' }}>{Math.round(f.g).toLocaleString('en-US')}</span>
+                      <span style={{ fontSize: 10, color: '#777', fontWeight: 700, width: 54, textAlign: 'right' }}>
+                        Q{f.q >= 10000 ? `${Math.round(f.q / 1000)}k` : Math.round(f.q).toLocaleString('en-US')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
-        {/* Barras: miembros por nivel */}
-        <div style={rowCard}>
-          <div style={cardTitle}>Miembros por nivel</div>
+        {/* Barras: miembros por nivel — ALTAS del mes por nivel, el
+            total de miembros en el encabezado y el total de cada nivel
+            a la derecha de su barra; clic = historial de altas */}
+        <div style={{ ...rowCard, cursor: 'pointer' }} onClick={() => openHistory('mem')}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 800, color: '#E0E0E0' }}>Miembros por nivel · {mesNombre}</div>
+            <div style={{ ...sMono, fontSize: 11, color: '#9E9E9E', whiteSpace: 'nowrap' }}>Total {custs.length.toLocaleString('en-US')}</div>
+          </div>
           {['ORO', 'PLATINO', 'BLACK'].map(t => {
-            const n = tierCount[t];
-            const pct = Math.max(n / Math.max(custs.length, 1) * 100, 2);
+            const n = newByTier[t];
+            const pct = Math.max(n / maxNewTier * 100, 2);
             return (
               <div key={t} style={{ marginBottom: 14 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
                   <span style={{ fontSize: 12, fontWeight: 800, color: TIER_COLORS[t], letterSpacing: 1 }}>{t}</span>
-                  <span style={{ ...sMono, fontSize: 13, color: '#fff' }}>{n}</span>
+                  <span style={{ ...sMono, fontSize: 13, color: '#fff' }}>
+                    +{n}<span style={{ fontSize: 10, color: '#777' }}> · {tierCount[t]} en total</span>
+                  </span>
                 </div>
                 <div style={{ height: 8, borderRadius: 5, background: 'rgba(255,255,255,.06)', overflow: 'hidden' }}>
                   <div style={{ width: `${pct}%`, height: '100%', borderRadius: 5, background: TIER_COLORS[t] }} />
@@ -262,7 +347,7 @@ export default function AdminDash(ctx) {
             );
           })}
           <div style={{ fontSize: 10.5, color: '#777', fontWeight: 700, marginTop: 2 }}>
-            Umbrales: PLATINO {cfg.tiers?.platino?.gal ?? 150} gal · BLACK {cfg.tiers?.black?.gal ?? 500} gal
+            {newThisMonth} altas en {mesNombre.toLowerCase()} · Umbrales: PLATINO {cfg.tiers?.platino?.gal ?? 150} gal · BLACK {cfg.tiers?.black?.gal ?? 500} gal
           </div>
         </div>
       </div>
@@ -420,6 +505,22 @@ export default function AdminDash(ctx) {
           ))}
         </div>
       )}
+
+      {/* ── Historial mensual (al presionar cada cuadro) ── */}
+      <DashHistoryModal
+        metric={histMetric}
+        months={histMonths}
+        custs={custs}
+        gT={gT}
+        totals={{
+          gal: `Total acumulado: ${Math.round(fuelTotalG).toLocaleString('en-US')} gal`,
+          ventas: `Total acumulado: Q${Math.round(fuelTotalQ).toLocaleString('en-US')}`,
+          est: `Total acumulado: Q${Math.round(totalStationQ).toLocaleString('en-US')}`,
+          fuel: `Total acumulado: ${Math.round(fuelTotalG).toLocaleString('en-US')} gal`,
+          mem: `${custs.length.toLocaleString('en-US')} miembros en total`,
+        }}
+        onClose={() => setHistMetric(null)}
+      />
     </div>
   );
 }
