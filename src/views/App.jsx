@@ -3,9 +3,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { sb } from '../lib/supabaseClient';
 import { makeTier } from '../lib/tierSystem';
-import { rewardLocationNames } from '../lib/rewardLocations';
-import { CFG_INIT, FUEL_LABELS } from '../constants/config';
-import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey, grantSpecialDayBonus, fetchPurchasePromo, fetchNotifications, markNotificationsRead, createMemberSessionOauth, getMyMember, logoutMember, fetchMembersFull, fetchMemberFull, fetchMyActivity, fetchMyRedemptions, fetchActivityStaff, fetchRaffleParticipants, fetchMemberStations, respondRedemptionConfirm, countMySurveysToday, markRaffleWinnerSeen } from '../services';
+import { CFG_INIT } from '../constants/config';
+import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey, grantSpecialDayBonus, fetchPurchasePromo, fetchNotifications, markNotificationsRead, createMemberSessionOauth, getMyMember, logoutMember, fetchMembersFull, fetchMemberFull, fetchMyActivity, fetchMyRedemptions, fetchActivityStaff, fetchRaffleParticipants, fetchMemberStations, countMySurveysToday, markRaffleWinnerSeen } from '../services';
 import { logoutOperator, logoutAdmin, fetchOperatorsFull } from '../services'; // SEC.B.4: logout delega el subconjunto de localStorage (ct_op/ct_admin + token de rol)
 import { getOperatorToken, getAdminToken, getMemberToken } from '../services/sessionTokens'; // SEC.B.6.4 + SEC.C.1
 import { mapMember } from '../lib/mapMember'; // SEC.C.1: mapeo del perfil de RPC
@@ -29,19 +28,21 @@ function utcToLocal(isoString) {
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
-import { clientTheme, clientMainBg, adminTheme, sMono, bento, BRAND_ORANGE, CAT_LABELS, CAT_COLORS } from '../constants/styles';
+import { clientTheme, clientMainBg, adminTheme } from '../constants/styles';
 import useToast from '../hooks/useToast';
 
 // UI Components
 import BottomNav from '../components/ui/BottomNav';
 import GalaxyStars from '../components/ui/GalaxyStars';
-import QRCode from '../components/ui/QRCode';
 import SpecialDayBonusModal from '../components/SpecialDayBonusModal';
 import UpdateAvailable from '../components/UpdateAvailable';
 import { Fuel, Users, Gift, Ticket, House, TicketStar, Car } from '../components/ui/Icons';
 import Toast from '../components/ui/Toast';
-import RewardIcon from '../components/ui/RewardIcon';
 import RaffleWinnerModal from '../components/RaffleWinnerModal';
+import RedeemConfirmRequestModal from '../components/RedeemConfirmRequestModal';
+import RedeemConfirmSheet from '../components/RedeemConfirmSheet';
+import PurchaseConfirmSheet from '../components/PurchaseConfirmSheet';
+import ClientQrSheet from '../components/ClientQrSheet';
 import useBackLayer from '../hooks/useBackLayer';
 
 // Auth Views
@@ -2004,355 +2005,59 @@ export default function App() {
       </div>
 
       {/* ── Modal confirmación de canje desde operador (dispositivo del
-          MIEMBRO) — FORMATO GENERAL: flat sin sombra, RewardIcon en
-          cuadro de su categoría, kicker naranja, CTA BRAND_ORANGE ── */}
+          MIEMBRO) — RedeemConfirmRequestModal responde por RPC ── */}
       {pendingRedeemConfirm && isC && me && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.65)',
-          zIndex: 600, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '0 24px', animation: 'ppFade .25s ease',
-        }}>
-          <div style={{
-            background: dark ? '#101018' : '#fff',
-            borderRadius: 24, width: '100%', maxWidth: 400, padding: '28px 22px',
-            animation: 'pop .3s cubic-bezier(.32,1.2,.64,1)',
-          }}>
-            {/* Héroe: ícono SVG del premio en cuadro de su categoría */}
-            <div style={{ textAlign: 'center', marginBottom: 20 }}>
-              <div style={{
-                width: 56, height: 56, borderRadius: 16, margin: '0 auto 12px',
-                background: CAT_COLORS[pendingRedeemConfirm.reward?.cat] || '#5E5E63', color: '#fff',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <RewardIcon reward={pendingRedeemConfirm.reward || { name: pendingRedeemConfirm.rewardName }} />
-              </div>
-              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', color: BRAND_ORANGE, marginBottom: 4 }}>
-                Solicitud de Canje
-              </div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: dark ? '#fff' : '#0D0D0D', lineHeight: 1.2 }}>
-                ¿Confirmás este canje?
-              </div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#9E9E9E', marginTop: 6 }}>
-                El operador está listo para entregarte este premio
-              </div>
-            </div>
-
-            {/* Detalle — filas flat con divisor */}
-            <div style={{ background: dark ? 'rgba(255,255,255,.05)' : '#F5F5F7', borderRadius: 16, padding: '14px 18px', marginBottom: 20 }}>
-              <div style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                paddingBottom: 12, marginBottom: 12,
-                borderBottom: `1px solid ${dark ? 'rgba(255,255,255,.06)' : '#ECECEE'}`,
-              }}>
-                <span style={{ fontSize: 13, color: '#9E9E9E', fontWeight: 600 }}>Premio</span>
-                <span style={{ fontSize: 13, fontWeight: 800, color: dark ? '#fff' : '#0D0D0D' }}>{pendingRedeemConfirm.rewardName}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 13, color: '#9E9E9E', fontWeight: 600 }}>Puntos a descontar</span>
-                <span style={{ fontSize: 16, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: dark ? '#FF8A80' : bento.red }}>-{pendingRedeemConfirm.cost} pts</span>
-              </div>
-            </div>
-
-            {/* Botones — acción sólida naranja, cancelar flat */}
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button onClick={async () => {
-                // SEC.C.3: la respuesta viaja por RPC con la sesión del miembro.
-                const res = await respondRedemptionConfirm(pendingRedeemConfirm.redemptionId, false);
-                setPendingRedeemConfirm(null);
-                if (res.error) fire(res.error, 'warn');
-                else fire('Canje cancelado', 'info');
-              }} style={{
-                flex: 1, padding: 16, borderRadius: 14, border: 'none',
-                background: dark ? 'rgba(255,255,255,.08)' : '#F5F5F7',
-                color: dark ? '#ccc' : '#424242',
-                fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700, cursor: 'pointer',
-              }}>Cancelar</button>
-              <button onClick={async () => {
-                const res = await respondRedemptionConfirm(pendingRedeemConfirm.redemptionId, true);
-                setPendingRedeemConfirm(null);
-                if (res.error) { fire(res.error, 'warn'); return; }
-                fire('¡Canje confirmado!', 'success');
-                // Pedido del dueño (29-jul): si el QR del premio quedó
-                // abierto tras el escaneo, cerrarlo al confirmar.
-                setRewardQrCloseSignal(s => s + 1);
-                // La entrega se concreta en el POS un instante después
-                // (poll de 2s + RPC): recargar los canjes para que el
-                // pendiente pase a RECOGIDO sin reabrir la app.
-                setTimeout(reloadMyRedemptions, 6000);
-              }} style={{
-                flex: 2, padding: 16, borderRadius: 14, border: 'none',
-                background: BRAND_ORANGE, color: '#fff',
-                fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 800, cursor: 'pointer',
-              }}>Confirmar</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Modal confirmación de canje (nivel raíz) ── */}
-      {redeemConfirm && isC && me && (
-        <div onClick={closeRedeemConfirm} style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)',
-          zIndex: 400, display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-          animation: rcClosing ? 'ppFadeOut .22s ease forwards' : 'ppFade .2s ease',
-        }}>
-          <div onClick={e => e.stopPropagation()} style={{
-            background: dark ? '#0D0D1A' : '#fff',
-            borderRadius: '24px 24px 0 0',
-            width: '100%', maxWidth: 480, padding: '12px 24px 40px',
-            maxHeight: '88vh', overflowY: 'auto',
-            animation: rcClosing ? 'slideDownOut .22s ease-in forwards' : 'slideUp .3s cubic-bezier(.32,1.2,.64,1)',
-          }}>
-            <div style={{ width: 40, height: 4, borderRadius: 4, background: dark ? 'rgba(255,255,255,.2)' : '#E0E0E0', margin: '0 auto 20px' }} />
-
-            <div style={{ textAlign: 'center', marginBottom: 20 }}>
-              {/* Ícono SVG del premio en cuadro de color de su categoría
-                  (FORMATO GENERAL — sin emojis) */}
-              <div style={{
-                width: 56, height: 56, borderRadius: 16, margin: '0 auto 10px',
-                background: CAT_COLORS[redeemConfirm.reward.cat] || '#5E5E63', color: '#fff',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <RewardIcon reward={redeemConfirm.reward} />
-              </div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: dark ? '#fff' : '#0D0D0D', marginBottom: 4 }}>
-                Confirmar Canje
-              </div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#9E9E9E' }}>Revisá los detalles antes de confirmar</div>
-            </div>
-
-            {/* Detalle largo del premio (rewards.description — qué
-                servicio o bien se adquiere con el canje) */}
-            {redeemConfirm.reward.description && (
-              <div style={{
-                background: dark ? 'rgba(255,255,255,.05)' : '#F5F5F7',
-                borderRadius: 16, padding: '14px 16px', marginBottom: 12, textAlign: 'left',
-              }}>
-                <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1, color: '#9E9E9E', marginBottom: 6 }}>
-                  Detalle del premio
-                </div>
-                <div style={{
-                  maxHeight: 130, overflowY: 'auto',
-                  fontSize: 12.5, fontWeight: 600, lineHeight: 1.6, whiteSpace: 'pre-line',
-                  color: dark ? '#CFCFCF' : '#48484A',
-                }}>
-                  {redeemConfirm.reward.description}
-                </div>
-              </div>
-            )}
-
-            {/* D17: dónde es válido el premio (null = todas las estaciones,
-                no se muestra nada — comportamiento histórico) */}
-            {(() => {
-              const locNames = rewardLocationNames(redeemConfirm.reward, stations, stores);
-              return locNames && (
-                <div style={{
-                  background: dark ? 'rgba(255,255,255,.05)' : '#F5F5F7',
-                  borderRadius: 16, padding: '14px 16px', marginBottom: 12, textAlign: 'left',
-                }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1, color: '#9E9E9E', marginBottom: 6 }}>
-                    Válido únicamente en
-                  </div>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, lineHeight: 1.6, color: dark ? '#CFCFCF' : '#48484A' }}>
-                    {locNames.join(' · ')}
-                  </div>
-                </div>
-              );
-            })()}
-
-            <div style={{ background: dark ? 'rgba(255,255,255,.05)' : '#F5F5F7', borderRadius: 16, padding: '16px 20px', marginBottom: 20 }}>
-              {[
-                { l: 'Premio',          v: redeemConfirm.reward.name, bold: true },
-                { l: 'Categoría',       v: CAT_LABELS[redeemConfirm.reward.cat] || redeemConfirm.reward.cat || '—' },
-                { l: 'Costo',           v: `${redeemConfirm.cost} pts`, large: true, red: true },
-                { l: 'Saldo actual',    v: `${me.points} pts` },
-                { l: 'Saldo tras canje',v: `${me.points - redeemConfirm.cost} pts`, green: true },
-              ].map((row, i, arr) => (
-                <div key={row.l} style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  paddingBottom: i < arr.length - 1 ? 12 : 0,
-                  borderBottom: i < arr.length - 1 ? `1px solid ${dark ? 'rgba(255,255,255,.06)' : '#ECECEE'}` : 'none',
-                  marginBottom: i < arr.length - 1 ? 12 : 0,
-                }}>
-                  <span style={{ fontSize: 13, color: '#9E9E9E', fontWeight: 600 }}>{row.l}</span>
-                  <span style={{
-                    fontSize: row.large ? 18 : 13,
-                    fontWeight: row.bold || row.large ? 800 : 700,
-                    fontVariantNumeric: 'tabular-nums',
-                    color: row.red ? bento.red : row.green ? bento.green : (dark ? '#fff' : '#0D0D0D'),
-                  }}>{row.v}</span>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button onClick={closeRedeemConfirm} style={{
-                flex: 1, padding: 16, borderRadius: 14, border: 'none',
-                background: dark ? 'rgba(255,255,255,.08)' : '#F5F5F7',
-                color: dark ? '#ccc' : '#424242',
-                fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700, cursor: 'pointer',
-              }}>Cancelar</button>
-              <button onClick={() => {
-                const { reward } = redeemConfirm;
-                setRedeemConfirm(null);
-                redeem(reward);
-              }} style={{
-                flex: 2, padding: 16, borderRadius: 14, border: 'none',
-                background: BRAND_ORANGE, color: '#fff',
-                fontFamily: "'DM Sans'", fontSize: 15, fontWeight: 800, cursor: 'pointer',
-              }}>Confirmar Canje</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Modal confirmación de compra (nivel raíz, escapa overflow:hidden) ── */}
-      {purchaseConfirm && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)',
-          zIndex: 400, display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-        }}>
-          <div style={{
-            background: '#fff', borderRadius: '24px 24px 0 0',
-            width: '100%', maxWidth: 480, padding: '12px 24px 36px',
-            boxShadow: '0 -8px 40px rgba(0,0,0,.15)',
-            animation: 'fadeUp .25s ease',
-          }}>
-            <div style={{ width: 40, height: 4, background: '#E0E0E0', borderRadius: 4, margin: '0 auto 20px' }} />
-
-            <div style={{ textAlign: 'center', marginBottom: 20 }}>
-              <div style={{ fontSize: 36, marginBottom: 8 }}>⛽</div>
-              <div style={{ fontSize: 18, fontWeight: 900, color: '#0D0D0D' }}>Confirmar Compra</div>
-              <div style={{ fontSize: 13, color: '#9E9E9E', marginTop: 4 }}>Revisá los datos antes de registrar</div>
-            </div>
-
-            <div style={{ background: '#F9F9F9', borderRadius: 16, padding: '16px 20px', marginBottom: 20 }}>
-              {[
-                { l: 'Cliente',          v: purchaseConfirm.client.name,                          bold: true },
-                { l: 'Tarjeta',          v: purchaseConfirm.client.cardId || '—',                  mono: true },
-                { l: 'Combustible',      v: FUEL_LABELS[purchaseConfirm.fuel] },
-                { l: 'Monto',            v: `Q${purchaseConfirm.amt.toFixed(2)}`,                  large: true },
-                { l: 'Puntos a otorgar', v: `+${Math.floor(purchaseConfirm.amt / (gT(purchaseConfirm.client.gallons || 0).qPerPt ?? cfg.qPerPt))}`, green: true, large: true },
-              ].map((row, i, arr) => (
-                <div key={row.l} style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  paddingBottom: i < arr.length - 1 ? 12 : 0,
-                  borderBottom: i < arr.length - 1 ? '1px solid #eee' : 'none',
-                  marginBottom: i < arr.length - 1 ? 12 : 0,
-                }}>
-                  <span style={{ fontSize: 13, color: '#9E9E9E', fontWeight: 600 }}>{row.l}</span>
-                  <span style={{
-                    fontSize: row.large ? 20 : 13,
-                    fontWeight: row.bold || row.large ? 900 : 700,
-                    color: row.green ? '#2E7D32' : '#0D0D0D',
-                    fontFamily: row.mono ? 'monospace' : "'DM Sans'",
-                  }}>{row.v}</span>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button onClick={() => setPurchaseConfirm(null)} style={{
-                flex: 1, padding: 16, borderRadius: 14, border: '2px solid #eee',
-                background: '#fff', color: '#424242', fontFamily: "'DM Sans'",
-                fontSize: 14, fontWeight: 700, cursor: 'pointer',
-              }}>Cancelar</button>
-              <button onClick={async () => {
-                const { client, amt, fuel, onConfirm } = purchaseConfirm;
-                setPurchaseConfirm(null);
-                // addPurchase ya muestra su propio toast (puntos ganados
-                // en éxito, o el error). Solo limpiamos la selección si
-                // de verdad se registró — antes el éxito salía siempre.
-                const ok = await addPurchase(client.id, amt, fuel);
-                if (ok) onConfirm?.();
-              }} style={{
-                flex: 2, padding: 16, borderRadius: 14, border: 'none',
-                background: '#FBBC04', color: '#0D0D0D', fontFamily: "'DM Sans'",
-                fontSize: 15, fontWeight: 900, cursor: 'pointer',
-                boxShadow: '0 4px 16px rgba(251,188,4,.35)',
-              }}>✓ Confirmar Compra</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Modal QR emergente (FORMATO GENERAL: flat, esquinas de
-          escáner en rojo de marca — referencia pantalla Código QR) ── */}
-      {showQR && isC && me && (
-        <div
-          onClick={closeQR}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 500,
-            background: 'rgba(0,0,0,.6)',
-            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-            animation: qrClosing ? 'ppFadeOut .22s ease forwards' : 'fadeIn .2s ease',
+        <RedeemConfirmRequestModal
+          pending={pendingRedeemConfirm}
+          dark={dark}
+          fire={fire}
+          onClose={() => setPendingRedeemConfirm(null)}
+          onConfirmed={() => {
+            // Pedido del dueño (29-jul): si el QR del premio quedó
+            // abierto tras el escaneo, cerrarlo al confirmar.
+            setRewardQrCloseSignal(s => s + 1);
+            // La entrega se concreta en el POS un instante después
+            // (poll de 2s + RPC): recargar los canjes para que el
+            // pendiente pase a RECOGIDO sin reabrir la app.
+            setTimeout(reloadMyRedemptions, 6000);
           }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{
-              background: dark ? '#101018' : '#fff',
-              borderRadius: '28px 28px 0 0',
-              width: '100%', maxWidth: 480,
-              padding: '12px 24px 44px',
-              animation: qrClosing ? 'slideDownOut .22s ease-in forwards' : 'slideUp .32s cubic-bezier(.32,1.2,.64,1)',
-            }}
-          >
-            {/* Handle */}
-            <div style={{ width: 40, height: 4, borderRadius: 4, background: dark ? 'rgba(255,255,255,.2)' : '#E0E0E0', margin: '0 auto 18px' }} />
+        />
+      )}
 
-            {/* Título */}
-            <div style={{ textAlign: 'center', marginBottom: 18 }}>
-              <div style={{
-                fontSize: 11, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2,
-                color: cTier.name === 'BLACK' ? '#FFD54F' : cTier.name === 'PLATINO' ? '#6B767D' : bento.gold,
-              }}>
-                Nivel {cTier.name}
-              </div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: dark ? '#fff' : '#0D0D0D' }}>
-                Código QR
-              </div>
-            </div>
+      {/* ── Sheet confirmación de canje (nivel raíz) ── */}
+      {redeemConfirm && isC && me && (
+        <RedeemConfirmSheet
+          data={redeemConfirm}
+          me={me}
+          dark={dark}
+          closing={rcClosing}
+          stations={stations}
+          stores={stores}
+          onClose={closeRedeemConfirm}
+          onConfirm={(reward) => { setRedeemConfirm(null); redeem(reward); }}
+        />
+      )}
 
-            {/* QR enmarcado por esquinas de escáner (rojo de marca) */}
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ display: 'inline-block', position: 'relative', padding: 14 }}>
-                {[
-                  { top: 0, left: 0, borderTopWidth: 3, borderLeftWidth: 3, borderTopLeftRadius: 14 },
-                  { top: 0, right: 0, borderTopWidth: 3, borderRightWidth: 3, borderTopRightRadius: 14 },
-                  { bottom: 0, left: 0, borderBottomWidth: 3, borderLeftWidth: 3, borderBottomLeftRadius: 14 },
-                  { bottom: 0, right: 0, borderBottomWidth: 3, borderRightWidth: 3, borderBottomRightRadius: 14 },
-                ].map((pos, i) => (
-                  <div key={i} style={{
-                    position: 'absolute', width: 30, height: 30,
-                    borderColor: BRAND_ORANGE, borderStyle: 'solid', borderWidth: 0,
-                    ...pos,
-                  }} />
-                ))}
-                {/* Panel blanco siempre (el QR necesita fondo claro para escanear) */}
-                <div style={{ background: '#fff', borderRadius: 12, padding: 16, display: 'inline-block', lineHeight: 0 }}>
-                  <QRCode code={me.cardId || me.id} sz={180} scanColor={BRAND_ORANGE} />
-                </div>
-              </div>
+      {/* ── Sheet confirmación de compra (nivel raíz, escapa overflow:hidden) ── */}
+      {purchaseConfirm && (
+        <PurchaseConfirmSheet
+          data={purchaseConfirm}
+          gT={gT}
+          cfg={cfg}
+          onClose={() => setPurchaseConfirm(null)}
+          addPurchase={addPurchase}
+        />
+      )}
 
-              {/* Código de tarjeta */}
-              <div style={{ marginTop: 10 }}>
-                <div style={{
-                  display: 'inline-block', padding: '8px 18px', borderRadius: 10,
-                  background: dark ? 'rgba(255,255,255,.08)' : '#F5F5F7',
-                  ...sMono, fontSize: 13, fontWeight: 800, letterSpacing: 1.5,
-                  color: dark ? '#fff' : '#0D0D0D',
-                }}>
-                  {me.cardId || '—'}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ textAlign: 'center', marginTop: 14, fontSize: 12.5, color: dark ? 'rgba(255,255,255,.5)' : '#6E6E73', fontWeight: 600 }}>
-              Mostrá este código en cada carga de combustible
-            </div>
-          </div>
-        </div>
+      {/* ── Sheet del código QR del miembro (botón central) ── */}
+      {showQR && isC && me && (
+        <ClientQrSheet
+          me={me}
+          tierName={cTier.name}
+          dark={dark}
+          closing={qrClosing}
+          onClose={closeQR}
+        />
       )}
 
       {/* Toast (FORMATO GENERAL — severidad e ícono en Toast.jsx) */}
