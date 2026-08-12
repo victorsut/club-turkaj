@@ -2,13 +2,13 @@
 // Main orchestrator — manages global state, auth, Supabase sync, and view routing
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { sb } from '../lib/supabaseClient';
-import { makeTier, daysInactive } from '../lib/tierSystem';
+import { makeTier } from '../lib/tierSystem';
 import { rewardLocationNames } from '../lib/rewardLocations';
 import { CFG_INIT, FUEL_LABELS } from '../constants/config';
 import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey, grantSpecialDayBonus, fetchPurchasePromo, fetchNotifications, markNotificationsRead, createMemberSessionOauth, getMyMember, logoutMember, fetchMembersFull, fetchMemberFull, fetchMyActivity, fetchMyRedemptions, fetchActivityStaff, fetchRaffleParticipants, fetchMemberStations, respondRedemptionConfirm, countMySurveysToday, markRaffleWinnerSeen } from '../services';
 import { logoutOperator, logoutAdmin, fetchOperatorsFull } from '../services'; // SEC.B.4: logout delega el subconjunto de localStorage (ct_op/ct_admin + token de rol)
 import { getOperatorToken, getAdminToken, getMemberToken } from '../services/sessionTokens'; // SEC.B.6.4 + SEC.C.1
-import { mapMember } from '../hooks/useSupabaseData'; // SEC.C.1: mapeo del perfil de RPC
+import { mapMember } from '../lib/mapMember'; // SEC.C.1: mapeo del perfil de RPC
 import { setSessionExpiredHandler } from '../services/sessionExpiry'; // SEC.B.8.2: registro del handler que dispara expireSession ante rechazo 28000 del server
 import { firstName } from '../lib/text'; // regla 29-jul: al cliente solo el primer nombre del personal
 
@@ -20,12 +20,6 @@ function localDate() {
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
-function localISO() {
-  // Genera timestamp en hora local (para guardar en Supabase con hora correcta)
-  const d = new Date();
-  const offset = d.getTimezoneOffset();
-  return new Date(d.getTime() - offset * 60000).toISOString();
-}
 // Convierte un timestamp UTC de Supabase a fecha local YYYY-MM-DD
 function utcToLocal(isoString) {
   if (!isoString) return '';
@@ -35,7 +29,7 @@ function utcToLocal(isoString) {
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
-import { clientTheme, clientMainBg, adminTheme, sMono, GAL, bento, BRAND_ORANGE, CAT_LABELS, CAT_COLORS } from '../constants/styles';
+import { clientTheme, clientMainBg, adminTheme, sMono, bento, BRAND_ORANGE, CAT_LABELS, CAT_COLORS } from '../constants/styles';
 import useToast from '../hooks/useToast';
 
 // UI Components
@@ -44,7 +38,7 @@ import GalaxyStars from '../components/ui/GalaxyStars';
 import QRCode from '../components/ui/QRCode';
 import SpecialDayBonusModal from '../components/SpecialDayBonusModal';
 import UpdateAvailable from '../components/UpdateAvailable';
-import { Fuel, Users, Gift, Ticket, Clock, Gear, Megaphone, Menu, House, TicketStar, Car } from '../components/ui/Icons';
+import { Fuel, Users, Gift, Ticket, House, TicketStar, Car } from '../components/ui/Icons';
 import Toast from '../components/ui/Toast';
 import RewardIcon from '../components/ui/RewardIcon';
 import RaffleWinnerModal from '../components/RaffleWinnerModal';
@@ -52,7 +46,6 @@ import useBackLayer from '../hooks/useBackLayer';
 
 // Auth Views
 import ClientLogin from './client/ClientLogin';
-import ClientProfile from './client/ClientProfile';
 import GoogleProfile from './client/GoogleProfile';
 import OperatorLogin from './operator/OperatorLogin';
 import AdminLogin from './admin/AdminLogin';
@@ -194,11 +187,6 @@ export default function App() {
   const [loginPhone, setLoginPhone] = useState('');
   const [loginPass, setLoginPass] = useState('');
   const [regPhone, setRegPhone] = useState('');
-  const [regPass, setRegPass] = useState('');
-  const [regPass2, setRegPass2] = useState('');
-  const [regVerifyMethod, setRegVerifyMethod] = useState('whatsapp');
-  const [regCode, setRegCode] = useState('');
-  const [regSentCode, setRegSentCode] = useState(false);
   const [regProfile, setRegProfile] = useState({ name: '', dpi: '', plate: '', email: '', bday: '', nit: '' });
   const [googleStep, setGoogleStep] = useState('welcome');
   const [opLoginGafete, setOpLoginGafete] = useState('');
@@ -221,25 +209,21 @@ export default function App() {
   const [rewards, setRewards] = useState([]);
   const [promos, setPromos] = useState([]);
   const [promoIdx, setPromoIdx] = useState(0);
-  const [surveys, setSurveys] = useState([]);
   const [mySurveyCount, setMySurveyCount] = useState(0);
   const [activityLog, setActivityLog] = useState({});
   const [cfg, setCfg] = useState(CFG_INIT);
-  const [cards, setCards] = useState([]);
   const [raffleCal, setRaffleCal] = useState([]);
   // Rifa multi-año (8-ago): rifas SORTEADAS de otros años — solo para
   // que el modal de ganador las encuentre al cruzar el año (raffleCal
   // conserva sus 12 slots del año en curso para todos los consumidores).
   const [crossYearWins, setCrossYearWins] = useState([]);
   const [rafData, setRafData] = useState(Array(12).fill(null).map(() => ({ participants: [] })));
-  const [rafWinners, setRafWinners] = useState({});
   const [opRatings, setOpRatings] = useState({});
   const [redeemedList, setRedeemedList] = useState([]);
 
   // ===== UI STATE =====
   const [sel, setSel] = useState(null);          // selected member (admin)
   const [q, setQ] = useState('');                 // search query
-  const [modal, setModal] = useState(null);
   const [amt, setAmt] = useState('');
   const [fuel, setFuel] = useState('super');
   const [catF, setCatF] = useState('todos');
@@ -248,7 +232,6 @@ export default function App() {
   const [catPendingSignal, setCatPendingSignal] = useState(0);
   // Inbox de la campana del inicio: notificaciones del miembro logueado.
   const [myNotifs, setMyNotifs] = useState([]);
-  const [rQty, setRQty] = useState(1);
   const [showHist, setShowHist] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [showRedeemed, setShowRedeemed] = useState(false);
@@ -257,10 +240,7 @@ export default function App() {
   // vista del cliente al cambiar de pantalla (container transform).
   const [navOrigin, setNavOrigin] = useState(null);
   const [showMap, setShowMap] = useState(false);
-  const [showTerms, setShowTerms] = useState(false);
-  const [showRating, setShowRating] = useState(null);
   const [showQR, setShowQR] = useState(false);
-  const [ratingStars, setRatingStars] = useState(0);
   const [pendingOpRating, setPendingOpRating] = useState(null);
   const [pendingRedeemConfirm, setPendingRedeemConfirm] = useState(null); // { redemptionId, rewardName, rewardIcon, cost } // { operatorId, operatorName }
   const [purchaseConfirm, setPurchaseConfirm] = useState(null); // { client, amt, fuel, onConfirm }
@@ -1537,7 +1517,7 @@ export default function App() {
     }));
 
     fire(`+${pts} pts · ${gal} gal · Q${a}${promoTag}`);
-    setModal(null); setAmt('');
+    setAmt('');
 
     // Push notification (motor): si el cliente tiene la app cerrada, el
     // tap de la notificación abre su modal de calificación + encuesta
@@ -1848,17 +1828,16 @@ export default function App() {
     showOpReg, setShowOpReg, editOp, setEditOp, newOp, setNewOp,
     editMember, setEditMember,
     rewards, setRewards, promos, setPromos, promoIdx, setPromoIdx, activePromos,
-    surveys, setSurveys, mySurveyCount, setMySurveyCount,
-    activityLog, setActivityLog, cfg, setCfg, cards, setCards,
-    raffleCal, setRaffleCal, rafData, setRafData, rafWinners, setRafWinners,
+    mySurveyCount, setMySurveyCount,
+    activityLog, setActivityLog, cfg, setCfg,
+    raffleCal, setRaffleCal, rafData, setRafData,
     opRatings, setOpRatings, redeemedList, setRedeemedList,
-    sel, setSel, q, setQ, modal, setModal, amt, setAmt, fuel, setFuel,
-    catF, setCatF, catPendingSignal, rQty, setRQty,
+    sel, setSel, q, setQ, amt, setAmt, fuel, setFuel,
+    catF, setCatF, catPendingSignal,
     myNotifs, markNotifsRead,
     showHist, setShowHist, showInvite, setShowInvite,
     showRedeemed, setShowRedeemed, showWifi, setShowWifi,
-    showMap, setShowMap, showTerms, setShowTerms,
-    showRating, setShowRating, ratingStars, setRatingStars,
+    showMap, setShowMap,
     showQR, setShowQR,
     pendingOpRating, setPendingOpRating,
     pendingRedeemConfirm, setPendingRedeemConfirm,
@@ -1873,9 +1852,7 @@ export default function App() {
     opRafClient, setOpRafClient, opRafScan, setOpRafScan, opRafQty, setOpRafQty, opSearch, setOpSearch,
     authError, setAuthError, clearAuthErr,
     loginPhone, setLoginPhone, loginPass, setLoginPass,
-    regPhone, setRegPhone, regPass, setRegPass, regPass2, setRegPass2,
-    regVerifyMethod, setRegVerifyMethod, regCode, setRegCode,
-    regSentCode, setRegSentCode, regProfile, setRegProfile,
+    regPhone, setRegPhone, regProfile, setRegProfile,
     googleStep, setGoogleStep,
     opLoginGafete, setOpLoginGafete, opLoginDpi, setOpLoginDpi,
     opLoginUser, setOpLoginUser, opLoginPass, setOpLoginPass,
@@ -1895,13 +1872,7 @@ export default function App() {
   };
 
   // ===== NAV ITEMS =====
-  const adminNav = [
-    { id: 'dash',    label: 'Inicio',    icon: <Fuel />      },
-    { id: 'mem',     label: 'Miembros',  icon: <Users />     },
-    { id: 'ops',     label: 'Operadores',icon: <Gear />      },
-    { id: 'premios', label: 'Premios',   icon: <Gift />      },
-    { id: 'promos',  label: 'Promos',    icon: <Megaphone /> },
-  ];
+  // El admin no tiene BottomNav (Admin v2: AdminShell con menú lateral).
   const operatorNav = [
     { id: 'ohome', label: 'Inicio', icon: <Fuel /> },
     { id: 'oclients', label: 'Clientes', icon: <Users /> },
@@ -1918,17 +1889,13 @@ export default function App() {
     { id: 'veh', label: 'Vehículos', icon: <Car /> },
   ];
 
-  const nav = isA ? adminNav : isO ? operatorNav : clientNav;
+  const nav = isO ? operatorNav : clientNav;
   const cur = isA ? scr : isO ? oScr : cScr;
 
   // ===== SCREEN ROUTER =====
   function renderScreen() {
     // Auth gates
     if (isC && authScreen !== 'logged') {
-      // 'register'/'verify' legacy: la bienvenida intermedia se eliminó —
-      // el registro entra directo al wizard (decisión del dueño 22-jul).
-      if (authScreen === 'register' || authScreen === 'verify') return <GoogleProfile {...ctx} />;
-      if (authScreen === 'profile') return <ClientProfile {...ctx} />;
       if (authScreen === 'googleProfile') return <GoogleProfile {...ctx} />;
       return <ClientLogin {...ctx} />;
     }
@@ -1970,7 +1937,6 @@ export default function App() {
     if (cScr === 'cat') return <Catalog {...ctx} client={true} />;
     if (cScr === 'promos') return <ClientPromos {...ctx} />;
     if (cScr === 'raf') return <ClientRaffle {...ctx} />;
-    if (cScr === 'rules') return <Rules {...ctx} />;
     if (cScr === 'menu') return <ClientMenu {...ctx} />;
     if (cScr === 'veh') return <VehiclesSoon {...ctx} />;
     return <ClientHome {...ctx} />;

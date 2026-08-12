@@ -9,7 +9,7 @@ import { inputFlat, btnStyle, BRAND_ORANGE } from '../../constants/styles';
 import { GoogleLogo, Phone, Lock, Fingerprint, HelpCircle, Eye, EyeOff } from '../../components/ui/Icons';
 import { phoneMask } from '../../lib/inputMasks';
 import { signInWithPhone } from '../../services/authService';
-import { mapMember } from '../../hooks/useSupabaseData';
+import { mapMember } from '../../lib/mapMember';
 import { biometricsAvailable, loginBiometric, isUserCancel } from '../../lib/webauthnClient';
 import Wordmark from '../../components/ui/Wordmark';
 import LegalFooter from '../../components/ui/LegalFooter';

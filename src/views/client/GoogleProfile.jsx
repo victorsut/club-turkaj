@@ -15,7 +15,7 @@ import AddressPicker, { EMPTY_ADDRESS } from '../../components/ui/AddressPicker'
 import { isAddressComplete, packAddress } from '../../constants/geoGt';
 import { phoneMask, dpiMask, plateMask, capWords } from '../../lib/inputMasks';
 import { setMemberToken } from '../../services/sessionTokens';
-import { mapMember } from '../../hooks/useSupabaseData';
+import { mapMember } from '../../lib/mapMember';
 
 const VEHICLE_PTS = 2;
 

@@ -162,20 +162,6 @@ export async function completeSurvey(memberId) {
 }
 
 // ──────────────────────────────────────────────
-// 5. NIVEL DE MIEMBRO — get_member_tier
-// ──────────────────────────────────────────────
-// Calcula el nivel basado en galones acumulados:
-//   - 0-149 gal   → ORO
-//   - 150-499 gal → PLATINO
-//   - 500+ gal    → BLACK
-//
-// @returns 'ORO' | 'PLATINO' | 'BLACK'
-// ──────────────────────────────────────────────
-export async function getMemberTier(gallons) {
-  return callRpc('get_member_tier', { gal: gallons });
-}
-
-// ──────────────────────────────────────────────
 // 6. PRECIOS — update_fuel_prices
 // ──────────────────────────────────────────────
 // Actualiza los precios de combustible vía RPC con SECURITY
