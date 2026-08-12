@@ -7,19 +7,29 @@
 // admin_write_catalog('station'|'store', …) con sesión de admin y
 // auditoría atómica (SEC.C.4); las estaciones NO se crean ni eliminan
 // desde el panel (regla del cierre de catálogo).
+// 12-ago-2026 (decisión del dueño): editar estación y editar/activar/
+// desactivar/eliminar tienda exigen MOTIVO obligatorio (ReasonModal,
+// patrón F0.3.7 del resto del panel: crear directo con auditoría, lo
+// demás con motivo). El doble-tap de '¿Eliminar?' se sustituye por el
+// motivo, que es una guarda más fuerte.
 import { useState } from 'react';
 import { sMono, adminTheme as AT, btnYellow, inputStyleDark } from '../../constants/styles';
 import { Plus, Fuel, House } from '../../components/ui/Icons';
 import { adminWriteCatalog } from '../../services/secureReads';
+import ReasonModal from '../../components/ui/ReasonModal';
 
 export default function AdminStations(ctx) {
   const { stations, setStations, stores, setStores, fire, loggedAdmin } = ctx;
 
   const audit = { adminId: loggedAdmin?.id, adminName: loggedAdmin?.name, adminEmail: loggedAdmin?.email };
 
+  // ── F0.3.7: acción pendiente de motivo (ReasonModal) ────
+  const [showReason, setShowReason] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
+  const [reasonBusy, setReasonBusy] = useState(false);
+
   // ── Estaciones: modal de edición (una a la vez) ─────────
   const [stForm, setStForm] = useState(null); // { id, name, address, schedule, lat, lng, externalCode, ssid, pass }
-  const [savingStation, setSavingStation] = useState(false);
 
   const openStation = (s) => setStForm({
     id: s.id, name: s.name || '', address: s.address || '',
@@ -29,7 +39,7 @@ export default function AdminStations(ctx) {
   });
   const updSt = (k, v) => setStForm(p => ({ ...p, [k]: v }));
 
-  const saveStation = async () => {
+  const saveStation = () => {
     const f = stForm;
     if (!f.name.trim()) { fire('El nombre es obligatorio', 'error'); return; }
     const lat = f.lat.trim() === '' ? null : parseFloat(f.lat);
@@ -37,88 +47,139 @@ export default function AdminStations(ctx) {
     if ((lat !== null && Number.isNaN(lat)) || (lng !== null && Number.isNaN(lng))) {
       fire('Coordenadas inválidas — usa números decimales', 'error'); return;
     }
-    setSavingStation(true);
-    const res = await adminWriteCatalog('station', 'update', {
-      id: f.id,
-      data: {
-        name: f.name.trim(), address: f.address.trim(),
-        schedule: f.schedule.trim() || null,
-        lat: f.lat.trim(), lng: f.lng.trim(),
-        external_code: f.externalCode.trim(),
-        wifi_ssid: f.ssid.trim() || null, wifi_password: f.pass.trim() || null,
-      },
-      audit,
+    // El form se cierra y el write espera el motivo; si el update
+    // falla, el form se reabre con lo escrito (patrón AdminPromos).
+    setPendingAction({
+      type: 'station-edit', form: f, lat, lng,
+      actionLabel: 'Editar estacion: ' + f.name.trim(),
     });
-    setSavingStation(false);
-    if (res.error) { fire('Error: ' + res.error, 'error'); return; }
-    if (setStations) {
-      setStations(p => p.map(s => s.id === f.id ? {
-        ...s, name: f.name.trim(), address: f.address.trim(),
-        schedule: f.schedule.trim() || null, lat, lng,
-        externalCode: f.externalCode.trim(),
-        wifiSsid: f.ssid.trim() || null, wifiPassword: f.pass.trim() || null,
-      } : s));
-    }
     setStForm(null);
-    fire(`${f.name.trim()} actualizada`, 'success');
+    setShowReason(true);
   };
 
   // ── D18: tiendas asociadas — alta/edición/baja ──────────
   const [storeModal, setStoreModal] = useState(null); // { id: null = alta, name, address }
-  const [storeBusy, setStoreBusy] = useState(null);   // id | 'modal' | null
-  const [delArm, setDelArm] = useState(null);         // doble tap para eliminar
+  const [storeBusy, setStoreBusy] = useState(false);  // alta directa en curso
 
   const saveStoreModal = async () => {
     const f = storeModal;
     if (!f.name.trim()) { fire('El nombre de la tienda es obligatorio', 'error'); return; }
-    setStoreBusy('modal');
-    const res = f.id
-      ? await adminWriteCatalog('store', 'update', {
-          id: f.id,
-          data: { name: f.name.trim(), address: f.address.trim(), active: f.active },
-          audit,
-        })
-      : await adminWriteCatalog('store', 'create', {
-          data: { name: f.name.trim(), address: f.address.trim() },
-          audit,
-        });
-    setStoreBusy(null);
-    if (res.error) { fire('Error: ' + res.error, 'error'); return; }
+
     if (f.id) {
-      setStores(p => p.map(s => s.id === f.id ? res.row : s));
-      fire(`${f.name.trim()} actualizada`, 'success');
-    } else {
-      setStores(p => [...p, res.row].sort((a, b) => (a.name || '').localeCompare(b.name || '')));
-      fire('Tienda agregada', 'success');
+      // Edición: exige motivo (el modal se reabre si el update falla).
+      setPendingAction({ type: 'store-edit', form: f, actionLabel: 'Editar tienda: ' + f.name.trim() });
+      setStoreModal(null);
+      setShowReason(true);
+      return;
     }
+
+    // Alta: directa con auditoría (patrón del panel — create sin motivo).
+    setStoreBusy(true);
+    const res = await adminWriteCatalog('store', 'create', {
+      data: { name: f.name.trim(), address: f.address.trim() },
+      audit,
+    });
+    setStoreBusy(false);
+    if (res.error) { fire('Error: ' + res.error, 'error'); return; }
+    setStores(p => [...p, res.row].sort((a, b) => (a.name || '').localeCompare(b.name || '')));
+    fire('Tienda agregada', 'success');
     setStoreModal(null);
   };
 
-  const toggleStore = async (s) => {
+  const toggleStore = (s) => {
     const next = s.active === false;
-    setStoreBusy(s.id);
-    const res = await adminWriteCatalog('store', 'update', {
-      id: s.id,
-      data: { name: s.name || '', address: s.address || '', active: next },
-      audit,
+    setPendingAction({
+      type: 'store-toggle', store: s, next,
+      actionLabel: (next ? 'Activar tienda: ' : 'Desactivar tienda: ') + (s.name || ''),
     });
-    setStoreBusy(null);
-    if (res.error) { fire('Error: ' + res.error, 'error'); return; }
-    setStores(p => p.map(x => x.id === s.id ? res.row : x));
-    fire(next ? 'Tienda activada' : 'Tienda desactivada', 'success');
+    setShowReason(true);
   };
 
-  const delStore = async (s) => {
-    // Primer tap arma la eliminación; el segundo la ejecuta (los
-    // premios que la referencien la pierden de su localización).
-    if (delArm !== s.id) { setDelArm(s.id); return; }
-    setDelArm(null);
-    setStoreBusy(s.id);
-    const res = await adminWriteCatalog('store', 'delete', { id: s.id, audit });
-    setStoreBusy(null);
-    if (res.error) { fire('Error: ' + res.error, 'error'); return; }
-    setStores(p => p.filter(x => x.id !== s.id));
-    fire('Tienda eliminada', 'success');
+  const delStore = (s) => {
+    setPendingAction({ type: 'store-delete', store: s, actionLabel: 'Eliminar tienda: ' + (s.name || '') });
+    setShowReason(true);
+  };
+
+  // Ejecutor unificado: corre la acción pendiente con el motivo — el
+  // RPC escribe y audita atómico (SEC.C.4), acá solo se refleja en state.
+  const confirmReason = async (reason) => {
+    if (!pendingAction) { setShowReason(false); return; }
+    const auditR = { ...audit, reasonText: reason };
+    setReasonBusy(true);
+    try {
+      switch (pendingAction.type) {
+        case 'station-edit': {
+          const f = pendingAction.form;
+          const res = await adminWriteCatalog('station', 'update', {
+            id: f.id,
+            data: {
+              name: f.name.trim(), address: f.address.trim(),
+              schedule: f.schedule.trim() || null,
+              lat: f.lat.trim(), lng: f.lng.trim(),
+              external_code: f.externalCode.trim(),
+              wifi_ssid: f.ssid.trim() || null, wifi_password: f.pass.trim() || null,
+            },
+            audit: auditR,
+          });
+          if (res.error) { setStForm(f); fire('Error: ' + res.error, 'error'); return; }
+          if (setStations) {
+            setStations(p => p.map(s => s.id === f.id ? {
+              ...s, name: f.name.trim(), address: f.address.trim(),
+              schedule: f.schedule.trim() || null,
+              lat: pendingAction.lat, lng: pendingAction.lng,
+              externalCode: f.externalCode.trim(),
+              wifiSsid: f.ssid.trim() || null, wifiPassword: f.pass.trim() || null,
+            } : s));
+          }
+          fire(`${f.name.trim()} actualizada`, 'success');
+          break;
+        }
+
+        case 'store-edit': {
+          const f = pendingAction.form;
+          const res = await adminWriteCatalog('store', 'update', {
+            id: f.id,
+            data: { name: f.name.trim(), address: f.address.trim(), active: f.active },
+            audit: auditR,
+          });
+          if (res.error) { setStoreModal(f); fire('Error: ' + res.error, 'error'); return; }
+          setStores(p => p.map(s => s.id === f.id ? res.row : s));
+          fire(`${f.name.trim()} actualizada`, 'success');
+          break;
+        }
+
+        case 'store-toggle': {
+          const s = pendingAction.store;
+          const next = pendingAction.next;
+          const res = await adminWriteCatalog('store', 'update', {
+            id: s.id,
+            data: { name: s.name || '', address: s.address || '', active: next },
+            audit: auditR,
+          });
+          if (res.error) { fire('Error: ' + res.error, 'error'); return; }
+          setStores(p => p.map(x => x.id === s.id ? res.row : x));
+          fire(next ? 'Tienda activada' : 'Tienda desactivada', 'success');
+          break;
+        }
+
+        case 'store-delete': {
+          // Los premios que la referencien la pierden de su localización.
+          const s = pendingAction.store;
+          const res = await adminWriteCatalog('store', 'delete', { id: s.id, audit: auditR });
+          if (res.error) { fire('Error: ' + res.error, 'error'); return; }
+          setStores(p => p.filter(x => x.id !== s.id));
+          fire('Tienda eliminada', 'success');
+          break;
+        }
+
+        default:
+          break;
+      }
+    } finally {
+      setReasonBusy(false);
+      setPendingAction(null);
+      setShowReason(false);
+    }
   };
 
   // ── estilos (FORMATO GENERAL Admin v2) ──────────────────
@@ -163,7 +224,7 @@ export default function AdminStations(ctx) {
         <div style={{ flex: 1, minWidth: 220 }}>
           <div style={{ fontSize: 21, fontWeight: 800, color: '#fff' }}>Estaciones y Tiendas</div>
           <div style={{ fontSize: 12.5, fontWeight: 600, color: '#9E9E9E', marginTop: 2 }}>
-            {stationList.length.toLocaleString('en-US')} estaciones · {storeList.length.toLocaleString('en-US')} tiendas asociadas — toda edición queda auditada
+            {stationList.length.toLocaleString('en-US')} estaciones · {storeList.length.toLocaleString('en-US')} tiendas asociadas — toda edición exige motivo y queda auditada
           </div>
         </div>
         <button onClick={() => setStoreModal({ id: null, name: '', address: '' })}
@@ -238,13 +299,10 @@ export default function AdminStations(ctx) {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
                 <button onClick={() => setStoreModal({ id: s.id, name: s.name || '', address: s.address || '', active })} style={miniBtn('#64B5F6')}>Editar</button>
-                <button onClick={() => toggleStore(s)} disabled={storeBusy === s.id} style={miniBtn(active ? '#FF8F00' : '#81C784')}>
-                  {storeBusy === s.id ? '...' : active ? 'Desactivar' : 'Activar'}
+                <button onClick={() => toggleStore(s)} style={miniBtn(active ? '#FF8F00' : '#81C784')}>
+                  {active ? 'Desactivar' : 'Activar'}
                 </button>
-                <button onClick={() => delStore(s)} disabled={storeBusy === s.id}
-                  style={{ ...miniBtn('#EF5350'), border: `1px solid ${delArm === s.id ? '#EF5350' : AT.border}`, background: delArm === s.id ? 'rgba(239,83,80,.15)' : 'transparent' }}>
-                  {delArm === s.id ? '¿Eliminar?' : 'Eliminar'}
-                </button>
+                <button onClick={() => delStore(s)} style={miniBtn('#EF5350')}>Eliminar</button>
               </div>
             </div>
           );
@@ -253,7 +311,7 @@ export default function AdminStations(ctx) {
 
       {/* ── Modal: editar estación (oscuro centrado) ── */}
       {stForm && (
-        <div style={overlay} onClick={() => { if (!savingStation) setStForm(null); }}>
+        <div style={overlay} onClick={() => setStForm(null)}>
           <div onClick={e => e.stopPropagation()} style={sheet}>
             <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginBottom: 16 }}>Editar estación</div>
 
@@ -293,10 +351,8 @@ export default function AdminStations(ctx) {
             </div>
 
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setStForm(null)} disabled={savingStation} style={ghostBtn}>Cancelar</button>
-              <button onClick={saveStation} disabled={savingStation} style={mainBtn}>
-                {savingStation ? 'Guardando...' : 'Guardar cambios'}
-              </button>
+              <button onClick={() => setStForm(null)} style={ghostBtn}>Cancelar</button>
+              <button onClick={saveStation} style={mainBtn}>Guardar cambios</button>
             </div>
           </div>
         </div>
@@ -304,7 +360,7 @@ export default function AdminStations(ctx) {
 
       {/* ── Modal: tienda asociada — alta o edición (oscuro centrado) ── */}
       {storeModal && (
-        <div style={overlay} onClick={() => { if (storeBusy !== 'modal') setStoreModal(null); }}>
+        <div style={overlay} onClick={() => { if (!storeBusy) setStoreModal(null); }}>
           <div onClick={e => e.stopPropagation()} style={sheet}>
             <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginBottom: 16 }}>
               {storeModal.id ? 'Editar tienda' : 'Nueva tienda asociada'}
@@ -320,14 +376,23 @@ export default function AdminStations(ctx) {
             </div>
 
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setStoreModal(null)} disabled={storeBusy === 'modal'} style={ghostBtn}>Cancelar</button>
-              <button onClick={saveStoreModal} disabled={storeBusy === 'modal'} style={mainBtn}>
-                {storeBusy === 'modal' ? 'Guardando...' : storeModal.id ? 'Guardar cambios' : 'Agregar tienda'}
+              <button onClick={() => setStoreModal(null)} disabled={storeBusy} style={ghostBtn}>Cancelar</button>
+              <button onClick={saveStoreModal} disabled={storeBusy} style={mainBtn}>
+                {storeBusy ? 'Guardando...' : storeModal.id ? 'Guardar cambios' : 'Agregar tienda'}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* ── ReasonModal unificado (F0.3.7): motivo obligatorio ── */}
+      <ReasonModal
+        open={showReason}
+        onClose={() => { if (!reasonBusy) { setShowReason(false); setPendingAction(null); } }}
+        onConfirm={confirmReason}
+        actionLabel={pendingAction?.actionLabel || ''}
+        loading={reasonBusy}
+      />
     </div>
   );
 }
