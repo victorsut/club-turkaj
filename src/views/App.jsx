@@ -4,11 +4,8 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { sb } from '../lib/supabaseClient';
 import { makeTier } from '../lib/tierSystem';
 import { CFG_INIT } from '../constants/config';
-import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey, grantSpecialDayBonus, fetchPurchasePromo, fetchNotifications, markNotificationsRead, createMemberSessionOauth, getMyMember, logoutMember, fetchMembersFull, fetchMemberFull, fetchMyActivity, fetchMyRedemptions, fetchActivityStaff, fetchRaffleParticipants, fetchMemberStations, countMySurveysToday, markRaffleWinnerSeen } from '../services';
-import { logoutOperator, logoutAdmin, fetchOperatorsFull } from '../services'; // SEC.B.4: logout delega el subconjunto de localStorage (ct_op/ct_admin + token de rol)
-import { getOperatorToken, getAdminToken, getMemberToken } from '../services/sessionTokens'; // SEC.B.6.4 + SEC.C.1
-import { mapMember } from '../lib/mapMember'; // SEC.C.1: mapeo del perfil de RPC
-import { setSessionExpiredHandler } from '../services/sessionExpiry'; // SEC.B.8.2: registro del handler que dispara expireSession ante rechazo 28000 del server
+import { registerPurchase, redeemReward, buyRaffleTickets, completeSurvey, grantSpecialDayBonus, createMemberSessionOauth, countMySurveysToday, markRaffleWinnerSeen } from '../services';
+import { getMemberToken } from '../services/sessionTokens'; // SEC.C.1
 import { firstName } from '../lib/text'; // regla 29-jul: al cliente solo el primer nombre del personal
 
 // Guatemala es UTC-6 — helpers de fecha local en lib/dates.js
@@ -30,6 +27,10 @@ import RedeemConfirmSheet from '../components/RedeemConfirmSheet';
 import PurchaseConfirmSheet from '../components/PurchaseConfirmSheet';
 import ClientQrSheet from '../components/ClientQrSheet';
 import useBackLayer from '../hooks/useBackLayer';
+import useStaffData from '../hooks/useStaffData';
+import useMemberRealtime from '../hooks/useMemberRealtime';
+import useNotificationsInbox from '../hooks/useNotificationsInbox';
+import useSessionGuard from '../hooks/useSessionGuard';
 
 // Auth Views
 import ClientLogin from './client/ClientLogin';
@@ -75,29 +76,6 @@ import VehiclesSoon from './client/VehiclesSoon';
 import { originFromEvent } from '../lib/motionOrigin';
 import { isPushSupported, subscribePush, sendPushToMember } from '../lib/pushNotifications';
 
-// Ficha completa (list_members_full / get_member_full) → fila de custs.
-// Fuente única del shape: la usan la carga masiva del login de staff y
-// addMemberToCusts (alta en vivo de miembros recién registrados).
-function mapFullMember(m) {
-  return {
-    id: m.id, name: m.name, nickname: m.nickname || '', email: m.email || '', avatar: m.avatar_url || '',
-    phone: m.phone || '', dpi: m.dpi || '', plate: m.plate || '',
-    vehicles: (() => { const v = m.vehicles; if (!v) return []; if (Array.isArray(v)) return v; if (typeof v === 'object') return Object.values(v); try { return JSON.parse(v); } catch { return []; } })(),
-    nit: m.nit || '', bday: m.birthday || '',
-    address: m.address || null,
-    points: m.points || 0, gallons: parseFloat(m.gallons) || 0,
-    spent: parseFloat(m.spent) || 0, visits: m.visits || 0,
-    tickets: m.tickets || 0, redeemed: m.redeemed_count || 0,
-    referrals: m.referral_count || 0,
-    registered: utcToLocal(m.created_at) || '',
-    lastBuy: utcToLocal(m.last_buy) || '',
-    station: m.last_station || '',
-    cardId: m.card_code || m.card_id || '',
-    termsAcceptedAt: m.terms_accepted_at || null, // constancia 11-ago (member_profile_json lo expone)
-    supabaseUser: true, authProvider: m.auth_provider || 'google',
-    authProviderId: m.auth_provider_id || '',
-  };
-}
 
 export default function App() {
   // ===== ROLE & NAVIGATION =====
@@ -218,7 +196,6 @@ export default function App() {
   // llegar por deep-link de notificación de premio (type 'reward').
   const [catPendingSignal, setCatPendingSignal] = useState(0);
   // Inbox de la campana del inicio: notificaciones del miembro logueado.
-  const [myNotifs, setMyNotifs] = useState([]);
   const [showHist, setShowHist] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [showRedeemed, setShowRedeemed] = useState(false);
@@ -527,142 +504,32 @@ export default function App() {
     }
   }
 
-  // ===== FICHA COMPLETA AL ENTRAR COMO OPERADOR/ADMIN (SEC.C.1) =====
-  // El boot solo carga columnas no sensibles; al loguearse un operador
-  // o admin, su sesión autoriza list_members_full y custs se reemplaza
-  // por los perfiles completos (búsqueda por teléfono/DPI, ficha, etc.).
-  const custsFullRef = useRef(false);
-  // SEC.C.2b: última carga de members del boot (columnas abiertas) —
-  // respaldo si el fetch de fichas completas falla tras ganarle al boot.
-  const bootCustsRef = useRef(null);
-  // FIX (11-ago): misma guarda anti-carrera para operadores. El efecto
-  // de staff (fetchOperatorsFull) puede ganarle al boot cuando hay
-  // sesión de admin cacheada; sin esta bandera el boot (columnas
-  // mínimas: sin DPI/gafete/teléfono) pisaba la ficha completa y
-  // OpManagement mostraba tarjetas incompletas y bloqueaba la edición.
-  const opsFullRef = useRef(false);
-  useEffect(() => {
-    if (authOp !== 'logged' && authAdmin !== 'logged') { custsFullRef.current = false; return; }
-    if (custsFullRef.current || !sb) return;
-    const role = authAdmin === 'logged' ? 'admin' : 'operator';
-    const tok = role === 'admin' ? getAdminToken() : getOperatorToken();
-    if (!tok?.token) return;
-    custsFullRef.current = true;
-    fetchMembersFull(tok.token, role).then(rows => {
-      if (rows.length > 0) {
-        setCusts(rows.map(mapFullMember));
-        console.log('[Puntos Plus] ✅ Fichas completas cargadas:', rows.length);
-      } else {
-        custsFullRef.current = false; // token vencido u error: reintentar
-        // SEC.C.2b: si el boot le cedió el paso a este fetch y falló,
-        // restaurar al menos las columnas abiertas.
-        if (bootCustsRef.current) setCusts(p => (p.length ? p : bootCustsRef.current));
-      }
-    });
-  }, [authOp, authAdmin]);
 
-  // Miembro RECIÉN registrado → traer su ficha completa y sumarla a
-  // custs sin recargar (reporte del dueño 31-jul: el escaneo del QR de
-  // un cliente nuevo fallaba hasta recargar la app del operador). La
-  // usan el evento INSERT del canal realtime y el fallback del escaneo
-  // (auto-reparación si el realtime no propagó). Devuelve la fila
-  // mapeada o null.
-  const addMemberToCusts = useCallback(async (memberId) => {
-    if (authOp !== 'logged' && authAdmin !== 'logged') return null;
-    const role = authAdmin === 'logged' ? 'admin' : 'operator';
-    const tok = role === 'admin' ? getAdminToken() : getOperatorToken();
-    if (!tok?.token || !memberId) return null;
-    const m = await fetchMemberFull(tok.token, role, memberId);
-    if (!m?.id) return null;
-    const row = mapFullMember(m);
-    setCusts(p => {
-      const i = p.findIndex(c => c.id === row.id);
-      if (i < 0) return [...p, row];
-      const next = [...p];
-      next[i] = { ...next[i], ...row };
-      return next;
-    });
-    return row;
-  }, [authOp, authAdmin]);
+  // ===== HOOKS DE DATOS (división etapa 3, 12-ago-2026) =====
+  // Staff: fichas completas, actividad global, participantes de rifa y
+  // realtime de custs; expone los refs anti-carrera que consume el boot.
+  const { addMemberToCusts, custsFullRef, bootCustsRef, opsFullRef } = useStaffData({
+    authOp, authAdmin, authScreen, meId: me?.id, sbConnected, raffleCal,
+    setCusts, setOperators, setActivityLog, setMemberStations, setRafData,
+  });
 
-  // ===== SEC.C.2: ACTIVIDAD GLOBAL PARA STAFF =====
-  // El boot ya no puede leer activity_log: el mapa global (filtro por
-  // estación en Miembros, actividad de las fichas) se carga por RPC al
-  // entrar como operador/admin. Merge sobre lo previo: el libro mayor
-  // completo del miembro logueado en este navegador no se pisa.
-  const actMapStaffRef = useRef(false);
-  useEffect(() => {
-    if (authOp !== 'logged' && authAdmin !== 'logged') { actMapStaffRef.current = false; opsFullRef.current = false; return; }
-    if (actMapStaffRef.current || !sb) return;
-    actMapStaffRef.current = true;
-    fetchActivityStaff(null, 300).then(rows => {
-      if (!rows.length) { actMapStaffRef.current = false; return; }
-      const actMap = {};
-      rows.forEach(a => {
-        if (!actMap[a.member_id]) actMap[a.member_id] = [];
-        actMap[a.member_id].push({
-          type: a.activity_type, desc: a.description,
-          pts: a.points_change, amount: a.amount ? parseFloat(a.amount) : null,
-          date: utcToLocal(a.created_at) || '', station: a.station_id || '',
-        });
-      });
-      setActivityLog(prev => ({ ...actMap, ...prev }));
-    });
-    // Ficha completa de operadores (objetivo #1): DPI/gafete/teléfono/
-    // correo ya no viajan por la API abierta — el admin los carga con
-    // su sesión para la pestaña Operadores.
-    fetchOperatorsFull().then(rows => {
-      if (!rows.length) return;
-      opsFullRef.current = true; // gana la carrera: el boot ya no pisa
-      setOperators(rows.map(o => ({
-        id: o.id, name: o.name, user: o.username,
-        dpi: o.dpi || '', gafete: o.gafete || '',
-        phone: o.phone || '', email: o.email || '',
-        station: o.station_name || '', stationId: o.station_id || null,
-        bomba: o.bomba || '', turno: o.turno || '',
-        active: o.active !== false,
-        // Espejo de PROPER (F7a): no puede loguearse; su estación es la
-        // última donde despachó según la factura.
-        external: o.external_source || null,
-      })));
-    });
-    // Estación por miembro para el filtro de Miembros (SEC.C.2b):
-    // derivada de purchases (el activity_log guarda station_id como
-    // uuid y la vista comparaba nombres — nunca coincidía).
-    fetchMemberStations().then(rows => {
-      if (!rows.length) return;
-      const map = {};
-      rows.forEach(r => { map[r.member_id] = { last: r.last_station, top: r.top_station }; });
-      setMemberStations(map);
-    });
-  }, [authOp, authAdmin]);
+  // Miembro: rehidratación de sesión (SEC.C.1), libro mayor y canjes
+  // propios (SEC.C.2) y canales realtime (puntos en vivo, confirmación
+  // de canje, modal de calificación tras combustible, rating en vivo).
+  const { reloadMyRedemptions } = useMemberRealtime({
+    me, authScreen, sbConnected, viewRef,
+    rewards, stations, operators, loggedOp,
+    setMe, setAuthScreen, setCusts, setActivityLog, setRedeemedList,
+    setPendingRedeemConfirm, setPendingOpRating, setShowQR, setQrClosing,
+    setOpRatings,
+  });
 
-  // ===== SEC.C.2: PARTICIPANTES DE RIFA CON SESIÓN =====
-  // raffle_tickets ya no tiene SELECT abierto: los boletos agregados
-  // llegan por RPC con la sesión activa (miembro, operador o admin) y
-  // el nombre viene resuelto server-side. Las compras de boletos siguen
-  // actualizando rafData de forma optimista; este efecto trae la verdad
-  // del servidor al abrir la app o cambiar de sesión.
-  useEffect(() => {
-    if (!sb || !sbConnected || raffleCal.length === 0) return;
-    const memberLogged = authScreen === 'logged' && me?.id && !String(me.id).startsWith('temp-');
-    if (!memberLogged && authOp !== 'logged' && authAdmin !== 'logged') return;
-    fetchRaffleParticipants().then(rows => {
-      if (!rows) return; // sin token o error: conservar lo que haya
-      const idToMonth = {};
-      raffleCal.forEach((r, i) => { if (r?.dbId) idToMonth[r.dbId] = i; });
-      const rafMap = Array(12).fill(null).map(() => ({ participants: [] }));
-      rows.forEach(e => {
-        const month = idToMonth[e.raffle_id];
-        if (month === undefined) return;
-        // display_name = apodo o primer nombre (1-ago: la rifa ya no
-        // muestra nombres reales); avatar para la lista de participantes
-        rafMap[month].participants.push({ cid: e.member_id, name: e.display_name || e.name || 'Miembro', avatar: e.avatar_url || '', tickets: e.tickets || 1 });
-      });
-      setRafData(rafMap);
-      console.log('[Raffle] ✅ rafData listo:', rows.length, 'participantes');
-    });
-  }, [sbConnected, raffleCal, authScreen, me?.id, authOp, authAdmin]);
+  // Inbox de la campana + navegación disparada por notificaciones
+  // (mensajes del Service Worker y deep-links por URL).
+  const { myNotifs, markNotifsRead } = useNotificationsInbox({
+    me, authScreen, sbConnected, viewRef,
+    setCScr, setPendingOpRating, setCatPendingSignal,
+  });
 
   // ===== CARGAR ENCUESTAS DEL DIA AL CAMBIAR DE USUARIO =====
   useEffect(() => {
@@ -690,482 +557,18 @@ export default function App() {
     });
   }, [me?.id, authScreen]);
 
-  // Canjes propios del miembro (con código TK para el QR) — se usa al
-  // loguearse y al confirmar una entrega (el pendiente pasa a RECOGIDO
-  // sin tener que reabrir la app).
-  const reloadMyRedemptions = useCallback(() => {
-    fetchMyRedemptions().then(rows => {
-      if (!rows.length) return;
-      setRedeemedList(rows.map(rd => ({
-        id: rd.id,
-        memberId: rd.member_id,
-        reward: { name: rd.reward_name || 'Premio', icon: rd.reward_icon || '🎁', cat: rd.reward_category || '' },
-        cost: rd.points_spent,
-        date: utcToLocal(rd.created_at) || '',
-        code: rd.redemption_code,
-        collected: rd.collected || false,
-        // D22: vencimiento del canje (solo premios de rifa lo traen)
-        expiresAt: rd.expires_at || null,
-      })));
-      // F7a.3: solicitud de confirmación VIGENTE al abrir la app — si el
-      // POS de PROPER (o el operador) la pidió con la app cerrada, el
-      // broadcast se perdió; acá se detecta y se abre el modal. Solo
-      // solicitudes frescas (< 3 min, confirm_requested_at) para no
-      // revivir solicitudes muertas de días anteriores.
-      const pend = rows.find(rd =>
-        !rd.collected && rd.confirm_status === 'pending' && rd.confirm_requested_at &&
-        (Date.now() - new Date(rd.confirm_requested_at).getTime()) < 3 * 60 * 1000);
-      if (pend) {
-        const reward = rewards.find(r => r.id === pend.reward_id) || null;
-        setPendingRedeemConfirm(p => p || {
-          redemptionId: pend.id,
-          rewardName:   reward?.name || pend.reward_name || 'Premio',
-          rewardIcon:   reward?.icon || pend.reward_icon || '🎁',
-          reward,
-          cost:         pend.points_spent || 0,
-        });
-      }
-    });
-  }, [rewards]);
 
   // Señal para cerrar el QR del premio en HistorySheet al confirmar la
   // entrega (pedido del dueño 29-jul) — el sheet vive dentro del
   // historial, así que viaja por ctx como contador.
   const [rewardQrCloseSignal, setRewardQrCloseSignal] = useState(0);
 
-  // ===== HISTORIAL Y CANJES PROPIOS AL LOGUEARSE (28-jul / SEC.C.2) =====
-  // El libro mayor COMPLETO del miembro (limit 1000 — el 'registro' con
-  // el bonus de alta debe seguir visible; reporte: Fernando Morales) y
-  // sus canjes (con redemption_code para el QR del premio) llegan por
-  // RPC con su sesión: el SELECT abierto de ambas tablas quedó revocado.
-  // Sesiones legadas sin token ven listas vacías hasta re-loguearse.
-  useEffect(() => {
-    if (!me?.id || authScreen !== 'logged' || viewRef.current !== 'client' || !sb) return;
-    if (String(me.id).startsWith('temp-')) return;
-    fetchMyActivity(me.id, 1000).then(rows => {
-      if (!rows.length) return;
-      setActivityLog(prev => ({
-        ...prev,
-        [me.id]: rows.map(a => ({
-          type: a.activity_type,
-          desc: a.description,
-          pts: a.points_change,
-          amount: a.amount ? parseFloat(a.amount) : null,
-          date: utcToLocal(a.created_at) || '',
-          station: a.station_id || '',
-        })),
-      }));
-    });
-    reloadMyRedemptions();
-  }, [me?.id, authScreen, reloadMyRedemptions]);
 
-  // ===== REALTIME PARA ADMIN/OPERADOR: puntos en vivo en custs (28-jul) =====
-  // El canal member-updates solo cubre al miembro logueado (vista
-  // cliente). Pedido del dueño: el admin también debe ver los puntos
-  // moverse en vivo. Sin filtro: cualquier UPDATE de members refresca
-  // la fila en custs (el payload solo trae las columnas no sensibles —
-  // los grants de columna de SEC.C.1 aplican también a Realtime).
-  useEffect(() => {
-    if ((authOp !== 'logged' && authAdmin !== 'logged') || !sb || !sbConnected) return;
-    const ch = sb.channel('members-staff')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'members' }, (payload) => {
-        const m = payload.new || {};
-        if (!m.id) return;
-        setCusts(p => p.map(c => c.id === m.id ? {
-          ...c,
-          points: m.points ?? c.points,
-          gallons: parseFloat(m.gallons) || c.gallons,
-          spent: parseFloat(m.spent) || c.spent,
-          visits: m.visits ?? c.visits,
-          tickets: m.tickets ?? c.tickets,
-          redeemed: m.redeemed_count ?? c.redeemed,
-          lastBuy: utcToLocal(m.last_buy) || c.lastBuy,
-          station: m.last_station || c.station,
-        } : c));
-      })
-      // Registro NUEVO: el payload trae solo columnas abiertas (sin el
-      // código CT de la tarjeta) → la ficha completa se pide por RPC.
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'members' }, (payload) => {
-        const id = payload.new?.id;
-        if (id) addMemberToCusts(id);
-      })
-      .subscribe();
-    return () => sb.removeChannel(ch);
-  }, [authOp, authAdmin, sbConnected, addMemberToCusts]);
 
-  // ===== SEC.C.1: REHIDRATAR/VALIDAR la sesión de miembro al abrir =====
-  // ct_me es solo caché: si hay token, el servidor devuelve el perfil
-  // FRESCO (la ficha completa ya no baja por la API abierta). Token
-  // inválido/revocado → cerrar la sesión cacheada. Sin token (sesiones
-  // pre-SEC.C o Google, que lo obtiene en SIGNED_IN) → no forzar nada.
-  useEffect(() => {
-    if (!me?.id || authScreen !== 'logged' || viewRef.current !== 'client') return;
-    if (String(me.id).startsWith('temp-')) return;
-    getMyMember().then(res => {
-      if (res.ok && res.member) {
-        setMe(prev => prev ? { ...prev, ...mapMember(res.member) } : prev);
-      } else if (res.invalidSession) {
-        console.warn('[SEC.C] Sesión de miembro inválida → logout');
-        localStorage.removeItem('ct_me');
-        setMe(null); setAuthScreen('login');
-      }
-      // noToken: sesión legada o Google pendiente de SIGNED_IN — seguir.
-    });
-    // Solo al montar con sesión ya restaurada; los cambios de me.id
-    // posteriores vienen de logins que ya traen perfil fresco.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authScreen]);
 
-  // ===== NOTIFICACIONES: inbox de la campana (carga + realtime) =====
-  useEffect(() => {
-    if (!me?.id || authScreen !== 'logged' || viewRef.current !== 'client') {
-      setMyNotifs([]);
-      return;
-    }
-    fetchNotifications(me.id).then(setMyNotifs);
-    // Al volver la app al frente, refrescar: el canal Realtime se
-    // suspende en segundo plano y los registros que el SW hizo mientras
-    // tanto (push de compra/premio mostrado) no llegarían al badge.
-    const mid = me.id;
-    const onVis = () => {
-      if (document.visibilityState === 'visible') {
-        fetchNotifications(mid).then(setMyNotifs);
-      }
-    };
-    document.addEventListener('visibilitychange', onVis);
-    if (!sb || !sbConnected) {
-      return () => document.removeEventListener('visibilitychange', onVis);
-    }
-    const ch = sb.channel(`notifications-${me.id}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'notifications',
-        filter: `member_id=eq.${me.id}`,
-      }, (payload) => {
-        setMyNotifs(p => p.some(n => n.id === payload.new.id) ? p : [payload.new, ...p]);
-      })
-      .subscribe();
-    return () => {
-      document.removeEventListener('visibilitychange', onVis);
-      sb.removeChannel(ch);
-    };
-  }, [me?.id, authScreen, sbConnected]);
 
-  // Marca todas como leídas (al abrir el inbox); el badge se apaga al
-  // instante y el servidor estampa read_at en segundo plano.
-  const markNotifsRead = useCallback(() => {
-    if (!me?.id) return;
-    const now = new Date().toISOString();
-    setMyNotifs(p => p.map(n => n.read_at ? n : { ...n, read_at: now }));
-    markNotificationsRead(me.id);
-  }, [me?.id]);
 
-  // ===== SERVICE WORKER: Listen for notification clicks =====
-  // Ref con el miembro logueado: el listener del SW es estable ([] deps)
-  // y necesita el valor VIGENTE para responder WHO_IS.
-  const meIdRef = useRef(null);
-  useEffect(() => { meIdRef.current = me?.id || null; }, [me?.id]);
 
-  useEffect(() => {
-    if (!('serviceWorker' in navigator)) return;
-    const handleMessage = (event) => {
-      // El SW pregunta quién está a la vista antes de suprimir una
-      // notificación de compra/premio: responder miembro + vista por el
-      // puerto del MessageChannel (una pestaña de operador responde
-      // view 'op' y NO suprime — bug del 28-jul).
-      if (event.data?.type === 'WHO_IS' && event.ports && event.ports[0]) {
-        event.ports[0].postMessage({
-          memberId: meIdRef.current,
-          view: viewRef.current,
-        });
-        return;
-      }
-      if (event.data?.type === 'NOTIFICATION_CLICK') {
-        const d = event.data.data || {};
-        if (d.type === 'purchase' && d.operatorId) {
-          // El modal vive en ClientHome: volver al inicio si la app
-          // quedó en otra pestaña (Rifa, Menú...) al tocar el aviso.
-          setCScr('home');
-          setPendingOpRating({
-            purchaseId: d.purchaseId || null,
-            operatorId: d.operatorId,
-            operatorName: d.operatorName || 'Operador',
-            stationName: d.stationName || '',
-            points: d.points ?? null,
-            amount: d.amount ?? null,
-          });
-          if (d.purchaseId) {
-            fetchPurchasePromo(d.purchaseId).then(({ data: promo }) => {
-              if (promo) setPendingOpRating(prev => (prev ? { ...prev, promo } : prev));
-            });
-          }
-        }
-        // Premio de promoción: llevar a Canjes con los pendientes abiertos.
-        if (d.type === 'reward') {
-          setCScr('cat');
-          setCatPendingSignal(s => s + 1);
-        }
-        // Otros tipos (degradacion, general): basta traer la app al frente.
-      }
-    };
-    navigator.serviceWorker.addEventListener('message', handleMessage);
-    return () => navigator.serviceWorker.removeEventListener('message', handleMessage);
-  }, []);
-
-  // Check URL params for rating from notification (app opens fresh)
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const rateOpId = params.get('rate');
-    if (rateOpId && me?.id) {
-      const purchaseId = params.get('purchaseId') || null;
-      setCScr('home'); // el modal vive en ClientHome
-      setPendingOpRating({
-        purchaseId,
-        operatorId: rateOpId,
-        operatorName: decodeURIComponent(params.get('opName') || 'Operador'),
-        stationName: decodeURIComponent(params.get('station') || ''),
-        points: params.get('pts') != null ? Number(params.get('pts')) : null,
-        amount: params.get('amount') != null ? Number(params.get('amount')) : null,
-      });
-      if (purchaseId) {
-        fetchPurchasePromo(purchaseId).then(({ data: promo }) => {
-          if (promo) setPendingOpRating(prev => (prev ? { ...prev, promo } : prev));
-        });
-      }
-      window.history.replaceState(null, '', window.location.pathname);
-    }
-    // Deep-link de notificación de premio (app cerrada): Canjes pendientes.
-    if (params.get('goto') === 'pendientes' && me?.id) {
-      setCScr('cat');
-      setCatPendingSignal(s => s + 1);
-      window.history.replaceState(null, '', window.location.pathname);
-    }
-  }, [me?.id]);
-
-  // ===== REALTIME: Actualizar datos del miembro en tiempo real =====
-  useEffect(() => {
-    if (!sb || !me?.id || !sbConnected) return;
-    const channel = sb.channel('member-updates')
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'members',
-        filter: `id=eq.${me.id}`,
-      }, (payload) => {
-        const m = payload.new;
-        const prev = payload.old;
-        console.log('[Realtime] Member updated:', m.id, 'pts:', m.points, 'visits:', m.visits, 'op_id:', m.last_operator_id);
-        setMe(p => ({
-          ...p,
-          points: m.points ?? p.points,
-          gallons: parseFloat(m.gallons) || p.gallons,
-          spent: parseFloat(m.spent) || p.spent,
-          visits: m.visits ?? p.visits,
-          tickets: m.tickets ?? p.tickets,
-          redeemed: m.redeemed_count ?? p.redeemed,
-          lastBuy: utcToLocal(m.last_buy) || p.lastBuy,
-          station: m.last_station || p.station,
-        }));
-        setCusts(p => p.map(c => c.id === m.id ? {
-          ...c,
-          points: m.points ?? c.points,
-          gallons: parseFloat(m.gallons) || c.gallons,
-          spent: parseFloat(m.spent) || c.spent,
-          visits: m.visits ?? c.visits,
-          tickets: m.tickets ?? c.tickets,
-          redeemed: m.redeemed_count ?? c.redeemed,
-          lastBuy: utcToLocal(m.last_buy) || c.lastBuy,
-          station: m.last_station || c.station,
-        } : c));
-
-        // FIX-MODAL (Parte C): la recarga de historial se DESACOPLA del delta de
-        // visits. Antes estaba gateada por (newVisits > prevVisits): no recargaba
-        // cuando el ref estaba stale (tras combustible), ni cuando la acción del
-        // propio cliente (rifa/canje/encuesta) no cambia visits. Ahora recarga en
-        // CADA UPDATE de members → cubre combustible cross-device Y refresca el
-        // historial del cliente para sus propias acciones. El mapeo no cambia.
-        if (viewRef.current === 'client') {
-          // ── Recargar historial en el dispositivo del miembro ──
-          // limit alto: el historial es el LIBRO MAYOR del miembro — el
-          // 'registro' (bonus de alta) debe seguir visible aunque haya
-          // mucha actividad posterior (reporte del dueño 28-jul).
-          // SEC.C.2: por RPC con la sesión (SELECT abierto revocado).
-          fetchMyActivity(m.id, 1000).then(rows => {
-            if (!rows.length) return;
-            setActivityLog(prev => ({
-              ...prev,
-              [m.id]: rows.map(a => ({
-                type: a.activity_type,
-                desc: a.description,
-                pts: a.points_change,
-                amount: a.amount ? parseFloat(a.amount) : null,
-                date: utcToLocal(a.created_at) || '',
-                station: a.station_id || '',
-              })),
-            }));
-            console.log('[Realtime] ✅ Historial recargado:', rows.length, 'entradas');
-          });
-        }
-
-        // FIX-MODAL (Parte D): el modal de calificación se eliminó de acá.
-        // Antes se disparaba por delta de visits + last_operator_id pegajoso
-        // (frágil). Ahora lo dispara el canal purchases-${me.id} (INSERT de
-        // purchases = combustible real, con operator_id/station_id directos).
-      })
-      .subscribe((status) => {
-        console.log('[Realtime] Subscription:', status);
-      });
-
-    return () => {
-      sb.removeChannel(channel);
-    };
-  }, [me?.id, sbConnected, operators]);
-
-  // ===== REALTIME: Confirmación de canje (miembro confirma/cancela) =====
-  useEffect(() => {
-    if (!sb || !sbConnected || !me?.id) return;
-    const ch = sb.channel(`redemption-confirm-${me.id}`)
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'redemptions',
-        filter: `member_id=eq.${me.id}`,
-      }, (payload) => {
-        const rd = payload.new;
-        console.log('[Realtime] redemption update:', rd.id, 'confirm_status:', rd.confirm_status);
-        if (rd.confirm_status === 'pending') {
-          // Buscar nombre del premio
-          const reward = rewards.find(r => r.id === rd.reward_id);
-          console.log('[Realtime] Solicitud de confirmación de canje - reward:', reward?.name || rd.reward_id);
-          setPendingRedeemConfirm({
-            redemptionId: rd.id,
-            rewardName:   reward?.name  || 'Premio',
-            rewardIcon:   reward?.icon  || '🎁',
-            reward:       reward || null, // objeto completo → RewardIcon + color de categoría
-            cost:         rd.points_spent || 0,
-          });
-        } else if (rd.confirm_status === 'confirmed' || rd.confirm_status === 'cancelled') {
-          setPendingRedeemConfirm(p => p?.redemptionId === rd.id ? null : p);
-        }
-      })
-      .subscribe((status) => {
-        console.log('[Realtime] redemption-confirm subscription:', status);
-      });
-
-    // ── Canal BROADCAST del flujo de confirmación (SEC.C.2b) ──
-    // La entrega de postgres_changes con policies/grants de columna
-    // resultó no confiable en producción (el UPDATE a 'pending' se
-    // commiteaba pero el evento no llegaba al cliente). El operador
-    // emite el aviso DIRECTO por broadcast tras marcar 'pending' — sin
-    // RLS de por medio — y también el desistimiento (cancel/timeout),
-    // que además corrige un hueco viejo: el reset a 'none' nunca
-    // cerraba el modal del cliente. El canal postgres queda de respaldo
-    // (si ambos llegan, el estado se re-escribe idéntico — inocuo).
-    const bc = sb.channel(`redeem-bc-${me.id}`)
-      .on('broadcast', { event: 'confirm_request' }, ({ payload }) => {
-        if (!payload?.redemptionId) return;
-        console.log('[Broadcast] confirm_request:', payload.redemptionId);
-        const reward = rewards.find(r => r.id === payload.rewardId) || null;
-        setPendingRedeemConfirm({
-          redemptionId: payload.redemptionId,
-          rewardName:   reward?.name || payload.rewardName || 'Premio',
-          rewardIcon:   reward?.icon || payload.rewardIcon || '🎁',
-          reward,
-          cost:         payload.cost ?? 0,
-        });
-      })
-      .on('broadcast', { event: 'confirm_cancel' }, ({ payload }) => {
-        console.log('[Broadcast] confirm_cancel:', payload?.redemptionId);
-        setPendingRedeemConfirm(p => p?.redemptionId === payload?.redemptionId ? null : p);
-      })
-      .subscribe((status) => {
-        console.log('[Realtime] redeem-bc subscription:', status);
-      });
-
-    return () => { sb.removeChannel(ch); sb.removeChannel(bc); };
-  }, [me?.id, sbConnected, rewards]);
-
-  // ===== REALTIME: Modal de calificación de operador tras COMBUSTIBLE =====
-  // FIX-MODAL: señal correcta para abrir el modal de estrellas. Antes lo
-  // disparaba el handler de members por delta de visits (newVisits > prevVisits)
-  // contra una línea base (lastVisitsRef) que se desincronizaba → falsos
-  // positivos en rifa/canje. Acá escuchamos INSERT de `purchases`: una fila se
-  // crea SOLO por register_purchase (combustible), trae operator_id/station_id
-  // directos y NO depende del last_operator_id pegajoso. Rifa/canje/encuesta no
-  // insertan en purchases → no pueden abrir el modal. Espejo del patrón de
-  // redemption-confirm-${me.id}. No necesita realtimeReadyRef: un INSERT no
-  // reproduce estado al suscribir, así que el primer evento es una compra real.
-  useEffect(() => {
-    if (!sb || !sbConnected || !me?.id) return;
-    const ch = sb.channel(`purchases-${me.id}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'purchases',
-        filter: `member_id=eq.${me.id}`,
-      }, (payload) => {
-        const p = payload.new;
-        const opId = p.operator_id;
-        const stId = p.station_id;
-        console.log('[Realtime] purchase insert:', p.id, 'op_id:', opId, 'station_id:', stId);
-        // Sin operador no hay a quién calificar; el modal es solo de la vista cliente.
-        if (!opId || viewRef.current !== 'client') return;
-        // El cliente suele tener su Código QR abierto (se lo mostró al
-        // operador para la compra): cerrarlo para que el modal de
-        // calificación quede al frente (pedido del dueño 25-jul).
-        setShowQR(false); setQrClosing(false);
-        const stationName = stations.find(s => s.id === stId)?.name || '';
-        // PROMO-1: el modal muestra los puntos de la compra y la promo aplicada.
-        const base = {
-          purchaseId: p.id,
-          operatorId: opId,
-          stationName,
-          points: p.points_earned ?? null,
-          amount: p.amount ?? null,
-        };
-        const op = operators.find(o => o.id === opId);
-        if (op) {
-          setPendingOpRating({ ...base, operatorName: op.name });
-        } else {
-          sb.from('operators').select('name').eq('id', opId).single().then(r => {
-            setPendingOpRating({ ...base, operatorName: r.data?.name || 'Operador' });
-          });
-        }
-        // La promo llega en query aparte (promo_applications, misma tx que la
-        // compra → ya commiteada). Enriquecer el modal si sigue abierto.
-        fetchPurchasePromo(p.id).then(({ data: promo }) => {
-          if (promo) setPendingOpRating(prev => (prev ? { ...prev, promo } : prev));
-        });
-      })
-      .subscribe((status) => {
-        console.log('[Realtime] purchases subscription:', status);
-      });
-    return () => sb.removeChannel(ch);
-  }, [me?.id, sbConnected, operators, stations]);
-
-  // ===== REALTIME: Actualizar rating del operador en tiempo real =====
-  useEffect(() => {
-    if (!sb || !loggedOp?.id || !sbConnected) return;
-    const channel = sb.channel('op-ratings')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'operator_ratings',
-        filter: `operator_id=eq.${loggedOp.id}`,
-      }, (payload) => {
-        const r = payload.new;
-        console.log('[Realtime] New rating:', r.stars, 'stars');
-        setOpRatings(prev => {
-          const n = { ...prev };
-          if (!n[r.operator_id]) n[r.operator_id] = [];
-          n[r.operator_id] = [{ stars: r.stars }, ...n[r.operator_id]];
-          return n;
-        });
-      })
-      .subscribe();
-    return () => sb.removeChannel(channel);
-  }, [loggedOp?.id, sbConnected]);
 
   // ===== PROMO CAROUSEL AUTO-ADVANCE =====
   const activePromos = promos.filter(p => p.active);
@@ -1444,121 +847,15 @@ export default function App() {
     }
   }, [me, fire, sbConnected, curMonth]);
 
-  // SEC.B.6.4: helper reutilizable para terminar una sesión de operador/admin.
-  // Encapsula la revocación server-side (logoutOperator/logoutAdmin, B.6.3) +
-  // el reset del estado React + el aviso. Lo invocan: (1) el logout manual con
-  // reason 'cerrada', (2) el cierre proactivo de sesión expirada
-  // (checkSessionAlive) con reason 'expirada', y (3) — a futuro — B.8.2 cuando
-  // el server rechace con error.code 28000, también con 'expirada'.
-  // El toast es un overlay fijo en el root de App (fuera del subárbol de cada
-  // pantalla), así que persiste visible tras el cambio a la pantalla de login.
-  // El CLIENTE no usa este helper (su sesión la maneja Supabase Auth nativo):
-  // se queda en la rama isC de logout, intacta.
-  const expireSession = useCallback((role, { reason } = {}) => {
-    const msg = reason === 'expirada'
-      ? '⏱️ Tu sesión expiró, iniciá sesión de nuevo'
-      : '👋 Sesión cerrada';
-    if (role === 'operator') {
-      logoutOperator(); setAuthOp('login'); setLoggedOp(null); setOScr('ohome');
-    } else if (role === 'admin') {
-      logoutAdmin(); setAuthAdmin('login'); setLoggedAdmin(null); setScr('dash');
-    }
-    setAuthError(''); fire(msg);
-  }, [fire]);
 
-  const logout = useCallback(() => {
-    if (sb) sb.auth.signOut({ scope: 'local' });
-    setMe(null); setGoogleStep('welcome'); setMySurveyCount(0); setLoggedOp(null);
-    if (isC) {
-      logoutMember(); // SEC.C.1: revoca member_sessions y limpia el token
-      localStorage.removeItem('ct_me'); setAuthScreen('login'); setCScr('home');
-      setCompanyPicked(false); // el selector de empresa se pide de nuevo
-      setLoginPhone(''); setLoginPass(''); setMe(null);
-      setAuthError(''); fire('👋 Sesión cerrada');
-    }
-    else if (isO) expireSession('operator', { reason: 'cerrada' });
-    else if (isA) expireSession('admin', { reason: 'cerrada' });
-  }, [view, fire, expireSession]);
-
-  // SEC.B.6.4: detecta la "sesión zombi" (objeto de sesión presente pero token
-  // vencido) y dispara el cierre proactivo. La invocan los dos enganches de la
-  // Parte 3: el arranque de la app y el evento visibilitychange.
-  //
-  // Lee viewRef.current (NO `view`): el listener de visibilidad se registra una
-  // vez y capturaría un `view` stale; viewRef.current siempre tiene el rol
-  // vigente (el codebase ya usa este patrón en el efecto de auth).
-  //
-  // CONDICIÓN CONJUNTA por rol — "objeto de sesión presente Y token vivo null":
-  //   - getOperatorToken()/getAdminToken() devuelven null si el token venció
-  //     (y de paso auto-limpian su clave, sessionTokens.js).
-  //   - Solo el caso MIXTO (loggedOp/loggedAdmin truthy + token null) = zombi.
-  //   - Ambos presentes = sesión sana → no tocar.
-  //   - Ninguno presente = ya deslogueado → no tocar.
-  const checkSessionAlive = useCallback(() => {
-    const role = viewRef.current;
-    if (role === 'operator') {
-      if (loggedOp && getOperatorToken() === null) {
-        expireSession('operator', { reason: 'expirada' });
-      }
-    } else if (role === 'admin') {
-      if (loggedAdmin && getAdminToken() === null) {
-        expireSession('admin', { reason: 'expirada' });
-      }
-    }
-    // role === 'client' (o cualquier otro valor): no-op deliberado.
-  }, [loggedOp, loggedAdmin, expireSession]);
-
-  // SEC.B.6.4 — Enganche 1: chequeo al MONTAR (corre una vez). Cubre el caso
-  // "el operador vuelve al día siguiente y abre/recarga la app": al arrancar,
-  // loggedOp/loggedAdmin se siembran de localStorage y, si el token venció,
-  // checkSessionAlive lo manda al login limpio en vez de dejar la sesión zombi.
-  useEffect(() => { checkSessionAlive(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // SEC.B.6.4 — Enganche 2: listener de visibilitychange (patrón idéntico al de
-  // ClientHome.jsx). Cubre el caso "la app quedó abierta, el dispositivo entró
-  // en reposo, el operador enciende la pantalla al día siguiente".
-  //
-  // El efecto DEPENDE de checkSessionAlive: cuando loggedOp/loggedAdmin cambian
-  // (p.ej. el operador inicia sesión DESPUÉS del arranque), checkSessionAlive se
-  // recrea, el cleanup quita el handler viejo (que cerraba sobre loggedOp stale)
-  // y se registra uno nuevo con los valores frescos. Sin esta dependencia, un
-  // listener registrado una sola vez con [] capturaría el loggedOp=null del
-  // primer render y nunca detectaría la zombi de una sesión iniciada después.
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (document.visibilityState !== 'visible') return;
-      checkSessionAlive();
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [checkSessionAlive]);
-
-  // SEC.B.8.2: handler del rechazo reactivo de sesión. Lo dispara la capa de
-  // servicios (notifySessionExpired) cuando una RPC sensible rechaza con
-  // ERRCODE 28000 (B.8.1). Reutiliza expireSession de B.6.4 (logout + redirect
-  // al login + aviso "Tu sesión expiró"). El rol sale de viewRef.current (no de
-  // un closure ni de un parámetro): resuelve el doble vector de
-  // buy_raffle_tickets sin tocar firmas. Cliente = no-op redundante (nunca
-  // recibe 28000: su único flujo que toca el helper es la rama 1a, sin RAISE).
-  const handleSessionExpired = useCallback(() => {
-    const role = viewRef.current;
-    if (role === 'operator') {
-      expireSession('operator', { reason: 'expirada' });
-    } else if (role === 'admin') {
-      expireSession('admin', { reason: 'expirada' });
-    }
-    // role === 'client' (o cualquier otro): no-op deliberado.
-  }, [expireSession]);
-
-  // SEC.B.8.2: registra el handler en el singleton sessionExpiry al montar y lo
-  // limpia en el cleanup. Dep [handleSessionExpired]: si su identidad cambia
-  // (cambiaría si expireSession cambiara, que depende de fire), se re-registra
-  // la versión fresca — mismo razonamiento de stale closure que B.6.4. En la
-  // práctica fire/expireSession son estables, así que registra una vez.
-  useEffect(() => {
-    setSessionExpiredHandler(handleSessionExpired);
-    return () => setSessionExpiredHandler(null);
-  }, [handleSessionExpired]);
+  // Ciclo de vida de sesiones (división etapa 3): logout manual +
+  // expiración proactiva (SEC.B.6.4) y reactiva (SEC.B.8.2).
+  const { logout } = useSessionGuard({
+    view, viewRef, fire, loggedOp, loggedAdmin,
+    setMe, setGoogleStep, setMySurveyCount, setLoggedOp, setAuthScreen,
+    setCScr, setCompanyPicked, setLoginPhone, setLoginPass, setAuthError,
+    setAuthOp, setOScr, setAuthAdmin, setLoggedAdmin, setScr,
+  });
 
   // ===== SHARED PROPS OBJECT =====
   // This bundles all state + actions needed by child views

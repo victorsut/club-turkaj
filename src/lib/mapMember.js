@@ -7,6 +7,8 @@
 // (App.jsx) y este mapeo era lo único vivo del archivo.
 // ============================================================
 
+import { utcToLocal } from './dates';
+
 export function mapMember(m) {
   return {
     id: m.id,
@@ -46,5 +48,30 @@ export function mapMember(m) {
     authProvider: m.auth_provider || 'phone',
     authProviderId: m.auth_provider_id || '',
     referredBy: m.referred_by || null,
+  };
+}
+
+// Ficha completa (list_members_full / get_member_full) → fila de custs.
+// Fuente única del shape: la usan la carga masiva del login de staff y
+// addMemberToCusts (alta en vivo de miembros recién registrados).
+// Extraída de App.jsx en la división etapa 3 (12-ago-2026).
+export function mapFullMember(m) {
+  return {
+    id: m.id, name: m.name, nickname: m.nickname || '', email: m.email || '', avatar: m.avatar_url || '',
+    phone: m.phone || '', dpi: m.dpi || '', plate: m.plate || '',
+    vehicles: (() => { const v = m.vehicles; if (!v) return []; if (Array.isArray(v)) return v; if (typeof v === 'object') return Object.values(v); try { return JSON.parse(v); } catch { return []; } })(),
+    nit: m.nit || '', bday: m.birthday || '',
+    address: m.address || null,
+    points: m.points || 0, gallons: parseFloat(m.gallons) || 0,
+    spent: parseFloat(m.spent) || 0, visits: m.visits || 0,
+    tickets: m.tickets || 0, redeemed: m.redeemed_count || 0,
+    referrals: m.referral_count || 0,
+    registered: utcToLocal(m.created_at) || '',
+    lastBuy: utcToLocal(m.last_buy) || '',
+    station: m.last_station || '',
+    cardId: m.card_code || m.card_id || '',
+    termsAcceptedAt: m.terms_accepted_at || null, // constancia 11-ago (member_profile_json lo expone)
+    supabaseUser: true, authProvider: m.auth_provider || 'google',
+    authProviderId: m.auth_provider_id || '',
   };
 }
