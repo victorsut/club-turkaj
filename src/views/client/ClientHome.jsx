@@ -35,7 +35,7 @@ export default function ClientHome(ctx) {
     pendingOpRating, setPendingOpRating, sbConnected,
     activityLog, redeemedList,
     setCScr, setNavOrigin, dark, chosenDark,
-    myNotifs, markNotifsRead, rewardQrCloseSignal } = ctx;
+    myNotifs, markNotifsRead, clearNotifs, rewardQrCloseSignal } = ctx;
 
   // FIX (11-ago): el guard va ANTES de todos los hooks (Rules of Hooks).
   // Antes vivía en medio (línea ~76), tras 2 hooks y antes de otros 13:
@@ -308,6 +308,7 @@ export default function ClientHome(ctx) {
           onClose={() => setShowNotifs(null)}
           notifs={myNotifs}
           markRead={markNotifsRead}
+          clearNotifs={clearNotifs}
           tierName={cTier.name}
           dark={dark}
         />

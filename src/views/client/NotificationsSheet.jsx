@@ -8,7 +8,7 @@
 // y registra el botón físico de volver.
 import { useState, useRef, useEffect } from 'react';
 import { bento, BRAND_ORANGE, clientMainBg } from '../../constants/styles';
-import { ArrowLeft, Gift, Fuel, Warn, Info } from '../../components/ui/Icons';
+import { ArrowLeft, Gift, Fuel, Warn, Info, XMark } from '../../components/ui/Icons';
 import useBackLayer from '../../hooks/useBackLayer';
 
 const CLOSE_MS = 200;
@@ -36,8 +36,25 @@ function fmtWhen(iso) {
   return `${date} · ${time}`;
 }
 
-export default function NotificationsSheet({ origin, onClose, notifs, markRead, tierName, dark }) {
+export default function NotificationsSheet({ origin, onClose, notifs, markRead, clearNotifs, tierName, dark }) {
   const [closing, setClosing] = useState(false);
+
+  // Limpiar TODAS (14-ago): doble tap de confirmación — el primer tap
+  // arma "¿Borrar?" por 2.5s, el segundo ejecuta. Uno por uno va con
+  // la X de cada tarjeta, sin confirmación (bajo costo de error).
+  const [confirmClear, setConfirmClear] = useState(false);
+  const confirmTimer = useRef(null);
+  useEffect(() => () => clearTimeout(confirmTimer.current), []);
+  const onClearAll = () => {
+    if (!confirmClear) {
+      setConfirmClear(true);
+      confirmTimer.current = setTimeout(() => setConfirmClear(false), 2500);
+      return;
+    }
+    clearTimeout(confirmTimer.current);
+    setConfirmClear(false);
+    clearNotifs?.();
+  };
 
   // Las sin leer AL ABRIR conservan el punto naranja mientras el sheet
   // esté abierto, aunque markRead() ya las estampe en el servidor.
@@ -94,7 +111,19 @@ export default function NotificationsSheet({ origin, onClose, notifs, markRead, 
               : `${items.length} en total`}
           </div>
         </div>
-        <div style={{ width: 40, flexShrink: 0 }} />
+        {/* Limpiar todas — doble tap de confirmación (14-ago) */}
+        {items.length > 0 ? (
+          <button onClick={onClearAll} style={{
+            border: 'none', cursor: 'pointer', background: 'none', padding: '4px 0',
+            minWidth: 52, flexShrink: 0, textAlign: 'right',
+            fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 800,
+            color: confirmClear ? bento.red : BRAND_ORANGE,
+          }}>
+            {confirmClear ? '¿Borrar?' : 'Limpiar'}
+          </button>
+        ) : (
+          <div style={{ width: 52, flexShrink: 0 }} />
+        )}
       </div>
 
       {items.length === 0 && (
@@ -141,6 +170,14 @@ export default function NotificationsSheet({ origin, onClose, notifs, markRead, 
                   {meta.label} · {fmtWhen(n.sent_at)}
                 </div>
               </div>
+              {/* Quitar ESTA notificación (14-ago) */}
+              <button onClick={() => clearNotifs?.(n.id)} aria-label="Quitar notificación" style={{
+                border: 'none', cursor: 'pointer', background: 'none',
+                color: TH.sub, padding: 4, margin: '-4px -6px 0 0',
+                flexShrink: 0, display: 'flex', alignSelf: 'flex-start',
+              }}>
+                <XMark />
+              </button>
             </div>
           );
         })}

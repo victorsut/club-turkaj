@@ -6,7 +6,7 @@
 // (12-ago-2026) SIN cambios de lógica. Posee el estado myNotifs.
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { sb } from '../lib/supabaseClient';
-import { fetchNotifications, markNotificationsRead, fetchPurchasePromo } from '../services';
+import { fetchNotifications, markNotificationsRead, clearNotifications, fetchPurchasePromo } from '../services';
 
 export default function useNotificationsInbox({
   me, authScreen, sbConnected, viewRef,
@@ -58,6 +58,15 @@ export default function useNotificationsInbox({
     const now = new Date().toISOString();
     setMyNotifs(p => p.map(n => n.read_at ? n : { ...n, read_at: now }));
     markNotificationsRead(me.id);
+  }, [me?.id]);
+
+  // Limpia notificaciones (14-ago): con id quita ESA, sin id TODAS.
+  // Optimista — desaparecen al instante; el servidor estampa cleared_at
+  // (soft delete: la fila sobrevive como log/dedupe del motor de push).
+  const clearNotifs = useCallback((id = null) => {
+    if (!me?.id) return;
+    setMyNotifs(p => (id ? p.filter(n => n.id !== id) : []));
+    clearNotifications(id);
   }, [me?.id]);
 
   // ===== SERVICE WORKER: Listen for notification clicks =====
@@ -142,5 +151,5 @@ export default function useNotificationsInbox({
     }
   }, [me?.id]);
 
-  return { myNotifs, markNotifsRead };
+  return { myNotifs, markNotifsRead, clearNotifs };
 }

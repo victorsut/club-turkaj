@@ -70,7 +70,7 @@ puntos-plus/
 - **raffle_calendar** — id, month, year, prize_name, prize_icon, prize_value, winner_id, drawn_at.
 - **special_days** — id, name, month, day, points, icon, active, system. `month=0` = cumpleaños del miembro.
 - **activity_log** — fuente única para el historial del cliente. **SEC.C.2:** SELECT cerrado — lecturas por RPC `list_activity` con sesión (miembro: solo lo suyo; operador/admin: cualquier miembro o global). **SEC.C.3:** INSERT directo también REVOCADO — solo escriben los RPCs server-side; el `logActivity` de App.jsx es puro estado local. `raffle_tickets` también quedó cerrado (participantes por RPC `list_raffle_participants` con cualquier sesión). Wrappers frontend en `src/services/secureReads.js`.
-- **notifications** — registro de push enviados (member_id, type, title, body, data, sent_at, read_at). Solo service key; `read_at` reservado para el futuro inbox in-app.
+- **notifications** — registro de push enviados (member_id, type, title, body, data, sent_at, read_at, cleared_at). Solo service key (SEC.C.6); el inbox de la campana lee por RPCs con sesión de miembro: `get_my_notifications` (filtra `cleared_at IS NULL`), `mark_my_notifications_read` y `clear_my_notifications` (14-ago: limpiar una o todas — SOFT, la fila sobrevive como log/dedupe del motor de push).
 
 ## 6. Estaciones
 

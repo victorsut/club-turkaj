@@ -54,3 +54,15 @@ export async function markNotificationsRead(memberId) {
   const { error } = await sb.rpc('mark_my_notifications_read', { p_session_token: tok });
   if (error) console.error('[Data:notificationsRead]', error.message);
 }
+
+// Limpia notificaciones del inbox (14-ago): con id limpia ESA, con
+// null limpia TODAS. Soft delete server-side (cleared_at) — la fila
+// sobrevive como registro/dedupe del motor de push.
+export async function clearNotifications(notificationId = null) {
+  const tok = getMemberToken()?.token;
+  if (!sb || !tok) return;
+  const { error } = await sb.rpc('clear_my_notifications', {
+    p_session_token: tok, p_notification_id: notificationId,
+  });
+  if (error) console.error('[Data:notificationsClear]', error.message);
+}

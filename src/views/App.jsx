@@ -472,7 +472,7 @@ export default function App() {
 
   // Inbox de la campana + navegación disparada por notificaciones
   // (mensajes del Service Worker y deep-links por URL).
-  const { myNotifs, markNotifsRead } = useNotificationsInbox({
+  const { myNotifs, markNotifsRead, clearNotifs } = useNotificationsInbox({
     me, authScreen, sbConnected, viewRef,
     setCScr, setPendingOpRating, setCatPendingSignal,
   });
@@ -560,7 +560,7 @@ export default function App() {
     opRatings, setOpRatings, redeemedList, setRedeemedList,
     sel, setSel, q, setQ, amt, setAmt, fuel, setFuel,
     catF, setCatF, catPendingSignal,
-    myNotifs, markNotifsRead,
+    myNotifs, markNotifsRead, clearNotifs,
     showHist, setShowHist, showInvite, setShowInvite,
     showRedeemed, setShowRedeemed, showWifi, setShowWifi,
     showMap, setShowMap,
