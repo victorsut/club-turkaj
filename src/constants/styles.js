@@ -106,6 +106,39 @@ export const homeColors = (tier) => {
   };
 };
 
+// Cuadros del INICIO por nivel y MODO (14-ago, pedido del dueño) —
+// SOLO los 6 cuadros del bento (Vehículo/WiFi/Encuesta/Ubicación/
+// Canjes/Compras). ORO y PLATINO devuelven homeColors sin cambios.
+// BLACK se vuelve monocromo SEMI-TRANSPARENTE para que las estrellas
+// del fondo se vean a través de los cuadros: oscuro → negro/gris
+// oscuro translúcido con título dorado champán y contenido blanco;
+// claro → gris claro translúcido con tinta negra (Vehículo/Compras
+// conservan su título dorado, en tono oscuro legible). Los MODALES,
+// sheets y héroes siguen usando homeColors (la identidad no cambia).
+export const homeTileColors = (tier, dark) => {
+  if (tier !== 'BLACK') return homeColors(tier);
+  if (dark) {
+    const tile = 'rgba(24,24,30,.55)';
+    return {
+      vehicle: tile, vehicleTitle: '#D8A94E', vehicleInk: '#fff',
+      wifi: tile, wifiTitle: '#D8A94E', wifiInk: '#fff',
+      survey: tile, surveyTitle: '#D8A94E', surveyInk: '#fff',
+      location: tile, locationTitle: '#D8A94E', locationInk: '#fff',
+      redeems: tile, redeemsTitle: '#D8A94E', redeemsInk: '#fff',
+      purchases: tile, purchasesTitle: '#D8A94E', purchasesInk: '#fff',
+    };
+  }
+  const tile = 'rgba(214,214,220,.55)';
+  return {
+    vehicle: tile, vehicleTitle: '#B08A2E', vehicleInk: '#141417',
+    wifi: tile, wifiInk: '#141417',
+    survey: tile, surveyInk: '#141417',
+    location: tile, locationInk: '#141417',
+    redeems: tile, redeemsInk: '#141417',
+    purchases: tile, purchasesTitle: '#B08A2E', purchasesInk: '#141417',
+  };
+};
+
 // Identidad visual por nivel — acento de iconos y banda de encabezado
 // (modal de nivel del home, menú y tarjetas de beneficios). Central
 // aquí para que también las vistas admin (Rules/MemberDetail) la usen.
@@ -142,8 +175,10 @@ export const GAL3 = 'radial-gradient(ellipse at 30% 40%, #0a0a15 0%, #04040a 50%
 // Fondo principal de la app cliente por nivel y modo. BLACK claro usa
 // un claro casi blanco: los cuadros gris perla del tema BLACK (#E9E9EC)
 // deben seguir leyéndose como tarjetas sobre el fondo.
+// PLATINO oscuro (14-ago, dueño): gris AZULADO oscuro en lugar del
+// negro neutro — sigue la caracterización plateada azulada del nivel.
 export const clientMainBg = (tierName, dark) => {
-  if (dark) return tierName === 'BLACK' ? '#040405' : '#0E0E10';
+  if (dark) return tierName === 'BLACK' ? '#040405' : tierName === 'PLATINO' ? '#161C26' : '#0E0E10';
   return tierName === 'BLACK' ? '#F7F7F9' : tierName === 'PLATINO' ? '#E8E8E8' : '#fff';
 };
 

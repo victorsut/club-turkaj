@@ -2,7 +2,7 @@
 // Main client dashboard: tier card, stats, survey, QR, promo carousel, history
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { sb } from '../../lib/supabaseClient';
-import { sMono, bento, BRAND_ORANGE, homeColors } from '../../constants/styles';
+import { sMono, bento, BRAND_ORANGE, homeColors, homeTileColors } from '../../constants/styles';
 import PromoCard from '../../components/ui/PromoCard';
 import { CARD_PREFIX, SHELL_SURVEYS, SURVEY_WAIT } from '../../constants/config';
 import OpRatingModal from '../../components/OpRatingModal';
@@ -251,6 +251,9 @@ export default function ClientHome(ctx) {
   const tierAccent = isBlack ? '#FBBC04' : cTier.name === 'PLATINO' ? '#6B767D' : bento.gold;
   // Paleta del bento según el nivel (ORO cálida / PLATINO fría / BLACK oscura)
   const hp = homeColors(cTier.name);
+  // Cuadros del bento (14-ago): en BLACK son translúcidos por MODO para
+  // dejar ver las estrellas; modales/sheets siguen con hp (identidad).
+  const htp = homeTileColors(cTier.name, dark);
 
   // ── WiFi por estación (25-jul): al abrir el modal se pide la
   // ubicación; a <300 m de una estación con red configurada se muestra
@@ -487,14 +490,16 @@ export default function ClientHome(ctx) {
 
         {/* 2 · Vehículo (placeholder hasta F6 — D34) */}
         <BentoTile
-          index={1} square color={hp.vehicle} titleColor={hp.vehicleTitle} icon={<CarIcon />} title="Vehículo"
+          index={1} square color={htp.vehicle} titleColor={htp.vehicleTitle} ink={htp.vehicleInk || '#fff'}
+          icon={<CarIcon color={htp.vehicleInk} />} title="Vehículo"
           sub="Administra y consulta tus vehículos" badge="PRÓXIMAMENTE"
           onClick={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('veh'); }}
         />
 
         {/* 3 · WiFi (beneficio PLATINO/BLACK — D34) */}
         <BentoTile
-          index={2} color={hp.wifi} ink={hp.wifiInk || '#fff'} icon={<WifiIcon color={hp.wifiInk || '#fff'} />} title="WiFi"
+          index={2} color={htp.wifi} ink={htp.wifiInk || '#fff'} titleColor={htp.wifiTitle}
+          icon={<WifiIcon color={htp.wifiInk || '#fff'} />} title="WiFi"
           sub={cTier.name === 'ORO' ? 'Disponible desde nivel PLATINO' : 'Conéctate a nuestro WiFi gratis'}
           dimmed={cTier.name === 'ORO'}
           onClick={(e) => {
@@ -506,8 +511,8 @@ export default function ClientHome(ctx) {
 
         {/* 4 · Encuesta de Satisfacción (sustituye a "Encuentra Shell" — D34) */}
         <BentoTile
-          index={3} color={hp.survey} ink={hp.surveyInk}
-          icon={<SurveyIcon color={hp.surveyInk} />} title="Encuesta de Satisfacción"
+          index={3} color={htp.survey} ink={htp.surveyInk} titleColor={htp.surveyTitle}
+          icon={<SurveyIcon color={htp.surveyInk} />} title="Encuesta de Satisfacción"
           sub={mySurveyCount >= cfg.surveyDaily
             ? 'Completaste las de hoy'
             : `${mySurveyCount}/${cfg.surveyDaily} hoy · +${cfg.surveyPts} pts c/u`}
@@ -520,21 +525,24 @@ export default function ClientHome(ctx) {
 
         {/* 5 · Ubicación */}
         <BentoTile
-          index={4} color={hp.location} ink={hp.locationInk || '#fff'} icon={<PinIcon color={hp.locationInk || '#fff'} />} title="Ubicación"
+          index={4} color={htp.location} ink={htp.locationInk || '#fff'} titleColor={htp.locationTitle}
+          icon={<PinIcon color={htp.locationInk || '#fff'} />} title="Ubicación"
           sub="Ubica nuestras estaciones"
           onClick={(e) => { setModalOrigin(withTint(e, hp.location)); setShowMap(true); }}
         />
 
         {/* 6 · Historial de canjes */}
         <BentoTile
-          index={5} color={hp.redeems} ink={hp.redeemsInk || '#fff'} icon={<TicketStarIcon color={hp.redeemsInk || '#fff'} />} title="Historial de Canjes"
+          index={5} color={htp.redeems} ink={htp.redeemsInk || '#fff'} titleColor={htp.redeemsTitle}
+          icon={<TicketStarIcon color={htp.redeemsInk || '#fff'} />} title="Historial de Canjes"
           sub={`${myRedeemed.length} canje${myRedeemed.length === 1 ? '' : 's'} realizados`}
           onClick={(e) => setHistSheet({ type: 'canjes', origin: originFromEvent(e), tint: hp.redeems, accent: hp.redeems, accentInk: hp.redeemsInk })}
         />
 
         {/* 7 · Historial de compras (ancho completo) */}
         <BentoTile
-          index={6} span={2} color={hp.purchases} titleColor={hp.purchasesTitle} icon={<BagIcon size={32} />} title="Historial de Compras"
+          index={6} span={2} color={htp.purchases} titleColor={htp.purchasesTitle} ink={htp.purchasesInk || '#fff'}
+          icon={<BagIcon size={32} color={htp.purchasesInk} />} title="Historial de Compras"
           sub="Compras y todos tus movimientos de puntos"
           onClick={(e) => setHistSheet({ type: 'compras', origin: originFromEvent(e), tint: hp.purchases, accent: hp.purchasesAccent || hp.purchases, accentInk: hp.purchasesAccentInk })}
         />

@@ -19,8 +19,8 @@ export const GiftIcon = ({ size, color }) => (
 );
 
 // Auto (Vehículo)
-export const CarIcon = ({ size }) => (
-  <S size={size}>
+export const CarIcon = ({ size, color }) => (
+  <S size={size} color={color}>
     <path d="M4.5 11.5 6 7a2 2 0 0 1 1.9-1.4h8.2A2 2 0 0 1 18 7l1.5 4.5" />
     <path d="M4 11.5h16a1.5 1.5 0 0 1 1.5 1.5v3.5a1 1 0 0 1-1 1h-1M4 11.5A1.5 1.5 0 0 0 2.5 13v3.5a1 1 0 0 0 1 1h1" />
     <circle cx="7.3" cy="17" r="1.7" />
@@ -65,8 +65,8 @@ export const TicketStarIcon = ({ size, color = '#fff' }) => (
 );
 
 // Bolsa de compras (Historial de Compras)
-export const BagIcon = ({ size }) => (
-  <S size={size}>
+export const BagIcon = ({ size, color }) => (
+  <S size={size} color={color}>
     <path d="M5.2 8h13.6l-1.1 11.4a1.7 1.7 0 0 1-1.7 1.6H8a1.7 1.7 0 0 1-1.7-1.6z" />
     <path d="M8.7 10.8V6.7a3.3 3.3 0 0 1 6.6 0v4.1" />
   </S>
