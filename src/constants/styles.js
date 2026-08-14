@@ -112,8 +112,7 @@ export const homeColors = (tier) => {
 // BLACK se vuelve monocromo SEMI-TRANSPARENTE para que las estrellas
 // del fondo se vean a través de los cuadros: oscuro → negro/gris
 // oscuro translúcido con título dorado champán y contenido blanco;
-// claro → gris claro translúcido con tinta negra (Vehículo/Compras
-// conservan su título dorado, en tono oscuro legible). Los MODALES,
+// claro → gris claro translúcido con tinta negra en todo. Los MODALES,
 // sheets y héroes siguen usando homeColors (la identidad no cambia).
 export const homeTileColors = (tier, dark) => {
   if (tier !== 'BLACK') return homeColors(tier);
@@ -131,14 +130,16 @@ export const homeTileColors = (tier, dark) => {
   // Modo "claro" de BLACK (14-ago): mismo fondo galaxia oscuro — solo
   // las cajas cambian a gris claro translúcido sobre la galaxia, con
   // alpha suficiente para que la tinta negra siga legible.
+  // Títulos en tinta negra TODOS (iteración 14-ago: el dorado oscuro
+  // #B08A2E de Vehículo/Compras no se distinguía sobre el gris claro).
   const tile = 'rgba(228,228,233,.72)';
   return {
-    vehicle: tile, vehicleTitle: '#B08A2E', vehicleInk: '#141417',
+    vehicle: tile, vehicleInk: '#141417',
     wifi: tile, wifiInk: '#141417',
     survey: tile, surveyInk: '#141417',
     location: tile, locationInk: '#141417',
     redeems: tile, redeemsInk: '#141417',
-    purchases: tile, purchasesTitle: '#B08A2E', purchasesInk: '#141417',
+    purchases: tile, purchasesInk: '#141417',
   };
 };
 

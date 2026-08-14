@@ -27,7 +27,11 @@ const MENU_ITEMS = [
 ];
 
 export default function ClientMenu(ctx) {
-  const { me, cfg, cTier, logout, setCScr, dark, setUiMode } = ctx;
+  const { me, cfg, cTier, logout, setCScr, dark, chosenDark, setUiMode } = ctx;
+  // El toggle sol/luna refleja la ELECCIÓN del usuario, no el modo
+  // efectivo: en BLACK `dark` va forzado a oscuro (14-ago) y con él la
+  // cápsula quedaba clavada en luna aunque el tap sí escribiera uiMode.
+  const modeChoice = chosenDark ?? dark;
   const tier = cTier?.name || 'ORO';
   const TH = menuTheme(tier, dark);
 
@@ -117,9 +121,9 @@ export default function ClientMenu(ctx) {
         {/* Apariencia: elegir modo claro/oscuro (sol/luna) — misma
             elección que ofrece el login; persiste en el dispositivo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderTop: `1px solid ${TH.divider}` }}>
-          <span style={{ display: 'flex', color: TH.header, flexShrink: 0 }}>{dark ? <Moon /> : <Sun />}</span>
+          <span style={{ display: 'flex', color: TH.header, flexShrink: 0 }}>{modeChoice ? <Moon /> : <Sun />}</span>
           <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: TH.header }}>Apariencia</span>
-          <ModeToggle dark={dark} setUiMode={setUiMode} />
+          <ModeToggle dark={modeChoice} setUiMode={setUiMode} />
         </div>
       </div>
 
