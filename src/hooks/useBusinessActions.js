@@ -326,15 +326,18 @@ export default function useBusinessActions({
   // La RPC cuenta encuestas del día desde la tabla `surveys`,
   // valida límite, suma puntos, otorga bonus si es la 5ta.
   // El cliente CONFÍA en `count` y `bonus_ticket` retornados.
+  // Devuelve { ok, pts, count, limit, bonusTicket } — la confirmación
+  // visual es un MODAL persistente en ClientHome (14-ago: el toast se
+  // perdía cuando la recarga de la PWA reclamaba durante el boot).
   const doSurvey = useCallback(async () => {
-    if (!me?.id) return;
-    if (!sb || !sbConnected) { fire('Sin conexión'); return; }
+    if (!me?.id) return { ok: false };
+    if (!sb || !sbConnected) { fire('Sin conexión'); return { ok: false }; }
 
     const { data, error } = await completeSurvey(me.id);
 
     if (error) {
       fire('❌ ' + (error.message || 'Error al guardar encuesta'));
-      return;
+      return { ok: false };
     }
 
     const { points: pts, count, limit, bonus_ticket, remaining_points, new_ticket_total } = data;
@@ -356,10 +359,9 @@ export default function useBusinessActions({
         else ps.push({ cid: me.id, name: me.nickname || (me.name || '').split(' ')[0], avatar: me.avatar || '', tickets: 1 });
         return { ...rd, participants: ps };
       }));
-      fire(`+${pts} pts · ¡Bonus! ${count}/${limit} encuestas = 1 boleto de rifa gratis`, 'success');
-    } else {
-      fire(`Encuesta completada · +${pts} pts (${count}/${limit})`, 'success');
     }
+
+    return { ok: true, pts, count, limit, bonusTicket: !!bonus_ticket };
   }, [me, fire, sbConnected, curMonth]);
 
   return { logActivity, loadTodaySurveys, checkSpecialDayBonus, addPurchase, redeem, buyTickets, doSurvey };

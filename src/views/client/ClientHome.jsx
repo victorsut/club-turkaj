@@ -6,6 +6,7 @@ import { sMono, bento, BRAND_ORANGE, homeColors } from '../../constants/styles';
 import PromoCard from '../../components/ui/PromoCard';
 import { CARD_PREFIX, SHELL_SURVEYS, SURVEY_WAIT } from '../../constants/config';
 import OpRatingModal from '../../components/OpRatingModal';
+import SurveyResultModal from '../../components/SurveyResultModal';
 import Wordmark from '../../components/ui/Wordmark';
 import LegalFooter from '../../components/ui/LegalFooter';
 import BentoTile from '../../components/ui/BentoTile';
@@ -105,44 +106,52 @@ export default function ClientHome(ctx) {
     } catch { /* storage no disponible (in-app browsers) */ }
   }, []);
 
+  // Resultado de la encuesta — modal PERSISTENTE (14-ago): el toast se
+  // perdía cuando la recarga de la PWA reclamaba los puntos durante el
+  // boot, y el cliente nunca veía confirmación (reporte del dueño).
+  const [surveyResult, setSurveyResult] = useState(null);
+  const claimSurvey = useCallback(async () => {
+    const res = await doSurvey();
+    if (res?.ok) setSurveyResult({
+      type: 'success', pts: res.pts, count: res.count,
+      limit: res.limit, bonus: res.bonusTicket,
+    });
+    // Error de RPC/conexión: doSurvey ya disparó su toast de error.
+  }, [doSurvey]);
+
   // Auto-cancel or auto-claim when user returns to the app.
-  // El toast de éxito lo pone doSurvey (con el conteo real del server).
   useEffect(() => {
     if (!surveyPending) return;
     const handleVisibility = () => {
       if (document.visibilityState !== 'visible') return;
       const elapsed = Math.floor((Date.now() - surveyPending.openedAt) / 1000);
-      if (elapsed >= SURVEY_WAIT) {
-        // Timer completed — auto-claim points
-        doSurvey();
-        setSurveyPending(null);
-        setShowSurveys(false);
-      } else {
-        // Returned too early — cancel
-        setSurveyPending(null);
-        fire('La encuesta no fue completada exitosamente', 'error');
-      }
+      setSurveyPending(null);
+      setShowSurveys(false);
+      if (elapsed >= SURVEY_WAIT) claimSurvey();
+      else setSurveyResult({ type: 'early' });
     };
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [surveyPending, doSurvey, fire, setShowSurveys, setSurveyPending]);
+  }, [surveyPending, claimSurvey, setShowSurveys, setSurveyPending]);
 
-  // Resolución al montar (una sola vez, con la sesión ya lista): si la
-  // PWA se recargó mientras el cliente estaba en Shell, acá se restaura
-  // la encuesta pendiente y se otorgan los puntos; si aún no cumplió el
-  // tiempo, la espera sigue viva y la resuelve el handler de visibilidad.
-  const surveyResumeChecked = useRef(false);
+  // Resolución al montar (con la sesión ya lista): si la PWA se recargó
+  // mientras el cliente estaba en Shell, la encuesta RESTAURADA (la que
+  // existía en el primer render — nunca una recién creada por un tap)
+  // SIEMPRE se resuelve: puntos si cumplió el tiempo, modal de "no
+  // completada" si volvió antes. Nunca queda una espera atascada en
+  // silencio (causa del reporte del 14-ago).
+  const resumeSurveyRef = useRef(surveyPending);
   useEffect(() => {
-    if (surveyResumeChecked.current) return;
-    if (!surveyPending || !sbConnected || !me?.id) return;
-    surveyResumeChecked.current = true;
-    const elapsed = Math.floor((Date.now() - surveyPending.openedAt) / 1000);
-    if (elapsed >= SURVEY_WAIT) {
-      doSurvey();
-      setSurveyPending(null);
-      setShowSurveys(false);
-    }
-  }, [surveyPending, sbConnected, me?.id, doSurvey, setShowSurveys, setSurveyPending]);
+    const p = resumeSurveyRef.current;
+    if (!p || !sbConnected || !me?.id) return;
+    resumeSurveyRef.current = null; // una sola vez
+    if (surveyPending !== p) return; // ya la resolvió el handler de visibilidad
+    const elapsed = Math.floor((Date.now() - p.openedAt) / 1000);
+    setSurveyPending(null);
+    setShowSurveys(false);
+    if (elapsed >= SURVEY_WAIT) claimSurvey();
+    else setSurveyResult({ type: 'early' });
+  }, [surveyPending, sbConnected, me?.id, claimSurvey, setShowSurveys, setSurveyPending]);
 
   // Codigo de tarjeta con prefijo dinamico segun tier actual
   const tierPrefix = CARD_PREFIX[cTier.name] || 'CTOD';
@@ -886,6 +895,17 @@ export default function ClientHome(ctx) {
           accentInk={hp.surveyInk || '#fff'}
           surveyPending={surveyPending}
           setSurveyPending={setSurveyPending}
+        />
+      )}
+
+      {/* Resultado de la encuesta — persistente hasta que el cliente
+          lo cierre (sustituye al toast, que se perdía cuando la PWA
+          se recargaba al volver de Shell) */}
+      {surveyResult && (
+        <SurveyResultModal
+          result={surveyResult}
+          onClose={() => setSurveyResult(null)}
+          dark={dark}
         />
       )}
 
