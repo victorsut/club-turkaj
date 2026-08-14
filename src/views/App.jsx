@@ -463,9 +463,12 @@ export default function App() {
   });
 
   // ===== CARGAR ENCUESTAS DEL DIA AL CAMBIAR DE USUARIO =====
+  // Sin esperar sbConnected (14-ago): el RPC count_my_surveys_today solo
+  // necesita la sesión del miembro — con la compuerta del boot completo
+  // el conteo del tile de Encuesta tardaba varios segundos en aparecer.
   useEffect(() => {
-    if (me?.id && !me.id.startsWith('temp-') && sb && sbConnected) loadTodaySurveys(me.id);
-  }, [me?.id, sbConnected, loadTodaySurveys]);
+    if (me?.id && !me.id.startsWith('temp-') && sb) loadTodaySurveys(me.id);
+  }, [me?.id, loadTodaySurveys]);
 
   // ===== DÍAS FESTIVOS: Verificar al loguearse =====
   useEffect(() => {

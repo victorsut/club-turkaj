@@ -331,7 +331,10 @@ export default function useBusinessActions({
   // perdía cuando la recarga de la PWA reclamaba durante el boot).
   const doSurvey = useCallback(async () => {
     if (!me?.id) return { ok: false };
-    if (!sb || !sbConnected) { fire('Sin conexión'); return { ok: false }; }
+    // Solo exige el cliente de Supabase — NO sbConnected (fin del boot
+    // completo): el reclamo tras la recarga de la PWA debe poder correr
+    // apenas la sesión del miembro esté lista (14-ago).
+    if (!sb) { fire('Sin conexión'); return { ok: false }; }
 
     const { data, error } = await completeSurvey(me.id);
 

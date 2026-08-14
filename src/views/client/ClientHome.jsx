@@ -119,19 +119,46 @@ export default function ClientHome(ctx) {
     // Error de RPC/conexión: doSurvey ya disparó su toast de error.
   }, [doSurvey]);
 
-  // Auto-cancel or auto-claim when user returns to the app.
+  // Resolución de la espera — NO depende de un único evento (14-ago):
+  // en la app instalada (TWA) volver de la pestaña de Shell NO dispara
+  // visibilitychange (la página nunca se marcó hidden) y el reclamo
+  // quedaba congelado hasta cambiar de app y volver. Tres vías:
+  //  · visibilitychange→visible: reclama o CANCELA por vuelta temprana
+  //    (única señal confiable de "el cliente volvió antes de tiempo");
+  //  · focus + intervalo de 1s (suspendido por el SO en background,
+  //    despierta al volver): SOLO reclaman al cumplirse el tiempo —
+  //    sin señal de visibilidad no se puede saber si volvió antes,
+  //    así que la espera simplemente corre hasta otorgar los puntos.
   useEffect(() => {
     if (!surveyPending) return;
-    const handleVisibility = () => {
-      if (document.visibilityState !== 'visible') return;
+    let done = false;
+    const resolve = (allowEarlyCancel) => {
+      if (done) return;
       const elapsed = Math.floor((Date.now() - surveyPending.openedAt) / 1000);
-      setSurveyPending(null);
-      setShowSurveys(false);
-      if (elapsed >= SURVEY_WAIT) claimSurvey();
-      else setSurveyResult({ type: 'early' });
+      if (elapsed >= SURVEY_WAIT) {
+        done = true;
+        setSurveyPending(null);
+        setShowSurveys(false);
+        claimSurvey();
+      } else if (allowEarlyCancel) {
+        done = true;
+        setSurveyPending(null);
+        setShowSurveys(false);
+        setSurveyResult({ type: 'early' });
+      }
     };
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
+    const onVis = () => { if (document.visibilityState === 'visible') resolve(true); };
+    const onFocus = () => resolve(false);
+    const iv = setInterval(() => {
+      if (document.visibilityState === 'visible') resolve(false);
+    }, 1000);
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(iv);
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('focus', onFocus);
+    };
   }, [surveyPending, claimSurvey, setShowSurveys, setSurveyPending]);
 
   // Resolución al montar (con la sesión ya lista): si la PWA se recargó
@@ -140,10 +167,13 @@ export default function ClientHome(ctx) {
   // SIEMPRE se resuelve: puntos si cumplió el tiempo, modal de "no
   // completada" si volvió antes. Nunca queda una espera atascada en
   // silencio (causa del reporte del 14-ago).
+  // No espera sbConnected (el fin del boot COMPLETO tardaba varios
+  // segundos): basta la sesión del miembro — el RPC no necesita el
+  // resto de los datos del boot.
   const resumeSurveyRef = useRef(surveyPending);
   useEffect(() => {
     const p = resumeSurveyRef.current;
-    if (!p || !sbConnected || !me?.id) return;
+    if (!p || !me?.id || me.id.startsWith('temp-')) return;
     resumeSurveyRef.current = null; // una sola vez
     if (surveyPending !== p) return; // ya la resolvió el handler de visibilidad
     const elapsed = Math.floor((Date.now() - p.openedAt) / 1000);
@@ -151,7 +181,7 @@ export default function ClientHome(ctx) {
     setShowSurveys(false);
     if (elapsed >= SURVEY_WAIT) claimSurvey();
     else setSurveyResult({ type: 'early' });
-  }, [surveyPending, sbConnected, me?.id, claimSurvey, setShowSurveys, setSurveyPending]);
+  }, [surveyPending, me?.id, claimSurvey, setShowSurveys, setSurveyPending]);
 
   // Codigo de tarjeta con prefijo dinamico segun tier actual
   const tierPrefix = CARD_PREFIX[cTier.name] || 'CTOD';
