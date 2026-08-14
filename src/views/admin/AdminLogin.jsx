@@ -8,7 +8,8 @@
 
 import { useState } from 'react';
 import { inputStyleDark, btnStyle, BRAND_ORANGE, adminTheme as AT } from '../../constants/styles';
-import { Eye, EyeOff, Lock } from '../../components/ui/Icons';
+import { Lock } from '../../components/ui/Icons';
+import PasswordInput from '../../components/ui/PasswordInput';
 import { loginAdmin } from '../../services/adminAuthService';
 
 const sLbl = { display: 'block', fontSize: 10.5, fontWeight: 800, color: '#9E9E9E', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 };
@@ -25,7 +26,6 @@ export default function AdminLogin(ctx) {
   } = ctx;
 
   const [loading, setLoading] = useState(false);
-  const [showPass, setShowPass] = useState(false); // ojito de contraseña
 
   const doLogin = async () => {
     clearAuthErr();
@@ -163,21 +163,14 @@ export default function AdminLogin(ctx) {
 
           <div style={{ marginBottom: 20 }}>
             <label style={sLbl}>Contraseña</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showPass ? 'text' : 'password'}
-                value={adLoginPass}
-                onChange={e => { setAdLoginPass(e.target.value); clearAuthErr(); }}
-                onKeyDown={handleKeyDown}
-                style={{ ...inputStyleDark, width: '100%', boxSizing: 'border-box', paddingRight: 50 }}
-                disabled={loading}
-                autoComplete="current-password"
-              />
-              <button type="button" onClick={() => setShowPass(p => !p)} aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9E9E9E', display: 'flex', padding: 2 }}>
-                {showPass ? <EyeOff /> : <Eye />}
-              </button>
-            </div>
+            <PasswordInput
+              value={adLoginPass}
+              onChange={e => { setAdLoginPass(e.target.value); clearAuthErr(); }}
+              onKeyDown={handleKeyDown}
+              style={{ ...inputStyleDark, width: '100%', boxSizing: 'border-box', paddingRight: 50 }}
+              disabled={loading}
+              autoComplete="current-password"
+            />
           </div>
 
           <button

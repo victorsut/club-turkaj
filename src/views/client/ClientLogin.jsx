@@ -6,7 +6,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { inputFlat, btnStyle, BRAND_ORANGE } from '../../constants/styles';
-import { GoogleLogo, Phone, Lock, Fingerprint, HelpCircle, Eye, EyeOff } from '../../components/ui/Icons';
+import { GoogleLogo, Phone, Lock, Fingerprint, HelpCircle } from '../../components/ui/Icons';
+import PasswordInput from '../../components/ui/PasswordInput';
 import { phoneMask } from '../../lib/inputMasks';
 import { signInWithPhone } from '../../services/authService';
 import { mapMember } from '../../lib/mapMember';
@@ -26,7 +27,6 @@ export default function ClientLogin(ctx) {
 
   // Ver/ocultar contraseña (regla 4-ago: todo campo de contraseña
   // lleva el ojito a la derecha)
-  const [showPass, setShowPass] = useState(false);
 
   const ink = dark ? '#fff' : '#0D0D0D';
   const sub = dark ? 'rgba(255,255,255,.55)' : '#9E9E9E';
@@ -168,15 +168,10 @@ export default function ClientLogin(ctx) {
           <input placeholder="Número de teléfono" value={phoneMask.format(loginPhone || '')} inputMode="numeric"
             onChange={e => { setLoginPhone(phoneMask.clean(e.target.value)); clearAuthErr(); }} style={{ ...field, paddingLeft: 44 }} />
         </div>
-        <div style={{ position: 'relative' }}>
-          <div style={iconBox}><Lock /></div>
-          <input placeholder="Contraseña" type={showPass ? 'text' : 'password'} value={loginPass}
-            onChange={e => { setLoginPass(e.target.value); clearAuthErr(); }} style={{ ...field, paddingLeft: 44, paddingRight: 50 }} />
-          <button type="button" onClick={() => setShowPass(p => !p)} aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-            style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9E9E9E', display: 'flex', padding: 2 }}>
-            {showPass ? <EyeOff /> : <Eye />}
-          </button>
-        </div>
+        <PasswordInput placeholder="Contraseña" value={loginPass}
+          onChange={e => { setLoginPass(e.target.value); clearAuthErr(); }}
+          style={{ ...field, paddingLeft: 44, paddingRight: 50 }}
+          leftIcon={<div style={iconBox}><Lock /></div>} />
         {showForgot && (
           <button onClick={requestPasswordReset}
             style={{ background: 'none', border: 'none', cursor: 'pointer', alignSelf: 'flex-end', padding: 0, fontSize: 12, fontWeight: 700, color: BRAND_ORANGE, fontFamily: "'DM Sans'", animation: 'fadeIn .3s ease' }}>

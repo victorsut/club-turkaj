@@ -15,6 +15,13 @@ body {
 
 #root { width: 100%; max-width: 480px; }
 
+/* Ojo NATIVO de contraseña apagado (14-ago): la app pinta el suyo
+   (PasswordInput) y en Edge se duplicaban. Samsung Internet no se
+   puede apagar por CSS — lo resuelve PasswordInput con type=text +
+   -webkit-text-security. */
+input[type='password']::-ms-reveal,
+input[type='password']::-ms-clear { display: none; }
+
 /* Loading spinner */
 #loading {
   display: flex;

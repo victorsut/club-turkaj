@@ -9,7 +9,8 @@
 // toggle_admin_active (nunca 0 activos ni auto-desactivarse).
 import { useState, useEffect, useCallback } from 'react';
 import { adminTheme as AT, btnYellow, inputStyleDark, sMono } from '../../constants/styles';
-import { Plus, Eye, EyeOff } from '../../components/ui/Icons';
+import { Plus } from '../../components/ui/Icons';
+import PasswordInput from '../../components/ui/PasswordInput';
 import ReasonModal from '../../components/ui/ReasonModal';
 import { fetchAdmins, createAdmin, updateAdminPassword, toggleAdminActive } from '../../services/adminAuthService';
 import { dpiMask } from '../../lib/inputMasks';
@@ -27,7 +28,6 @@ export default function AdminManagement(ctx) {
   // Cambio de contraseña: { admin, pass, confirm, current } — `current`
   // solo se pide (y el server solo lo exige) para la cuenta propia.
   const [pwModal, setPwModal] = useState(null);
-  const [showCurPass, setShowCurPass] = useState(false); // ojito de "contraseña actual"
   const [showReason, setShowReason] = useState(false);
   const [pending, setPending] = useState(null); // { type, ... }
 
@@ -249,15 +249,9 @@ export default function AdminManagement(ctx) {
             {pwModal.admin.id === loggedAdmin?.id && (
               <div style={{ marginBottom: 12 }}>
                 <label style={lbl}>Contraseña actual *</label>
-                <div style={{ position: 'relative' }}>
-                  <input type={showCurPass ? 'text' : 'password'} placeholder="Tu contraseña de hoy" value={pwModal.current}
-                    onChange={e => setPwModal(p => ({ ...p, current: e.target.value }))}
-                    style={{ ...inputStyleDark, fontSize: 13, padding: '10px 50px 10px 12px' }} />
-                  <button type="button" onClick={() => setShowCurPass(p => !p)} aria-label={showCurPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                    style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9E9E9E', display: 'flex', padding: 2 }}>
-                    {showCurPass ? <EyeOff /> : <Eye />}
-                  </button>
-                </div>
+                <PasswordInput placeholder="Tu contraseña de hoy" value={pwModal.current}
+                  onChange={e => setPwModal(p => ({ ...p, current: e.target.value }))}
+                  style={{ ...inputStyleDark, fontSize: 13, padding: '10px 50px 10px 12px' }} />
               </div>
             )}
             <div style={{ marginBottom: 12 }}>

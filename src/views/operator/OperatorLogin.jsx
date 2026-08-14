@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { inputStyle, btnStyle } from '../../constants/styles';
-import { Eye, EyeOff } from '../../components/ui/Icons';
+import PasswordInput from '../../components/ui/PasswordInput';
 import { loginOperator } from '../../services/operatorAuthService';
 
 export default function OperatorLogin(ctx) {
@@ -18,7 +18,6 @@ export default function OperatorLogin(ctx) {
   } = ctx;
 
   const [loading, setLoading] = useState(false);
-  const [showPass, setShowPass] = useState(false); // ojito de contraseña
 
   const doLogin = async () => {
     clearAuthErr();
@@ -93,22 +92,15 @@ export default function OperatorLogin(ctx) {
           autoCapitalize="none"
           autoComplete="username"
         />
-        <div style={{ position: 'relative' }}>
-          <input
-            placeholder="Contraseña"
-            type={showPass ? 'text' : 'password'}
-            value={opLoginPass}
-            onChange={e => { setOpLoginPass(e.target.value); clearAuthErr(); }}
-            onKeyDown={handleKeyDown}
-            style={{ ...inputStyle, paddingRight: 50 }}
-            disabled={loading}
-            autoComplete="current-password"
-          />
-          <button type="button" onClick={() => setShowPass(p => !p)} aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-            style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9E9E9E', display: 'flex', padding: 2 }}>
-            {showPass ? <EyeOff /> : <Eye />}
-          </button>
-        </div>
+        <PasswordInput
+          placeholder="Contraseña"
+          value={opLoginPass}
+          onChange={e => { setOpLoginPass(e.target.value); clearAuthErr(); }}
+          onKeyDown={handleKeyDown}
+          style={{ ...inputStyle, paddingRight: 50 }}
+          disabled={loading}
+          autoComplete="current-password"
+        />
         <button
           onClick={doLogin}
           disabled={loading}

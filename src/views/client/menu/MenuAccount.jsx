@@ -8,7 +8,8 @@
 import { useState, useEffect } from 'react';
 import { sb } from '../../../lib/supabaseClient';
 import { inputFlat, btnStyle, bento, BRAND_ORANGE } from '../../../constants/styles';
-import { User, Mail, Receipt, IdCard, Cake, Lock, Key, Eye, EyeOff, Chev, Fingerprint, Check } from '../../../components/ui/Icons';
+import { User, Mail, Receipt, IdCard, Cake, Lock, Key, Chev, Fingerprint, Check } from '../../../components/ui/Icons';
+import PasswordInput from '../../../components/ui/PasswordInput';
 import { biometricsAvailable, registerBiometric, isUserCancel } from '../../../lib/webauthnClient';
 import { getMemberToken } from '../../../services/sessionTokens';
 import { DatePickerSheet } from '../../../components/ui/DrumDatePicker';
@@ -57,7 +58,6 @@ export default function MenuAccount({ ctx, TH, onBack }) {
 
   const [showPassSec, setShowPassSec] = useState(false);
   const [passForm, setPassForm]       = useState({ current: '', newPass: '', confirm: '' });
-  const [showP, setShowP]             = useState({ n: false, cf: false });
   const [savingPass, setSavingPass]   = useState(false);
 
   // Sesión de Supabase Auth (solo cuentas Google): prueba de identidad
@@ -77,7 +77,6 @@ export default function MenuAccount({ ctx, TH, onBack }) {
   const [bioAvail, setBioAvail]   = useState(false);
   const [showBioSec, setShowBioSec] = useState(false);
   const [bioPass, setBioPass]     = useState('');
-  const [showBioPass, setShowBioPass] = useState(false);
   const [bioBusy, setBioBusy]     = useState(false);
   const [bioDone, setBioDone]     = useState(() => {
     try { return localStorage.getItem(`pp_bio_${me?.id}`) === '1'; } catch { return false; }
@@ -351,17 +350,12 @@ export default function MenuAccount({ ctx, TH, onBack }) {
           ].map(f => (
             <div key={f.k} style={{ marginBottom: 12 }}>
               <div style={label}>{f.l}</div>
-              <div style={{ position: 'relative' }}>
-                <input type={showP[f.pk] ? 'text' : 'password'} placeholder={f.ph} value={passForm[f.k]}
-                  onChange={e => setPassForm(p => ({ ...p, [f.k]: e.target.value }))}
-                  style={{ ...field, paddingLeft: 16, paddingRight: 50, background: TH.isDark ? 'rgba(255,255,255,.08)' : '#F5F5F7',
-                    borderColor: f.k === 'confirm' && passForm.confirm
-                      ? (passForm.confirm === passForm.newPass ? bento.green : '#EF5350') : 'transparent' }} />
-                <button type="button" onClick={() => setShowP(p => ({ ...p, [f.pk]: !p[f.pk] }))} aria-label={showP[f.pk] ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                  style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: TH.sub, display: 'flex', padding: 2 }}>
-                  {showP[f.pk] ? <EyeOff /> : <Eye />}
-                </button>
-              </div>
+              <PasswordInput placeholder={f.ph} value={passForm[f.k]}
+                onChange={e => setPassForm(p => ({ ...p, [f.k]: e.target.value }))}
+                buttonColor={TH.sub}
+                style={{ ...field, paddingLeft: 16, paddingRight: 50, background: TH.isDark ? 'rgba(255,255,255,.08)' : '#F5F5F7',
+                  borderColor: f.k === 'confirm' && passForm.confirm
+                    ? (passForm.confirm === passForm.newPass ? bento.green : '#EF5350') : 'transparent' }} />
             </div>
           ))}
           {passForm.confirm && passForm.confirm === passForm.newPass && (
@@ -410,15 +404,10 @@ export default function MenuAccount({ ctx, TH, onBack }) {
                   identidad; Google con sesión activa no la necesita. */}
               {!googleAuth && (<>
                 <div style={label}>Contraseña actual</div>
-                <div style={{ position: 'relative', marginBottom: 12 }}>
-                  <input type={showBioPass ? 'text' : 'password'} placeholder="Confirma tu identidad" value={bioPass}
-                    onChange={e => setBioPass(e.target.value)}
-                    style={{ ...field, paddingLeft: 16, paddingRight: 50, background: TH.isDark ? 'rgba(255,255,255,.08)' : '#F5F5F7' }} />
-                  <button type="button" onClick={() => setShowBioPass(p => !p)} aria-label={showBioPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                    style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: TH.sub, display: 'flex', padding: 2 }}>
-                    {showBioPass ? <EyeOff /> : <Eye />}
-                  </button>
-                </div>
+                <PasswordInput placeholder="Confirma tu identidad" value={bioPass}
+                  onChange={e => setBioPass(e.target.value)}
+                  buttonColor={TH.sub} wrapStyle={{ marginBottom: 12 }}
+                  style={{ ...field, paddingLeft: 16, paddingRight: 50, background: TH.isDark ? 'rgba(255,255,255,.08)' : '#F5F5F7' }} />
               </>)}
               <button onClick={activateBio} disabled={bioBusy} style={{ ...btnPrimary, padding: 14, borderRadius: 12, fontSize: 14, opacity: bioBusy ? .7 : 1 }}>
                 {bioBusy ? 'Esperando tu celular...' : bioDone ? 'Volver a configurar' : 'Activar en este dispositivo'}

@@ -5,7 +5,8 @@
 import { useState } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { inputFlat, btnStyle, BRAND_ORANGE, bento } from '../../constants/styles';
-import { User, IdCard, Mail, Receipt, Eye, EyeOff, Plus, XMark, Phone } from '../../components/ui/Icons';
+import { User, IdCard, Mail, Receipt, Plus, XMark, Phone } from '../../components/ui/Icons';
+import PasswordInput from '../../components/ui/PasswordInput';
 import { DatePickerSheet } from '../../components/ui/DrumDatePicker';
 import { VEHICLE_TYPES } from '../../components/ui/VehicleIcons';
 import { WizardHeader, PtsCard, Field, DateField, InfoBubble } from './registerUi';
@@ -43,8 +44,6 @@ export default function GoogleProfile(ctx) {
   const [tempDate, setTempDate]             = useState('2000-01-01');
   const [password, setPassword]             = useState('');
   const [passConfirm, setPassConfirm]       = useState('');
-  const [showPass, setShowPass]             = useState(false);
-  const [showPassConfirm, setShowPassConfirm] = useState(false);
   const [checkingPhone, setCheckingPhone] = useState(false);
   const [phoneFocus, setPhoneFocus]       = useState(false);
   // Aceptación de Términos y Condiciones (11-ago, pedido del dueño):
@@ -459,30 +458,18 @@ export default function GoogleProfile(ctx) {
           {/* Nueva contraseña */}
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#9E9E9E', marginBottom: 6, textTransform: 'uppercase', letterSpacing: .5 }}>Contraseña</div>
-            <div style={{ position: 'relative' }}>
-              <input type={showPass ? 'text' : 'password'} placeholder="Mínimo 6 caracteres" value={password}
-                onChange={e => { setPassword(e.target.value); clearAuthErr(); }}
-                style={{ ...fieldFlat, paddingRight: 50 }} />
-              <button type="button" onClick={() => setShowPass(p => !p)} aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9E9E9E', display: 'flex', padding: 2 }}>
-                {showPass ? <EyeOff /> : <Eye />}
-              </button>
-            </div>
+            <PasswordInput placeholder="Mínimo 6 caracteres" value={password}
+              onChange={e => { setPassword(e.target.value); clearAuthErr(); }}
+              style={{ ...fieldFlat, paddingRight: 50 }} />
           </div>
 
           {/* Confirmar contraseña */}
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#9E9E9E', marginBottom: 6, textTransform: 'uppercase', letterSpacing: .5 }}>Confirmar contraseña</div>
-            <div style={{ position: 'relative' }}>
-              <input type={showPassConfirm ? 'text' : 'password'} placeholder="Repetí tu contraseña" value={passConfirm}
-                onChange={e => { setPassConfirm(e.target.value); clearAuthErr(); }}
-                style={{ ...fieldFlat, paddingRight: 50,
-                  borderColor: passConfirm && passConfirm !== password ? '#EF5350' : passConfirm && passConfirm === password ? BRAND_ORANGE : 'transparent' }} />
-              <button type="button" onClick={() => setShowPassConfirm(p => !p)} aria-label={showPassConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9E9E9E', display: 'flex', padding: 2 }}>
-                {showPassConfirm ? <EyeOff /> : <Eye />}
-              </button>
-            </div>
+            <PasswordInput placeholder="Repetí tu contraseña" value={passConfirm}
+              onChange={e => { setPassConfirm(e.target.value); clearAuthErr(); }}
+              style={{ ...fieldFlat, paddingRight: 50,
+                borderColor: passConfirm && passConfirm !== password ? '#EF5350' : passConfirm && passConfirm === password ? BRAND_ORANGE : 'transparent' }} />
             {passConfirm && passConfirm === password && (
               <div style={{ fontSize: 11, color: bento.green, fontWeight: 700, marginTop: 6 }}>Las contraseñas coinciden</div>
             )}
