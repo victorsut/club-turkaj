@@ -2,9 +2,9 @@
 // Main client dashboard: tier card, stats, survey, QR, promo carousel, history
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { sb } from '../../lib/supabaseClient';
-import { sMono, bento, BRAND_ORANGE, homeColors, homeTileColors } from '../../constants/styles';
+import { bento, BRAND_ORANGE, homeColors, homeTileColors } from '../../constants/styles';
 import PromoCard from '../../components/ui/PromoCard';
-import { CARD_PREFIX, SHELL_SURVEYS, SURVEY_WAIT } from '../../constants/config';
+import { CARD_PREFIX, SURVEY_WAIT } from '../../constants/config';
 import OpRatingModal from '../../components/OpRatingModal';
 import SurveyResultModal from '../../components/SurveyResultModal';
 import Wordmark from '../../components/ui/Wordmark';
@@ -13,14 +13,14 @@ import BentoTile from '../../components/ui/BentoTile';
 import TierCardBento from '../../components/ui/TierCardBento';
 import InactivityWarning from '../../components/ui/InactivityWarning';
 import HistorySheet from './HistorySheet';
+import TierDetailModal from './home/TierDetailModal';
+import WifiModal from './home/WifiModal';
+import StationsMapModal from './home/StationsMapModal';
+import SurveyStationsModal from './home/SurveyStationsModal';
 import useShortScreen from '../../hooks/useShortScreen';
-import { Menu, Bell, Fuel, Tag, Wifi, Cake, Pin, Clock, Chev, Check, HelpCircle } from '../../components/ui/Icons';
+import { Menu, Bell, HelpCircle } from '../../components/ui/Icons';
 import NotificationsSheet from './NotificationsSheet';
 import SupportSheet from '../../components/ui/SupportSheet';
-import { getPosition, nearestStation } from '../../lib/geo';
-import LogoSpinner from '../../components/ui/LogoSpinner';
-import GalaxyDust from '../../components/ui/GalaxyDust';
-import GrowModal from '../../components/ui/GrowModal';
 import { GiftIcon, CarIcon, WifiIcon, SurveyIcon, PinIcon, TicketStarIcon, BagIcon } from '../../components/ui/BentoIcons';
 import { originFromEvent, centerDeltaFromEvent } from '../../lib/motionOrigin';
 
@@ -236,17 +236,6 @@ export default function ClientHome(ctx) {
     ? 'radial-gradient(ellipse at 20% 30%, #0d0d1a 0%, #050508 40%, #000 100%)'
     : cTier.name === 'PLATINO' ? '#9EA7AD' : bento.gold;
 
-  // Beneficios del nivel (detalle al tocar la tarjeta — FORMATO GENERAL,
-  // iconos SVG sin emojis). El WiFi gratis solo aparece en PLATINO/BLACK
-  // (en ORO se omite la línea); sin "invitar amigos" (feedback 21-jul).
-  // Sin descuento por galón ni rifa mensual (decisión del dueño 24-jul)
-  // ni acceso a baños (decisión del dueño 11-ago).
-  const bens = [
-    { icon: <Fuel />, t: `1 pt por cada Q${cTier.qPerPt ?? cfg.qPerPt}` },
-    ...(cTier.redeemDisc > 0 ? [{ icon: <Tag />, t: `-${Math.round(cTier.redeemDisc * 100)}% en canje de premios` }] : []),
-    ...(cTier.name !== 'ORO' ? [{ icon: <Wifi />, t: 'WiFi gratis ilimitado' }] : []),
-    { icon: <Cake />, t: `${cTier.evtPts} pts en eventos especiales` },
-  ];
   // Acento de los iconos según la identidad del nivel.
   const tierAccent = isBlack ? '#FBBC04' : cTier.name === 'PLATINO' ? '#6B767D' : bento.gold;
   // Paleta del bento según el nivel (ORO cálida / PLATINO fría / BLACK oscura)
@@ -256,56 +245,6 @@ export default function ClientHome(ctx) {
   // siempre en oscuro, la elección solo varía las cajas. Modales y
   // sheets siguen con hp (identidad).
   const htp = homeTileColors(cTier.name, chosenDark ?? dark);
-
-  // ── WiFi por estación (25-jul): al abrir el modal se pide la
-  // ubicación; a <300 m de una estación con red configurada se muestra
-  // su SSID y clave. Permiso negado / GPS mudo (in-app browsers) /
-  // lejos → pase actual (el operador entrega la clave).
-  const [wifiLoc, setWifiLoc] = useState(null); // null|'locating'|'far'|{station,distance}
-  const [wifiCopied, setWifiCopied] = useState(false);
-  useEffect(() => {
-    if (!showWifi) { setWifiLoc(null); setWifiCopied(false); return; }
-    let alive = true;
-    setWifiLoc('locating');
-    getPosition()
-      .then(({ lat, lng }) => {
-        if (!alive) return;
-        const hit = nearestStation(stations, lat, lng);
-        setWifiLoc(hit?.station?.wifiSsid && hit?.station?.wifiPassword ? hit : 'far');
-      })
-      .catch(() => { if (alive) setWifiLoc('far'); });
-    return () => { alive = false; };
-  }, [showWifi, stations]);
-
-  const copyWifiPass = async (pass) => {
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(pass);
-      } else {
-        // Fallback para navegadores in-app sin Clipboard API
-        const ta = document.createElement('textarea');
-        ta.value = pass;
-        ta.style.position = 'fixed';
-        ta.style.opacity = '0';
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-      }
-      setWifiCopied(true);
-      setTimeout(() => setWifiCopied(false), 2500);
-      fire('Contraseña copiada', 'success');
-    } catch {
-      fire('No se pudo copiar la contraseña', 'error');
-    }
-  };
-
-  // Colores del modal WiFi: en BLACK claro hp.wifi es gris perla
-  // (invisible sobre blanco) → el acento pasa a la tinta wifiInk.
-  const wifiFg = (!dark && hp.wifiInk) ? hp.wifiInk : hp.wifi;
-  const wifiBoxBg = dark ? 'rgba(255,255,255,.1)' : (hp.wifiInk ? hp.wifi : '#E9EAF6');
-  const wifiBoxFg = dark ? '#fff' : wifiFg;
-  const wifiSubFg = dark ? 'rgba(255,255,255,.5)' : (hp.wifiInk ? 'rgba(20,20,23,.55)' : '#8A8FB8');
 
   // Saludo festivo (D34): special_days de hoy (hora de Guatemala) o cumpleaños.
   const [festivo, setFestivo] = useState(null);
@@ -562,117 +501,20 @@ export default function ClientHome(ctx) {
       </div>
       <div style={{ height: 72 }} />
 
-      {/* Detalle del nivel (tocar la tarjeta — D34, FORMATO GENERAL):
-          banda superior con la identidad sólida del tier (regla
-          inamovible: ORO dorado, PLATINO metálico, BLACK galaxia) y
-          lista de beneficios con iconos SVG. */}
+      {/* Detalle del nivel (tocar la tarjeta — D34) */}
       {showTierDetail && (
-        <GrowModal onClose={() => setShowTierDetail(false)} origin={mOrigin} tint={mTint}
-          background={dark ? '#101018' : '#fff'} arrowColor="#fff">
-          {() => (<>
-            {/* Banda de identidad del nivel (centrada — feedback 21-jul) */}
-            <div style={{ background: tierTint, color: '#fff', padding: '22px 20px 18px', position: 'relative', overflow: 'hidden', textAlign: 'center' }}>
-              {isBlack && dark && <GalaxyDust n={10} />}
-              <div style={{ position: 'relative', zIndex: 2 }}>
-                <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.5, opacity: 0.85 }}>
-                  Tu nivel
-                </div>
-                <div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1.15, letterSpacing: 0.5 }}>
-                  {cTier.name}
-                </div>
-                <div style={{ fontSize: 12, fontWeight: 700, opacity: 0.9, marginTop: 2 }}>
-                  {cTier.next ? `${cTier.base} – ${cTier.target - 1} galones` : `${cTier.base}+ galones`}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ padding: '8px 20px 20px' }}>
-              {bens.map((b, i) => (
-                <div key={i} style={{
-                  display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0',
-                  borderBottom: i < bens.length - 1 ? `1px solid ${dark ? 'rgba(255,255,255,.08)' : '#F0F0F0'}` : 'none',
-                  fontSize: 13, fontWeight: 600, color: dark ? '#E0E0E0' : '#424242',
-                }}>
-                  <span style={{ width: 24, display: 'flex', justifyContent: 'center', color: tierAccent, flexShrink: 0 }}>{b.icon}</span>
-                  <span>{b.t}</span>
-                </div>
-              ))}
-              {cTier.next && (
-                <div style={{ marginTop: 12, fontSize: 11, fontWeight: 700, color: dark ? 'rgba(255,255,255,.45)' : '#9E9E9E', textAlign: 'center' }}>
-                  Faltan {cTier.rem} galones para {cTier.next}
-                </div>
-              )}
-            </div>
-          </>)}
-        </GrowModal>
+        <TierDetailModal onClose={() => setShowTierDetail(false)}
+          origin={mOrigin} tint={mTint} tierTint={tierTint}
+          tierAccent={tierAccent} isBlack={isBlack} dark={dark}
+          cTier={cTier} cfg={cfg} />
       )}
 
-      {/* WiFi — geolocalización: en la estación muestra red y clave de
-          ESA estación con botón de copiar; sin ubicación o lejos, cae
-          al pase de acceso (la clave la entrega el operador). */}
+      {/* WiFi — geolocalización: en la estación muestra red y clave;
+          sin ubicación o lejos, pase de acceso (clave con el operador) */}
       {showWifi && (
-        <GrowModal onClose={() => setShowWifi(false)} origin={mOrigin} tint={mTint}
-          background={dark ? '#1A1A2E' : '#fff'} maxWidth={340}
-          arrowColor={dark ? '#fff' : '#0D0D0D'}
-          style={{ padding: '30px 22px 26px', textAlign: 'center' }}>
-          {() => (<>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-              <WifiIcon size={38} color={wifiFg} />
-            </div>
-            <div style={{ fontSize: 19, fontWeight: 900, color: dark ? '#fff' : '#0D0D0D' }}>WiFi Puntos Plus</div>
-            <div style={{ fontSize: 11, fontWeight: 800, color: wifiFg, marginTop: 2, textTransform: 'uppercase', letterSpacing: 1 }}>
-              Beneficio {cTier.name}
-            </div>
-
-            {wifiLoc === 'locating' && (
-              <div style={{ padding: '22px 0 6px' }}>
-                <div style={{ display: 'flex', justifyContent: 'center' }}>
-                  <LogoSpinner size={30} dark={dark} />
-                </div>
-                <div style={{ fontSize: 13, color: '#9E9E9E', marginTop: 12 }}>Detectando tu estación...</div>
-              </div>
-            )}
-
-            {wifiLoc?.station && (
-              <>
-                <div style={{ fontSize: 13, color: '#9E9E9E', lineHeight: 1.6, margin: '14px 0' }}>
-                  Estás en <strong style={{ color: dark ? '#fff' : '#0D0D0D' }}>{wifiLoc.station.name}</strong>. Conectate a esta red:
-                </div>
-                <div style={{ background: wifiBoxBg, borderRadius: 14, padding: '14px 16px', textAlign: 'left' }}>
-                  <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: wifiSubFg }}>Red</div>
-                  <div style={{ fontSize: 14.5, fontWeight: 800, color: wifiBoxFg, marginTop: 2 }}>{wifiLoc.station.wifiSsid}</div>
-                  <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: wifiSubFg, marginTop: 12 }}>Contraseña</div>
-                  <div style={{ ...sMono, fontSize: 17, fontWeight: 800, letterSpacing: 1.5, color: wifiBoxFg, marginTop: 2, wordBreak: 'break-all' }}>
-                    {wifiLoc.station.wifiPassword}
-                  </div>
-                </div>
-                <button onClick={() => copyWifiPass(wifiLoc.station.wifiPassword)} style={{
-                  width: '100%', marginTop: 12, padding: 14, borderRadius: 14, border: 'none',
-                  background: wifiFg, color: (dark && hp.wifiInk) ? '#141417' : '#fff',
-                  fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 800, cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                }}>
-                  {wifiCopied ? (<><Check /> Copiada</>) : 'Copiar contraseña'}
-                </button>
-              </>
-            )}
-
-            {wifiLoc === 'far' && (
-              <>
-                <div style={{ fontSize: 13, color: '#9E9E9E', lineHeight: 1.6, margin: '14px 0' }}>
-                  No pudimos confirmar que estés en una estación. Mostrá esta pantalla al operador para recibir la clave WiFi.
-                </div>
-                <div style={{
-                  ...sMono, fontSize: 18, fontWeight: 800, letterSpacing: 2,
-                  padding: '12px 0', borderRadius: 14,
-                  background: wifiBoxBg, color: wifiBoxFg,
-                }}>
-                  {displayCode}
-                </div>
-              </>
-            )}
-          </>)}
-        </GrowModal>
+        <WifiModal onClose={() => setShowWifi(false)}
+          origin={mOrigin} tint={mTint} dark={dark} hp={hp}
+          cTier={cTier} stations={stations} displayCode={displayCode} fire={fire} />
       )}
 
       {/* Historiales full-screen: Hoy · Mes · Año · Todo (D34) */}
@@ -694,227 +536,18 @@ export default function ClientHome(ctx) {
       )}
       {/* Stations modal */}
       {showMap && (
-        <GrowModal onClose={() => setShowMap(false)} origin={mOrigin} tint={mTint}
-          background={dark ? '#16161A' : '#fff'} maxHeight="86vh"
-          arrowColor={hp.locationInk || '#fff'}>
-          {() => (<>
-            {/* Banda de identidad (patrón banda+cuerpo — color sólido
-                del cuadro Ubicación con su tinta, centrada) */}
-            <div style={{ background: hp.location, color: hp.locationInk || '#fff', padding: '22px 20px 18px', textAlign: 'center' }}>
-              <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.5, opacity: 0.85 }}>
-                Encuéntranos
-              </div>
-              <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.2, letterSpacing: 0.3 }}>
-                Nuestras Estaciones
-              </div>
-              <div style={{ fontSize: 12, fontWeight: 700, opacity: 0.9, marginTop: 2 }}>
-                {cfg.companyName || 'Gasolineras Turkaj'} · {cfg.companyLocation || 'Chichicastenango'}
-              </div>
-            </div>
-
-            <div style={{ padding: '14px 20px 20px' }}>
-            {(stations.length > 0 ? stations : [
-              { name: 'Turkaj I', address: '' },
-              { name: 'Turkaj II', address: '' },
-              { name: 'Turkaj III', address: '' },
-            ]).filter(s => s.active !== false).map((s) => (
-              <div key={s.id || s.name} style={{
-                display: 'flex', alignItems: 'flex-start', gap: 14,
-                padding: '13px 12px', marginBottom: 8, borderRadius: 16,
-                background: dark ? 'rgba(255,255,255,.05)' : '#F5F5F7',
-              }}>
-                <div style={{
-                  width: 44, height: 44, borderRadius: 14, flexShrink: 0,
-                  background: hp.location,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <PinIcon size={24} color={hp.locationInk || '#fff'} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: dark ? '#E0E0E0' : '#0D0D0D' }}>
-                    {s.name}
-                  </div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: dark ? 'rgba(255,255,255,.5)' : '#6E6E73', marginTop: 3, lineHeight: 1.4 }}>
-                    {s.address || 'Dirección no disponible'}
-                  </div>
-                  {/* Horario de atención (stations.schedule — dato de empresa).
-                      En BLACK claro hp.location es gris perla (invisible
-                      sobre la fila clara) → el acento pasa a la tinta,
-                      patrón del fix de contraste del WiFi. */}
-                  {s.schedule && (
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: 5, marginTop: 5,
-                      fontSize: 11.5, fontWeight: 700,
-                      color: dark ? 'rgba(255,255,255,.75)' : (hp.locationInk || hp.location),
-                    }}>
-                      <Clock /> {s.schedule}
-                    </div>
-                  )}
-                  {/* Navegación: chips sólidos flat (sin emojis) */}
-                  {(s.lat && s.lng) && (
-                    <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                      <a href={`https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}`}
-                        target="_blank" rel="noopener noreferrer"
-                        style={{
-                          padding: '7px 14px', borderRadius: 10, textDecoration: 'none',
-                          background: bento.blue, color: '#fff',
-                          fontSize: 11, fontWeight: 700, fontFamily: "'DM Sans'",
-                        }}>
-                        Google Maps
-                      </a>
-                      <a href={`https://waze.com/ul?ll=${s.lat},${s.lng}&navigate=yes`}
-                        target="_blank" rel="noopener noreferrer"
-                        style={{
-                          padding: '7px 14px', borderRadius: 10, textDecoration: 'none',
-                          background: bento.teal, color: '#fff',
-                          fontSize: 11, fontWeight: 700, fontFamily: "'DM Sans'",
-                        }}>
-                        Waze
-                      </a>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-            </div>
-          </>)}
-        </GrowModal>
+        <StationsMapModal onClose={() => setShowMap(false)}
+          origin={mOrigin} tint={mTint} dark={dark} hp={hp}
+          cfg={cfg} stations={stations} />
       )}
 
       {/* Survey station selection modal */}
       {showSurveys && (
-        <GrowModal onClose={() => setShowSurveys(false)} origin={mOrigin} tint={mTint}
-          background={dark ? '#101018' : '#fff'} maxHeight="88vh"
-          arrowColor={hp.surveyInk}>
-          {(close) => (<>
-            {/* Banda de identidad (mismo formato del modal de nivel —
-                color del cuadro Encuesta según el nivel, con su tinta,
-                centrada — referencia colores inicio) */}
-            <div style={{ background: hp.survey, color: hp.surveyInk, padding: '22px 20px 18px', textAlign: 'center' }}>
-              <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.5, opacity: 0.85 }}>
-                Califica nuestro servicio
-              </div>
-              <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.2, letterSpacing: 0.3 }}>
-                Encuesta de Satisfacción
-              </div>
-              <div style={{ fontSize: 12, fontWeight: 700, opacity: 0.9, marginTop: 2 }}>
-                {mySurveyCount}/{cfg.surveyDaily} hoy · +{cfg.surveyPts} pts por encuesta
-              </div>
-            </div>
-
-            <div style={{ padding: '14px 20px 20px' }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: dark ? 'rgba(255,255,255,.5)' : '#6E6E73', textAlign: 'center', marginBottom: 12 }}>
-              Seleccioná la estación donde cargaste combustible
-            </div>
-
-            {(() => {
-              // Estación del ÚLTIMO CONSUMO (D34). Fuente: activity_log
-              // (la última 'compra' con estación, ya ordenado DESC) — NO
-              // me.station: viene de members.last_station, columna que
-              // register_purchase nunca actualiza y quedaba stale
-              // (marcaba Turkaj III con el último consumo en Turkaj II).
-              const lastAct = myActs.find(a => a.type === 'compra' && a.station);
-              const raw = lastAct?.station || me.station || '';
-              const fromId = (stations || []).find(st => st.id === raw)?.name || '';
-              const lastName = fromId || raw;
-
-              return SHELL_SURVEYS.map((s) => {
-                const isLast = lastName && lastName === s.name;
-                const waitingThis = surveyPending?.stationName === s.name;
-                return (
-                <div key={s.name}
-                  onClick={() => {
-                    if (surveyPending) return; // already waiting
-                    window.open(s.url, '_blank');
-                    setSurveyPending({ openedAt: Date.now(), stationName: s.name });
-                  }}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 14,
-                    padding: '13px 12px', marginBottom: 8, borderRadius: 16,
-                    cursor: surveyPending ? 'default' : 'pointer',
-                    opacity: surveyPending ? (waitingThis ? 1 : 0.4) : 1,
-                    background: isLast
-                      ? (dark ? 'rgba(217,164,11,.14)' : '#FAF1DC')
-                      : (dark ? 'rgba(255,255,255,.05)' : '#F5F5F7'),
-                    transition: 'transform .15s',
-                  }}>
-                  <div style={{
-                    width: 44, height: 44, borderRadius: 14, flexShrink: 0,
-                    background: bento.amber, color: '#fff',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <Fuel />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{
-                      fontSize: 15, fontWeight: 800,
-                      color: dark ? '#E0E0E0' : '#0D0D0D',
-                    }}>
-                      {s.name}
-                    </div>
-                    {isLast && (
-                      <div style={{
-                        fontSize: 10, fontWeight: 800, marginTop: 3,
-                        color: dark ? '#FFD54F' : '#B58000',
-                        display: 'flex', alignItems: 'center', gap: 4,
-                      }}>
-                        <Pin /> Última visita
-                      </div>
-                    )}
-                  </div>
-                  {/* CTA: círculo negro con chevron (formato del banner de
-                      Promociones); esperando → círculo ámbar con reloj */}
-                  <div style={{
-                    width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
-                    background: waitingThis ? bento.amber : (dark ? '#fff' : '#0D0D0D'),
-                    color: waitingThis ? '#fff' : (dark ? '#0D0D0D' : '#fff'),
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    {waitingThis ? <Clock /> : <Chev />}
-                  </div>
-                </div>
-              );
-              });
-            })()}
-
-            {/* Pending survey: esperando el regreso de Shell — SIN
-                contador visible (el cliente no debe saber que basta
-                esperar SURVEY_WAIT) */}
-            {surveyPending && (
-              <div style={{
-                background: dark ? 'rgba(217,164,11,.14)' : '#FAF1DC',
-                borderRadius: 16, padding: 16, marginBottom: 8, textAlign: 'center',
-              }}>
-                <div style={{
-                  fontSize: 13, fontWeight: 700, marginBottom: 6,
-                  color: dark ? '#FFD54F' : '#B58000',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                }}>
-                  <Clock /> Completá la encuesta de {surveyPending.stationName}
-                </div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: dark ? 'rgba(255,255,255,.5)' : '#6E6E73', marginTop: 4 }}>
-                  Respondé todas las preguntas en la página de Shell · Tus puntos se asignan al terminar
-                </div>
-              </div>
-            )}
-
-            {/* Sin botón "Cerrar": la salida es la flecha del GrowModal.
-                Con encuesta pendiente queda "Cancelar" para abortarla. */}
-            {surveyPending && (
-              <button onClick={() => { setSurveyPending(null); close(); }} style={{
-                width: '100%', marginTop: 8, padding: 14, borderRadius: 14,
-                background: dark ? 'rgba(255,255,255,.08)' : '#F5F5F7',
-                border: 'none',
-                fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700,
-                color: dark ? '#ccc' : '#424242',
-                cursor: 'pointer',
-              }}>
-                Cancelar
-              </button>
-            )}
-            </div>
-          </>)}
-        </GrowModal>
+        <SurveyStationsModal onClose={() => setShowSurveys(false)}
+          origin={mOrigin} tint={mTint} dark={dark} hp={hp}
+          cfg={cfg} mySurveyCount={mySurveyCount}
+          myActs={myActs} meStation={me.station} stations={stations}
+          surveyPending={surveyPending} setSurveyPending={setSurveyPending} />
       )}
 
       {/* Modal post-compra (Realtime): estrellas + invitación a la
