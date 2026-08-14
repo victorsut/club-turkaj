@@ -288,7 +288,11 @@ export default function App() {
   // Modo efectivo: elección del usuario o, sin ella, el histórico del
   // nivel (BLACK oscuro, ORO/PLATINO claro). En login/registro (sin
   // sesión) manda solo la elección; por defecto claro.
-  const dark = uiMode ? uiMode === 'dark' : cTier.name === 'BLACK';
+  // BLACK (14-ago, dueño): el fondo galaxia oscuro es ÚNICO para ambos
+  // modos — las superficies van SIEMPRE en oscuro y la elección del
+  // usuario (chosenDark) solo varía las cajas del inicio (homeTileColors).
+  const chosenDark = uiMode ? uiMode === 'dark' : cTier.name === 'BLACK';
+  const dark = cTier.name === 'BLACK' ? true : chosenDark;
   const TH = clientTheme(cTier.name, dark);
   const isLoggedIn = (isC && authScreen === 'logged') || (isO && authOp === 'logged') || (isA && authAdmin === 'logged');
 
@@ -571,7 +575,7 @@ export default function App() {
     adLoginEmail, setAdLoginEmail, adLoginPass, setAdLoginPass,
     // Helpers
     gT, cTier, TH, curMonth, fire, addMemberToCusts,
-    dark, uiMode, setUiMode,
+    dark, chosenDark, uiMode, setUiMode,
     sbConnected, sbLoading,
     logActivity,
     // Actions
@@ -678,9 +682,11 @@ export default function App() {
         position: 'relative', overflowX: 'hidden',
         boxShadow: '0 0 60px rgba(0,0,0,.08)',
       }}>
-        {/* BLACK: fondo galaxia con estrellas en deriva (CSS puro) — en
-            ambos modos: oscuro = galaxia clásica; claro = estrellas
-            doradas/grises sobre el fondo perla (variante `light`). */}
+        {/* BLACK: fondo galaxia con estrellas en deriva (CSS puro) —
+            ÚNICO para ambos modos (14-ago, dueño): dark va forzado a
+            true en BLACK, así que la variante `light` (doradas sobre
+            perla) quedó inalcanzable; el modo elegido solo varía las
+            cajas del inicio. */}
         {isC && cTier.name === 'BLACK' && authScreen === 'logged' && <GalaxyStars light={!dark} />}
 
         {/* Active screen — el cliente entra con animación desde el origen presionado (D35).

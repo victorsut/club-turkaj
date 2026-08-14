@@ -128,7 +128,10 @@ export const homeTileColors = (tier, dark) => {
       purchases: tile, purchasesTitle: '#D8A94E', purchasesInk: '#fff',
     };
   }
-  const tile = 'rgba(214,214,220,.55)';
+  // Modo "claro" de BLACK (14-ago): mismo fondo galaxia oscuro — solo
+  // las cajas cambian a gris claro translúcido sobre la galaxia, con
+  // alpha suficiente para que la tinta negra siga legible.
+  const tile = 'rgba(228,228,233,.72)';
   return {
     vehicle: tile, vehicleTitle: '#B08A2E', vehicleInk: '#141417',
     wifi: tile, wifiInk: '#141417',
@@ -176,9 +179,12 @@ export const GAL3 = 'radial-gradient(ellipse at 30% 40%, #0a0a15 0%, #04040a 50%
 // un claro casi blanco: los cuadros gris perla del tema BLACK (#E9E9EC)
 // deben seguir leyéndose como tarjetas sobre el fondo.
 // PLATINO oscuro (14-ago, dueño): gris AZULADO oscuro en lugar del
-// negro neutro — sigue la caracterización plateada azulada del nivel.
+// negro neutro — sigue la caracterización plateada azulada del nivel;
+// iteración 2: más gris/claro para que se note el sello del nivel.
+// BLACK (14-ago): la galaxia oscura es ÚNICA para ambos modos — el
+// '#F7F7F9' claro queda solo por compatibilidad (App fuerza dark).
 export const clientMainBg = (tierName, dark) => {
-  if (dark) return tierName === 'BLACK' ? '#040405' : tierName === 'PLATINO' ? '#161C26' : '#0E0E10';
+  if (dark) return tierName === 'BLACK' ? '#040405' : tierName === 'PLATINO' ? '#232931' : '#0E0E10';
   return tierName === 'BLACK' ? '#F7F7F9' : tierName === 'PLATINO' ? '#E8E8E8' : '#fff';
 };
 

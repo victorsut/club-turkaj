@@ -32,7 +32,7 @@ export default function ClientHome(ctx) {
     showSurveys, setShowSurveys, fire,
     pendingOpRating, setPendingOpRating, sbConnected,
     activityLog, custs, redeemedList, logout,
-    rafData, curMonth, setCScr, setNavOrigin, dark,
+    rafData, curMonth, setCScr, setNavOrigin, dark, chosenDark,
     myNotifs, markNotifsRead, rewardQrCloseSignal } = ctx;
 
   // FIX (11-ago): el guard va ANTES de todos los hooks (Rules of Hooks).
@@ -251,9 +251,11 @@ export default function ClientHome(ctx) {
   const tierAccent = isBlack ? '#FBBC04' : cTier.name === 'PLATINO' ? '#6B767D' : bento.gold;
   // Paleta del bento según el nivel (ORO cálida / PLATINO fría / BLACK oscura)
   const hp = homeColors(cTier.name);
-  // Cuadros del bento (14-ago): en BLACK son translúcidos por MODO para
-  // dejar ver las estrellas; modales/sheets siguen con hp (identidad).
-  const htp = homeTileColors(cTier.name, dark);
+  // Cuadros del bento (14-ago): en BLACK son translúcidos y siguen el
+  // modo ELEGIDO (chosenDark) — el fondo galaxia y las superficies van
+  // siempre en oscuro, la elección solo varía las cajas. Modales y
+  // sheets siguen con hp (identidad).
+  const htp = homeTileColors(cTier.name, chosenDark ?? dark);
 
   // ── WiFi por estación (25-jul): al abrir el modal se pide la
   // ubicación; a <300 m de una estación con red configurada se muestra

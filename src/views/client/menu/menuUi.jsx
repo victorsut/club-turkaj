@@ -2,7 +2,7 @@
 // Tema y piezas compartidas de la pestaña Menú (FORMATO GENERAL):
 // superficies flat sin bordes ni sombras, claro para ORO/PLATINO y
 // oscuro para BLACK.
-import { bento } from '../../../constants/styles';
+import { bento, clientMainBg } from '../../../constants/styles';
 import { ArrowLeft } from '../../../components/ui/Icons';
 
 // `dark` = modo claro/oscuro elegido por el usuario (24-jul); sin él,
@@ -14,7 +14,9 @@ export const menuTheme = (tier, dark = tier === 'BLACK') => {
     isDark,
     // BLACK: transparente en ambos modos — el shell de App pinta el
     // fondo (galaxia o perla) y las estrellas en deriva se ven detrás.
-    bg:      tier === 'BLACK' ? 'transparent' : isDark ? '#0E0E10' : bento.pageBg,
+    // El resto hereda clientMainBg para que el menú refleje el fondo
+    // del nivel (PLATINO oscuro azulado, 14-ago).
+    bg:      tier === 'BLACK' ? 'transparent' : isDark ? clientMainBg(tier, true) : bento.pageBg,
     surface: isDark ? 'rgba(255,255,255,.07)' : '#fff',
     inset:   isDark ? 'rgba(255,255,255,.05)' : '#F5F5F7',
     iconBox: isDark ? 'rgba(255,255,255,.12)' : '#0D0D0D',
