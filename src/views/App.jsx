@@ -1,6 +1,6 @@
 // src/views/App.jsx
 // Main orchestrator — manages global state, auth, Supabase sync, and view routing
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
 import { sb } from '../lib/supabaseClient';
 import { makeTier } from '../lib/tierSystem';
 import { CFG_INIT } from '../constants/config';
@@ -14,6 +14,7 @@ import useToast from '../hooks/useToast';
 
 // UI Components
 import BottomNav from '../components/ui/BottomNav';
+import LogoSpinner from '../components/ui/LogoSpinner';
 import GalaxyStars from '../components/ui/GalaxyStars';
 import SpecialDayBonusModal from '../components/SpecialDayBonusModal';
 import UpdateAvailable from '../components/UpdateAvailable';
@@ -46,31 +47,41 @@ import Rules from './shared/Rules';
 import ClientMenu from './client/ClientMenu';
 import ClientPromos from './client/ClientPromos';
 
+// ── Code splitting por ROL (14-ago) ─────────────────────────
+// Las vistas de OPERADOR y ADMIN se cargan bajo demanda (React.lazy):
+// el cliente — la audiencia masiva de la PWA — ya no descarga el panel
+// ni html5-qrcode (solo lo usan los escáneres del operador). Los
+// LOGINS de los 3 roles quedan EAGER (pantalla de entrada inmediata) y
+// las vistas del cliente también (son su camino crítico). El fallback
+// lo pinta el <Suspense> del render; si un chunk falla por un deploy
+// entre medio, main.jsx recarga la página (vite:preloadError).
+
 // Operator Views
-import OpHome from './operator/OpHome';
-import OpClients from './operator/OpClients';
-import OpRedeem from './operator/OpRedeem';
-import OpRaffle from './operator/OpRaffle';
+const OpHome = lazy(() => import('./operator/OpHome'));
+const OpClients = lazy(() => import('./operator/OpClients'));
+const OpRedeem = lazy(() => import('./operator/OpRedeem'));
+const OpRaffle = lazy(() => import('./operator/OpRaffle'));
 
 // Admin Views
-import AdminDash from './admin/AdminDash';
-import AdminShell from './admin/AdminShell';
-import Members from './admin/Members';
-import MemberDetail from './admin/MemberDetail';
-import AdminRaffle from './admin/AdminRaffle';
-import AdminPremios from './admin/AdminPremios';
-import Settings from './admin/Settings';
-import AdminPromos from './admin/AdminPromos';
-import PromoRules from './admin/PromoRules';
-import OpManagement from './admin/OpManagement';
-import AdminManagement from './admin/AdminManagement';
-import AdminCatalog from './admin/AdminCatalog';
-import AnClientes from './admin/analytics/AnClientes';
-import AnOperadores from './admin/analytics/AnOperadores';
-import AnPromos from './admin/analytics/AnPromos';
-import AnIntegridad from './admin/analytics/AnIntegridad';
-import AdminStations from './admin/AdminStations';
-import AuditLog from './admin/AuditLog';
+const AdminDash = lazy(() => import('./admin/AdminDash'));
+const AdminShell = lazy(() => import('./admin/AdminShell'));
+const Members = lazy(() => import('./admin/Members'));
+const MemberDetail = lazy(() => import('./admin/MemberDetail'));
+const AdminRaffle = lazy(() => import('./admin/AdminRaffle'));
+const AdminPremios = lazy(() => import('./admin/AdminPremios'));
+const Settings = lazy(() => import('./admin/Settings'));
+const AdminPromos = lazy(() => import('./admin/AdminPromos'));
+const PromoRules = lazy(() => import('./admin/PromoRules'));
+const OpManagement = lazy(() => import('./admin/OpManagement'));
+const AdminManagement = lazy(() => import('./admin/AdminManagement'));
+const AdminCatalog = lazy(() => import('./admin/AdminCatalog'));
+const AnClientes = lazy(() => import('./admin/analytics/AnClientes'));
+const AnOperadores = lazy(() => import('./admin/analytics/AnOperadores'));
+const AnPromos = lazy(() => import('./admin/analytics/AnPromos'));
+const AnIntegridad = lazy(() => import('./admin/analytics/AnIntegridad'));
+const AdminStations = lazy(() => import('./admin/AdminStations'));
+const AuditLog = lazy(() => import('./admin/AuditLog'));
+
 import VehiclesSoon from './client/VehiclesSoon';
 import { originFromEvent } from '../lib/motionOrigin';
 import { isPushSupported, subscribePush } from '../lib/pushNotifications';
@@ -697,6 +708,14 @@ export default function App() {
             veían "bajar de opacidad" segundos después de entrar. z-auto
             no crea stacking context → los modales internos siguen
             pudiendo tapar la BottomNav. */}
+        {/* Suspense del code splitting por rol: mientras baja el chunk
+            del operador/admin se muestra el spinner de marca centrado
+            (el cliente es eager — nunca lo ve en su camino). */}
+        <Suspense fallback={
+          <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <LogoSpinner size={44} dark={isA || (isC && dark)} />
+          </div>
+        }>
         {isC && authScreen === 'logged'
           ? (
             <div
@@ -712,6 +731,7 @@ export default function App() {
             // iconos en tableta, drawer en móvil. Sin BottomNav.
             ? <AdminShell ctx={ctx}>{renderScreen()}</AdminShell>
             : renderScreen()}
+        </Suspense>
 
         {/* Bottom navigation — el cliente no la ve hasta elegir empresa;
             el admin dejó de usarla (Admin v2: menú lateral) */}
