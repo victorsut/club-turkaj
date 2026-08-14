@@ -1,13 +1,10 @@
 // src/views/client/ClientHome.jsx
 // Main client dashboard: tier card, stats, survey, QR, promo carousel, history
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { sb } from '../../lib/supabaseClient';
-import { bento, BRAND_ORANGE, homeColors, homeTileColors } from '../../constants/styles';
-import PromoCard from '../../components/ui/PromoCard';
+import { useState } from 'react';
+import { bento, homeColors, homeTileColors } from '../../constants/styles';
 import { CARD_PREFIX } from '../../constants/config';
 import OpRatingModal from '../../components/OpRatingModal';
 import SurveyResultModal from '../../components/SurveyResultModal';
-import Wordmark from '../../components/ui/Wordmark';
 import LegalFooter from '../../components/ui/LegalFooter';
 import BentoTile from '../../components/ui/BentoTile';
 import TierCardBento from '../../components/ui/TierCardBento';
@@ -17,23 +14,27 @@ import TierDetailModal from './home/TierDetailModal';
 import WifiModal from './home/WifiModal';
 import StationsMapModal from './home/StationsMapModal';
 import SurveyStationsModal from './home/SurveyStationsModal';
+import HomeHeader from './home/HomeHeader';
+import PromoBentoTile from './home/PromoBentoTile';
 import useShortScreen from '../../hooks/useShortScreen';
 import useSurveyFlow from '../../hooks/useSurveyFlow';
-import { Menu, Bell, HelpCircle } from '../../components/ui/Icons';
 import NotificationsSheet from './NotificationsSheet';
 import SupportSheet from '../../components/ui/SupportSheet';
-import { GiftIcon, CarIcon, WifiIcon, SurveyIcon, PinIcon, TicketStarIcon, BagIcon } from '../../components/ui/BentoIcons';
+import { CarIcon, WifiIcon, SurveyIcon, PinIcon, TicketStarIcon, BagIcon } from '../../components/ui/BentoIcons';
 import { originFromEvent, centerDeltaFromEvent } from '../../lib/motionOrigin';
 
 export default function ClientHome(ctx) {
-  const { me, gT, cfg, cTier, TH, activePromos, promoIdx, setPromoIdx,
-    mySurveyCount, doSurvey, showHist, setShowHist,
-    showInvite, setShowInvite, showRedeemed, setShowRedeemed,
+  // Poda 14-ago (división etapa 3): fuera del ctx los símbolos MUERTOS
+  // en esta vista (gT, TH, showHist, showInvite, showRedeemed, custs,
+  // logout, rafData, curMonth — este último solo alimentaba el derivado
+  // currentMonthTickets, también muerto).
+  const { me, cfg, cTier, activePromos, promoIdx, setPromoIdx,
+    mySurveyCount, doSurvey,
     showWifi, setShowWifi, showMap, setShowMap, stations, showQR,
     showSurveys, setShowSurveys, fire,
     pendingOpRating, setPendingOpRating, sbConnected,
-    activityLog, custs, redeemedList, logout,
-    rafData, curMonth, setCScr, setNavOrigin, dark, chosenDark,
+    activityLog, redeemedList,
+    setCScr, setNavOrigin, dark, chosenDark,
     myNotifs, markNotifsRead, rewardQrCloseSignal } = ctx;
 
   // FIX (11-ago): el guard va ANTES de todos los hooks (Rules of Hooks).
@@ -44,48 +45,11 @@ export default function ClientHome(ctx) {
   // lo detecte en el proyecto.
   if (!me) return null;
 
-  // Campana de notificaciones (28-jul): badge con las sin leer; abre
-  // el inbox (NotificationsSheet) con container transform desde el ícono.
+  // Campana (badge de no leídas — el header vive en HomeHeader) y
+  // canal de asistencia; los sheets se renderizan acá.
   const [showNotifs, setShowNotifs] = useState(null); // { origin } | null
   const unreadN = (myNotifs || []).filter(n => !n.read_at).length;
-  const bellBtn = (extraStyle) => (
-    <button onClick={(e) => setShowNotifs({ origin: originFromEvent(e) })} aria-label="Notificaciones" style={{
-      width: 42, height: 42, border: 'none', cursor: 'pointer',
-      background: 'none', color: headerTxt, position: 'relative',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      flexShrink: 0, padding: 0, ...extraStyle,
-    }}>
-      <Bell />
-      {unreadN > 0 && (
-        <span style={{
-          position: 'absolute', top: 4, right: 4,
-          minWidth: 16, height: 16, borderRadius: 8, padding: '0 4px',
-          background: bento.red, color: '#fff',
-          fontSize: 9.5, fontWeight: 800, lineHeight: '16px',
-          fontFamily: "'DM Sans'", boxSizing: 'border-box',
-        }}>
-          {unreadN > 9 ? '9+' : unreadN}
-        </span>
-      )}
-    </button>
-  );
-
-  // Canal de asistencia (4-ago): icono de ayuda a la par de la campana
   const [supportOpen, setSupportOpen] = useState(false);
-  const helpBtn = () => (
-    <button onClick={() => setSupportOpen(true)} aria-label="Asistencia y ayuda" style={{
-      width: 42, height: 42, border: 'none', cursor: 'pointer',
-      background: 'none', color: headerTxt,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      flexShrink: 0, padding: 0,
-    }}>
-      <HelpCircle />
-    </button>
-  );
-
-  // Boletos válidos solo para el mes en curso
-  const currentMonthTickets = (rafData?.[curMonth]?.participants || [])
-    .find(p => p.cid === me.id)?.tickets || 0;
 
   // Flujo de la Encuesta de Satisfacción (pendiente persistida +
   // resolución en 3 vías + modal de resultado) — hooks/useSurveyFlow.
@@ -111,23 +75,10 @@ export default function ClientHome(ctx) {
 
   // ── R1b: estado del home bento ────────────────────────────
   const isBlack = cTier.name === 'BLACK';
-  const headerTxt = dark ? '#fff' : '#0D0D0D';
-  // Línea institucional bajo el saludo (referencia encabezado inicio)
-  const taglineFg = dark ? 'rgba(255,255,255,.55)' : '#6E6E73';
-  // Halo sutil del logo Turkaj en modo oscuro: separa los contornos
-  // negros del arte del fondo (pedido del dueño 1-ago)
-  const turkajHalo = dark
-    ? 'drop-shadow(0 0 5px rgba(255,255,255,.4)) drop-shadow(0 0 16px rgba(255,255,255,.18))'
-    : 'none';
   // Pantallas cortas: tipografías y paddings compactos para caber sin scroll.
   const shortScr = useShortScreen();
-  const firstName = (me.name || '').trim().split(' ')[0] || 'cliente';
   const [showTierDetail, setShowTierDetail] = useState(false);
   const [histSheet, setHistSheet] = useState(null); // { type: 'compras'|'canjes', origin } | null
-  // R1b.2: tracking del arrastre del carrusel de promos (un swipe
-  // horizontal cambia la card; un tap navega a la ventana PROMOCIONES).
-  const promoTouchRef = useRef(null);
-  const promoSwipedRef = useRef(false);
   // D35: punto del último cuadro presionado → el modal centrado "sale"
   // de ahí (transform-origin relativo al centro del viewport).
   const [modalOrigin, setModalOrigin] = useState(null);
@@ -155,27 +106,6 @@ export default function ClientHome(ctx) {
   // sheets siguen con hp (identidad).
   const htp = homeTileColors(cTier.name, chosenDark ?? dark);
 
-  // Saludo festivo (D34): special_days de hoy (hora de Guatemala) o cumpleaños.
-  const [festivo, setFestivo] = useState(null);
-  useEffect(() => {
-    if (!sb || !sbConnected) return;
-    const todayGT = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Guatemala' }); // YYYY-MM-DD
-    const mm = parseInt(todayGT.slice(5, 7), 10);
-    const dd = parseInt(todayGT.slice(8, 10), 10);
-    sb.from('special_days').select('name, month, day, icon, active').eq('active', true)
-      .then(({ data }) => {
-        if (!data) return;
-        const hit = data.find(s => s.month === mm && s.day === dd);
-        if (hit) { setFestivo({ name: hit.name, icon: hit.icon || '🎉' }); return; }
-        // month=0 = cumpleaños del miembro (regla del sistema).
-        // bday puede ser 'MM-DD' (miembros antiguos) o 'YYYY-MM-DD'.
-        const bdayMD = (me.bday || '').length === 10 ? me.bday.slice(5) : me.bday;
-        if (data.some(s => s.month === 0) && bdayMD && bdayMD === todayGT.slice(5)) {
-          setFestivo({ bday: true, icon: '🎂' });
-        }
-      });
-  }, [sbConnected, me.bday]);
-
   return (
     <div style={{ background: (dark || isBlack) ? 'transparent' : bento.pageBg }}>
       {/* Sección que llena la resolución del dispositivo; el disclaimer
@@ -185,82 +115,14 @@ export default function ClientHome(ctx) {
       {/* Aviso de inactividad — solo con el motor de degradación ACTIVO */}
       {cfg.degradEnabled && <InactivityWarning lastBuy={me.lastBuy} tierName={cTier.name} dark={dark} />}
 
-      {/* Header + saludo (FORMATO GENERAL). En pantallas cortas se OMITE
-          el logo (decisión del dueño 23-jul): solo saludo compacto +
-          botón de menú; en pantallas grandes el logo conserva su fila
-          propia como la referencia. El menú plano sustituye la campana
-          (D34). */}
-      {shortScr ? (
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '12px 18px 0' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: headerTxt }}>¡Hola, {firstName}!</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: headerTxt, lineHeight: 1.2 }}>Bienvenido a</div>
-            <div style={{ lineHeight: 1.1 }}>
-              <Wordmark size={28} color={headerTxt} />
-            </div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: taglineFg, marginTop: 3 }}>
-              {cfg.companyName || 'Gasolineras Turkaj'}, {cfg.companyLocation || 'Chichicastenango'}
-            </div>
-          </div>
-          {/* Columna derecha: bell + menú arriba, logo Turkaj debajo
-              (referencia encabezado inicio — logo interno de la app;
-              la marca de la app sigue siendo Puntos Plus) */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              {helpBtn()}
-              {bellBtn()}
-              <button onClick={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('menu'); }} aria-label="Menú" style={{
-                width: 42, height: 42, border: 'none', cursor: 'pointer',
-                background: 'none', color: headerTxt,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0, padding: 0,
-              }}>
-                <Menu />
-              </button>
-            </div>
-            <img src="/logo-turkaj.png" alt="Turkaj" style={{ width: 82, marginTop: 2, filter: turkajHalo }} />
-          </div>
-        </div>
-      ) : (
-        <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 18px 0' }}>
-            <img src="/logo.png" alt="Puntos Plus" style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0 }} />
-            <div style={{ flex: 1 }} />
-            {helpBtn()}
-            {bellBtn()}
-            <button onClick={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('menu'); }} aria-label="Menú" style={{
-              width: 42, height: 42, border: 'none', cursor: 'pointer',
-              background: 'none', color: headerTxt,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0, padding: 0,
-            }}>
-              <Menu />
-            </button>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 20px 0' }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 16, fontWeight: 600, color: headerTxt }}>¡Hola, {firstName}!</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: headerTxt, lineHeight: 1.25 }}>Bienvenido a</div>
-              <div style={{ lineHeight: 1.1 }}>
-                <Wordmark size={34} color={headerTxt} />
-              </div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: taglineFg, marginTop: 4 }}>
-                {cfg.companyName || 'Gasolineras Turkaj'}, {cfg.companyLocation || 'Chichicastenango'}
-              </div>
-            </div>
-            {/* Logo Turkaj a la derecha del saludo (referencia encabezado
-                inicio) — uso interno; la app conserva su logo Puntos Plus */}
-            <img src="/logo-turkaj.png" alt="Turkaj" style={{ width: 106, flexShrink: 0, filter: turkajHalo }} />
-          </div>
-        </>
-      )}
-
-      {/* Saludo festivo vía special_days (D34) */}
-      {festivo && (
-        <div style={{ padding: '4px 20px 0', fontSize: 12, fontWeight: 800, color: BRAND_ORANGE }}>
-          {festivo.icon} {festivo.bday ? `¡Feliz cumpleaños, ${firstName}!` : `¡Feliz ${festivo.name}!`}
-        </div>
-      )}
+      {/* Header + saludo + festivo (home/HomeHeader) */}
+      <HomeHeader
+        me={me} cfg={cfg} dark={dark} shortScr={shortScr}
+        unreadN={unreadN} sbConnected={sbConnected}
+        onOpenNotifs={(e) => setShowNotifs({ origin: originFromEvent(e) })}
+        onOpenSupport={() => setSupportOpen(true)}
+        onOpenMenu={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('menu'); }}
+      />
 
       {/* Tarjeta de nivel (D34: doble zona táctil — general → detalle, puntos → Canjes) */}
       <TierCardBento
@@ -273,70 +135,12 @@ export default function ClientHome(ctx) {
       {/* ── Bento grid (referencia FORMATO GENERAL) ── */}
       <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: 'auto 1fr 1fr auto', gap: shortScr ? 9 : 11, padding: shortScr ? '10px 16px 0' : '12px 16px 0' }}>
 
-        {/* 1 · Promociones (R1b.2/D33): card 1:1 compuesta (título +
-            descripción + sujeto). Tap → ventana PROMOCIONES; arrastre
-            horizontal DENTRO del cuadro → cambia el carrusel. */}
-        <div
-          className="pp-tile"
-          onTouchStart={(e) => {
-            promoTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-            promoSwipedRef.current = false;
-          }}
-          onTouchEnd={(e) => {
-            const t = promoTouchRef.current;
-            if (!t || activePromos.length < 2) return;
-            const dx = e.changedTouches[0].clientX - t.x;
-            const dy = e.changedTouches[0].clientY - t.y;
-            if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy)) {
-              promoSwipedRef.current = true;
-              setPromoIdx(i => (i + (dx < 0 ? 1 : -1) + activePromos.length) % activePromos.length);
-            }
-          }}
-          onClick={(e) => {
-            // Un arrastre no navega: solo cambia la card visible.
-            if (promoSwipedRef.current) { promoSwipedRef.current = false; return; }
-            if (setNavOrigin) setNavOrigin(originFromEvent(e));
-            setCScr('promos');
-          }}
-          style={{
-            background: bento.red, borderRadius: bento.radius, aspectRatio: '1 / 1',
-            position: 'relative', overflow: 'hidden',
-            cursor: 'pointer', color: '#fff', animationDelay: '0ms',
-            touchAction: 'pan-y',
-          }}
-        >
-          {activePromos.length === 0 ? (
-            <div style={{ position: 'absolute', inset: 0, padding: '15px 16px 14px', display: 'flex', flexDirection: 'column' }}>
-              <GiftIcon />
-              <div style={{ marginTop: 'auto', paddingTop: 10 }}>
-                <div style={{ fontSize: 14, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5 }}>Promociones</div>
-                <div style={{ fontSize: 11.5, opacity: 0.9, marginTop: 3, fontWeight: 500 }}>Descubre ofertas exclusivas</div>
-              </div>
-            </div>
-          ) : (
-            <>
-              {activePromos.map((p, i) => (
-                <PromoCard
-                  key={p.id}
-                  promo={p}
-                  ratio="1:1"
-                  style={{
-                    position: 'absolute', inset: 0, aspectRatio: 'auto', borderRadius: 0,
-                    opacity: i === promoIdx ? 1 : 0, transition: 'opacity .5s ease',
-                    pointerEvents: 'none',
-                  }}
-                />
-              ))}
-              {activePromos.length > 1 && (
-                <div style={{ position: 'absolute', bottom: 7, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 4 }}>
-                  {activePromos.map((_, i) => (
-                    <div key={i} style={{ width: i === promoIdx ? 14 : 5, height: 5, borderRadius: 3, background: '#fff', opacity: i === promoIdx ? 0.95 : 0.45, transition: 'all .3s' }} />
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </div>
+        {/* 1 · Promociones (R1b.2/D33 — home/PromoBentoTile): tap →
+            ventana PROMOCIONES; arrastre horizontal → cambia el carrusel */}
+        <PromoBentoTile
+          activePromos={activePromos} promoIdx={promoIdx} setPromoIdx={setPromoIdx}
+          onOpen={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('promos'); }}
+        />
 
         {/* 2 · Vehículo (placeholder hasta F6 — D34) */}
         <BentoTile
