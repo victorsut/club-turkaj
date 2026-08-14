@@ -1,6 +1,6 @@
 // src/views/client/ClientHome.jsx
 // Main client dashboard: tier card, stats, survey, QR, promo carousel, history
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { sMono, bento, BRAND_ORANGE, homeColors } from '../../constants/styles';
 import PromoCard from '../../components/ui/PromoCard';
@@ -85,25 +85,28 @@ export default function ClientHome(ctx) {
   const currentMonthTickets = (rafData?.[curMonth]?.participants || [])
     .find(p => p.cid === me.id)?.tickets || 0;
 
-  // Survey timer: wait 90 seconds before granting points.
+  // Encuesta pendiente: se asume completada tras SURVEY_WAIT segundos
+  // en la página de Shell (el cliente NO ve el tiempo — sin contadores).
   // Compartido entre el modal de encuestas y OpRatingModal (paso 2).
-  const [surveyPending, setSurveyPending] = useState(null); // { openedAt, stationName }
-  const [surveyCountdown, setSurveyCountdown] = useState(0);
+  // Persiste en localStorage: en móvil el SO suele RECARGAR la PWA
+  // mientras el cliente pasa el tiempo en Shell; sin persistencia el
+  // estado moría y los puntos nunca se otorgaban.
+  const [surveyPending, setSurveyPendingState] = useState(() => {
+    try {
+      const p = JSON.parse(localStorage.getItem('pp_survey_pending'));
+      return (p && typeof p.openedAt === 'number') ? p : null;
+    } catch { return null; }
+  }); // { openedAt, stationName }
+  const setSurveyPending = useCallback((p) => {
+    setSurveyPendingState(p);
+    try {
+      if (p) localStorage.setItem('pp_survey_pending', JSON.stringify(p));
+      else localStorage.removeItem('pp_survey_pending');
+    } catch { /* storage no disponible (in-app browsers) */ }
+  }, []);
 
-  useEffect(() => {
-    if (!surveyPending) { setSurveyCountdown(0); return; }
-    const tick = () => {
-      const elapsed = Math.floor((Date.now() - surveyPending.openedAt) / 1000);
-      const remaining = Math.max(0, SURVEY_WAIT - elapsed);
-      setSurveyCountdown(remaining);
-      if (remaining <= 0) clearInterval(iv);
-    };
-    tick();
-    const iv = setInterval(tick, 1000);
-    return () => clearInterval(iv);
-  }, [surveyPending]);
-
-  // Auto-cancel or auto-claim when user returns to the app
+  // Auto-cancel or auto-claim when user returns to the app.
+  // El toast de éxito lo pone doSurvey (con el conteo real del server).
   useEffect(() => {
     if (!surveyPending) return;
     const handleVisibility = () => {
@@ -114,7 +117,6 @@ export default function ClientHome(ctx) {
         doSurvey();
         setSurveyPending(null);
         setShowSurveys(false);
-        fire(`Encuesta completada · +${cfg.surveyPts} pts`, 'success');
       } else {
         // Returned too early — cancel
         setSurveyPending(null);
@@ -123,7 +125,24 @@ export default function ClientHome(ctx) {
     };
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [surveyPending, doSurvey, cfg.surveyPts, fire, setShowSurveys]);
+  }, [surveyPending, doSurvey, fire, setShowSurveys, setSurveyPending]);
+
+  // Resolución al montar (una sola vez, con la sesión ya lista): si la
+  // PWA se recargó mientras el cliente estaba en Shell, acá se restaura
+  // la encuesta pendiente y se otorgan los puntos; si aún no cumplió el
+  // tiempo, la espera sigue viva y la resuelve el handler de visibilidad.
+  const surveyResumeChecked = useRef(false);
+  useEffect(() => {
+    if (surveyResumeChecked.current) return;
+    if (!surveyPending || !sbConnected || !me?.id) return;
+    surveyResumeChecked.current = true;
+    const elapsed = Math.floor((Date.now() - surveyPending.openedAt) / 1000);
+    if (elapsed >= SURVEY_WAIT) {
+      doSurvey();
+      setSurveyPending(null);
+      setShowSurveys(false);
+    }
+  }, [surveyPending, sbConnected, me?.id, doSurvey, setShowSurveys, setSurveyPending]);
 
   // Codigo de tarjeta con prefijo dinamico segun tier actual
   const tierPrefix = CARD_PREFIX[cTier.name] || 'CTOD';
@@ -809,7 +828,9 @@ export default function ClientHome(ctx) {
               });
             })()}
 
-            {/* Pending survey: countdown */}
+            {/* Pending survey: esperando el regreso de Shell — SIN
+                contador visible (el cliente no debe saber que basta
+                esperar SURVEY_WAIT) */}
             {surveyPending && (
               <div style={{
                 background: dark ? 'rgba(217,164,11,.14)' : '#FAF1DC',
@@ -822,19 +843,8 @@ export default function ClientHome(ctx) {
                 }}>
                   <Clock /> Completá la encuesta de {surveyPending.stationName}
                 </div>
-                <div style={{ fontSize: 28, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: dark ? '#fff' : '#0D0D0D' }}>
-                  {Math.floor(surveyCountdown / 60)}:{String(surveyCountdown % 60).padStart(2, '0')}
-                </div>
                 <div style={{ fontSize: 11, fontWeight: 600, color: dark ? 'rgba(255,255,255,.5)' : '#6E6E73', marginTop: 4 }}>
-                  Permanecé en la página de Shell · Los puntos se asignan al volver
-                </div>
-                {/* Progress bar */}
-                <div style={{ height: 4, borderRadius: 2, overflow: 'hidden', background: dark ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.06)', marginTop: 10 }}>
-                  <div style={{
-                    height: '100%', borderRadius: 2, transition: 'width 1s linear',
-                    width: `${((SURVEY_WAIT - surveyCountdown) / SURVEY_WAIT) * 100}%`,
-                    background: bento.amber,
-                  }} />
+                  Respondé todas las preguntas en la página de Shell · Tus puntos se asignan al terminar
                 </div>
               </div>
             )}
@@ -876,7 +886,6 @@ export default function ClientHome(ctx) {
           accentInk={hp.surveyInk || '#fff'}
           surveyPending={surveyPending}
           setSurveyPending={setSurveyPending}
-          surveyCountdown={surveyCountdown}
         />
       )}
 

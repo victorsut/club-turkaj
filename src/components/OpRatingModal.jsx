@@ -2,14 +2,15 @@
 // Modal post-compra en el dispositivo del cliente (Realtime INSERT de
 // purchases): paso 1 califica al operador con estrellas; paso 2 invita
 // a la Encuesta de Satisfacción de Shell de la estación de ESA compra.
-// La encuesta reutiliza el flujo del home (surveyPending + timer 90s
-// viven en ClientHome; acá solo se lanza y se muestra el countdown —
-// al volver de Shell, el handler de visibilidad de ClientHome otorga
-// los puntos o cancela, y este modal se cierra solo).
+// La encuesta reutiliza el flujo del home (surveyPending + espera
+// SURVEY_WAIT viven en ClientHome; acá solo se lanza y se muestra el
+// estado de espera SIN contador visible — al volver de Shell, el
+// handler de visibilidad de ClientHome otorga los puntos o cancela,
+// y este modal se cierra solo).
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { sb } from '../lib/supabaseClient';
 import { bento, BRAND_ORANGE } from '../constants/styles';
-import { SHELL_SURVEYS, SURVEY_WAIT } from '../constants/config';
+import { SHELL_SURVEYS } from '../constants/config';
 import { Fuel, Pin, Clock, StarRate } from './ui/Icons';
 import { SurveyIcon } from './ui/BentoIcons';
 import LogoSpinner from './ui/LogoSpinner';
@@ -19,7 +20,7 @@ import { rateOperatorSecure } from '../services/secureReads';
 export default function OpRatingModal({
   data, onClose, dark, memberId, sbConnected, fire,
   cfg, mySurveyCount, accent, accentInk,
-  surveyPending, setSurveyPending, surveyCountdown,
+  surveyPending, setSurveyPending,
 }) {
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState('rate'); // 'rate' | 'survey'
@@ -207,7 +208,8 @@ export default function OpRatingModal({
 
             {surveyPending ? (
               <>
-                {/* Countdown — mismo bloque ámbar del modal de encuestas */}
+                {/* Esperando el regreso de Shell — mismo bloque ámbar del
+                    modal de encuestas, SIN contador visible */}
                 <div style={{
                   background: dark ? 'rgba(217,164,11,.14)' : '#FAF1DC',
                   borderRadius: 16, padding: 16, marginBottom: 8, textAlign: 'center',
@@ -219,18 +221,8 @@ export default function OpRatingModal({
                   }}>
                     <Clock /> Completá la encuesta de {surveyPending.stationName}
                   </div>
-                  <div style={{ fontSize: 28, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: dark ? '#fff' : '#0D0D0D' }}>
-                    {Math.floor(surveyCountdown / 60)}:{String(surveyCountdown % 60).padStart(2, '0')}
-                  </div>
                   <div style={{ fontSize: 11, fontWeight: 600, color: subTxt, marginTop: 4 }}>
-                    Permanecé en la página de Shell · Los puntos se asignan al volver
-                  </div>
-                  <div style={{ height: 4, borderRadius: 2, overflow: 'hidden', background: dark ? 'rgba(255,255,255,.1)' : 'rgba(0,0,0,.06)', marginTop: 10 }}>
-                    <div style={{
-                      height: '100%', borderRadius: 2, transition: 'width 1s linear',
-                      width: `${((SURVEY_WAIT - surveyCountdown) / SURVEY_WAIT) * 100}%`,
-                      background: bento.amber,
-                    }} />
+                    Respondé todas las preguntas en la página de Shell · Tus puntos se asignan al terminar
                   </div>
                 </div>
                 <button onClick={() => { setSurveyPending(null); close(); }} style={{

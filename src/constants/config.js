@@ -102,7 +102,10 @@ export const SPECIAL_EVENTS = [
 // `name` debe coincidir EXACTO con stations.name — es la llave
 // que une la compra (Realtime) y el modal de encuestas con su URL.
 // ──────────────────────────────────────────────
-export const SURVEY_WAIT = 90; // segundos mínimos en la página de Shell
+// Mínimo de permanencia en la página de Shell para asumir la encuesta
+// completada (decisión del dueño 14-ago: 1:15). El cliente NO ve este
+// tiempo — no mostrar contadores ni barras derivadas de él.
+export const SURVEY_WAIT = 75;
 
 export const SHELL_SURVEYS = [
   { name: 'Turkaj I',   url: 'https://tellshell.shell.com/GTM?source=smartQR&s=10700531' },
