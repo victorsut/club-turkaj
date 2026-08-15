@@ -10,7 +10,7 @@
 // (admin_write_catalog arma `{create|update|delete}_{entidad}`).
 import { useState, useEffect, useCallback } from 'react';
 import { adminTheme as AT, inputStyleDark, sMono } from '../../constants/styles';
-import { getAdminAuditLog } from '../../services/rpcServices';
+import { getAdminAuditLog } from '../../services/adminRpcServices';
 
 const PAGE_SIZE = 20;
 

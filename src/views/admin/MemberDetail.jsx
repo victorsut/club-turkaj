@@ -16,7 +16,7 @@ import { Back, Plus } from '../../components/ui/Icons';
 import ReasonModal from '../../components/ui/ReasonModal';
 import { VEHICLE_TYPES } from '../../components/ui/VehicleIcons';
 import { EditMemberModal, PwResetModal, VehicleModal, buildDiff, validateForm } from './MemberDetailModals';
-import { updateMemberWithAudit, adminResetMemberPassword } from '../../services/rpcServices';
+import { updateMemberWithAudit, adminResetMemberPassword } from '../../services/adminRpcServices';
 import { fetchActivityStaff } from '../../services/secureReads';
 import { plateMask, phoneMask, dpiMask } from '../../lib/inputMasks';
 import { stripEmojis } from '../../lib/text';

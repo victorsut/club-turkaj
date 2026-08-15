@@ -6,6 +6,7 @@
 // ============================================================
 
 export * from './rpcServices';
+export * from './adminRpcServices';
 export * from './secureReads';
 export * from './promoService';
 export * from './dataService';

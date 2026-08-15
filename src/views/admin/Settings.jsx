@@ -11,7 +11,7 @@
 import { useState, useEffect } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { sMono, adminTheme as AT, inputStyleDark } from '../../constants/styles';
-import { updateFuelPrices } from '../../services/rpcServices';
+import { updateFuelPrices } from '../../services/adminRpcServices';
 import { createApiClient } from '../../services/adminAuthService';
 import { getAdminToken } from '../../services/sessionTokens';
 import ReasonModal from '../../components/ui/ReasonModal';
