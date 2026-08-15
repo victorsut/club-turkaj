@@ -1,12 +1,15 @@
 // src/components/SplashIntro.jsx
-// Animación de ENTRADA de la app (pedido del dueño 15-ago-2026, v2
-// "más moderna y dinámica"): una moneda PP entra con volteo 3D, un
-// anillo de progreso naranja se dibuja a su alrededor mientras 9
-// monedas satélite entran en ARCO (easings distintos por eje = curva)
-// y se absorben; contador de puntos sincronizado, destello que barre
-// la moneda y wordmark PUNTOS PLUS. Identidad del logo: naranja
-// #FA5408, negro #0D0D0D, blanco. Todo CSS puro transform/opacity +
-// un contador rAF (barato en cualquier teléfono).
+// Animación de ENTRADA de la app (dueño 15-ago-2026, v3 fiel al LOGO):
+// monedas con el estilo PLANO del logo oficial — disco naranja liso y
+// el monograma de DOS P itálicas (blanca arriba-izquierda, negra al
+// frente abajo-derecha, mismas ubicaciones del logo) con extrusión 3D
+// y RESPLANDOR naranja. Coreografía v3: las monedas CAEN desde la
+// parte superior IZQUIERDA, REBOTAN en el piso (gravedad por tramos:
+// cada segmento del keyframe lleva su propio easing) y salen hacia la
+// parte inferior DERECHA. Sin contador (retirado a pedido). La moneda
+// héroe central entra con volteo 3D y un anillo de progreso naranja
+// se dibuja a su alrededor; remata el wordmark PUNTOS PLUS.
+// Todo CSS puro transform/opacity — barato en cualquier teléfono.
 //
 // CUÁNDO se muestra (regla del dueño 15-ago):
 // - Cliente SIN sesión (pantalla de login): en CADA carga/recarga
@@ -20,58 +23,58 @@
 import { useEffect, useRef, useState } from 'react';
 import { BRAND_ORANGE } from '../constants/styles';
 
-const ORANGE_DEEP = '#C43D02'; // canto/borde de la moneda
+const ORANGE_DEEP = '#C43D02'; // aro del canto de la moneda (plano)
 const SPLASH_TOTAL = 2400;     // ms hasta iniciar la salida
 const SPLASH_FADE = 380;       // ms del fundido de salida
-const COUNT_FROM_MS = 420;     // el contador arranca con la 1ª moneda
-const COUNT_UNTIL_MS = 1850;   // y cierra cuando llega la última
-const COUNT_TARGET = 100;      // cifra simbólica de acumulación
 const RING_R = 56;             // radio del anillo de progreso
 const RING_C = 2 * Math.PI * RING_R;
 
-// Moneda PP en SVG: disco naranja con degradado metálico, canto
-// profundo, estrías del borde, monograma PP blanco y brillo especular.
-function CoinPP({ size = 96, id = 'c' }) {
+// Moneda PP fiel al logo oficial: disco naranja PLANO (sin degradados
+// ni brillos de metal) con aro del canto apenas más oscuro, y el
+// monograma del logo — P blanca arriba-izquierda, P NEGRA AL FRENTE
+// abajo-derecha, itálicas — con extrusión 3D hacia abajo-derecha
+// (copias apiladas, luz desde arriba-izquierda como en el resto de la
+// interfaz). El resplandor lo pone el wrapper (box-shadow).
+function CoinPP({ size = 96 }) {
+  // Extrusión: copias desplazadas detrás de la cara de cada letra.
+  const extrude = (x, y, fill, steps, color) => (
+    <>
+      {[...Array(steps)].map((_, i) => (
+        <text key={i} x={x + (steps - i) * 1.1} y={y + (steps - i) * 1.1}
+          textAnchor="middle" dominantBaseline="central"
+          fontFamily="'DM Sans', sans-serif" fontWeight="900" fontStyle="italic"
+          fontSize="44" fill={color}>P</text>
+      ))}
+      <text x={x} y={y} textAnchor="middle" dominantBaseline="central"
+        fontFamily="'DM Sans', sans-serif" fontWeight="900" fontStyle="italic"
+        fontSize="44" fill={fill}>P</text>
+    </>
+  );
   return (
     <svg width={size} height={size} viewBox="0 0 96 96" aria-hidden style={{ display: 'block' }}>
-      <defs>
-        <linearGradient id={`ppg-${id}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#FF7A33" />
-          <stop offset="55%" stopColor={BRAND_ORANGE} />
-          <stop offset="100%" stopColor="#E04303" />
-        </linearGradient>
-      </defs>
       <circle cx="48" cy="48" r="46" fill={ORANGE_DEEP} />
-      <circle cx="48" cy="48" r="42.5" fill={`url(#ppg-${id})`} />
-      {/* estrías del canto */}
-      <circle cx="48" cy="48" r="38" fill="none" stroke="rgba(255,255,255,.4)"
-        strokeWidth="1.6" strokeDasharray="2.4 3.4" />
-      {/* relieve interior */}
-      <circle cx="48" cy="48" r="33" fill="none" stroke="rgba(13,13,13,.18)" strokeWidth="2" />
-      <text x="48" y="48" textAnchor="middle" dominantBaseline="central"
-        fontFamily="'DM Sans', sans-serif" fontWeight="900" fontSize="34"
-        letterSpacing="-2" fill="#fff">PP</text>
-      {/* brillo especular arriba-izquierda */}
-      <ellipse cx="34" cy="26" rx="16" ry="8" fill="rgba(255,255,255,.28)"
-        transform="rotate(-28 34 26)" />
+      <circle cx="48" cy="48" r="42.5" fill={BRAND_ORANGE} />
+      {/* P blanca del logo (arriba-izquierda), extrusión gris fría */}
+      {extrude(40, 39, '#FFFFFF', 3, 'rgba(0,0,0,.32)')}
+      {/* P negra del logo (al frente, abajo-derecha), extrusión cálida */}
+      {extrude(58, 57, '#0D0D0D', 3, '#7A2A00')}
     </svg>
   );
 }
 
-// Trayectorias de las monedas satélite: desde fuera del lienzo hacia
-// el centro, en abanico y con delay escalonado corto (lluvia ágil).
-// El ARCO sale de animar X e Y en elementos anidados con easings
-// distintos — misma técnica barata de partículas.
-const SATELLITES = [
-  { dx: -150, dy: -215, delay: 300, size: 46, spin: -300 },
-  { dx: 170, dy: -165, delay: 420, size: 40, spin: 340 },
-  { dx: -190, dy: 45, delay: 540, size: 52, spin: -260 },
-  { dx: 180, dy: 125, delay: 660, size: 44, spin: 300 },
-  { dx: -115, dy: 240, delay: 780, size: 40, spin: -340 },
-  { dx: 135, dy: 255, delay: 900, size: 50, spin: 280 },
-  { dx: -35, dy: -270, delay: 1020, size: 42, spin: 320 },
-  { dx: 200, dy: -30, delay: 1140, size: 38, spin: -290 },
-  { dx: -70, dy: 275, delay: 1260, size: 44, spin: 310 },
+// Lluvia con física: cada moneda cae desde ARRIBA-IZQUIERDA, rebota
+// en el piso y sale hacia ABAJO-DERECHA. X avanza lineal; Y lleva la
+// gravedad por tramos; el giro es continuo (rueda). Variedad en
+// tamaño, carril de piso y altura de rebote para que no parezcan
+// clones. Delays cortos = cascada.
+const COINS = [
+  { x0: '-46vw', x1: '54vw', y0: '-58vh', floor: '30vh', b1: '17vh', b2: '7vh', delay: 150, size: 46, spin: 620 },
+  { x0: '-52vw', x1: '48vw', y0: '-52vh', floor: '34vh', b1: '14vh', b2: '6vh', delay: 330, size: 38, spin: 540 },
+  { x0: '-40vw', x1: '58vw', y0: '-62vh', floor: '26vh', b1: '19vh', b2: '8vh', delay: 510, size: 52, spin: 700 },
+  { x0: '-55vw', x1: '50vw', y0: '-48vh', floor: '36vh', b1: '12vh', b2: '5vh', delay: 690, size: 34, spin: 500 },
+  { x0: '-44vw', x1: '56vw', y0: '-60vh', floor: '31vh', b1: '16vh', b2: '7vh', delay: 870, size: 44, spin: 640 },
+  { x0: '-50vw', x1: '46vw', y0: '-54vh', floor: '35vh', b1: '13vh', b2: '6vh', delay: 1050, size: 40, spin: 560 },
+  { x0: '-38vw', x1: '60vw', y0: '-64vh', floor: '28vh', b1: '18vh', b2: '8vh', delay: 1230, size: 48, spin: 680 },
 ];
 
 // Chispas de fondo: puntos naranjas/blancos en deriva lenta (dan
@@ -93,7 +96,6 @@ export default function SplashIntro({ loggedAtMount = false }) {
     try { return sessionStorage.getItem('pp_splash_seen') ? 'done' : 'play'; }
     catch { return 'play'; }
   });
-  const [count, setCount] = useState(0);
   const reduced = useRef(
     typeof window.matchMedia === 'function'
     && window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -101,7 +103,7 @@ export default function SplashIntro({ loggedAtMount = false }) {
   const leaveTimer = useRef(null);
   const goneTimer = useRef(null);
 
-  // Salida: fundido con leve zoom y desmontaje (también la dispara el tap).
+  // Salida: fundido y desmontaje (también la dispara el tap).
   const dismiss = () => {
     setPhase(p => {
       if (p !== 'play') return p;
@@ -115,30 +117,10 @@ export default function SplashIntro({ loggedAtMount = false }) {
     // Marcar de una vez: si la app se recarga a media animación
     // (p. ej. deep-link) tampoco se repite en esta sesión con login.
     try { sessionStorage.setItem('pp_splash_seen', '1'); } catch { /* noop */ }
-
-    const total = reduced ? 1300 : SPLASH_TOTAL;
-    leaveTimer.current = setTimeout(dismiss, total);
-
-    // Contador de acumulación sincronizado con la lluvia de monedas.
-    let raf;
-    if (reduced) {
-      setCount(COUNT_TARGET);
-    } else {
-      const t0 = performance.now();
-      const tick = (now) => {
-        const t = now - t0;
-        if (t < COUNT_FROM_MS) { raf = requestAnimationFrame(tick); return; }
-        const p = Math.min((t - COUNT_FROM_MS) / (COUNT_UNTIL_MS - COUNT_FROM_MS), 1);
-        const eased = 1 - Math.pow(1 - p, 3); // easeOutCubic: cierra suave
-        setCount(Math.round(eased * COUNT_TARGET));
-        if (p < 1) raf = requestAnimationFrame(tick);
-      };
-      raf = requestAnimationFrame(tick);
-    }
+    leaveTimer.current = setTimeout(dismiss, reduced ? 1300 : SPLASH_TOTAL);
     return () => {
       clearTimeout(leaveTimer.current);
       clearTimeout(goneTimer.current);
-      if (raf) cancelAnimationFrame(raf);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -169,24 +151,30 @@ export default function SplashIntro({ loggedAtMount = false }) {
           0%, 100% { transform: translateY(0) rotate(-2.5deg); }
           50% { transform: translateY(-5px) rotate(2.5deg); }
         }
-        @keyframes ppSplashFlyX {
-          0% { transform: translateX(var(--dx)); opacity: 0; }
-          10% { opacity: 1; }
-          80% { opacity: 1; }
-          100% { transform: translateX(0); opacity: 0; }
+        /* Lluvia con rebote: X avanza LINEAL de izquierda a derecha */
+        @keyframes ppCoinX {
+          0% { transform: translateX(var(--x0)); opacity: 0; }
+          7% { opacity: 1; }
+          88% { opacity: 1; }
+          100% { transform: translateX(var(--x1)); opacity: 0; }
         }
-        @keyframes ppSplashFlyY {
-          0% { transform: translateY(var(--dy)) rotate(0deg) scale(1); }
-          70% { transform: translateY(calc(var(--dy) * .18)) rotate(calc(var(--spin) * .7)) scale(.85); }
-          100% { transform: translateY(0) rotate(var(--spin)) scale(.15); }
+        /* ...e Y lleva la GRAVEDAD: cada tramo con su easing — caída
+           acelerando, rebote desacelerando, dos rebotes decrecientes */
+        @keyframes ppCoinY {
+          0% { transform: translateY(var(--y0)); animation-timing-function: cubic-bezier(.4,0,.85,.45); }
+          40% { transform: translateY(var(--floor)); animation-timing-function: cubic-bezier(.15,.55,.45,1); }
+          62% { transform: translateY(calc(var(--floor) - var(--b1))); animation-timing-function: cubic-bezier(.55,0,.85,.45); }
+          79% { transform: translateY(var(--floor)); animation-timing-function: cubic-bezier(.15,.55,.45,1); }
+          90% { transform: translateY(calc(var(--floor) - var(--b2))); animation-timing-function: cubic-bezier(.55,0,.85,.45); }
+          100% { transform: translateY(calc(var(--floor) + 6vh)); }
+        }
+        @keyframes ppCoinSpin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(var(--spin)); }
         }
         @keyframes ppSplashRing {
           0% { stroke-dashoffset: ${RING_C.toFixed(1)}; }
           100% { stroke-dashoffset: 0; }
-        }
-        @keyframes ppSplashPulse {
-          0% { box-shadow: 0 0 0 0 rgba(250,84,8,.4); }
-          100% { box-shadow: 0 0 0 30px rgba(250,84,8,0); }
         }
         @keyframes ppSplashGlow {
           0% { opacity: 0; transform: scale(.6); }
@@ -203,10 +191,6 @@ export default function SplashIntro({ loggedAtMount = false }) {
         @keyframes ppSplashTrackIn {
           0% { letter-spacing: 12px; opacity: 0; }
           100% { letter-spacing: 5px; opacity: 1; }
-        }
-        @keyframes ppSplashPop {
-          0%, 100% { transform: scale(1); }
-          40% { transform: scale(1.14); }
         }
         @keyframes ppSplashDrift {
           0%, 100% { transform: translateY(0); opacity: .25; }
@@ -229,19 +213,44 @@ export default function SplashIntro({ loggedAtMount = false }) {
         }} />
       ))}
 
+      {/* lluvia de monedas: caen de ARRIBA-IZQUIERDA, rebotan en el
+          piso y salen por ABAJO-DERECHA (anclas al centro del lienzo;
+          X lineal en el padre, gravedad Y en el hijo, giro adentro) */}
+      {COINS.map((c, i) => (
+        <div key={i} className="pp-splash-sat" aria-hidden style={{
+          position: 'absolute', left: '50%', top: '50%',
+          marginLeft: -c.size / 2, marginTop: -c.size / 2,
+          '--x0': c.x0, '--x1': c.x1, '--y0': c.y0,
+          '--floor': c.floor, '--b1': c.b1, '--b2': c.b2,
+          '--spin': `${c.spin}deg`,
+          animation: `ppCoinX 1.55s ${c.delay}ms linear both`,
+          willChange: 'transform, opacity',
+        }}>
+          <div style={{ animation: `ppCoinY 1.55s ${c.delay}ms linear both` }}>
+            <div style={{
+              width: c.size, height: c.size, borderRadius: '50%',
+              boxShadow: '0 0 16px rgba(250,84,8,.4)',
+              animation: `ppCoinSpin 1.55s ${c.delay}ms linear both`,
+            }}>
+              <CoinPP size={c.size} />
+            </div>
+          </div>
+        </div>
+      ))}
+
       <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
         {/* resplandor naranja tras la moneda */}
         <div className="pp-splash-anim" aria-hidden style={{
           position: 'absolute', top: -30, left: '50%',
           width: 240, height: 240, marginLeft: -120, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(250,84,8,.22) 0%, rgba(250,84,8,0) 65%)',
+          background: 'radial-gradient(circle, rgba(250,84,8,.24) 0%, rgba(250,84,8,0) 65%)',
           animation: 'ppSplashGlow .8s .15s ease-out both',
         }} />
 
         {/* bloque héroe 128×128: anillo de progreso + moneda con volteo 3D */}
         <div style={{ position: 'relative', width: 128, height: 128, perspective: 700 }}>
-          {/* anillo de progreso: se dibuja mientras llegan las monedas */}
+          {/* anillo de progreso naranja */}
           <svg className="pp-splash-anim pp-splash-fadeonly" width="128" height="128" viewBox="0 0 128 128" aria-hidden
             style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)', animation: 'ppSplashRise .4s .3s ease-out both' }}>
             <circle cx="64" cy="64" r={RING_R} fill="none" stroke="rgba(255,255,255,.09)" strokeWidth="4" />
@@ -251,19 +260,16 @@ export default function SplashIntro({ loggedAtMount = false }) {
               style={{ animation: `ppSplashRing 1.45s .42s cubic-bezier(.3,.1,.3,1) both` }} />
           </svg>
 
-          {/* pulsos de absorción */}
-          <div className="pp-splash-anim" aria-hidden style={{
-            position: 'absolute', top: 16, left: 16, width: 96, height: 96, borderRadius: '50%',
-            animation: 'ppSplashPulse .6s .55s ease-out 3',
-          }} />
-
-          {/* moneda héroe: volteo 3D + flotación; destello que la barre */}
+          {/* moneda héroe: volteo 3D + flotación + RESPLANDOR; destello */}
           <div className="pp-splash-anim pp-splash-fadeonly"
             style={{ position: 'absolute', top: 16, left: 16, animation: 'ppSplashFlip .7s cubic-bezier(.2,.8,.3,1.1) both', transformStyle: 'preserve-3d' }}>
             <div className="pp-splash-anim"
               style={{ animation: 'ppSplashFloat 2.6s .8s ease-in-out infinite' }}>
-              <div style={{ position: 'relative', width: 96, height: 96, borderRadius: '50%', overflow: 'hidden' }}>
-                <CoinPP size={96} id="hero" />
+              <div style={{
+                position: 'relative', width: 96, height: 96, borderRadius: '50%', overflow: 'hidden',
+                boxShadow: '0 0 26px 4px rgba(250,84,8,.45), 0 0 60px 14px rgba(250,84,8,.18)',
+              }}>
+                <CoinPP size={96} />
                 <div className="pp-splash-sheen" aria-hidden style={{
                   position: 'absolute', top: -20, left: 0, width: 46, height: 140,
                   background: 'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.45) 50%, rgba(255,255,255,0) 100%)',
@@ -272,38 +278,10 @@ export default function SplashIntro({ loggedAtMount = false }) {
               </div>
             </div>
           </div>
-
-          {/* monedas satélite: arco (X e Y con easings distintos) + giro */}
-          {SATELLITES.map((s, i) => (
-            <div key={i} className="pp-splash-sat" aria-hidden style={{
-              position: 'absolute', top: 64 - s.size / 2, left: 64 - s.size / 2,
-              '--dx': `${s.dx}px`, '--dy': `${s.dy}px`, '--spin': `${s.spin}deg`,
-              animation: `ppSplashFlyX .68s ${s.delay}ms cubic-bezier(.5,.05,.45,1) both`,
-              willChange: 'transform, opacity',
-            }}>
-              <div style={{ animation: `ppSplashFlyY .68s ${s.delay}ms cubic-bezier(.7,0,.25,1) both` }}>
-                <CoinPP size={s.size} id={`s${i}`} />
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* contador de puntos acumulados (pop al cerrar la cifra) */}
-        <div className="pp-splash-anim pp-splash-fadeonly" style={{
-          marginTop: 18, minHeight: 36,
-          animation: 'ppSplashRise .4s .38s ease-out both',
-        }}>
-          <div className="pp-splash-anim" style={{
-            fontFamily: "'Space Mono', monospace", fontSize: 30, fontWeight: 700,
-            color: BRAND_ORANGE, letterSpacing: -1,
-            animation: 'ppSplashPop .32s 1.86s ease-out both',
-          }}>
-            +{count} <span style={{ fontSize: 15, color: 'rgba(255,255,255,.6)', letterSpacing: 0 }}>pts</span>
-          </div>
         </div>
 
         {/* wordmark PUNTOS PLUS (D30: blanco + naranja), tracking-in */}
-        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1 }}>
+        <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1 }}>
           <span className="pp-splash-anim pp-splash-fadeonly" style={{
             fontSize: 15, fontWeight: 900, color: '#fff', letterSpacing: 5,
             animation: 'ppSplashTrackIn .55s 1.35s cubic-bezier(.2,.7,.3,1) both',
