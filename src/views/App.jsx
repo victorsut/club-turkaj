@@ -467,9 +467,11 @@ export default function App() {
       />
 
       {/* ── Animación de entrada (15-ago): monedas PP acumulando puntos.
-          Solo cliente, una vez por sesión, tap para saltarla — la
-          recarga al volver de la encuesta Shell NO la repite. ── */}
-      {isC && <SplashIntro />}
+          Solo cliente y tap para saltarla. Regla del dueño: en el
+          LOGIN se muestra en cada recarga; con sesión de miembro solo
+          el arranque en frío (la recarga al volver de la encuesta
+          Shell NO la repite). loggedAtMount se decide al montar. ── */}
+      {isC && <SplashIntro loggedAtMount={!!savedMe?.id} />}
     </>
   );
 }
