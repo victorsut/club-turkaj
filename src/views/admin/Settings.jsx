@@ -11,10 +11,12 @@
 import { useState, useEffect } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { sMono, adminTheme as AT, inputStyleDark } from '../../constants/styles';
-import { updateFuelPrices } from '../../services/adminRpcServices';
-import { createApiClient } from '../../services/adminAuthService';
 import { getAdminToken } from '../../services/sessionTokens';
 import ReasonModal from '../../components/ui/ReasonModal';
+// División 15-ago-2026 (regla de 500 líneas): los modales de llaves
+// API y de precios de combustible viven en views/admin/settings/.
+import ApiKeyModal from './settings/ApiKeyModal';
+import FuelPricesModal from './settings/FuelPricesModal';
 
 export default function Settings(ctx) {
   const { cfg, setCfg, fire, loggedAdmin } = ctx;
@@ -164,133 +166,13 @@ export default function Settings(ctx) {
   };
 
   // ─── F7a: llaves de la API externa (PROPER) ───
-  // La llave se muestra UNA sola vez: el hash bcrypt es lo único que
-  // queda en la BD. Si se pierde, se genera otra.
+  // El modal (con su estado y generación) vive en settings/ApiKeyModal.
   const [showApiModal, setShowApiModal] = useState(false);
-  const [apiName, setApiName] = useState('PROPER');
-  const [apiKey, setApiKey] = useState('');
-  const [apiBusy, setApiBusy] = useState(false);
-  const genApiKey = async () => {
-    if (!apiName.trim()) { fire('Poné un nombre para identificar el sistema', 'error'); return; }
-    setApiBusy(true);
-    const res = await createApiClient(apiName.trim());
-    setApiBusy(false);
-    if (res.error) { fire(res.error, 'error'); return; }
-    setApiKey(res.api_key || '');
-    fire('Llave generada — copiala ahora', 'success');
-  };
 
-  // ─── Modal: edición de precios de combustible ───
+  // ─── Edición de precios de combustible ───
+  // El flujo completo (modal + validación + motivo + RPC auditado)
+  // vive en settings/FuelPricesModal; acá solo el interruptor.
   const [showPriceModal, setShowPriceModal] = useState(false);
-  const [showReasonModal, setShowReasonModal] = useState(false);
-  const [priceForm, setPriceForm] = useState({ super: '', regular: '', diesel: '' });
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState('');
-
-  // Valida un campo de precio (string desde el input).
-  // Retorna null si OK, string con mensaje si inválido.
-  const fieldError = (v) => {
-    const n = parseFloat(v);
-    if (Number.isNaN(n)) return 'Ingresá un número';
-    if (n < 1 || n > 100) return 'Debe estar entre Q1.00 y Q100.00';
-    return null;
-  };
-  const formInvalid = ['super', 'regular', 'diesel'].some((k) => fieldError(priceForm[k]) !== null);
-
-  const openPriceModal = () => {
-    setPriceForm({
-      super: String(cfg.fuelPrices?.super ?? 0),
-      regular: String(cfg.fuelPrices?.regular ?? 0),
-      diesel: String(cfg.fuelPrices?.diesel ?? 0),
-    });
-    setSaveError('');
-    setShowPriceModal(true);
-  };
-
-  const closePriceModal = () => {
-    if (saving) return;
-    setShowPriceModal(false);
-    setSaveError('');
-  };
-
-  // Esc cierra el modal (a menos que estemos guardando).
-  useEffect(() => {
-    if (!showPriceModal) return;
-    const onKey = (e) => { if (e.key === 'Escape' && !saving) closePriceModal(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [showPriceModal, saving]);
-
-  // PASO 1: valida los precios y abre el ReasonModal (cierra el de
-  // precios sin tocar priceForm, para poder reabrirlo si el RPC falla).
-  const openReasonStep = () => {
-    if (formInvalid) return;
-    setSaveError('');
-    setShowPriceModal(false);
-    setShowReasonModal(true);
-  };
-
-  // PASO 2: recibe el motivo del ReasonModal y ejecuta el RPC con
-  // auditoría. En error reabre el modal de precios con priceForm intacto.
-  const confirmSaveWithReason = async (reason) => {
-    // Guard: sin admin logueado no se audita ni se guarda (la épica
-    // F0.3 exige auditoría obligatoria; no degradar a legacy).
-    if (!loggedAdmin || !loggedAdmin.id) {
-      setShowReasonModal(false);
-      fire('Error: sesion admin no disponible. Cerra sesion y volve a ingresar.');
-      return;
-    }
-
-    setSaving(true);
-    setSaveError('');
-
-    const payload = {
-      super: parseFloat(priceForm.super),
-      regular: parseFloat(priceForm.regular),
-      diesel: parseFloat(priceForm.diesel),
-    };
-
-    const audit = {
-      adminId: loggedAdmin.id,
-      adminName: loggedAdmin.name,
-      adminEmail: loggedAdmin.email,
-      reasonText: reason,
-    };
-
-    try {
-      const { data, error } = await updateFuelPrices(payload, audit);
-
-      if (error) {
-        // RPC falló: cerrar ReasonModal, reabrir Modal de precios
-        // con el error visible.
-        setShowReasonModal(false);
-        setShowPriceModal(true);
-        setSaveError(error.message || 'Error al guardar los precios');
-        fire('Error al guardar: ' + (error.message || 'desconocido'));
-        return;
-      }
-
-      if (!data) {
-        setShowReasonModal(false);
-        setShowPriceModal(true);
-        setSaveError('No se recibieron datos del servidor');
-        fire('Error al guardar: respuesta vacia del servidor');
-        return;
-      }
-
-      // Éxito: actualizar cfg, cerrar ReasonModal, toast de éxito.
-      setCfg(prev => ({ ...prev, fuelPrices: data }));
-      setShowReasonModal(false);
-      fire('Precios actualizados');
-    } catch (err) {
-      setShowReasonModal(false);
-      setShowPriceModal(true);
-      setSaveError(err.message || 'Error inesperado');
-      fire('Error al guardar: ' + (err.message || 'desconocido'));
-    } finally {
-      setSaving(false);
-    }
-  };
 
   // ── estilos (FORMATO GENERAL Admin v2) ──────────────────
   const card = { background: AT.card, borderRadius: 16, border: `1px solid ${AT.border}`, padding: 16 };
@@ -405,7 +287,7 @@ export default function Settings(ctx) {
               <span style={{ color: '#fff', fontWeight: 800, ...sMono }}>Q{f.price.toFixed(2)}/gal</span>
             </div>
           ))}
-          <button onClick={openPriceModal} style={{ ...ghostCardBtn('#FBBC04'), marginTop: 14 }}>
+          <button onClick={() => setShowPriceModal(true)} style={{ ...ghostCardBtn('#FBBC04'), marginTop: 14 }}>
             Editar precios
           </button>
         </div>
@@ -534,161 +416,16 @@ export default function Settings(ctx) {
 
       {/* ─── F7a: Modal de llaves de la API externa ─── */}
       {showApiModal && (
-        <div onClick={() => { if (!apiBusy) { setShowApiModal(false); setApiKey(''); } }}
-          style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: AT.bg, border: `1px solid ${AT.border}`, borderRadius: 20, padding: 24, width: '100%', maxWidth: 440, maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginBottom: 8 }}>API externa (PROPER)</div>
-            <div style={{ fontSize: 12, color: '#9E9E9E', lineHeight: 1.6, marginBottom: 16 }}>
-              Generá una llave para que un sistema externo acumule puntos y consulte
-              premios. La llave se muestra <strong style={{ color: '#FBBC04' }}>una sola vez</strong>:
-              guardala antes de cerrar. Si se pierde, generá otra.
-            </div>
-
-            <label style={{ fontSize: 11, fontWeight: 700, color: '#9E9E9E', marginBottom: 6, display: 'block' }}>Nombre del sistema</label>
-            <input value={apiName} onChange={e => setApiName(e.target.value)} placeholder="PROPER"
-              style={{ ...inputStyleDark, width: '100%', marginBottom: 16, boxSizing: 'border-box' }} />
-
-            {apiKey && (
-              <div style={{ background: 'rgba(46,125,50,.12)', border: '1px solid rgba(46,125,50,.4)', borderRadius: 12, padding: 14, marginBottom: 16 }}>
-                <div style={{ fontSize: 11, fontWeight: 800, color: '#81C784', marginBottom: 8, letterSpacing: 1 }}>LLAVE GENERADA</div>
-                <div style={{ ...sMono, fontSize: 12, color: '#fff', wordBreak: 'break-all', lineHeight: 1.6 }}>{apiKey}</div>
-                <button onClick={() => {
-                  navigator.clipboard?.writeText(apiKey)
-                    .then(() => fire('Llave copiada', 'success'))
-                    .catch(() => fire('Copiala manualmente', 'warn'));
-                }} style={{ marginTop: 10, padding: '8px 14px', borderRadius: 10, border: 'none', background: '#2E7D32', color: '#fff', fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>Copiar</button>
-              </div>
-            )}
-
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => { setShowApiModal(false); setApiKey(''); }} disabled={apiBusy}
-                style={{ flex: 1, padding: 14, borderRadius: 14, background: 'transparent', border: `1px solid ${AT.border}`, color: '#9E9E9E', fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
-                {apiKey ? 'Listo' : 'Cancelar'}
-              </button>
-              <button onClick={genApiKey} disabled={apiBusy}
-                style={{ flex: 1, padding: 14, borderRadius: 14, background: '#FBBC04', border: 'none', color: '#0D0D0D', fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 800, cursor: 'pointer' }}>
-                {apiBusy ? 'Generando...' : apiKey ? 'Generar otra' : 'Generar llave'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ApiKeyModal fire={fire} onClose={() => setShowApiModal(false)} />
       )}
 
-      {/* ─── Modal: editar precios de combustible ─── */}
+      {/* ─── Editar precios de combustible (modal + motivo auditado) ─── */}
       {showPriceModal && (
-        <div
-          onClick={closePriceModal}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 300,
-            background: 'rgba(0,0,0,.6)', backdropFilter: 'blur(4px)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: 20,
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: AT.bg, border: `1px solid ${AT.border}`,
-              borderRadius: 20, padding: 24, width: '100%', maxWidth: 400,
-              maxHeight: '90vh', overflowY: 'auto',
-            }}
-          >
-            <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginBottom: 4 }}>
-              Editar precios de combustible
-            </div>
-            <div style={{ fontSize: 12, color: '#9E9E9E', marginBottom: 20 }}>
-              Rango válido: Q1.00 a Q100.00 por galón
-            </div>
-
-            {[
-              { k: 'super', label: 'Súper', color: '#FF8F00' },
-              { k: 'regular', label: 'Regular', color: '#81C784' },
-              { k: 'diesel', label: 'Diésel', color: '#64B5F6' },
-            ].map((f) => {
-              const err = fieldError(priceForm[f.k]);
-              return (
-                <div key={f.k} style={{ marginBottom: 16 }}>
-                  <label style={{
-                    display: 'block', fontSize: 12, fontWeight: 800,
-                    color: f.color, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6,
-                  }}>
-                    {f.label}
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="1"
-                    max="100"
-                    required
-                    value={priceForm[f.k]}
-                    onChange={(e) => setPriceForm((p) => ({ ...p, [f.k]: e.target.value }))}
-                    disabled={saving}
-                    style={{
-                      ...inputStyleDark,
-                      border: `1.5px solid ${err ? '#EF5350' : '#3A3A3A'}`,
-                    }}
-                  />
-                  <div style={{ fontSize: 11, color: '#777', marginTop: 4 }}>Q por galón</div>
-                  {err && (
-                    <div style={{ fontSize: 11, color: '#EF5350', marginTop: 4, fontWeight: 600 }}>
-                      {err}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-
-            {saveError && (
-              <div style={{
-                background: 'rgba(239,83,80,.1)', border: '1px solid rgba(239,83,80,.3)',
-                borderRadius: 10, padding: '10px 12px', marginBottom: 16,
-                fontSize: 12, color: '#EF5350', fontWeight: 600,
-              }}>
-                {saveError}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-              <button
-                onClick={closePriceModal}
-                disabled={saving}
-                style={{
-                  flex: 1, padding: '14px 16px',
-                  background: 'transparent', border: `1px solid ${AT.border}`,
-                  borderRadius: 14, color: '#9E9E9E',
-                  fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700,
-                  cursor: saving ? 'not-allowed' : 'pointer',
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={openReasonStep}
-                disabled={formInvalid || saving}
-                style={{
-                  flex: 1, padding: '14px 16px',
-                  background: formInvalid || saving ? '#3A3A3A' : '#FBBC04',
-                  border: 'none', borderRadius: 14,
-                  color: formInvalid || saving ? '#777' : '#0D0D0D',
-                  fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 800,
-                  cursor: formInvalid || saving ? 'not-allowed' : 'pointer',
-                }}
-              >
-                {saving ? 'Guardando...' : 'Guardar'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <FuelPricesModal
+          cfg={cfg} setCfg={setCfg} fire={fire} loggedAdmin={loggedAdmin}
+          onClose={() => setShowPriceModal(false)}
+        />
       )}
-
-      {/* ─── Modal: motivo del cambio (auditoría F0.3.3) ─── */}
-      <ReasonModal
-        open={showReasonModal}
-        onClose={() => setShowReasonModal(false)}
-        onConfirm={confirmSaveWithReason}
-        actionLabel="Actualizar precios de combustible"
-        loading={saving}
-      />
 
       {/* ─── F2.1: motivo del cambio de puntos por nivel ─── */}
       <ReasonModal
