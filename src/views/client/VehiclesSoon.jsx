@@ -1,15 +1,51 @@
 // src/views/client/VehiclesSoon.jsx
-// R1b.4 (D34 + FORMATO GENERAL) — Pestaña Vehículos hasta F6: flat sin
-// sombras ni emojis, héroe verde (mismo color que su cuadro del home)
-// con CarIcon SVG, kicker naranja PRÓXIMAMENTE y lista de los vehículos
-// que el miembro ya registró (iconos de VehicleIcons + placa formateada).
+// R1b.4 (D34 + FORMATO GENERAL) — Pestaña Vehículos: COMPUERTA de la
+// BETA de F6 (15-ago-2026). Al montar consulta list_my_vehicles — la
+// decisión de beta la toma el SERVER (program_config vehicles_beta,
+// gestionada desde Admin → Configuración): miembros beta ven la
+// ventana REAL (vehicles/VehiclesHome); el resto sigue viendo este
+// placeholder PRÓXIMAMENTE con su lista de vehículos del registro.
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { BRAND_ORANGE, homeColors } from '../../constants/styles';
 import { CarIcon } from '../../components/ui/BentoIcons';
 import { VEHICLE_TYPES } from '../../components/ui/VehicleIcons';
 import { plateMask } from '../../lib/inputMasks';
+import { listMyVehicles } from '../../services/vehicleService';
+import LogoSpinner from '../../components/ui/LogoSpinner';
+
+// LAZY (code splitting por rol, mismo criterio del 14-ago): la ventana
+// real —con el arte de los vehículos y el formulario— solo la descargan
+// los miembros de la BETA; la audiencia masiva no paga esos ~26 kB.
+const VehiclesHome = lazy(() => import('./vehicles/VehiclesHome'));
 
 export default function VehiclesSoon(ctx) {
   const { cTier, setCScr, me, dark } = ctx;
+
+  // ── Compuerta de la beta F6 ──
+  const [beta, setBeta] = useState(false);
+  const [betaVehicles, setBetaVehicles] = useState([]);
+  useEffect(() => {
+    let alive = true;
+    if (!me?.id || String(me.id).startsWith('temp-')) return;
+    listMyVehicles().then(({ data }) => {
+      if (!alive || !data?.beta) return;
+      setBetaVehicles(Array.isArray(data.vehicles) ? data.vehicles : []);
+      setBeta(true);
+    });
+    return () => { alive = false; };
+  }, [me?.id]);
+
+  if (beta) {
+    return (
+      <Suspense fallback={
+        <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <LogoSpinner size={44} dark={dark} />
+        </div>
+      }>
+        <VehiclesHome ctx={ctx} vehicles={betaVehicles} setVehicles={setBetaVehicles} />
+      </Suspense>
+    );
+  }
   const header = dark ? '#fff' : '#0D0D0D';
   const sub = dark ? 'rgba(255,255,255,.5)' : '#9E9E9E';
 

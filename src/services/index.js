@@ -7,6 +7,7 @@
 
 export * from './rpcServices';
 export * from './adminRpcServices';
+export * from './vehicleService';
 export * from './secureReads';
 export * from './promoService';
 export * from './dataService';
