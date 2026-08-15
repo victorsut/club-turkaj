@@ -1,10 +1,11 @@
 # Puntos Plus — Roadmap de Producto
 
-> **Versión:** 3.0
+> **Versión:** 4.0
 > **Fecha de creación:** 17 de mayo de 2026
-> **Última actualización:** 17 de julio de 2026
+> **Última actualización:** 15 de agosto de 2026
 > **Estado:** Vivo (este documento evoluciona con el proyecto)
-> **Alcance v3.0:** **RE-PLANIFICACIÓN (Nivel 2)** sobre la reconciliación v2.4/v2.5. Cambios mayores: la marca pasa a **"Puntos Plus"** (D30); F3 se disuelve en **R1a** (rebrand exprés) + **track R1b** (rediseño iterativo por vistas); F7 se divide en **F7a** (API core PROPER, adelantada) y **F7b** (physical-members, tras F4); nueva fase **PROMO-1** (motor de promociones gestionables, D32/D33); el Track de Seguridad se slottea por primera vez (**SEC-lite** tras PROMO-1); FB queda **CERRADA** (caso ángel resuelto sin ajuste, D36). Este documento sigue siendo el PLAN MAESTRO ÚNICO (producto + seguridad).
+> **Alcance v4.0:** **RECONCILIACIÓN CON LA REALIDAD DEL REPO** (verificada contra código y migraciones el 15-ago-2026). Desde v3.0 se CERRARON: SEC-lite, **SEC.C completo** (C.1–C.6), **F7a** (API PROPER, `docs/API-PROPER.md`), **F1**, **F2 incluida PROMO-2** (lavados por consumo + beneficio recurrente mensual) y **F5 en código** (OTP de registro implementado con interruptor apagado hasta Twilio). **F4/F7b quedan EN PAUSA** por decisión del dueño (11-ago: tarjeta SOLO digital). La única fase grande de desarrollo restante es **F6 (Vehículos)**; F9 quedó parcialmente cubierta por el grupo Análisis del admin. Se agrega el track operativo **TIENDAS/LANZAMIENTO** (Play/App Store + checklist de go-live). Este documento sigue siendo el PLAN MAESTRO ÚNICO (producto + seguridad).
+> **Alcance v3.0 (histórico):** re-planificación Nivel 2 — marca "Puntos Plus" (D30); F3 disuelta en R1a + track R1b; F7 dividida en F7a/F7b; nueva PROMO-1; SEC-lite slotteada; FB cerrada (D36).
 
 ---
 
@@ -351,19 +352,21 @@ Mover el `useState(checkingPhone)` al tope del componente con los otros useState
 | 1 | R1a | Rebrand exprés a "Puntos Plus" (strings, manifest, splash, push, legales, disclaimer D28) | 10-16 hs | Crítica | ✅ **CERRADA** (`6e195e4`+`faab783`, smoke prod OK 17-jul) |
 | 2 | FA-lite | Impresión `window.print()` optimizada (D37) — plantilla térmica, auto-print, reimpresión, print_logs | 18-26 hs | Crítica | ✅ **CERRADA** (`37f1a92`+`af07171`, validada en Sunmi P2 el 17-jul; PAX A920Pro pendiente sin bloquear) |
 | 3 | PROMO-1 | Motor de promociones v1 (dobles puntos / bonus por día-producto-monto) | 25-35 hs | Crítica | ✅ **CERRADA** (18-jul, `7422d26`+`16f5a24`, validada por el dueño en prod) — migs `20260718_promo1_motor_promociones.sql` + `20260718_promo1_fix_lectura_y_sufijo.sql`, vista Motor (`PromoRules.jsx`), promo en modal de estrellas, sufijo corto `🎉 x2 (+N)` en historial. Nota: los event triggers `auto_enable_rls` agregan policy RESTRICTIVA "Deny all by default" a toda tabla nueva — dropearla cuando se quiera SELECT de cliente. **PROMO-1b ✅ CERRADA** (18-jul, `e198eaa`, validada): efecto `grant_reward` habilitado sin vouchers — premio del catálogo otorgado como redemption cost-0 (código TK, Realtime, entrega OpRedeem, impresión FA-lite); comparación sin stacking por beneficio (extra pts vs points_cost) |
-| 4 | SEC-lite | `authenticate_member` + cierre del vector cliente del raffle | 12-20 hs | Alta | Pendiente |
-| 5 | F7a | API REST core para PROPER (sin physical-members) | 45-60 hs | Alta | Pendiente |
-| 6 | F1 | Configurabilidad empresa + estaciones + precios + KPIs | 61-78 hs | Alta | Pendiente |
-| 7 | F2 | Lealtad completa: QR universal, vouchers, lavados, multiplicador tier, localizaciones + **PROMO-2** | 85-115 hs | Alta | Pendiente |
-| 8 | F4 | Tarjeta física + extensiones operador | 50-70 hs | Media | Pendiente |
-| 9 | F7b | Endpoints `/physical-members` (completa contrato PROPER) | 8-12 hs | Media | Pendiente |
-| 10 | F5 | Features faltantes (WhatsApp+SMS, password, dirección) | 56-73 hs | Media | Pendiente |
-| 11 | F6 | Vehículos como entidad + alertas push | 72-93 hs | Media | Pendiente |
+| 4 | SEC-lite | `authenticate_member` + cierre del vector cliente del raffle | 12-20 hs | Alta | ✅ **CERRADA** (25-jul, mig `20260725f`) — sesiones de miembro (`member_sessions`, 180 días) + `buy_raffle_tickets` exige sesión con rol explícito. Superada después por **SEC.C completo** (ver 4.1-bis) |
+| 5 | F7a | API REST core para PROPER (sin physical-members) | 45-60 hs | Alta | ✅ **CERRADA** (29→30-jul, migs `20260729g/h`+`20260730`) — endpoints Vercel `api/v1/` (stations/members/purchases/redemptions con canje completo F7a.3), API keys bcrypt generadas en Admin, regla de NIT, idempotencia, operadores espejo, push server-side; documentada en `docs/API-PROPER.md`. Sin rate limiting formal ni `ApiLogs.jsx` (deuda menor §7.1). PENDIENTE del dueño: contacto técnico con PROPER |
+| 6 | F1 | Configurabilidad empresa + estaciones + precios + KPIs | 61-78 hs | Alta | ✅ **CERRADA** (ago-2026) — `set_company_info`, estaciones en BD con WiFi/coordenadas/código PROPER (`AdminStations` con motivo), precios auditados (`update_fuel_prices`), KPIs reales (`get_admin_kpis` + `get_dash_monthly` + `get_station_top_members`). NO entró el toggle precios por estación (D4: siguen globales, sin necesidad real aún) |
+| 7 | F2 | Lealtad completa: lavados, conversión por tier, localizaciones + **PROMO-2** | 85-115 hs | Alta | ✅ **CERRADA** (6-ago, migs `20260806/b/c`) — conversión y eventos POR TIER (F2.1: divisor Q/pt en vez de multiplicador), localizaciones de canje D17 (v1 informativa), tiendas asociadas D18, **PROMO-2 cerrada**: lavados por consumo como campañas `grant_reward` + beneficio RECURRENTE mensual (`max_uses_per_member_month`); el "voucher" es un canje costo-0 con código TK + impresión FA-lite (D20 cubierto por redemptions, sin sistema aparte). FLECO abierto: D22 plazo/estación del premio de rifa (solo el costo por boleto es configurable) |
+| 8 | F4 | Tarjeta física + extensiones operador | 50-70 hs | Media | ⏸️ **EN PAUSA** (decisión del dueño 11-ago: tarjeta SOLO DIGITAL; la física es deseo a futuro que podría descartarse). Esquema listo (`physical_cards` con seed inactivo reversible) — NO implementar sin pedido explícito |
+| 9 | F7b | Endpoints `/physical-members` (completa contrato PROPER) | 8-12 hs | Media | ⏸️ **EN PAUSA** (depende de F4) |
+| 10 | F5 | Features faltantes (WhatsApp+SMS, password, dirección) | 56-73 hs | Media | ✅ **CERRADA EN CÓDIGO** (8-ago, mig `20260808c`) — OTP al registrar implementado (Twilio Verify + `/api/verify-phone` + `phone_verifications`; interruptor `phone_verification` APAGADO hasta configurar `TWILIO_*` en Vercel); dirección estructurada ✓ (`AddressPicker` + `geoGt.js`); confirmación de compra de boletos ✓ (sheet en ClientRaffle). Recuperación de password RESUELTA por decisión del dueño (14-ago): vía chat de WhatsApp — NO SMS/correo. PENDIENTE OPERATIVO: credenciales Twilio + encender el interruptor |
+| 11 | F6 | Vehículos como entidad + alertas push | 72-93 hs | Media | 📋 **Pendiente — la única fase grande de desarrollo restante** (la pestaña Vehículos sigue en PRÓXIMAMENTE) |
 | 12 | F8 | Spike Club Business | 1 sem | Baja | Pendiente |
-| 13 | F9 | Reportería enriquecida (opcional) | 40-55 hs | Opcional | Pendiente |
-| ∥ | **R1b** | **Track paralelo: rediseño visual iterativo por vistas** (Home → Promociones → Historiales → Menú → Canjes/Rifa) | 75-110 hs | Alta | 🔛 ACTIVO — **R1b.1 Home ✅ CERRADA** (17-jul, `4972e1d`→`dd50f30`, validada por el dueño: bento adaptable, cuadrados fijos Promos/Vehículo, degradados+iconos SVG, historiales con períodos derivados de datos + libro mayor de puntos, container transform con tinte de continuidad). **R1b.2 Promociones ✅ CERRADA** (18-jul, `dbe2ffd`→`6adb57c`, validada por el dueño) — cards verticales 3:4 en grid de 2 (vista PROMOCIONES con chips), 1:1 en el home (carrusel arrastrable, tap → vista); imagen 900×1200 como FONDO completo con textos encima (saltos de línea manuales, color por bloque via `text_colors` jsonb), preview admin a tamaño real; bucket promo-images solo-service-role + `/api/upload-promo-image`. Siguiente vista del track: Historiales/Menú |
+| 13 | F9 | Reportería enriquecida (opcional) | 40-55 hs | Opcional | 🟡 **PARCIAL** — el grupo Análisis del admin (13-ago: AnClientes/AnOperadores/AnPromos/AnIntegridad con RPCs `report_*`, integridad auditada; sin método de pago — solo Q total) cubre el grueso; el resto queda opcional |
+| — | **TIENDAS** | **Track operativo nuevo (v4.0):** publicación en Play Store (TWA/PWABuilder + `assetlinks.json`) y App Store (Sign in with Apple + push APNs, decisiones del dueño 14-ago) — checklist en `docs/TIENDAS.md` | 15-25 hs + gestiones | Alta | 🟡 **PREPARADO** (14-ago: manifest completo, privacidad/eliminación corregidas, iconos 192). BLOQUEADO por cuentas del dueño (Play Console + Apple Developer) + capturas 1080×1920 + cuenta demo |
+| — | **GO-LIVE** | **Checklist de lanzamiento:** encender motor de degradación (`set_degradation_enabled` — el contador de todos arranca en cero), encender `phone_verification` (con Twilio), verificación general | 4-8 hs | Alta | 📋 Pendiente (los interruptores están apagados A PROPÓSITO hasta el lanzamiento oficial) |
+| ∥ | **R1b** | **Track paralelo: rediseño visual iterativo por vistas** (Home → Promociones → Historiales → Menú → Canjes/Rifa) | 75-110 hs | Alta | 🔛 ACTIVO — **R1b.1 Home ✅ CERRADA** (17-jul, `4972e1d`→`dd50f30`, validada por el dueño: bento adaptable, cuadrados fijos Promos/Vehículo, degradados+iconos SVG, historiales con períodos derivados de datos + libro mayor de puntos, container transform con tinte de continuidad). **R1b.2 Promociones ✅ CERRADA** (18-jul, `dbe2ffd`→`6adb57c`, validada por el dueño) — cards verticales 3:4 en grid de 2 (vista PROMOCIONES con chips), 1:1 en el home (carrusel arrastrable, tap → vista); imagen 900×1200 como FONDO completo con textos encima (saltos de línea manuales, color por bloque via `text_colors` jsonb), preview admin a tamaño real; bucket promo-images solo-service-role + `/api/upload-promo-image`. **Actualización v4.0 (15-ago):** desde entonces el track cerró TODAS las vistas base del cliente — Menú (23-jul), modo claro/oscuro completo (24-jul), paleta por nivel + BLACK galaxia (23-jul→14-ago), Historiales con filtros por tipo + paginado (11-ago), Admin v2 con shell lateral y lienzo ancho (4→6-ago), divisiones <500 líneas de App/ClientHome/Settings/AdminDash (12→15-ago), code splitting por rol (cliente 354 kB, 14-ago) y **splash de entrada con monedas PP 3D** según referencia "idea intro" (15-ago). El track sigue ACTIVO para correcciones visuales puntuales según referencias |
 
-**Total restante estimado:** ≈550-750 hs ≈ 24-48 semanas calendario (6-11 meses) a 15-25 hs/sem.
+**Total restante estimado (v4.0):** ≈95-135 hs de desarrollo (F6 72-93 + flecos D22/D4 + go-live) + F8 (1 sem, baja) + F9 opcional restante + gestiones externas del dueño (PROPER, Twilio, Play/Apple). El estimado v3.0 de 550-750 hs quedó ejecutado en ~80% entre el 17-jul y el 15-ago.
 
 > **Nota v3.0:** este orden ES la re-planificación (Nivel 2) que v2.4/v2.5
 > difirieron. F3 ya no existe como fase monolítica: se disuelve en R1a + track
@@ -381,11 +384,13 @@ Mover el `useState(checkingPhone)` al tope del componente con los otros useState
 
 | Bloque | Qué | Estado | Posición en el flujo |
 |---|---|---|---|
-| **SEC-lite** (SEC.A+) | `authenticate_member` server-side + cierre del vector cliente de `buy_raffle_tickets` (rama 1a) | 📋 **Scoped en v3.0** (ver §5.SEC-lite) | Posición 4 (tras PROMO-1, antes de F7a) |
+| **SEC-lite** (SEC.A+) | `authenticate_member` server-side + cierre del vector cliente de `buy_raffle_tickets` (rama 1a) | ✅ **CERRADA** (25-jul, mig `20260725f_sec_lite_auth_miembros.sql`) | Ejecutada en posición 4, antes del go-live de F7a como estaba planeado |
 | SEC.B | Sesiones operador/admin (tokens de sesión) | ✅ **CERRADO** (B.3–B.8) | — |
-| SEC.B.9 | `REVOKE EXECUTE FROM anon` en las 4 RPCs | 🔒 **Deuda dependiente de SEC.C** | Sin slottear |
-| SEC.C | Auth real (rol ≠ anon para los 3 roles) | 📋 **Pendiente** — documentado solo como dependencia | Sin slottear |
+| SEC.B.9 | `REVOKE EXECUTE FROM anon` en las 4 RPCs | ✅ **ABSORBIDA por SEC.C** (los REVOKE se ejecutaron dentro de las migraciones C.1–C.6) | — |
+| SEC.C | Auth real para los 3 roles | ✅ **CERRADO** (bloques **C.1–C.6**, 28-jul→11-ago, migs `20260728d`→`20260811f`) — implementado como **sesiones con token en RPCs + cierre de la API abierta** (PII y hashes solo por RPC con sesión; escrituras directas revocadas; `admins`/`notifications`/`activity_log`/`raffle_tickets`/`surveys` cerradas; columnas mínimas en `members`/`operators`/`purchases`/`redemptions`): el objetivo de seguridad se logró sin cambiar los roles de Postgres. Auditoría completa del 11-ago en cero hallazgos abiertos (bloques 1 y 2 cerrados) | — |
 | FIX-MODAL | Modal de calificación por INSERT de `purchases` | ✅ **CERRADO** | — |
+
+> **v4.0:** el track de seguridad queda **COMPLETO** — no hay bloques SEC abiertos.
 
 ### 4.2 Diagrama de dependencias (v3.0)
 
@@ -719,6 +724,12 @@ Historiales (si no cayeron en R1b.1) → Menú/Acerca de → Canjes/Rifa/QR (al 
 
 ### Fase SEC-lite — `authenticate_member` + cierre del vector cliente del raffle
 
+> **✅ CERRADA (25-jul-2026, migración `20260725f_sec_lite_auth_miembros.sql`):**
+> `authenticate_member` emite sesiones de miembro (`member_sessions`, 180 días) y
+> `buy_raffle_tickets` exige sesión con rol explícito — el vector sin token quedó
+> cerrado. Superada después por **SEC.C completo** (C.1–C.6): la sesión de miembro
+> pasó a cubrir TODAS las lecturas/escrituras del cliente, no solo el raffle.
+
 **Objetivo:** cerrar la vulnerabilidad activa documentada en SEC.B: cualquiera con la apikey `anon` puede llamar `buy_raffle_tickets` con token NULL (rama 1a) y gastar puntos de CUALQUIER miembro. Primer scope formal de SEC.A.
 
 **Entra:**
@@ -875,6 +886,14 @@ CREATE INDEX idx_print_logs_status ON print_logs(print_status, printed_at DESC);
 
 ### Fase F1 — Configurabilidad empresa + estaciones + precios + KPIs
 
+> **✅ CERRADA (ago-2026, v4.0):** identidad de empresa editable (`set_company_info`,
+> selector de empresa del cliente), estaciones 100% en BD con WiFi/coordenadas/
+> horario/código PROPER (`AdminStations` con motivo obligatorio, 12-ago), precios
+> por RPC auditado (`update_fuel_prices`) y KPIs REALES en el inicio del admin
+> (`get_admin_kpis`, `get_dash_monthly`, `get_station_top_members`) + grupo
+> Análisis (13-ago). NO entró el toggle precios por estación (D4) — los precios
+> siguen globales; se retomará solo si aparece la necesidad real.
+
 #### 5.1.1 Objetivo
 
 Eliminar todo hardcoding relacionado con empresa, estaciones y precios. Dejar al admin con control total.
@@ -903,6 +922,20 @@ F0 + FA completadas.
 ---
 
 ### Fase F2 — Mejoras programa de lealtad
+
+> **✅ CERRADA (6-ago-2026, migraciones `20260806` F2.1 + `20260806b` PROMO-2 +
+> `20260806c` D17/D18):** conversión y eventos especiales **POR TIER** (F2.1 —
+> el "multiplicador 1/1.2/1.5" se implementó como DIVISOR Q/pt por nivel: ORO
+> Q10 · PLATINO Q8 · BLACK Q6, editable en Admin, decidido con el tier PREVIO a
+> la compra); localizaciones de canje configurables (D17, v1 informativa) y
+> tiendas asociadas (D18, `partner_stores`); **PROMO-2 CERRADA**: los lavados
+> por consumo son campañas `grant_reward` del motor (PROMO-1b) y el beneficio
+> RECURRENTE ("1 lavado gratis al mes PLATINO/BLACK") lo habilita
+> `max_uses_per_member_month`. El "voucher con QR universal" (D20) quedó cubierto
+> por el flujo existente de redemptions (canje costo-0 con código TK, Realtime,
+> entrega OpRedeem/POS, impresión FA-lite) — no se construyó un sistema aparte.
+> **FLECO ABIERTO:** D22 — plazo y estación de entrega configurables del premio
+> de rifa (hoy solo el costo por boleto es configurable por rifa).
 
 #### 5.2.1 Objetivo
 
@@ -986,6 +1019,14 @@ F2 completada + logo de Puntos Plus listo.
 
 ### Fase F4 — Tarjeta física + extensiones del operador
 
+> **⏸️ EN PAUSA (decisión del dueño, 11-ago-2026):** el sistema de tarjetas quedó
+> cerrado en modo **SOLO DIGITAL** (emisión en `register_member`, upgrade de
+> prefijo en `register_purchase_core`, resolutores validando
+> `physical_cards.status='active'`). La tarjeta FÍSICA es un deseo a futuro que
+> **podría descartarse** — NO implementar sin pedido explícito. El esquema quedó
+> listo (13 seed `CTOD-00001..13` en `status='inactive'`, reversibles) y
+> agregarla luego es aditivo (vista admin + RPCs assign/batch/block).
+
 #### 5.4.1 Objetivo
 
 Soportar clientes con tarjeta física como entidad separada. Construir flujos del operador.
@@ -1018,6 +1059,21 @@ F2 completada.
 
 ### Fase F5 — Features faltantes
 
+> **✅ CERRADA EN CÓDIGO (v4.0):** (1) **Verificación de teléfono al registrar**
+> implementada (8-ago, mig `20260808c`): OTP por Twilio Verify vía
+> `/api/verify-phone` + tabla `phone_verifications`; `register_member` exige
+> verificación reciente con INTERRUPTOR `phone_verification` en `program_config`
+> — **APAGADO** hasta que las variables `TWILIO_*` estén en Vercel (gestión del
+> dueño). El cambio de número es solicitud por WhatsApp que aplica el admin.
+> (2) **Recuperación de password:** RESUELTA por decisión del dueño (14-ago) —
+> vía chat de WhatsApp (SupportSheet); NO habrá reset por SMS/correo.
+> (3) **Dirección estructurada:** hecha (`AddressPicker.jsx` + `constants/geoGt.js`
+> con departamentos/municipios de Guatemala; `members.address`).
+> (4) **Confirmación al comprar boletos de rifa:** hecha (bottom sheet en
+> ClientRaffle con costo y saldo resultante).
+> **PENDIENTE OPERATIVO:** contratar/configurar Twilio y encender el interruptor
+> (parte del checklist de GO-LIVE).
+
 #### 5.5.1 Objetivo
 
 Cerrar features que faltan: verificación de teléfono multicanal (WhatsApp + SMS), recuperación de password, dirección estructurada, confirmaciones críticas.
@@ -1045,13 +1101,36 @@ Vistas base del track R1b rediseñadas + gestiones Twilio/WhatsApp completadas.
 
 Sin cambios respecto a v2.1. Ver versiones anteriores del documento para detalle si hace falta consultarlas.
 
-- **F6 — Vehículos como entidad + alertas push:** 72-93 hs.
-- **F8 — Spike Club Business:** 1 semana.
-- **F9 — Reportería enriquecida (opcional):** 40-55 hs.
+- **F6 — Vehículos como entidad + alertas push:** 72-93 hs. **📋 PENDIENTE — la
+  única fase grande de desarrollo restante (v4.0).** La pestaña Vehículos sigue
+  como placeholder PRÓXIMAMENTE; hoy los vehículos viven como jsonb en
+  `members.vehicles` (wizard + Mi Cuenta). Alcance vigente: entidad propia,
+  catálogo híbrido (D23), tracking de servicios y alertas push por umbrales
+  globales (D24).
+- **F8 — Spike Club Business:** 1 semana. Pendiente (baja).
+- **F9 — Reportería enriquecida (opcional):** 40-55 hs. **🟡 PARCIAL (v4.0):**
+  el grupo **Análisis** del admin (13-ago) cubrió el grueso — 4 vistas de
+  consulta (AnClientes, AnOperadores, AnPromos, AnIntegridad) sobre RPCs
+  `report_*` con integridad auditada; por decisión de alcance NO hay método de
+  pago (solo Q total). Lo restante queda opcional post-lanzamiento.
 
 ---
 
 ### Fase F7 — API REST pública + integración PROPER
+
+> **✅ F7a CERRADA (29→30-jul-2026, v4.0) · ⏸️ F7b EN PAUSA (depende de F4):**
+> F7a se implementó como **funciones serverless de Vercel** (`api/v1/`, no Edge
+> Functions de Supabase): `GET /stations`, `GET /members` (QR + NIT),
+> `POST /purchases` (galones reales de la factura, regla de NIT, idempotencia
+> por header, promos heredadas de `register_purchase_core`) y
+> `GET|POST /redemptions` (canje completo desde el POS — F7a.3: request/cancel/
+> deliver con comprobante que SOLO se imprime al entregar). Auth por API key
+> bcrypt (`api_clients`, generación en Admin → Configuración → API externa),
+> colaboradores de PROPER como operadores espejo (`operators.external_id`), push
+> de calificación server-side. Documentación entregable en **`docs/API-PROPER.md`**
+> (sustituye al Swagger planeado). NO se implementaron `ApiLogs.jsx` ni rate
+> limiting formal (deuda menor §7.1). **PENDIENTE del dueño:** contacto técnico
+> con PROPER para que integren (la API espera del lado de ellos).
 
 > **✂️ v3.0 — FASE DIVIDIDA (D31):** **F7a** (adelantada, posición 5 del flujo):
 > sub-fases F7.1–F7.4 + F7.6–F7.9 (todo menos physical-members) — 45-60 hs.
@@ -1175,9 +1254,14 @@ CREATE TABLE public.api_request_log (
 > `ESTADO-PROYECTO.md` en la reconciliación v2.4 (sin resumir). Cierre del
 > agujero de permisos `anon` en las RPCs sensibles vía tokens de sesión.
 
-### SEC.A — Login cliente-teléfono server-side (`authenticate_member`) ⛔ NO INICIADO
+### SEC.A — Login cliente-teléfono server-side (`authenticate_member`) ✅ CERRADO
 
-**Estado:** no iniciado, **sin scope formal**. Hoy es solo un TODO inline (ver el
+> **v4.0:** cerrado vía **SEC-lite** (25-jul, mig `20260725f`) y ampliado por
+> **SEC.C.1** (28-jul): `authenticate_member` + `member_sessions` (180 días) +
+> `create_member_session_oauth` para Google. El texto de abajo queda como
+> registro histórico del scope original.
+
+**Estado (histórico v3.0):** no iniciado, **sin scope formal**. Hoy es solo un TODO inline (ver el
 "Hallazgo de arquitectura" abajo): el **cliente-teléfono** hace `signInWithPhone`
 = solo un `SELECT` a `members` (sin Supabase Auth) → **viaja como `anon`**. La
 migración a una RPC `authenticate_member` server-side está pendiente de definir
@@ -1548,9 +1632,24 @@ barrera.
 (confirmado por query: `anon` es miembro de `PUBLIC`). Haría falta
 `REVOKE EXECUTE ... FROM PUBLIC` además de `FROM anon`.
 
-### SEC.C — Auth real (rol ≠ anon para los 3 roles) 📋 PENDIENTE
+### SEC.C — Auth real (rol ≠ anon para los 3 roles) ✅ CERRADO
 
-**Estado:** pendiente, **documentado solo como dependencia** (no tiene sección de
+> **v4.0 — CERRADO (bloques C.1–C.6, 28-jul→11-ago-2026, migs `20260728d`→
+> `20260811f`):** el objetivo se logró por una vía DISTINTA a la definición
+> implícita — en vez de migrar los roles de Postgres, se cerró la **API abierta**
+> y toda operación sensible pasó a **RPCs con token de sesión** por rol:
+> C.1 sesiones de miembro (PII solo por `get_my_member`/`update_my_profile`;
+> fichas staff por `list_members_full`); C.2 cierre de lecturas (`activity_log`,
+> `raffle_tickets`, ventanas mínimas en `purchases`/`redemptions`); C.3 cierre de
+> escrituras directas (flujo de confirmación/entrega en RPCs atómicas);
+> C.4 catálogo solo por `admin_write_catalog` auditado; C.5 privacidad de
+> nombres; C.6 cierre de RPCs heredadas + inbox de notificaciones. Con esto se
+> cerraron también el vector del raffle, SEC.B.9 (REVOKE dentro de las
+> migraciones C) y la RLS abierta de `purchases`. Auditoría integral del 11-ago:
+> bloques seguridad y bugs en cero hallazgos abiertos. El texto de abajo queda
+> como registro histórico.
+
+**Estado (histórico v3.0):** pendiente, **documentado solo como dependencia** (no tiene sección de
 scope; escribirlo es re-planificación, Nivel 2). Definición implícita: migrar
 operador/admin/cliente-teléfono a **identidad autenticada con rol ≠ `anon`** (hoy
 los tres viajan como `anon`, ver hallazgo de arquitectura).
@@ -1768,6 +1867,38 @@ Cambios mayores van en commits separados con mensaje `docs: actualizar ROADMAP �
 ---
 
 ## Changelog
+
+### Versión 4.0 — 15 de agosto de 2026
+
+**Reconciliación con la realidad del repo** — verificada contra código y
+migraciones (no contra memoria). Un mes de ejecución (17-jul → 15-ago) cerró la
+mayor parte del plan v3.0:
+
+- **CERRADAS desde v3.0:** SEC-lite (25-jul) · **SEC.C completo** C.1–C.6
+  (28-jul→11-ago, vía sesiones con token + cierre de la API abierta; absorbe
+  SEC.B.9 y el vector del raffle — el track de seguridad queda SIN bloques
+  abiertos) · **F7a** API PROPER (29→30-jul, serverless Vercel + canje completo
+  desde el POS + `docs/API-PROPER.md`) · **F1** (empresa/estaciones/precios/KPIs;
+  sin toggle precios por estación D4) · **F2 incluida PROMO-2** (6-ago:
+  conversión y eventos POR TIER F2.1, localizaciones D17, tiendas D18, lavados
+  por consumo + beneficio recurrente mensual `max_uses_per_member_month`; D20
+  cubierto por redemptions costo-0) · **F5 en código** (8-ago: OTP de registro
+  con Twilio Verify APAGADO hasta credenciales; dirección estructurada;
+  confirmación de boletos; password → WhatsApp por decisión del dueño 14-ago).
+- **EN PAUSA por decisión del dueño (11-ago):** F4 tarjeta física (sistema
+  cerrado SOLO DIGITAL; esquema listo, no implementar sin pedido) y F7b.
+- **PARCIAL:** F9 — grupo Análisis del admin (13-ago) cubre el grueso.
+- **Track R1b:** todas las vistas base cerradas (menú, modo claro/oscuro, paleta
+  por nivel, historiales con filtros, Admin v2, code splitting por rol,
+  divisiones <500 líneas, splash de entrada con monedas PP 15-ago); sigue activo
+  para correcciones puntuales.
+- **NUEVOS tracks operativos:** **TIENDAS** (Play/App Store — preparado 14-ago,
+  checklist en `docs/TIENDAS.md`; bloqueado por cuentas Play Console/Apple
+  Developer del dueño; decisiones: Sign in with Apple SÍ + APNs SÍ) y
+  **GO-LIVE** (encender motor de degradación y `phone_verification`).
+- **Restante de desarrollo:** **F6 Vehículos** (única fase grande), flecos D22
+  (plazo/estación del premio de rifa) y D4, F8 spike (baja), resto de F9
+  (opcional). ≈95-135 hs + gestiones externas (PROPER, Twilio, tiendas).
 
 ### Versión 3.0 — 17 de julio de 2026
 
