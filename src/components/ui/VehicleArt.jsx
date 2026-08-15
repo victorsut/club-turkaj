@@ -165,6 +165,38 @@ const MotoCubArt = ({ uid, color }) => (
   </g>
 );
 
+// ── MODELO ESPECÍFICO: Honda Navi ────────────────────────────
+// Silueta reconocible de la Navi (capa de modelos con arte propio,
+// se amplía con la lista del dueño): mini moto-scooter compacta —
+// cuerpo/"tanque" CHUNKY en el color real, HUECO portaobjetos
+// abierto bajo el asiento (su firma), asiento plano, manubrio alto
+// con espejo, faro cuadrado y ruedas pequeñas de 12".
+const NaviArt = ({ uid, color }) => (
+  <g>
+    <Shadow w={80} />
+    {/* horquilla + manubrio alto con espejo */}
+    <path d="M176 46 L166 96" stroke="#3A3A42" strokeWidth="6" strokeLinecap="round" fill="none" />
+    <path d="M164 44 Q176 40 186 46" stroke="#26262C" strokeWidth="6" strokeLinecap="round" fill="none" />
+    <path d="M166 42 L162 34" stroke="#26262C" strokeWidth="3" strokeLinecap="round" fill="none" />
+    <circle cx="161" cy="32" r="4.5" fill="#26262C" />
+    {/* faro cuadrado montado al frente */}
+    <rect x="176" y="52" width="12" height="13" rx="4" fill="#FFE9A8" stroke="#26262C" strokeWidth="1.5" />
+    {/* cuerpo delantero CHUNKY (el "tanque" de la Navi) */}
+    <path d="M116 56 Q150 50 163 62 Q172 74 166 90 L148 98 L118 94 Q106 74 116 56 Z" fill={`url(#${uid}-body)`} />
+    <Gleam d="M122 62 Q142 55 156 62 L148 71 Q132 66 122 62 Z" />
+    <path d="M118 94 L148 98 L166 90 L164 96 L146 102 L120 99 Z" fill={shade(color, -50)} opacity=".6" />
+    {/* asiento plano + panel trasero corto */}
+    <rect x="56" y="49" width="64" height="11" rx="5.5" fill="#26262C" />
+    <path d="M60 60 Q84 57 97 61 L93 88 L66 86 Q54 73 60 60 Z" fill={`url(#${uid}-body)`} />
+    <rect x="52" y="62" width="7" height="8" rx="3" fill="#E53935" />
+    {/* HUECO portaobjetos (firma Navi): chasis expuesto entre paneles */}
+    <path d="M97 63 L114 61 M93 86 L118 90" stroke="#3A3A42" strokeWidth="5" strokeLinecap="round" fill="none" />
+    <Wheel cx={74} cy={106} r={18} uid={uid} />
+    <Wheel cx={168} cy={106} r={18} uid={uid} />
+    <path d="M74 106 L124 93 L168 106" stroke="#2C2C34" strokeWidth="5" fill="none" strokeLinecap="round" />
+  </g>
+);
+
 // ── Picop (pickup) ───────────────────────────────────────────
 const PickupArt = ({ uid, color }) => (
   <g>
@@ -305,6 +337,8 @@ const ART = {
   truck: TruckArt, van: VanArt, bus: BusArt,
   moto_sport: MotoArt, moto_cub: MotoCubArt,
   mototaxi: MototaxiArt, other: OtherArt,
+  // modelos ESPECÍFICOS con arte propio (capa 1 de bodyFor)
+  m_navi: NaviArt,
   // compatibilidad: claves por TIPO (llamadas con solo type=)
   liviano: SedanArt, picop: PickupArt, camion: TruckArt,
   camion_ligero: VanArt, microbus: BusArt, moto: MotoArt, otro: OtherArt,

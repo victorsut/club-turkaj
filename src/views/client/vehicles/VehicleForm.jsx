@@ -8,7 +8,7 @@ import { useState, useMemo } from 'react';
 import { BRAND_ORANGE } from '../../../constants/styles';
 import { VEHICLE_TYPES } from '../../../components/ui/VehicleIcons';
 import VehicleArt, { VEHICLE_COLORS } from '../../../components/ui/VehicleArt';
-import { VEHICLE_BRANDS, OIL_TYPES, modelsFor, bodyFor } from '../../../constants/vehicleCatalog';
+import { OIL_TYPES, brandsFor, modelsFor, bodyFor } from '../../../constants/vehicleCatalog';
 import { plateMask } from '../../../lib/inputMasks';
 import { saveMyVehicle } from '../../../services/vehicleService';
 import useBackLayer from '../../../hooks/useBackLayer';
@@ -49,7 +49,11 @@ export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved }) {
     fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 700,
   });
 
-  const modelSugg = useMemo(() => modelsFor(f.brand), [f.brand]);
+  // Sugerencias FILTRADAS por el tipo elegido (pedido del dueño):
+  // quien eligió Motocicleta no ve marcas/modelos de carros — la
+  // escritura libre sigue permitida (catálogo híbrido D23).
+  const brandSugg = useMemo(() => brandsFor(f.vtype), [f.vtype]);
+  const modelSugg = useMemo(() => modelsFor(f.brand, f.vtype), [f.brand, f.vtype]);
 
   const save = async () => {
     if (saving) return;
@@ -122,9 +126,9 @@ export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved }) {
         {/* Marca / modelo / versión (catálogo híbrido D23) */}
         <label style={lbl}>Marca</label>
         <input list="pp-veh-brands" value={f.brand} onChange={e => set('brand', e.target.value)}
-          placeholder="Toyota, Bajaj, Isuzu..." style={input} />
+          placeholder={brandSugg.slice(0, 3).join(', ') + '...'} style={input} />
         <datalist id="pp-veh-brands">
-          {VEHICLE_BRANDS.map(b => <option key={b.brand} value={b.brand} />)}
+          {brandSugg.map(b => <option key={b} value={b} />)}
         </datalist>
 
         <div style={{ display: 'flex', gap: 10 }}>
