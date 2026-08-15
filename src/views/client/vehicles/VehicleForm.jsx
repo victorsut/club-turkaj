@@ -8,7 +8,7 @@ import { useState, useMemo } from 'react';
 import { BRAND_ORANGE } from '../../../constants/styles';
 import { VEHICLE_TYPES } from '../../../components/ui/VehicleIcons';
 import VehicleArt, { VEHICLE_COLORS } from '../../../components/ui/VehicleArt';
-import { VEHICLE_BRANDS, OIL_TYPES, modelsFor } from '../../../constants/vehicleCatalog';
+import { VEHICLE_BRANDS, OIL_TYPES, modelsFor, bodyFor } from '../../../constants/vehicleCatalog';
 import { plateMask } from '../../../lib/inputMasks';
 import { saveMyVehicle } from '../../../services/vehicleService';
 import useBackLayer from '../../../hooks/useBackLayer';
@@ -25,6 +25,7 @@ export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved }) {
     km: vehicle?.km != null ? String(vehicle.km) : '',
     oil_type: vehicle?.oil_type || '',
     next_service: vehicle?.next_service || '',
+    next_service_km: vehicle?.next_service_km != null ? String(vehicle.next_service_km) : '',
   }));
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
@@ -63,6 +64,7 @@ export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved }) {
       km: f.km === '' ? null : parseInt(f.km, 10),
       oil_type: f.oil_type.trim(),
       next_service: f.next_service || null,
+      next_service_km: f.next_service_km === '' ? null : parseInt(f.next_service_km, 10),
     });
     setSaving(false);
     if (error) { fire('Error: ' + (error.message || 'no se pudo guardar'), 'error'); return; }
@@ -85,13 +87,14 @@ export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved }) {
           {editing ? 'Editar vehículo' : 'Agregar vehículo'}
         </div>
 
-        {/* Vista previa en vivo: tipo + color repintan al instante */}
+        {/* Vista previa en vivo: tipo, MODELO (silueta) y color repintan
+            al instante — escribir "RAV4" cambia la carrocería a SUV */}
         <div style={{
           margin: '14px 0 2px', borderRadius: 18, padding: '10px 0 2px',
           background: dark ? 'rgba(255,255,255,.05)' : '#FAFAFB',
           display: 'flex', justifyContent: 'center',
         }}>
-          <VehicleArt type={f.vtype} color={f.color} width={210} />
+          <VehicleArt type={f.vtype} body={bodyFor(f.vtype, f.model)} color={f.color} width={210} />
         </div>
 
         {/* Tipo */}
@@ -167,11 +170,22 @@ export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved }) {
         <input value={f.oil_type} onChange={e => set('oil_type', e.target.value)}
           placeholder="O escribe el tuyo (ej. 15W-40 sintético)" style={input} />
 
-        {/* Próximo servicio */}
+        {/* Próximo servicio — por FECHA o por KILOMETRAJE (o ambos) */}
         <label style={lbl}>Próximo servicio</label>
-        <input type="date" value={f.next_service}
-          onChange={e => set('next_service', e.target.value)}
-          style={{ ...input, colorScheme: dark ? 'dark' : 'light' }} />
+        <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: sub, marginBottom: 5 }}>Por fecha</div>
+            <input type="date" value={f.next_service}
+              onChange={e => set('next_service', e.target.value)}
+              style={{ ...input, colorScheme: dark ? 'dark' : 'light' }} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: sub, marginBottom: 5 }}>O al llegar a (km)</div>
+            <input value={f.next_service_km} inputMode="numeric"
+              onChange={e => set('next_service_km', e.target.value.replace(/[^0-9]/g, '').slice(0, 7))}
+              placeholder="50000" style={{ ...input, fontFamily: "'JetBrains Mono', monospace" }} />
+          </div>
+        </div>
 
         {/* Acciones */}
         <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>

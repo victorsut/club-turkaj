@@ -41,3 +41,44 @@ export function modelsFor(brand) {
   const hit = VEHICLE_BRANDS.find(x => x.brand.toLowerCase() === b);
   return hit ? hit.models : [];
 }
+
+// ── Estilo de CARROCERÍA por modelo (E1.1, pedido del dueño) ──
+// La ilustración se elige por la SILUETA del modelo real (sedán vs
+// hatchback vs SUV vs picop doble cabina vs moto deportiva vs cub) —
+// identificable y diferenciable SIN logos ni copias del diseño (eso
+// es lo protegido por licencias). Palabra clave contenida en el
+// modelo escrito → estilo; sin match → default por tipo de vehículo.
+const MODEL_BODY = {
+  suv: ['rav4', 'cr-v', 'crv', 'hr-v', 'hrv', 'tucson', 'santa fe', 'sportage',
+    'kicks', 'x-trail', 'xtrail', 'outlander', 'asx', 'grand vitara', 'jimny',
+    'creta', 'kona', 'tracker', 'escape', 'explorer', 'cx-5', 'cx5', 'cx-30',
+    'cx30', 'mu-x', 'mux', 'tiguan', 'montero', 'prado', 'fortuner', 'rush',
+    'seltos', 'sorento', 'pilot', 'territory', 'xpander', 'ertiga',
+    'corolla cross', 'ecosport'],
+  hatch: ['yaris', 'swift', 'fit', 'march', 'mirage', 'grand i10', 'picanto',
+    'spark', 'beat', 'agya', 'alto', 's-presso', 'gol', 'mazda 2', 'i10'],
+  pickup2: ['hilux', 'l200', 'frontier', 'd-max', 'dmax', 'ranger', 'bt-50',
+    'bt50', 'amarok', 'colorado', 'f-150', 'f150', 'saveiro'],
+  moto_cub: ['boxer', 'ct 100', 'ct100', 'at110', 'wave', 'crypton', 'navi',
+    'cgl', 'gn125', 'ax100', 'en125', '125z', 'cub'],
+  van: ['urvan', 'h1', 'n300', 'hiace'],
+  bus: ['coaster'],
+  truck: ['npr', 'elf', 'nqr', 'dutro', 'cascadia', 'm2 106', 'columbia',
+    '4300', 'prostar', 'durastar'],
+  mototaxi: ['mototaxi', 'torito'],
+};
+
+const TYPE_DEFAULT_BODY = {
+  liviano: 'sedan', picop: 'pickup', camion: 'truck', camion_ligero: 'van',
+  microbus: 'bus', moto: 'moto_sport', mototaxi: 'mototaxi', otro: 'other',
+};
+
+export function bodyFor(vtype, model) {
+  const m = (model || '').trim().toLowerCase();
+  if (m) {
+    for (const [body, keys] of Object.entries(MODEL_BODY)) {
+      if (keys.some(k => m.includes(k))) return body;
+    }
+  }
+  return TYPE_DEFAULT_BODY[vtype] || 'other';
+}

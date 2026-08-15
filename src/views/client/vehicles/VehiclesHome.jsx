@@ -10,6 +10,7 @@ import { useRef, useState } from 'react';
 import { BRAND_ORANGE, homeColors } from '../../../constants/styles';
 import { VEHICLE_TYPES } from '../../../components/ui/VehicleIcons';
 import VehicleArt from '../../../components/ui/VehicleArt';
+import { bodyFor } from '../../../constants/vehicleCatalog';
 import { plateMask } from '../../../lib/inputMasks';
 import { deleteMyVehicle } from '../../../services/vehicleService';
 import VehicleForm from './VehicleForm';
@@ -96,7 +97,33 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
     }
   };
 
+  // ── Próximo servicio: por FECHA, por KM o ambos (E1.1) — se muestra
+  // lo más URGENTE; el otro criterio va como nota secundaria.
   const serviceDays = v ? daysUntil(v.next_service) : null;
+  const kmLeft = v && v.next_service_km != null && v.km != null ? v.next_service_km - v.km : null;
+  const svc = (() => {
+    if (!v) return null;
+    const hasDate = !!v.next_service;
+    const hasKm = v.next_service_km != null;
+    if (!hasDate && !hasKm) return { value: '—', note: 'Sin programar — agrégalo al editar', warn: false };
+    const kmVal = hasKm ? `${v.next_service_km.toLocaleString('en-US')} km` : null;
+    const kmNote = !hasKm ? null
+      : kmLeft == null ? 'Meta de odómetro (actualiza tu km)'
+      : kmLeft <= 0 ? `Pasado por ${Math.abs(kmLeft).toLocaleString('en-US')} km`
+      : `Faltan ${kmLeft.toLocaleString('en-US')} km`;
+    const dateNote = !hasDate ? null
+      : serviceDays < 0 ? `Venció hace ${-serviceDays} día${serviceDays === -1 ? '' : 's'}`
+      : serviceDays === 0 ? '¡Es hoy!'
+      : `En ${serviceDays} día${serviceDays === 1 ? '' : 's'}`;
+    const kmWarn = kmLeft != null && kmLeft <= 500;
+    const dateWarn = serviceDays != null && serviceDays <= 7;
+    // ¿Cuál manda? el vencido primero; luego el que esté en alerta
+    const kmFirst = hasKm && (!hasDate || (kmLeft != null && kmLeft <= 0) || (kmWarn && !dateWarn));
+    if (kmFirst) {
+      return { value: kmVal, note: kmNote + (hasDate ? ` · o el ${fmtDate(v.next_service)}` : ''), warn: kmWarn };
+    }
+    return { value: fmtDate(v.next_service), note: dateNote + (hasKm ? ` · o a los ${kmVal}` : ''), warn: dateWarn };
+  })();
 
   // Tiles de datos del vehículo activo
   const tiles = v ? [
@@ -107,12 +134,7 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
     },
     {
       k: 'service', label: 'Próximo servicio',
-      value: v.next_service ? fmtDate(v.next_service) : '—',
-      note: serviceDays == null ? 'Sin fecha registrada'
-        : serviceDays < 0 ? `Venció hace ${-serviceDays} día${serviceDays === -1 ? '' : 's'}`
-        : serviceDays === 0 ? '¡Es hoy!'
-        : `En ${serviceDays} día${serviceDays === 1 ? '' : 's'}`,
-      warn: serviceDays != null && serviceDays <= 7,
+      value: svc.value, note: svc.note, warn: svc.warn,
     },
     {
       k: 'oil', label: 'Aceite',
@@ -192,7 +214,7 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
                         )}
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'center', position: 'relative' }}>
-                        <VehicleArt type={veh.vtype} color={col} width={272} />
+                        <VehicleArt type={veh.vtype} body={bodyFor(veh.vtype, veh.model)} color={col} width={272} />
                       </div>
                       <div style={{ textAlign: 'center', position: 'relative', marginTop: -4 }}>
                         <div style={{ fontSize: 18, fontWeight: 900, color: ink }}>

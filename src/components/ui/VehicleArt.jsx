@@ -82,6 +82,89 @@ const SedanArt = ({ uid, color }) => (
   </g>
 );
 
+// ── Hatchback (Yaris, Swift, March...) — cola corta y portón alto ──
+const HatchArt = ({ uid, color }) => (
+  <g>
+    <Shadow w={88} />
+    <path d={'M28 106 Q26 88 40 84 L60 80 Q84 54 114 52 L142 52 Q158 52 166 60 L176 70 Q188 74 194 84 L196 100 Q196 110 186 110 L178 110 A21 21 0 0 0 136 110 L86 110 A21 21 0 0 0 44 110 L38 110 Q28 110 28 106 Z'}
+      fill={`url(#${uid}-body)`} />
+    <path d="M68 79 Q88 58 113 56 L138 56 Q150 56 157 64 L170 78 Z" fill={`url(#${uid}-glass)`} />
+    <rect x="116" y="56" width="4" height="23" fill={shade(color, -30)} />
+    <Gleam d="M76 77 Q92 60 112 58 L124 58 L102 77 Z" />
+    <path d="M28 98 L196 94 L196 100 Q196 110 186 110 L178 110 A21 21 0 0 0 136 110 L86 110 A21 21 0 0 0 44 110 L38 110 Q28 110 28 98 Z"
+      fill={shade(color, -58)} opacity=".55" />
+    <rect x="186" y="82" width="10" height="7" rx="3.5" fill="#FFE9A8" />
+    <rect x="28" y="86" width="8" height="8" rx="4" fill="#E53935" />
+    <Wheel cx={74} cy={108} r={19} uid={uid} />
+    <Wheel cx={158} cy={108} r={19} uid={uid} />
+  </g>
+);
+
+// ── SUV (RAV4, Fortuner, Tucson...) — alto, rieles de techo ──
+const SuvArt = ({ uid, color }) => (
+  <g>
+    <Shadow />
+    {/* rieles de techo */}
+    <rect x="66" y="36" width="98" height="4" rx="2" fill="#3A3A42" />
+    <path d={'M20 100 Q18 80 34 76 L52 72 Q64 44 96 42 L152 42 Q176 44 188 64 L206 72 Q222 76 222 90 L222 98 Q222 106 212 106 L198 106 A22 22 0 0 0 154 106 L92 106 A22 22 0 0 0 48 106 L30 106 Q20 106 20 100 Z'}
+      fill={`url(#${uid}-body)`} />
+    <path d="M60 71 Q72 48 98 46 L148 46 Q168 48 180 65 L182 71 Z" fill={`url(#${uid}-glass)`} />
+    <rect x="118" y="46" width="4" height="25" fill={shade(color, -30)} />
+    <Gleam d="M68 69 Q80 50 100 48 L114 48 L92 69 Z" />
+    <path d="M20 92 L222 88 L222 98 Q222 106 212 106 L198 106 A22 22 0 0 0 154 106 L92 106 A22 22 0 0 0 48 106 L30 106 Q20 106 20 92 Z"
+      fill={shade(color, -58)} opacity=".55" />
+    <rect x="210" y="76" width="12" height="8" rx="4" fill="#FFE9A8" />
+    <rect x="20" y="78" width="9" height="9" rx="4" fill="#E53935" />
+    <Wheel cx={70} cy={106} r={21} uid={uid} />
+    <Wheel cx={176} cy={106} r={21} uid={uid} />
+  </g>
+);
+
+// ── Picop DOBLE CABINA (Hilux, D-Max, L200...) ───────────────
+const Pickup2Art = ({ uid, color }) => (
+  <g>
+    <Shadow />
+    <path d={'M14 104 L14 74 Q14 68 22 68 L74 68 L74 46 Q74 40 82 40 L148 40 Q156 40 162 48 L176 68 L206 72 Q224 76 224 92 L224 104 Q224 110 216 110 L198 110 A21 21 0 0 0 156 110 L84 110 A21 21 0 0 0 42 110 L22 110 Q14 110 14 104 Z'}
+      fill={`url(#${uid}-body)`} />
+    {/* dos ventanas = doble cabina */}
+    <path d="M81 66 L81 46 L112 46 L112 66 Z" fill={`url(#${uid}-glass)`} />
+    <path d="M118 66 L118 46 L146 46 Q152 46 156 52 L166 66 Z" fill={`url(#${uid}-glass)`} />
+    <Gleam d="M84 63 L84 48 L100 48 L90 63 Z" />
+    <path d="M14 96 L224 94 L224 104 Q224 110 216 110 L198 110 A21 21 0 0 0 156 110 L84 110 A21 21 0 0 0 42 110 L22 110 Q14 110 14 96 Z"
+      fill={shade(color, -58)} opacity=".55" />
+    <rect x="14" y="70" width="60" height="4" fill={shade(color, -30)} />
+    <rect x="212" y="78" width="12" height="7" rx="3.5" fill="#FFE9A8" />
+    <rect x="14" y="80" width="8" height="7" rx="3.5" fill="#E53935" />
+    <Wheel cx={63} cy={108} r={20} uid={uid} />
+    <Wheel cx={177} cy={108} r={20} uid={uid} />
+  </g>
+);
+
+// ── Moto de trabajo / cub (Boxer, AT110, Wave...) ────────────
+const MotoCubArt = ({ uid, color }) => (
+  <g>
+    <Shadow w={78} />
+    {/* horquilla + manubrio alto */}
+    <path d="M178 50 L166 98" stroke="#3A3A42" strokeWidth="6" strokeLinecap="round" fill="none" />
+    <path d="M166 46 Q178 42 188 48" stroke="#26262C" strokeWidth="6" strokeLinecap="round" fill="none" />
+    {/* escudo de piernas + chasis paso bajo */}
+    <path d="M152 58 Q166 60 168 76 L156 92 L140 84 Q144 66 152 58 Z" fill={`url(#${uid}-body)`} />
+    <path d="M84 88 Q112 82 140 84 L156 92 L96 98 Q86 96 84 88 Z" fill={shade(color, -24)} />
+    {/* tanque/cuerpo + asiento largo plano */}
+    <path d="M74 74 Q98 66 128 70 L146 76 L142 88 L84 88 Q74 84 74 74 Z" fill={`url(#${uid}-body)`} />
+    <rect x="62" y="64" width="64" height="10" rx="5" fill="#26262C" />
+    <Gleam d="M84 74 Q100 69 118 71 L114 78 Q98 76 84 74 Z" />
+    {/* parrilla trasera */}
+    <path d="M52 62 L72 62 M56 62 L60 74 M68 62 L66 74" stroke="#3A3A42" strokeWidth="4" strokeLinecap="round" />
+    {/* escape bajo */}
+    <path d="M92 98 L152 96" stroke="#8E9096" strokeWidth="7" strokeLinecap="round" />
+    <circle cx="184" cy="54" r="5.5" fill="#FFE9A8" />
+    <Wheel cx={66} cy={104} r={19} uid={uid} />
+    <Wheel cx={170} cy={104} r={19} uid={uid} />
+    <path d="M66 104 L118 84 L170 104" stroke="#2C2C34" strokeWidth="5" fill="none" strokeLinecap="round" />
+  </g>
+);
+
 // ── Picop (pickup) ───────────────────────────────────────────
 const PickupArt = ({ uid, color }) => (
   <g>
@@ -216,20 +299,23 @@ const OtherArt = ({ uid, color }) => (
 );
 
 const ART = {
-  liviano: SedanArt,
-  picop: PickupArt,
-  camion: TruckArt,
-  camion_ligero: VanArt,
-  microbus: BusArt,
-  moto: MotoArt,
-  mototaxi: MototaxiArt,
-  otro: OtherArt,
+  // por ESTILO de carrocería (E1.1: bodyFor(vtype, model) del catálogo)
+  sedan: SedanArt, hatch: HatchArt, suv: SuvArt,
+  pickup: PickupArt, pickup2: Pickup2Art,
+  truck: TruckArt, van: VanArt, bus: BusArt,
+  moto_sport: MotoArt, moto_cub: MotoCubArt,
+  mototaxi: MototaxiArt, other: OtherArt,
+  // compatibilidad: claves por TIPO (llamadas con solo type=)
+  liviano: SedanArt, picop: PickupArt, camion: TruckArt,
+  camion_ligero: VanArt, microbus: BusArt, moto: MotoArt, otro: OtherArt,
 };
 
-// Componente público: <VehicleArt type="liviano" color="#1565C0" width={280} />
-export default function VehicleArt({ type = 'liviano', color = '#9E9E9E', width = 260, style }) {
+// Componente público:
+//   <VehicleArt body={bodyFor(vtype, model)} color="#1565C0" width={280} />
+// `body` (estilo de carrocería) manda; sin él cae al default del `type`.
+export default function VehicleArt({ type = 'liviano', body = null, color = '#9E9E9E', width = 260, style }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
-  const Art = ART[type] || OtherArt;
+  const Art = ART[body] || ART[type] || OtherArt;
   return (
     <svg width={width} height={width * (150 / 240)} viewBox="0 0 240 150"
       aria-hidden style={{ display: 'block', ...style }}>
