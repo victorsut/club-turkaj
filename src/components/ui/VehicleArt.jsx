@@ -188,49 +188,101 @@ const NaviWheel = ({ cx, cy, r, uid }) => (
 
 const NaviArt = ({ uid, color }) => (
   <g>
-    <Shadow cx={118} w={84} />
-    {/* tren CVT (scooter) hacia la rueda trasera + motor */}
-    <path d="M104 92 L62 102" stroke="#3A3A42" strokeWidth="14" strokeLinecap="round" fill="none" />
-    <rect x="98" y="80" width="42" height="24" rx="7" fill="#2C2C34" />
-    <path d="M104 86 L104 98 M111 85 L111 99 M118 84 L118 100" stroke="#4A4C54" strokeWidth="2" />
-    {/* escape lateral con tapa */}
-    <rect x="72" y="95" width="58" height="11" rx="5.5" fill="#B9BDC4" />
-    <rect x="72" y="95" width="58" height="4.5" rx="2.25" fill="#DDE0E5" />
-    <rect x="70" y="96" width="7" height="9" rx="3" fill="#55575E" />
-    {/* bastidor bajo el tanque */}
-    <path d="M162 54 L130 90" stroke={shade(color, -34)} strokeWidth="7" strokeLinecap="round" fill="none" />
-    {/* horquilla delantera */}
-    <path d="M168 58 L175 86" stroke="#8E9096" strokeWidth="6" strokeLinecap="round" fill="none" />
-    <path d="M175 86 L178 98" stroke="#3A3A42" strokeWidth="6" strokeLinecap="round" fill="none" />
-    {/* guardafango delantero en color */}
-    <path d="M158 86 Q166 66 192 74 L196 86 Q186 76 170 88 Q162 92 158 86 Z" fill={`url(#${uid}-body)`} />
-    {/* carenado del manubrio en color + faro cuadrado + espejo */}
-    <path d="M158 40 Q174 32 188 40 L186 58 Q172 50 160 55 Z" fill={`url(#${uid}-body)`} />
-    <rect x="182" y="42" width="13" height="15" rx="4" fill="#FFEFC0" stroke="#26262C" strokeWidth="1.6" />
-    <path d="M158 40 L150 42" stroke="#26262C" strokeWidth="5" strokeLinecap="round" fill="none" />
-    <path d="M156 38 L150 26" stroke="#26262C" strokeWidth="3" strokeLinecap="round" fill="none" />
-    <circle cx="149" cy="24" r="5" fill="#26262C" />
-    <circle cx="150" cy="23" r="2" fill="#4A4C54" />
-    {/* faux tank chunky con crease + brillo */}
-    <path d="M114 50 Q150 42 161 56 Q170 68 163 84 L148 94 L118 90 Q104 68 114 50 Z" fill={`url(#${uid}-body)`} />
-    <path d="M119 68 Q140 61 159 68" stroke={shade(color, -48)} strokeWidth="2.2" opacity=".55" fill="none" />
-    <Gleam d="M121 58 Q140 50 155 57 L147 66 Q132 62 121 58 Z" />
-    <path d="M118 90 L148 94 L163 84 L161 91 L146 99 L120 95 Z" fill={shade(color, -52)} opacity=".6" />
-    {/* CAVIDAD portaobjetos abierta (firma de la Navi) */}
-    <rect x="94" y="56" width="20" height="30" rx="6" fill="#17171B" />
-    <rect x="94" y="56" width="20" height="30" rx="6" fill="none" stroke={shade(color, -40)} strokeWidth="2.5" />
-    {/* asiento plano con costura + asa trasera */}
-    <path d="M50 44 L116 44 Q126 44 125 52 L123 57 L52 58 Q45 56 45 50 Q45 44 50 44 Z" fill="#1E1E22" />
-    <path d="M54 51 L118 50" stroke="rgba(255,255,255,.16)" strokeWidth="1.6" strokeDasharray="4 3" fill="none" />
-    <path d="M45 50 Q35 55 39 66" stroke="#3A3A42" strokeWidth="4.5" strokeLinecap="round" fill="none" />
-    {/* panel lateral trasero en color + calavera */}
-    <path d="M52 58 L92 60 L89 88 L64 84 Q50 72 52 58 Z" fill={`url(#${uid}-body)`} />
-    <path d="M56 64 Q72 62 86 64" stroke={shade(color, -44)} strokeWidth="1.8" opacity=".5" fill="none" />
-    <rect x="45" y="60" width="7" height="10" rx="3" fill="#E53935" />
-    {/* posapiés */}
-    <rect x="130" y="104" width="16" height="4.5" rx="2.25" fill="#3A3A42" />
-    <NaviWheel cx={62} cy={102} r={21} uid={uid} />
-    <NaviWheel cx={178} cy={102} r={22} uid={uid} />
+    <Shadow cx={118} w={86} />
+
+    {/* ── tren motriz de scooter (unidad motor+CVT abrazando la rueda) ── */}
+    <path d="M102 90 L60 102" stroke="#34343C" strokeWidth="15" strokeLinecap="round" fill="none" />
+    <path d="M102 96 L64 106" stroke="#212127" strokeWidth="5" strokeLinecap="round" fill="none" />
+    {/* bloque del motor + CILINDRO HORIZONTAL con aletas (rasgo Navi) */}
+    <rect x="96" y="78" width="40" height="26" rx="8" fill="#2C2C34" />
+    <rect x="132" y="86" width="22" height="15" rx="4" fill="#26262C" />
+    <path d="M136 86 L136 101 M141 86 L141 101 M146 86 L146 101 M151 87 L151 100" stroke="#4A4C54" strokeWidth="2" />
+    <circle cx="112" cy="91" r="7" fill="#3A3A42" />
+    <circle cx="112" cy="91" r="3" fill="#55575E" />
+
+    {/* ── amortiguador trasero con RESORTE visible ── */}
+    <path d="M80 60 L96 88" stroke="#26262C" strokeWidth="5.5" strokeLinecap="round" fill="none" />
+    <path d="M82 65 L89 63 M85 70 L92 68 M88 75 L95 73 M91 80 L98 78" stroke="#9BA0A8" strokeWidth="2.4" strokeLinecap="round" />
+
+    {/* ── escape lateral con ESCUDO TÉRMICO ranurado ── */}
+    <path d="M126 98 Q94 106 70 102" stroke="#AEB2BA" strokeWidth="12" strokeLinecap="round" fill="none" />
+    <path d="M124 96 Q98 102 78 100" stroke="#D8DBE0" strokeWidth="4" strokeLinecap="round" fill="none" />
+    <path d="M96 97 L102 104 M106 95 L112 102 M116 93 L122 100" stroke="#7A7E86" strokeWidth="2.4" strokeLinecap="round" />
+    <circle cx="69" cy="102" r="6" fill="#55575E" />
+    <circle cx="69" cy="102" r="3" fill="#17171B" />
+
+    {/* ── bastidor: tubo principal + subchasis expuesto ── */}
+    <path d="M160 50 L132 86" stroke={shade(color, -36)} strokeWidth="7" strokeLinecap="round" fill="none" />
+    <path d="M118 58 L88 62" stroke="#3A3A42" strokeWidth="5" strokeLinecap="round" fill="none" />
+
+    {/* ── horquilla: barra pulida + botella negra, y guardafango
+           delantero ENVOLVENTE en color con pico al frente ── */}
+    <path d="M167 50 L176 82" stroke="#9BA0A8" strokeWidth="6" strokeLinecap="round" fill="none" />
+    <path d="M176 82 L180 96" stroke="#26262C" strokeWidth="7.5" strokeLinecap="round" fill="none" />
+    <path d="M158 88 Q160 68 182 68 Q198 69 202 79 L196 84 Q190 74 174 82 Q164 88 163 94 Q158 94 158 88 Z"
+      fill={`url(#${uid}-body)`} stroke={shade(color, -52)} strokeWidth="1" />
+    <path d="M166 74 Q180 68 194 74" stroke={shade(color, 46)} strokeWidth="2" opacity=".7" fill="none" />
+
+    {/* ── delantal negro tras la horquilla ── */}
+    <path d="M148 58 L164 55 L160 84 L148 76 Z" fill="#202024" />
+
+    {/* ── MÁSCARA angular del faro en color + faro CUADRADO con bisel ── */}
+    <path d="M154 34 L176 27 Q190 26 193 36 L191 54 L176 49 Q162 46 156 49 Z"
+      fill={`url(#${uid}-body)`} stroke={shade(color, -52)} strokeWidth="1" />
+    <path d="M158 37 L182 31" stroke={shade(color, 46)} strokeWidth="2" opacity=".7" fill="none" />
+    <rect x="183" y="33" width="14" height="16" rx="3" fill="#1E1E22" />
+    <rect x="185" y="35" width="10" height="12" rx="2" fill="#FFF4CD" />
+    <path d="M186 38 L194 36" stroke="rgba(255,255,255,.8)" strokeWidth="1.6" />
+
+    {/* ── manubrio: barra, puño, palanca de freno y espejo ── */}
+    <path d="M156 33 L144 37" stroke="#1E1E22" strokeWidth="5" strokeLinecap="round" fill="none" />
+    <path d="M146 36 L140 38" stroke="#0F0F12" strokeWidth="7" strokeLinecap="round" fill="none" />
+    <path d="M149 32 L136 28" stroke="#33353B" strokeWidth="2.6" strokeLinecap="round" fill="none" />
+    <path d="M152 31 L146 18" stroke="#26262C" strokeWidth="3" strokeLinecap="round" fill="none" />
+    <ellipse cx="144" cy="16" rx="6.5" ry="4.8" fill="#1E1E22" transform="rotate(-18 144 16)" />
+    <ellipse cx="145" cy="15.5" rx="3.6" ry="2.4" fill="#4A4C54" transform="rotate(-18 145 15.5)" />
+
+    {/* ── FAUX TANK angular con creases, rejilla y sombra inferior ── */}
+    <path d="M112 46 L148 39 Q162 38 166 48 L168 60 Q168 73 160 81 L146 91 L119 87 Q103 66 112 46 Z"
+      fill={`url(#${uid}-body)`} stroke={shade(color, -52)} strokeWidth="1.2" />
+    <path d="M116 51 L156 44" stroke={shade(color, 50)} strokeWidth="2.2" opacity=".75" fill="none" />
+    <path d="M118 66 Q140 59 160 66" stroke={shade(color, -48)} strokeWidth="2.2" opacity=".55" fill="none" />
+    <Gleam d="M120 56 Q138 48 154 54 L147 63 Q132 59 120 56 Z" />
+    <rect x="147" y="70" width="10" height="3.4" rx="1.7" fill="#17171B" transform="rotate(-9 152 72)" />
+    <rect x="145" y="76" width="10" height="3.4" rx="1.7" fill="#17171B" transform="rotate(-9 150 78)" />
+    <path d="M119 87 L146 91 L160 81 L158 88 L144 96 L121 92 Z" fill={shade(color, -52)} opacity=".6" />
+
+    {/* ── CAVIDAD portaobjetos con labio en color (firma Navi) ── */}
+    <rect x="92" y="54" width="22" height="32" rx="7" fill="#141418" />
+    <path d="M96 60 Q92 68 95 78" stroke="#000" strokeWidth="3" opacity=".5" fill="none" />
+    <rect x="92" y="54" width="22" height="32" rx="7" fill="none" stroke={shade(color, -38)} strokeWidth="3" />
+    <path d="M113 58 L113 80" stroke="rgba(255,255,255,.14)" strokeWidth="1.6" fill="none" />
+
+    {/* ── asiento plano con vivo y costura + asa trasera ── */}
+    <path d="M48 40 Q50 36 58 36 L112 37 Q124 37 124 45 L122 51 L50 53 Q43 51 43 45 Q43 41 48 40 Z" fill="#1B1B1F" />
+    <path d="M50 47 Q86 44 120 45" stroke="rgba(255,255,255,.17)" strokeWidth="1.5" strokeDasharray="3.5 2.8" fill="none" />
+    <path d="M44 51 L122 49" stroke="#000" strokeWidth="1.8" opacity=".6" fill="none" />
+    <path d="M43 44 Q30 48 34 61 L40 63" stroke="#33353B" strokeWidth="4.5" strokeLinecap="round" fill="none" />
+
+    {/* ── cola: panel lateral en color, guardafango, calavera y direccional ── */}
+    <path d="M50 53 L90 55 L87 84 L64 80 Q47 68 50 53 Z"
+      fill={`url(#${uid}-body)`} stroke={shade(color, -52)} strokeWidth="1" />
+    <path d="M54 59 Q72 56 86 59" stroke={shade(color, 46)} strokeWidth="1.8" opacity=".6" fill="none" />
+    <path d="M64 80 L87 84 L86 89 L66 85 Z" fill={shade(color, -52)} opacity=".55" />
+    <path d="M50 56 Q40 60 42 72 L50 74" fill="#202024" />
+    <rect x="38" y="57" width="8" height="12" rx="3" fill="#C62E2A" />
+    <rect x="39.5" y="59" width="5" height="4" rx="2" fill="#F08A86" />
+    <circle cx="42" cy="74" r="2.6" fill="#F9A825" />
+
+    {/* ── posapiés del piloto ── */}
+    <path d="M136 102 L136 108" stroke="#26262C" strokeWidth="3" />
+    <rect x="128" y="107" width="17" height="4.5" rx="2.25" fill="#33353B" />
+
+    <NaviWheel cx={60} cy={103} r={20} uid={uid} />
+    <NaviWheel cx={180} cy={101} r={22} uid={uid} />
+    {/* brillo superior de las llantas */}
+    <path d="M46 92 A20 20 0 0 1 66 84" stroke="rgba(255,255,255,.09)" strokeWidth="3" fill="none" />
+    <path d="M165 90 A22 22 0 0 1 187 81" stroke="rgba(255,255,255,.09)" strokeWidth="3" fill="none" />
   </g>
 );
 
