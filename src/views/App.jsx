@@ -1,88 +1,31 @@
 // src/views/App.jsx
 // Main orchestrator — manages global state, auth, Supabase sync, and view routing
-import { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
+// División 15-ago-2026 (regla de 500 líneas): las VISTAS (eager +
+// lazy) viven en ScreenRouter.jsx, los modales de nivel raíz en
+// components/AppModals.jsx y el arranque (OAuth + bootLoader) en
+// hooks/useAuthBoot.js — todo movido VERBATIM.
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { sb } from '../lib/supabaseClient';
 import { makeTier } from '../lib/tierSystem';
 import { CFG_INIT } from '../constants/config';
-import { createMemberSessionOauth, markRaffleWinnerSeen } from '../services';
-
-// Guatemala es UTC-6 — helpers de fecha local en lib/dates.js
-import { localDate, utcToLocal } from '../lib/dates';
-import { loadFromSupabase } from '../services/bootLoader';
 import { clientTheme, clientMainBg, adminTheme } from '../constants/styles';
 import useToast from '../hooks/useToast';
 
 // UI Components
 import BottomNav from '../components/ui/BottomNav';
-import LogoSpinner from '../components/ui/LogoSpinner';
 import GalaxyStars from '../components/ui/GalaxyStars';
-import SpecialDayBonusModal from '../components/SpecialDayBonusModal';
-import UpdateAvailable from '../components/UpdateAvailable';
-import { Fuel, Users, Gift, Ticket, House, TicketStar, Car } from '../components/ui/Icons';
-import Toast from '../components/ui/Toast';
-import RaffleWinnerModal from '../components/RaffleWinnerModal';
-import RedeemConfirmRequestModal from '../components/RedeemConfirmRequestModal';
-import RedeemConfirmSheet from '../components/RedeemConfirmSheet';
-import PurchaseConfirmSheet from '../components/PurchaseConfirmSheet';
-import ClientQrSheet from '../components/ClientQrSheet';
+import AppModals from '../components/AppModals';
 import useBackLayer from '../hooks/useBackLayer';
 import useStaffData from '../hooks/useStaffData';
+import useAuthBoot from '../hooks/useAuthBoot';
 import useMemberRealtime from '../hooks/useMemberRealtime';
 import useNotificationsInbox from '../hooks/useNotificationsInbox';
 import useSessionGuard from '../hooks/useSessionGuard';
 import useBusinessActions from '../hooks/useBusinessActions';
 
-// Auth Views
-import ClientLogin from './client/ClientLogin';
-import GoogleProfile from './client/GoogleProfile';
-import OperatorLogin from './operator/OperatorLogin';
-import AdminLogin from './admin/AdminLogin';
-
-// Client Views
-import ClientHome from './client/ClientHome';
-import CompanySelect from './client/CompanySelect';
-import Catalog from './shared/Catalog';
-import ClientRaffle from './client/ClientRaffle';
-import Rules from './shared/Rules';
-import ClientMenu from './client/ClientMenu';
-import ClientPromos from './client/ClientPromos';
-
-// ── Code splitting por ROL (14-ago) ─────────────────────────
-// Las vistas de OPERADOR y ADMIN se cargan bajo demanda (React.lazy):
-// el cliente — la audiencia masiva de la PWA — ya no descarga el panel
-// ni html5-qrcode (solo lo usan los escáneres del operador). Los
-// LOGINS de los 3 roles quedan EAGER (pantalla de entrada inmediata) y
-// las vistas del cliente también (son su camino crítico). El fallback
-// lo pinta el <Suspense> del render; si un chunk falla por un deploy
-// entre medio, main.jsx recarga la página (vite:preloadError).
-
-// Operator Views
-const OpHome = lazy(() => import('./operator/OpHome'));
-const OpClients = lazy(() => import('./operator/OpClients'));
-const OpRedeem = lazy(() => import('./operator/OpRedeem'));
-const OpRaffle = lazy(() => import('./operator/OpRaffle'));
-
-// Admin Views
-const AdminDash = lazy(() => import('./admin/AdminDash'));
-const AdminShell = lazy(() => import('./admin/AdminShell'));
-const Members = lazy(() => import('./admin/Members'));
-const MemberDetail = lazy(() => import('./admin/MemberDetail'));
-const AdminRaffle = lazy(() => import('./admin/AdminRaffle'));
-const AdminPremios = lazy(() => import('./admin/AdminPremios'));
-const Settings = lazy(() => import('./admin/Settings'));
-const AdminPromos = lazy(() => import('./admin/AdminPromos'));
-const PromoRules = lazy(() => import('./admin/PromoRules'));
-const OpManagement = lazy(() => import('./admin/OpManagement'));
-const AdminManagement = lazy(() => import('./admin/AdminManagement'));
-const AdminCatalog = lazy(() => import('./admin/AdminCatalog'));
-const AnClientes = lazy(() => import('./admin/analytics/AnClientes'));
-const AnOperadores = lazy(() => import('./admin/analytics/AnOperadores'));
-const AnPromos = lazy(() => import('./admin/analytics/AnPromos'));
-const AnIntegridad = lazy(() => import('./admin/analytics/AnIntegridad'));
-const AdminStations = lazy(() => import('./admin/AdminStations'));
-const AuditLog = lazy(() => import('./admin/AuditLog'));
-
-import VehiclesSoon from './client/VehiclesSoon';
+// Router de pantallas: TODOS los imports de vistas (incluidos los
+// React.lazy del code splitting por rol, 14-ago) viven allá.
+import ScreenRouter, { operatorNav, clientNav } from './ScreenRouter';
 import { originFromEvent } from '../lib/motionOrigin';
 import { isPushSupported, subscribePush } from '../lib/pushNotifications';
 
@@ -235,27 +178,6 @@ export default function App() {
   useBackLayer(view === 'client' && showQR, () => closeQR());
   useBackLayer(view === 'client' && !!redeemConfirm, () => closeRedeemConfirm());
 
-  // R1b.4 Rifa — modal de ganador: si el sorteo (draw_due_raffles) me
-  // marcó ganador de una rifa que aún no he visto, felicitar UNA vez.
-  // La marca de "visto" vive en el SERVIDOR (winner_seen_at — fix
-  // 25-jul: con solo localStorage reaparecía en cada dispositivo);
-  // localStorage queda como guarda instantánea secundaria.
-  const [raffleWin, setRaffleWin] = useState(null);
-  useEffect(() => {
-    if (!me?.id || (!raffleCal.length && !crossYearWins.length)) return;
-    try {
-      // Rifa multi-año (8-ago): el pool incluye las sorteadas de OTROS
-      // años (la de diciembre se sortea en enero del año siguiente y ya
-      // no vive en los 12 slots del año en curso — sin esto el ganador
-      // nunca veía su felicitación al cruzar el año).
-      const pool = [...raffleCal, ...crossYearWins];
-      const win = pool.find(r => r?.winnerId === me.id && r.drawnAt && r.dbId
-        && !r.winnerSeenAt
-        && !localStorage.getItem(`pp_rafwin_${r.dbId}`));
-      if (win) setRaffleWin(win);
-    } catch { /* localStorage no disponible */ }
-  }, [me?.id, raffleCal, crossYearWins]);
-
   // Cierre animado del sheet del código QR (misma regla).
   const [qrClosing, setQrClosing] = useState(false);
   const closeQR = () => {
@@ -321,142 +243,27 @@ export default function App() {
     setRedeemedList, setRafData, setSpecialBonusModal, setAmt,
   });
 
-  // ===== SUPABASE DATA LOADING =====
-  useEffect(() => {
-    if (!sb) { setSbLoading(false); return; }
-    let mounted = true;
-
-    // Auth state change listener (only for client/member view)
-    const authSub = sb.auth.onAuthStateChange((event, session) => {
-      if (!mounted) return;
-      if (viewRef.current !== 'client') return; // Ignore Google auth for admin/operator
-      console.log('[Auth]', event, session?.user?.email || 'no session');
-      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session?.user) {
-        setUserFromSession(session.user);
-        // (El toast "👋 Bienvenido" se quitó a pedido del dueño: OAuth
-        // re-emite SIGNED_IN en cada apertura y saludaba siempre.)
-      }
-      if (event === 'SIGNED_OUT') {
-        setMe(null); setAuthScreen('login'); setGoogleStep('welcome');
-      }
-    });
-
-    // Catch existing session (only for client view)
-    if (viewRef.current === 'client') {
-      sb.auth.getSession().then(({ data: { session } }) => {
-        console.log('[Auth] getSession:', session?.user?.email || 'no session');
-        if (mounted && session?.user) {
-          setUserFromSession(session.user);
-        }
-      });
-    }
-
-    // Clean OAuth hash from URL
-    if (window.location.hash?.includes('access_token')) {
-      setTimeout(() => {
-        window.history?.replaceState(null, '', window.location.pathname);
-      }, 1000);
-    }
-
-    // Carga inicial (extraída a services/bootLoader.js en la división
-    // etapa 2): recibe los setters/refs y aborta sets tras el unmount.
-    loadFromSupabase({
-      isMounted: () => mounted,
-      bootCustsRef, custsFullRef, opsFullRef,
-      setRewards, setStores, setPromos, setStations, setCfg,
-      setRaffleCal, setCrossYearWins, setCusts, setOperators,
-      setOpRatings, setSbConnected, setSbLoading,
-    });
-    return () => {
-      mounted = false;
-      authSub?.data?.subscription?.unsubscribe();
-    };
-  }, []);
-
-  // ===== AUTH: Set user from Supabase session =====
-  function setUserFromSession(u) {
-    if (!u) return;
-    const name = u.user_metadata?.full_name || u.email || 'Usuario';
-    const email = u.email || '';
-    const avatar = u.user_metadata?.avatar_url || '';
-    const provider = u.app_metadata?.provider || 'google';
-
-    function buildExisting(m) {
-      const parseV = (v) => { if (!v) return []; if (Array.isArray(v)) return v; if (typeof v === 'object') return Object.values(v); try { return JSON.parse(v); } catch { return []; } };
-      return {
-        // avatar: la BD manda — puede tener la foto PERSONALIZADA de Mi
-        // Cuenta; la de Google solo es fallback (1-ago)
-        id: m.id, name: m.name, nickname: m.nickname || '', email: m.email || email, avatar: m.avatar_url || avatar || '',
-        phone: m.phone || '', dpi: m.dpi || '', plate: m.plate || '',
-        nit: m.nit || '', bday: m.birthday || '',
-        address: m.address || null,
-        points: m.points || 0, gallons: parseFloat(m.gallons) || 0,
-        spent: parseFloat(m.spent) || 0, visits: m.visits || 0,
-        tickets: m.tickets || 0, redeemed: m.redeemed_count || 0,
-        referrals: m.referral_count || 0,
-        registered: utcToLocal(m.created_at) || '',
-        lastBuy: utcToLocal(m.last_buy) || '',
-        station: m.last_station || '',
-        cardId: m.card_code || m.physical_cards?.[0]?.card_code || m.card_id || '',
-        vehicles: parseV(m.vehicles),
-        supabaseUser: true, authProvider: provider,
-      };
-    }
-
-    if (sb) {
-      console.log('[Auth] Looking up member with auth_provider_id:', u.id);
-
-      // Helper: intentar login con resultado de members
-      function handleMemberResult(data) {
-        if (data?.length > 0) {
-          console.log('[Auth] \u2705 Existing member found:', data[0].name, '\u2192 logged in');
-          const existing = buildExisting(data[0]);
-          // (El avatar de Google lo persiste create_member_session_oauth)
-          setMe(existing);
-          setCusts(p => p.find(c => c.id === existing.id) ? p : [...p, existing]);
-          setAuthScreen('logged'); setView('client');
-          return true;
-        }
-        return false;
-      }
-
-      // Helper: mostrar registro (solo si no se encontro nada)
-      function showRegistration() {
-        console.log('[Auth] \u274c No member found \u2192 showing registration');
-        setMe({
-          id: u.id, name, email, avatar,
-          phone: '', dpi: '', plate: '', nit: '', bday: '',
-          points: 0, gallons: 0, spent: 0, visits: 0, tickets: 0,
-          redeemed: 0, referrals: 0, registered: localDate(),
-          lastBuy: '', station: '', cardId: '', supabaseUser: true, authProvider: provider,
-        });
-        setRegProfile(p => ({ ...p, name, email }));
-        setAuthScreen('googleProfile'); setView('client');
-      }
-
-      // SEC.C.1: la sesi\u00f3n de Google prueba la identidad SERVER-side \u2014
-      // create_member_session_oauth busca por auth_provider_id, hace el
-      // v\u00ednculo por email si aplica, persiste el avatar y emite la
-      // sesi\u00f3n de miembro. Sustituye a los 3 SELECT directos (members
-      // ya no expone PII por la API abierta).
-      createMemberSessionOauth(avatar).then((res) => {
-        if (res.ok && res.member) {
-          handleMemberResult([res.member]);
-          return;
-        }
-        if (res.notFound) { showRegistration(); return; }
-        console.error('[Auth] oauth session:', res.error);
-      });
-    }
-  }
-
-
   // ===== HOOKS DE DATOS (división etapa 3, 12-ago-2026) =====
   // Staff: fichas completas, actividad global, participantes de rifa y
   // realtime de custs; expone los refs anti-carrera que consume el boot.
+  // (División 15-ago: se llama ANTES que useAuthBoot porque el boot
+  // recibe sus refs — el orden de efectos es indiferente: las guardas
+  // de sbConnected/sesión ya toleraban cualquier orden de llegada.)
   const { addMemberToCusts, custsFullRef, bootCustsRef, opsFullRef } = useStaffData({
     authOp, authAdmin, authScreen, meId: me?.id, sbConnected, raffleCal,
     setCusts, setOperators, setActivityLog, setMemberStations, setRafData,
+  });
+
+  // ===== ARRANQUE (división 15-ago-2026) =====
+  // Listener de Google OAuth + getSession + limpieza del hash y la
+  // carga inicial (services/bootLoader) viven en hooks/useAuthBoot.js.
+  useAuthBoot({
+    viewRef,
+    setMe, setCusts, setAuthScreen, setView, setGoogleStep, setRegProfile,
+    bootCustsRef, custsFullRef, opsFullRef,
+    setRewards, setStores, setPromos, setStations, setCfg,
+    setRaffleCal, setCrossYearWins, setOperators,
+    setOpRatings, setSbConnected, setSbLoading,
   });
 
   // Miembro: rehidratación de sesión (SEC.C.1), libro mayor y canjes
@@ -511,13 +318,6 @@ export default function App() {
   // entrega (pedido del dueño 29-jul) — el sheet vive dentro del
   // historial, así que viaja por ctx como contador.
   const [rewardQrCloseSignal, setRewardQrCloseSignal] = useState(0);
-
-
-
-
-
-
-
 
   // ===== PROMO CAROUSEL AUTO-ADVANCE =====
   const activePromos = promos.filter(p => p.active);
@@ -597,76 +397,11 @@ export default function App() {
     isA, isO, isC,
   };
 
-  // ===== NAV ITEMS =====
-  // El admin no tiene BottomNav (Admin v2: AdminShell con menú lateral).
-  const operatorNav = [
-    { id: 'ohome', label: 'Inicio', icon: <Fuel /> },
-    { id: 'oclients', label: 'Clientes', icon: <Users /> },
-    { id: 'oredeem', label: 'Premios', icon: <Gift /> },
-    { id: 'oraffle', label: 'Rifa', icon: <Ticket /> },
-  ];
-  // Iconos y labels según la referencia FORMATO GENERAL: casa, boleto
-  // con estrella, QR central, regalo, carro.
-  const clientNav = [
-    { id: 'home', label: 'Inicio', icon: <House /> },
-    { id: 'cat', label: 'Canjes', icon: <Gift /> },
-    { id: 'qr', label: '', icon: null, isQR: true },
-    { id: 'raf', label: 'Rifa', icon: <TicketStar /> },
-    { id: 'veh', label: 'Vehículos', icon: <Car /> },
-  ];
-
+  // ===== NAV =====
+  // Los arrays (con sus iconos) viven en ScreenRouter.jsx; el admin no
+  // tiene BottomNav (Admin v2: AdminShell con menú lateral).
   const nav = isO ? operatorNav : clientNav;
   const cur = isA ? scr : isO ? oScr : cScr;
-
-  // ===== SCREEN ROUTER =====
-  function renderScreen() {
-    // Auth gates
-    if (isC && authScreen !== 'logged') {
-      if (authScreen === 'googleProfile') return <GoogleProfile {...ctx} />;
-      return <ClientLogin {...ctx} />;
-    }
-    if (isO && authOp !== 'logged') return <OperatorLogin {...ctx} />;
-    if (isA && authAdmin !== 'logged') return <AdminLogin {...ctx} />;
-
-    // Admin screens
-    if (isA) {
-      if (scr === 'mem') return <Members {...ctx} />;
-      if (scr === 'det') return <MemberDetail {...ctx} />;
-      if (scr === 'cat') return <AdminCatalog {...ctx} />; // 8-ago: Catálogo de Canjes (gestión; la vista Catalog compartida queda solo para el cliente)
-      if (scr === 'raf') return <AdminRaffle {...ctx} />;
-      if (scr === 'premios') return <AdminPremios {...ctx} />;
-      if (scr === 'cfg') return <Settings {...ctx} />;
-      if (scr === 'ops') return <OpManagement {...ctx} />;
-      if (scr === 'stations') return <AdminStations {...ctx} />;
-      if (scr === 'admins') return <AdminManagement {...ctx} />;
-      if (scr === 'audit') return <AuditLog {...ctx} />;
-      if (scr === 'rules') return <Rules {...ctx} />;
-      if (scr === 'promos') return <AdminPromos {...ctx} />;
-      if (scr === 'promorules') return <PromoRules {...ctx} />;
-      if (scr === 'anCli') return <AnClientes {...ctx} />;
-      if (scr === 'anOps') return <AnOperadores {...ctx} />;
-      if (scr === 'anPro') return <AnPromos {...ctx} />;
-      if (scr === 'anInt') return <AnIntegridad {...ctx} />;
-      return <AdminDash {...ctx} />;
-    }
-
-    // Operator screens
-    if (isO) {
-      if (oScr === 'oclients') return <OpClients {...ctx} />;
-      if (oScr === 'oredeem') return <OpRedeem {...ctx} />;
-      if (oScr === 'oraffle') return <OpRaffle {...ctx} />;
-      return <OpHome {...ctx} />;
-    }
-
-    // Client screens — el selector de empresa antecede al inicio
-    if (!companyPicked) return <CompanySelect dark={dark} cfg={cfg} onPick={() => setCompanyPicked(true)} />;
-    if (cScr === 'cat') return <Catalog {...ctx} client={true} />;
-    if (cScr === 'promos') return <ClientPromos {...ctx} />;
-    if (cScr === 'raf') return <ClientRaffle {...ctx} />;
-    if (cScr === 'menu') return <ClientMenu {...ctx} />;
-    if (cScr === 'veh') return <VehiclesSoon {...ctx} />;
-    return <ClientHome {...ctx} />;
-  }
 
   // ===== HANDLE NAV =====
   function handleNav(id, e) {
@@ -700,38 +435,14 @@ export default function App() {
             cajas del inicio. */}
         {isC && cTier.name === 'BLACK' && authScreen === 'logged' && <GalaxyStars light={!dark} />}
 
-        {/* Active screen — el cliente entra con animación desde el origen presionado (D35).
-            position:relative (SIN z-index) apila el contenido SIEMPRE por
-            encima de GalaxyStars: sin él, al terminar la animación de
-            entrada el transform desaparecía, el contenido estático caía
-            bajo el overlay fixed de estrellas/nebulosas y los textos se
-            veían "bajar de opacidad" segundos después de entrar. z-auto
-            no crea stacking context → los modales internos siguen
-            pudiendo tapar la BottomNav. */}
-        {/* Suspense del code splitting por rol: mientras baja el chunk
-            del operador/admin se muestra el spinner de marca centrado
-            (el cliente es eager — nunca lo ve en su camino). */}
-        <Suspense fallback={
-          <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <LogoSpinner size={44} dark={isA || (isC && dark)} />
-          </div>
-        }>
-        {isC && authScreen === 'logged'
-          ? (
-            <div
-              key={companyPicked ? cScr : 'company'}
-              className="pp-screen"
-              style={{ position: 'relative', transformOrigin: navOrigin ? `${navOrigin.x}px ${navOrigin.y}px` : '50% 85%' }}
-            >
-              {renderScreen()}
-            </div>
-          )
-          : adminWide
-            // Admin v2 (6-ago): shell con menú lateral — desktop-first,
-            // iconos en tableta, drawer en móvil. Sin BottomNav.
-            ? <AdminShell ctx={ctx}>{renderScreen()}</AdminShell>
-            : renderScreen()}
-        </Suspense>
+        {/* Pantalla activa: router + Suspense del code splitting por
+            rol (división 15-ago — vive en ScreenRouter.jsx) */}
+        <ScreenRouter
+          ctx={ctx}
+          companyPicked={companyPicked}
+          setCompanyPicked={setCompanyPicked}
+          navOrigin={navOrigin}
+        />
 
         {/* Bottom navigation — el cliente no la ve hasta elegir empresa;
             el admin dejó de usarla (Admin v2: menú lateral) */}
@@ -740,105 +451,19 @@ export default function App() {
         )}
       </div>
 
-      {/* ── Modal confirmación de canje desde operador (dispositivo del
-          MIEMBRO) — RedeemConfirmRequestModal responde por RPC ── */}
-      {pendingRedeemConfirm && isC && me && (
-        <RedeemConfirmRequestModal
-          pending={pendingRedeemConfirm}
-          dark={dark}
-          fire={fire}
-          onClose={() => setPendingRedeemConfirm(null)}
-          onConfirmed={() => {
-            // Pedido del dueño (29-jul): si el QR del premio quedó
-            // abierto tras el escaneo, cerrarlo al confirmar.
-            setRewardQrCloseSignal(s => s + 1);
-            // La entrega se concreta en el POS un instante después
-            // (poll de 2s + RPC): recargar los canjes para que el
-            // pendiente pase a RECOGIDO sin reabrir la app.
-            setTimeout(reloadMyRedemptions, 6000);
-          }}
-        />
-      )}
-
-      {/* ── Sheet confirmación de canje (nivel raíz) ── */}
-      {redeemConfirm && isC && me && (
-        <RedeemConfirmSheet
-          data={redeemConfirm}
-          me={me}
-          dark={dark}
-          closing={rcClosing}
-          stations={stations}
-          stores={stores}
-          onClose={closeRedeemConfirm}
-          onConfirm={(reward) => { setRedeemConfirm(null); redeem(reward); }}
-        />
-      )}
-
-      {/* ── Sheet confirmación de compra (nivel raíz, escapa overflow:hidden) ── */}
-      {purchaseConfirm && (
-        <PurchaseConfirmSheet
-          data={purchaseConfirm}
-          gT={gT}
-          cfg={cfg}
-          onClose={() => setPurchaseConfirm(null)}
-          addPurchase={addPurchase}
-        />
-      )}
-
-      {/* ── Sheet del código QR del miembro (botón central) ── */}
-      {showQR && isC && me && (
-        <ClientQrSheet
-          me={me}
-          tierName={cTier.name}
-          dark={dark}
-          closing={qrClosing}
-          onClose={closeQR}
-        />
-      )}
-
-      {/* Toast (FORMATO GENERAL — severidad e ícono en Toast.jsx) */}
-      <Toast toast={toast} dark={isC && dark} />
-
-      {/* ── Modal de ganador de la rifa mensual (R1b.4) ── */}
-      {raffleWin && isC && me && (
-        <RaffleWinnerModal
-          cal={raffleWin}
-          name={me.name}
-          stations={stations}
-          isBlack={dark}
-          onClose={() => {
-            // Marca de visto en el SERVIDOR (cross-device) + localStorage
-            // como guarda instantánea. Reflejar en raffleCal local para
-            // que el efecto no lo re-encuentre antes del próximo fetch.
-            try { localStorage.setItem(`pp_rafwin_${raffleWin.dbId}`, '1'); } catch { /* noop */ }
-            // SEC.C.4: raffle_calendar perdió la escritura abierta (el
-            // premio y hasta el winner_id eran editables) — el RPC solo
-            // deja al GANADOR marcar su propia felicitación.
-            if (sb) markRaffleWinnerSeen(raffleWin.dbId);
-            setRaffleCal(p => p.map(r => r?.dbId === raffleWin.dbId
-              ? { ...r, winnerSeenAt: new Date().toISOString() } : r));
-            // Rifa multi-año: la ganada puede vivir en el pool de otros años
-            setCrossYearWins(p => p.map(r => r?.dbId === raffleWin.dbId
-              ? { ...r, winnerSeenAt: new Date().toISOString() } : r));
-            setRaffleWin(null);
-          }}
-        />
-      )}
-
-      {/* ── Modal celebrativo de bono por día especial (FB.6.2c) ── */}
-      <SpecialDayBonusModal
-        open={specialBonusModal.open}
-        events={specialBonusModal.events}
-        bonus={specialBonusModal.bonus}
-        memberName={specialBonusModal.memberName}
-        tier={me ? cTier : null}
-        dark={dark}
-        onClose={() => setSpecialBonusModal(prev => ({ ...prev, open: false }))}
+      {/* ── Modales de nivel raíz + Toast + aviso de versión (división
+          15-ago — viven en components/AppModals.jsx; el modal de
+          ganador de rifa y su efecto R1b.4 también viven allá) ── */}
+      <AppModals
+        ctx={ctx}
+        toast={toast}
+        rcClosing={rcClosing} closeRedeemConfirm={closeRedeemConfirm}
+        qrClosing={qrClosing} closeQR={closeQR}
+        setRewardQrCloseSignal={setRewardQrCloseSignal}
+        reloadMyRedemptions={reloadMyRedemptions}
+        specialBonusModal={specialBonusModal} setSpecialBonusModal={setSpecialBonusModal}
+        crossYearWins={crossYearWins} setCrossYearWins={setCrossYearWins}
       />
-
-      {/* Aviso de nueva version disponible (Service Worker) */}
-      <UpdateAvailable />
-
     </>
   );
 }
