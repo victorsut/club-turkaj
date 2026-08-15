@@ -113,7 +113,13 @@ export default function SplashIntro({ loggedAtMount = false }) {
   const dismiss = () => {
     setPhase(p => {
       if (p !== 'play') return p;
-      goneTimer.current = setTimeout(() => setPhase('done'), SPLASH_FADE);
+      goneTimer.current = setTimeout(() => {
+        setPhase('done');
+        // El arranque de index.html pinta el fondo perla para que no
+        // haya destello blanco antes de la intro — al terminar se
+        // limpia para no asomar en el overscroll de la app.
+        try { document.documentElement.style.background = ''; } catch { /* noop */ }
+      }, SPLASH_FADE);
       return 'leaving';
     });
   };

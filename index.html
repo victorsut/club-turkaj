@@ -25,6 +25,26 @@
       <div style="font-weight:700;color:#757575">Cargando Puntos Plus...</div>
     </div>
   </div>
+  <script>
+    // Sin "Cargando..." antes de la INTRO (dueño 15-ago): cuando la
+    // animación de entrada va a mostrarse, este arranque oculta el
+    // spinner y pinta el fondo PERLA del splash desde el primer frame
+    // (sin destello blanco). Refleja EXACTAMENTE la regla de
+    // SplashIntro.jsx: cliente en login = siempre; cliente con sesión
+    // = solo arranque en frío (pp_splash_seen). Operador/admin y las
+    // recargas sin intro conservan el spinner de siempre.
+    (function () {
+      var rol = (new URLSearchParams(location.search).get('rol') || '').toLowerCase();
+      if (rol === 'admin' || rol === 'operador' || rol === 'operator') return;
+      var logged = false, seen = false;
+      try { logged = !!((JSON.parse(localStorage.getItem('ct_me') || 'null') || {}).id); } catch (e) { /* noop */ }
+      try { seen = !!sessionStorage.getItem('pp_splash_seen'); } catch (e) { /* noop */ }
+      if (logged && seen) return; // no habrá intro: se queda el spinner
+      var el = document.getElementById('loading');
+      if (el) el.style.display = 'none';
+      document.documentElement.style.background = '#EDE7E1';
+    })();
+  </script>
   <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>
