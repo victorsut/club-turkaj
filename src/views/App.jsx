@@ -15,6 +15,7 @@ import useToast from '../hooks/useToast';
 import BottomNav from '../components/ui/BottomNav';
 import GalaxyStars from '../components/ui/GalaxyStars';
 import AppModals from '../components/AppModals';
+import SplashIntro from '../components/SplashIntro';
 import useBackLayer from '../hooks/useBackLayer';
 import useStaffData from '../hooks/useStaffData';
 import useAuthBoot from '../hooks/useAuthBoot';
@@ -464,6 +465,11 @@ export default function App() {
         specialBonusModal={specialBonusModal} setSpecialBonusModal={setSpecialBonusModal}
         crossYearWins={crossYearWins} setCrossYearWins={setCrossYearWins}
       />
+
+      {/* ── Animación de entrada (15-ago): monedas PP acumulando puntos.
+          Solo cliente, una vez por sesión, tap para saltarla — la
+          recarga al volver de la encuesta Shell NO la repite. ── */}
+      {isC && <SplashIntro />}
     </>
   );
 }
