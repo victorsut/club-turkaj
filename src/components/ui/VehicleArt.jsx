@@ -165,35 +165,72 @@ const MotoCubArt = ({ uid, color }) => (
   </g>
 );
 
-// ── MODELO ESPECÍFICO: Honda Navi ────────────────────────────
-// Silueta reconocible de la Navi (capa de modelos con arte propio,
-// se amplía con la lista del dueño): mini moto-scooter compacta —
-// cuerpo/"tanque" CHUNKY en el color real, HUECO portaobjetos
-// abierto bajo el asiento (su firma), asiento plano, manubrio alto
-// con espejo, faro cuadrado y ruedas pequeñas de 12".
+// ── MODELO ESPECÍFICO: Honda Navi (alta fidelidad) ───────────
+// Nivel "casi el original con detalles menores distintos" (pedido del
+// dueño 15-ago; sin logos ni marcas = sin problema de licencias).
+// Rasgos del real: ruedas pequeñas con rin de acero, guardafangos y
+// carenado del manubrio en el COLOR del cuerpo, faro cuadrado, faux
+// tank chunky con crease lateral, CAVIDAD portaobjetos abierta bajo
+// el asiento, asiento plano largo con costura y asa trasera, tren
+// CVT de scooter hacia la rueda trasera y escape lateral visible.
+const NaviWheel = ({ cx, cy, r, uid }) => (
+  <g>
+    <circle cx={cx} cy={cy} r={r} fill="#17171B" />
+    <circle cx={cx} cy={cy} r={r * 0.72} fill="#26262C" />
+    <circle cx={cx} cy={cy} r={r * 0.46} fill={`url(#${uid}-rim)`} />
+    {[0, 72, 144, 216, 288].map(a => (
+      <circle key={a} cx={cx} cy={cy - r * 0.28} r={r * 0.07} fill="#55575E"
+        transform={`rotate(${a} ${cx} ${cy})`} />
+    ))}
+    <circle cx={cx} cy={cy} r={r * 0.12} fill="#2C2C34" />
+  </g>
+);
+
 const NaviArt = ({ uid, color }) => (
   <g>
-    <Shadow w={80} />
-    {/* horquilla + manubrio alto con espejo */}
-    <path d="M176 46 L166 96" stroke="#3A3A42" strokeWidth="6" strokeLinecap="round" fill="none" />
-    <path d="M164 44 Q176 40 186 46" stroke="#26262C" strokeWidth="6" strokeLinecap="round" fill="none" />
-    <path d="M166 42 L162 34" stroke="#26262C" strokeWidth="3" strokeLinecap="round" fill="none" />
-    <circle cx="161" cy="32" r="4.5" fill="#26262C" />
-    {/* faro cuadrado montado al frente */}
-    <rect x="176" y="52" width="12" height="13" rx="4" fill="#FFE9A8" stroke="#26262C" strokeWidth="1.5" />
-    {/* cuerpo delantero CHUNKY (el "tanque" de la Navi) */}
-    <path d="M116 56 Q150 50 163 62 Q172 74 166 90 L148 98 L118 94 Q106 74 116 56 Z" fill={`url(#${uid}-body)`} />
-    <Gleam d="M122 62 Q142 55 156 62 L148 71 Q132 66 122 62 Z" />
-    <path d="M118 94 L148 98 L166 90 L164 96 L146 102 L120 99 Z" fill={shade(color, -50)} opacity=".6" />
-    {/* asiento plano + panel trasero corto */}
-    <rect x="56" y="49" width="64" height="11" rx="5.5" fill="#26262C" />
-    <path d="M60 60 Q84 57 97 61 L93 88 L66 86 Q54 73 60 60 Z" fill={`url(#${uid}-body)`} />
-    <rect x="52" y="62" width="7" height="8" rx="3" fill="#E53935" />
-    {/* HUECO portaobjetos (firma Navi): chasis expuesto entre paneles */}
-    <path d="M97 63 L114 61 M93 86 L118 90" stroke="#3A3A42" strokeWidth="5" strokeLinecap="round" fill="none" />
-    <Wheel cx={74} cy={106} r={18} uid={uid} />
-    <Wheel cx={168} cy={106} r={18} uid={uid} />
-    <path d="M74 106 L124 93 L168 106" stroke="#2C2C34" strokeWidth="5" fill="none" strokeLinecap="round" />
+    <Shadow cx={118} w={84} />
+    {/* tren CVT (scooter) hacia la rueda trasera + motor */}
+    <path d="M104 92 L62 102" stroke="#3A3A42" strokeWidth="14" strokeLinecap="round" fill="none" />
+    <rect x="98" y="80" width="42" height="24" rx="7" fill="#2C2C34" />
+    <path d="M104 86 L104 98 M111 85 L111 99 M118 84 L118 100" stroke="#4A4C54" strokeWidth="2" />
+    {/* escape lateral con tapa */}
+    <rect x="72" y="95" width="58" height="11" rx="5.5" fill="#B9BDC4" />
+    <rect x="72" y="95" width="58" height="4.5" rx="2.25" fill="#DDE0E5" />
+    <rect x="70" y="96" width="7" height="9" rx="3" fill="#55575E" />
+    {/* bastidor bajo el tanque */}
+    <path d="M162 54 L130 90" stroke={shade(color, -34)} strokeWidth="7" strokeLinecap="round" fill="none" />
+    {/* horquilla delantera */}
+    <path d="M168 58 L175 86" stroke="#8E9096" strokeWidth="6" strokeLinecap="round" fill="none" />
+    <path d="M175 86 L178 98" stroke="#3A3A42" strokeWidth="6" strokeLinecap="round" fill="none" />
+    {/* guardafango delantero en color */}
+    <path d="M158 86 Q166 66 192 74 L196 86 Q186 76 170 88 Q162 92 158 86 Z" fill={`url(#${uid}-body)`} />
+    {/* carenado del manubrio en color + faro cuadrado + espejo */}
+    <path d="M158 40 Q174 32 188 40 L186 58 Q172 50 160 55 Z" fill={`url(#${uid}-body)`} />
+    <rect x="182" y="42" width="13" height="15" rx="4" fill="#FFEFC0" stroke="#26262C" strokeWidth="1.6" />
+    <path d="M158 40 L150 42" stroke="#26262C" strokeWidth="5" strokeLinecap="round" fill="none" />
+    <path d="M156 38 L150 26" stroke="#26262C" strokeWidth="3" strokeLinecap="round" fill="none" />
+    <circle cx="149" cy="24" r="5" fill="#26262C" />
+    <circle cx="150" cy="23" r="2" fill="#4A4C54" />
+    {/* faux tank chunky con crease + brillo */}
+    <path d="M114 50 Q150 42 161 56 Q170 68 163 84 L148 94 L118 90 Q104 68 114 50 Z" fill={`url(#${uid}-body)`} />
+    <path d="M119 68 Q140 61 159 68" stroke={shade(color, -48)} strokeWidth="2.2" opacity=".55" fill="none" />
+    <Gleam d="M121 58 Q140 50 155 57 L147 66 Q132 62 121 58 Z" />
+    <path d="M118 90 L148 94 L163 84 L161 91 L146 99 L120 95 Z" fill={shade(color, -52)} opacity=".6" />
+    {/* CAVIDAD portaobjetos abierta (firma de la Navi) */}
+    <rect x="94" y="56" width="20" height="30" rx="6" fill="#17171B" />
+    <rect x="94" y="56" width="20" height="30" rx="6" fill="none" stroke={shade(color, -40)} strokeWidth="2.5" />
+    {/* asiento plano con costura + asa trasera */}
+    <path d="M50 44 L116 44 Q126 44 125 52 L123 57 L52 58 Q45 56 45 50 Q45 44 50 44 Z" fill="#1E1E22" />
+    <path d="M54 51 L118 50" stroke="rgba(255,255,255,.16)" strokeWidth="1.6" strokeDasharray="4 3" fill="none" />
+    <path d="M45 50 Q35 55 39 66" stroke="#3A3A42" strokeWidth="4.5" strokeLinecap="round" fill="none" />
+    {/* panel lateral trasero en color + calavera */}
+    <path d="M52 58 L92 60 L89 88 L64 84 Q50 72 52 58 Z" fill={`url(#${uid}-body)`} />
+    <path d="M56 64 Q72 62 86 64" stroke={shade(color, -44)} strokeWidth="1.8" opacity=".5" fill="none" />
+    <rect x="45" y="60" width="7" height="10" rx="3" fill="#E53935" />
+    {/* posapiés */}
+    <rect x="130" y="104" width="16" height="4.5" rx="2.25" fill="#3A3A42" />
+    <NaviWheel cx={62} cy={102} r={21} uid={uid} />
+    <NaviWheel cx={178} cy={102} r={22} uid={uid} />
   </g>
 );
 

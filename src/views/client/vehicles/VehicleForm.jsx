@@ -92,13 +92,22 @@ export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved }) {
         </div>
 
         {/* Vista previa en vivo: tipo, MODELO (silueta) y color repintan
-            al instante — escribir "RAV4" cambia la carrocería a SUV */}
+            al instante. STICKY (pedido del dueño 15-ago): queda FIJA
+            arriba mientras se escribe/elige — con el teclado abierto y
+            el sheet scrolleado, el diseño sigue siempre a la vista. */}
         <div style={{
-          margin: '14px 0 2px', borderRadius: 18, padding: '10px 0 2px',
-          background: dark ? 'rgba(255,255,255,.05)' : '#FAFAFB',
-          display: 'flex', justifyContent: 'center',
+          position: 'sticky', top: 0, zIndex: 3,
+          margin: '14px -20px 2px', padding: '6px 20px 4px',
+          background: bg,
+          boxShadow: dark ? '0 10px 14px -8px rgba(0,0,0,.6)' : '0 10px 14px -8px rgba(0,0,0,.14)',
         }}>
-          <VehicleArt type={f.vtype} body={bodyFor(f.vtype, f.model)} color={f.color} width={210} />
+          <div style={{
+            borderRadius: 18, padding: '8px 0 2px',
+            background: dark ? 'rgba(255,255,255,.05)' : '#FAFAFB',
+            display: 'flex', justifyContent: 'center',
+          }}>
+            <VehicleArt type={f.vtype} body={bodyFor(f.vtype, f.model)} color={f.color} width={190} />
+          </div>
         </div>
 
         {/* Tipo */}
