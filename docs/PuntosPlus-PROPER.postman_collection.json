@@ -1,0 +1,538 @@
+{
+  "info": {
+    "_postman_id": "b7f4e2a1-puntos-plus-proper-v1",
+    "name": "Puntos Plus ⇄ PROPER API v1",
+    "description": "API de integración del programa de lealtad **Puntos Plus** (Gasolineras Turkaj I, II y III — Chichicastenango) para el POS de **PROPER**.\n\n**Documento de referencia:** `docs/API-PROPER.md` (v1.3, 31-jul-2026)\n\n---\n\n## Datos básicos\n\n| | |\n|---|---|\n| URL base | `https://puntosplus.vercel.app/api/v1` |\n| Formato | JSON (UTF-8) |\n| Autenticación | `Authorization: Bearer <API_KEY>` (configurada a nivel de colección con la variable `api_key`) |\n| Zona horaria | Fechas en ISO 8601 UTC; lógica de negocio en América/Guatemala |\n| Moneda | Quetzales (GTQ) |\n\n## Antes de empezar\n\n1. En **Variables** de esta colección, pegá tu API key (`pp_live_...` o la de pruebas) en `api_key`.\n2. Las variables `card_code` y `redemption_code` vienen precargadas con las **cuentas ficticias del ambiente de pruebas** (§8 del documento):\n   - `CTOD-95176` — sin NIT (solo acumula con CF). Canjes de prueba: `TK-54C5E8`, `TK-95A8B3`, `TK-5C06D7`, `TK-991C1C`…\n   - `CTOD-93935` — NIT ficticio `12345678` (acumula con CF o ese NIT). Canjes: `TK-68E982`, `TK-9BA228`, `TK-C707BE`, `TK-BDAED6`…\n\n## Reglas clave\n\n- **Regla de NIT:** cliente con NIT registrado → acumula con `CF` o su NIT; sin NIT → solo `CF`. Rechazos: `422 nit_mismatch` / `422 nit_not_registered`.\n- **Idempotencia:** enviar header `Idempotency-Key` (el nº de factura sirve) en `POST /purchases`. Un reintento devuelve la respuesta original con `replayed: true`. Los rechazos NO consumen la llave.\n- **Regla de impresión:** el comprobante se imprime SOLO al entregar un canje (`action: deliver`). Acumular puntos no imprime nada.\n- **Facturas anuladas:** no hay reverso — los puntos ya acreditados quedan firmes; no llamar a la API.\n- **Criterio de reintentos:** los `4xx` son definitivos; ante `500` o timeout, reintentar hasta 2 veces con la misma `Idempotency-Key`.\n\n---\n\n*Colección verificada punta a punta contra producción el 17-ago-2026 con la API key de pruebas: los 4 endpoints activos, camino feliz de acumulación (con replay idempotente) y ciclo de canje request/poll/cancel ejecutados con éxito, salvaguarda de deliver comprobada (422 sin confirmación del cliente), rechazos de NIT verificados y bitácora de llamadas registrando cada solicitud. Los ejemplos marcados como *respuesta real verificada* son respuestas literales de producción.*",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{api_key}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://puntosplus.vercel.app/api/v1", "type": "string" },
+    { "key": "api_key", "value": "pp_live_PEGAR_AQUI", "type": "string" },
+    { "key": "card_code", "value": "CTOD-95176", "type": "string", "description": "Cliente Prueba 1 — sin NIT (solo CF)" },
+    { "key": "card_code_con_nit", "value": "CTOD-93935", "type": "string", "description": "Cliente Prueba 2 — NIT ficticio 12345678" },
+    { "key": "redemption_code", "value": "TK-54C5E8", "type": "string", "description": "Canje pendiente de Cliente Prueba 1 (verificar lista viva con GET /redemptions?card_code=...)" },
+    { "key": "operator_external_id", "value": "EMP-017", "type": "string", "description": "Identificador del colaborador en PROPER" },
+    { "key": "operator_name", "value": "Juan Pérez", "type": "string" },
+    { "key": "operator_station", "value": "1", "type": "string", "description": "Código de estación de PROPER (se mapea del lado de Puntos Plus)" }
+  ],
+  "item": [
+    {
+      "name": "1 · Estaciones",
+      "description": "Catálogo de referencia. Solo informativo: la estación viaja con el colaborador en cada factura (`operator.station`), el POS no necesita configurarla. Sirve para cotejar el mapeo de códigos.",
+      "item": [
+        {
+          "name": "GET /stations — catálogo de estaciones",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/stations",
+              "host": ["{{base_url}}"],
+              "path": ["stations"]
+            },
+            "description": "Devuelve las estaciones activas con su `id` (UUID de Puntos Plus), nombre y dirección.\n\n**Scope requerido:** `purchases:write`"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": { "raw": "{{base_url}}/stations", "host": ["{{base_url}}"], "path": ["stations"] }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"ok\": true,\n  \"stations\": [\n    { \"id\": \"03643c23-cfbf-4d90-80af-8d9a2b15be2c\", \"name\": \"Turkaj I\",   \"address\": \"7a Av 6-10 Z1\", \"active\": true },\n    { \"id\": \"e061fc7a-29ec-465e-8770-7dd1a63a467e\", \"name\": \"Turkaj II\",  \"address\": \"8a Av 12-43 Z1\", \"active\": true },\n    { \"id\": \"5c27fb13-4208-42c9-8806-53ee63fb2ff7\", \"name\": \"Turkaj III\", \"address\": \"Km 148, La Cruz\", \"active\": true }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2 · Miembros",
+      "description": "Consulta de diagnóstico (opcional). NO forma parte del flujo de venta: dice con qué NIT acumula un cliente. Útil para soporte o una pantalla informativa.",
+      "item": [
+        {
+          "name": "GET /members — identificar cliente por QR",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/members?card_code={{card_code}}",
+              "host": ["{{base_url}}"],
+              "path": ["members"],
+              "query": [
+                { "key": "card_code", "value": "{{card_code}}", "description": "Texto del QR de la tarjeta, tal cual (CTOD-XXXXX / CTPD-XXXXX / CTBD-XXXXX)" }
+              ]
+            },
+            "description": "Devuelve nombre, nivel, saldo y con qué NIT se le puede facturar (`accepted_nits`). Por privacidad el NIT registrado viaja enmascarado (`nit_masked`), pero `accepted_nits` trae el valor completo para comparación automática en el POS.\n\n**Scope requerido:** `purchases:write`\n\n**Errores:** `400 invalid_card_code` · `404 member_not_found`"
+          },
+          "response": [
+            {
+              "name": "200 OK — cliente sin NIT (respuesta real verificada)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": { "raw": "{{base_url}}/members?card_code=CTOD-95176", "host": ["{{base_url}}"], "path": ["members"], "query": [{ "key": "card_code", "value": "CTOD-95176" }] }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"ok\": true,\n  \"member_id\": \"3cf23098-1dbf-4af4-93a0-ade9b2de13b4\",\n  \"name\": \"Cliente Prueba 1\",\n  \"tier\": \"ORO\",\n  \"points\": 2,\n  \"has_nit\": false,\n  \"nit_masked\": null,\n  \"accepted_nits\": [\"CF\"]\n}"
+            },
+            {
+              "name": "200 OK — cliente con NIT (respuesta real verificada)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": { "raw": "{{base_url}}/members?card_code=CTOD-93935", "host": ["{{base_url}}"], "path": ["members"], "query": [{ "key": "card_code", "value": "CTOD-93935" }] }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"ok\": true,\n  \"member_id\": \"c6139f98-1801-4738-9717-3947ea156ac4\",\n  \"name\": \"Cliente Prueba 2\",\n  \"tier\": \"ORO\",\n  \"points\": 84,\n  \"has_nit\": true,\n  \"nit_masked\": \"****5678\",\n  \"accepted_nits\": [\"CF\", \"12345678\"]\n}"
+            },
+            {
+              "name": "404 member_not_found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": { "raw": "{{base_url}}/members?card_code=CTOD-99999", "host": ["{{base_url}}"], "path": ["members"], "query": [{ "key": "card_code", "value": "CTOD-99999" }] }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"error\": \"member_not_found\", \"message\": \"No hay ningún cliente con esa tarjeta\" }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3 · Compras (endpoint principal)",
+      "description": "Acumulación de puntos. Se llama DESPUÉS de emitir la factura, con los datos reales de la venta. No interviene ni bloquea la facturación de PROPER.\n\n**Campos del body:**\n\n| Campo | Tipo | Obligatorio | Notas |\n|---|---|---|---|\n| `card_code` | string | Sí | Texto del QR escaneado, tal cual |\n| `fuel_amount` | number | Sí | Solo la porción de COMBUSTIBLE, en Q. Mínimo Q10. Alias aceptado: `amount` |\n| `gallons` | number | Sí | Galones reales despachados |\n| `fuel_type` | string | Sí | `super` \\| `regular` \\| `diesel` |\n| `nit` | string | Sí | NIT de la factura o `CF` |\n| `invoice_no` | string | Recomendado | Para conciliación |\n| `total_amount` | number | Opcional | Total con tienda — solo conciliación, no afecta puntos |\n| `operator.external_id` | string | Sí | Identificador del colaborador en PROPER |\n| `operator.name` | string | Recomendado | Para reportes de atención |\n| `operator.station` | string | Recomendado | Código de estación de PROPER; si falta se usa la última conocida del colaborador. Alias en raíz: `station` |\n\n**Idempotencia:** header `Idempotency-Key` único por factura. Reintento → respuesta original con `replayed: true`. Los rechazos NO consumen la llave.",
+      "item": [
+        {
+          "name": "POST /purchases — acumular (CF)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "FAC-2026-000123", "description": "Único por factura (el nº de factura sirve)" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"card_code\": \"{{card_code}}\",\n  \"fuel_amount\": 250.00,\n  \"gallons\": 8.06,\n  \"fuel_type\": \"super\",\n  \"nit\": \"CF\",\n  \"invoice_no\": \"FAC-2026-000123\",\n  \"operator\": {\n    \"external_id\": \"{{operator_external_id}}\",\n    \"name\": \"{{operator_name}}\",\n    \"station\": \"{{operator_station}}\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/purchases",
+              "host": ["{{base_url}}"],
+              "path": ["purchases"]
+            },
+            "description": "Caso feliz: factura con consumidor final. Acredita puntos según el nivel del cliente.\n\n**Scope requerido:** `purchases:write`\n\n**Mostrar en el POS:** `points_earned` y `points_balance`. Si `tier_changed` es `true`, el cliente subió de nivel y `new_card_code` trae su código nuevo.\n\n**NO imprimir nada** — la acumulación no genera impreso."
+          },
+          "response": [
+            {
+              "name": "201 Created (respuesta real verificada)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Idempotency-Key", "value": "FAC-2026-000123" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"card_code\": \"CTOD-95176\",\n  \"fuel_amount\": 25.00,\n  \"gallons\": 0.8,\n  \"fuel_type\": \"super\",\n  \"nit\": \"CF\",\n  \"invoice_no\": \"FAC-2026-000123\",\n  \"operator\": { \"external_id\": \"EMP-017\", \"name\": \"Juan Pérez\", \"station\": \"Turkaj I\" }\n}" },
+                "url": { "raw": "{{base_url}}/purchases", "host": ["{{base_url}}"], "path": ["purchases"] }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"ok\": true,\n  \"purchase_id\": \"e87df1a4-dd9d-42fd-a88c-d0a638ff280b\",\n  \"member_name\": \"Cliente Prueba 1\",\n  \"points_earned\": 2,\n  \"points_base\": 2,\n  \"points_promo\": 0,\n  \"points_balance\": 4,\n  \"gallons\": 0.8,\n  \"fuel_amount\": 25,\n  \"station\": \"Turkaj I\",\n  \"tier\": \"ORO\",\n  \"tier_changed\": false,\n  \"new_card_code\": null,\n  \"promo\": null\n}"
+            },
+            {
+              "name": "200 OK — reintento idempotente (respuesta real verificada)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Idempotency-Key", "value": "FAC-2026-000123" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"card_code\": \"CTOD-95176\",\n  \"fuel_amount\": 25.00,\n  \"gallons\": 0.8,\n  \"fuel_type\": \"super\",\n  \"nit\": \"CF\",\n  \"invoice_no\": \"FAC-2026-000123\",\n  \"operator\": { \"external_id\": \"EMP-017\", \"name\": \"Juan Pérez\", \"station\": \"Turkaj I\" }\n}" },
+                "url": { "raw": "{{base_url}}/purchases", "host": ["{{base_url}}"], "path": ["purchases"] }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"ok\": true,\n  \"purchase_id\": \"e87df1a4-dd9d-42fd-a88c-d0a638ff280b\",\n  \"member_name\": \"Cliente Prueba 1\",\n  \"points_earned\": 2,\n  \"points_base\": 2,\n  \"points_promo\": 0,\n  \"points_balance\": 4,\n  \"gallons\": 0.8,\n  \"fuel_amount\": 25,\n  \"station\": \"Turkaj I\",\n  \"tier\": \"ORO\",\n  \"tier_changed\": false,\n  \"new_card_code\": null,\n  \"promo\": null,\n  \"replayed\": true\n}"
+            },
+            {
+              "name": "201 Created — con promoción activa",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Idempotency-Key", "value": "FAC-2026-000124" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"card_code\": \"CTOD-00042\",\n  \"fuel_amount\": 250.00,\n  \"gallons\": 8.06,\n  \"fuel_type\": \"super\",\n  \"nit\": \"CF\",\n  \"operator\": { \"external_id\": \"EMP-017\", \"name\": \"Juan Pérez\", \"station\": \"1\" }\n}" },
+                "url": { "raw": "{{base_url}}/purchases", "host": ["{{base_url}}"], "path": ["purchases"] }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"ok\": true,\n  \"points_earned\": 50,\n  \"points_base\": 25,\n  \"points_promo\": 25,\n  \"promo\": {\n    \"name\": \"Doble puntos en súper\",\n    \"effect_type\": \"points_multiplier\",\n    \"effect_value\": 2,\n    \"extra_points\": 25\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST /purchases — factura mixta (combustible + tienda)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "FAC-2026-000125" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"card_code\": \"{{card_code}}\",\n  \"fuel_amount\": 250.00,\n  \"total_amount\": 312.50,\n  \"gallons\": 8.06,\n  \"fuel_type\": \"super\",\n  \"nit\": \"CF\",\n  \"invoice_no\": \"FAC-2026-000125\",\n  \"operator\": {\n    \"external_id\": \"{{operator_external_id}}\",\n    \"name\": \"{{operator_name}}\",\n    \"station\": \"{{operator_station}}\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/purchases",
+              "host": ["{{base_url}}"],
+              "path": ["purchases"]
+            },
+            "description": "Factura de Q312.50 = Q250 de súper + Q62.50 de tienda. Los puntos se calculan SOLO sobre `fuel_amount`; `total_amount` se guarda para conciliación.\n\nSi la factura no tiene combustible → `422 no_fuel_in_invoice`."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /purchases — con NIT del cliente",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "FAC-2026-000126" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"card_code\": \"{{card_code_con_nit}}\",\n  \"fuel_amount\": 150.00,\n  \"gallons\": 4.84,\n  \"fuel_type\": \"regular\",\n  \"nit\": \"12345678\",\n  \"invoice_no\": \"FAC-2026-000126\",\n  \"operator\": {\n    \"external_id\": \"{{operator_external_id}}\",\n    \"name\": \"{{operator_name}}\",\n    \"station\": \"{{operator_station}}\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/purchases",
+              "host": ["{{base_url}}"],
+              "path": ["purchases"]
+            },
+            "description": "Cliente Prueba 2 (`CTOD-93935`) tiene registrado el NIT ficticio `12345678` → esta factura SÍ acumula.\n\nLa comparación de NIT normaliza guiones, espacios y mayúsculas. Se aceptan como CF: `CF`, `C/F`, `CF0`, `consumidor final` y el campo vacío."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /purchases — rechazo: NIT ajeno (nit_mismatch)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "FAC-2026-000127" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"card_code\": \"{{card_code_con_nit}}\",\n  \"fuel_amount\": 150.00,\n  \"gallons\": 4.84,\n  \"fuel_type\": \"regular\",\n  \"nit\": \"99999999\",\n  \"invoice_no\": \"FAC-2026-000127\",\n  \"operator\": {\n    \"external_id\": \"{{operator_external_id}}\",\n    \"name\": \"{{operator_name}}\",\n    \"station\": \"{{operator_station}}\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/purchases",
+              "host": ["{{base_url}}"],
+              "path": ["purchases"]
+            },
+            "description": "Factura con un NIT distinto al registrado → `422 nit_mismatch`. La venta NO se toca: el mensaje va dirigido al cliente (el colaborador solo lo lee). El rechazo NO consume la Idempotency-Key — puede corregirse el dato y reintentar con la misma."
+          },
+          "response": [
+            {
+              "name": "422 nit_mismatch",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{ \"card_code\": \"CTOD-93935\", \"nit\": \"99999999\", \"...\": \"...\" }" },
+                "url": { "raw": "{{base_url}}/purchases", "host": ["{{base_url}}"], "path": ["purchases"] }
+              },
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": \"nit_mismatch\",\n  \"message\": \"El NIT de la factura no coincide con el registrado por el cliente en Puntos Plus. Solo acumulan las facturas con su propio NIT o con CF.\",\n  \"member_name\": \"Cliente Prueba 2\",\n  \"invoice_nit\": \"99999999\",\n  \"registered_nit_masked\": \"****5678\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST /purchases — rechazo: cliente sin NIT + factura con NIT (nit_not_registered)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "FAC-2026-000128" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"card_code\": \"{{card_code}}\",\n  \"fuel_amount\": 150.00,\n  \"gallons\": 4.84,\n  \"fuel_type\": \"regular\",\n  \"nit\": \"12345678\",\n  \"invoice_no\": \"FAC-2026-000128\",\n  \"operator\": {\n    \"external_id\": \"{{operator_external_id}}\",\n    \"name\": \"{{operator_name}}\",\n    \"station\": \"{{operator_station}}\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/purchases",
+              "host": ["{{base_url}}"],
+              "path": ["purchases"]
+            },
+            "description": "Cliente Prueba 1 (`CTOD-95176`) NO tiene NIT registrado → una factura con NIT devuelve `422 nit_not_registered`. El cliente puede agregar su NIT desde la app (Menú → Mi Cuenta) o pedir la factura con CF."
+          },
+          "response": [
+            {
+              "name": "422 nit_not_registered",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{ \"card_code\": \"CTOD-95176\", \"nit\": \"12345678\", \"...\": \"...\" }" },
+                "url": { "raw": "{{base_url}}/purchases", "host": ["{{base_url}}"], "path": ["purchases"] }
+              },
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": \"nit_not_registered\",\n  \"message\": \"Esta factura se emitió con NIT, pero el cliente no tiene NIT registrado en Puntos Plus. Puede agregarlo desde su app en Menú → Mi Cuenta, o pedir la factura con CF.\",\n  \"member_name\": \"Cliente Prueba 1\",\n  \"invoice_nit\": \"12345678\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST /purchases — reintento idempotente (replayed)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "FAC-2026-000123", "description": "MISMA llave que la compra ya acreditada" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"card_code\": \"{{card_code}}\",\n  \"fuel_amount\": 250.00,\n  \"gallons\": 8.06,\n  \"fuel_type\": \"super\",\n  \"nit\": \"CF\",\n  \"invoice_no\": \"FAC-2026-000123\",\n  \"operator\": {\n    \"external_id\": \"{{operator_external_id}}\",\n    \"name\": \"{{operator_name}}\",\n    \"station\": \"{{operator_station}}\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/purchases",
+              "host": ["{{base_url}}"],
+              "path": ["purchases"]
+            },
+            "description": "Enviar DESPUÉS de la primera compra exitosa con la misma `Idempotency-Key`: devuelve `200` con la respuesta original + `\"replayed\": true`, SIN acreditar dos veces. Es el comportamiento esperado ante reintentos por corte de red."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4 · Canjes (entrega de premios)",
+      "description": "Flujo completo de entrega desde el POS. Salvaguarda del programa: **el cliente confirma en su teléfono** antes del `deliver`.\n\n**Flujo:**\n1. Escanear QR del premio (`TK-XXXXXX`) o la tarjeta del cliente (lista de pendientes)\n2. `POST {action: \"request\"}` → al cliente le aparece la solicitud en su app\n3. Poll con `GET ?code=...` cada ~2 s hasta que `confirm_status` sea `confirmed` (o `cancelled`)\n4. Si no responde en ~60 s o el colaborador desiste → `POST {action: \"cancel\"}`\n5. `POST {action: \"deliver\"}` → entrega atómica; la respuesta es el **payload del comprobante** (único momento en que se imprime)",
+      "item": [
+        {
+          "name": "GET /redemptions?code= — consultar canje / poll de confirmación",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/redemptions?code={{redemption_code}}",
+              "host": ["{{base_url}}"],
+              "path": ["redemptions"],
+              "query": [
+                { "key": "code", "value": "{{redemption_code}}", "description": "QR del premio (TK-XXXXXX)" }
+              ]
+            },
+            "description": "Datos del canje + `confirm_status`. NO cambia el estado — sirve también como **poll** cada ~2 s durante la espera de confirmación:\n\n| confirm_status | Significa | Acción del POS |\n|---|---|---|\n| `pending` | El cliente aún no responde | Seguir esperando |\n| `confirmed` | El cliente confirmó | Llamar `deliver` |\n| `cancelled` | El cliente rechazó | Mostrar aviso y terminar |\n\nSi `delivered` viene `true`, el premio ya fue entregado antes.\n\n**Scope requerido:** `redemptions:read`\n\n**Errores:** `404 redemption_not_found`"
+          },
+          "response": [
+            {
+              "name": "200 OK (respuesta real verificada)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": { "raw": "{{base_url}}/redemptions?code=TK-54C5E8", "host": ["{{base_url}}"], "path": ["redemptions"], "query": [{ "key": "code", "value": "TK-54C5E8" }] }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"ok\": true,\n  \"redemption_id\": \"da35f02a-030c-4f62-b80b-02097df055dc\",\n  \"code\": \"TK-54C5E8\",\n  \"reward_name\": \"Vale Q10 Combustible\",\n  \"category\": \"combustible\",\n  \"points_spent\": 80,\n  \"member_name\": \"Cliente Prueba 1\",\n  \"card_code\": \"CTOD-95176\",\n  \"created_at\": \"2026-07-31T19:03:04.640719+00:00\",\n  \"delivered\": false,\n  \"delivered_at\": null,\n  \"confirm_status\": \"none\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "GET /redemptions?card_code= — pendientes por tarjeta",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/redemptions?card_code={{card_code}}",
+              "host": ["{{base_url}}"],
+              "path": ["redemptions"],
+              "query": [
+                { "key": "card_code", "value": "{{card_code}}", "description": "Tarjeta del cliente, escaneada o escrita" }
+              ]
+            },
+            "description": "Alternativa cuando el cliente no tiene a mano el QR del premio: lista sus canjes pendientes de entrega. Es la **fuente de verdad** del ambiente de pruebas (cada `deliver` exitoso consume un código).\n\n**Scope requerido:** `redemptions:read`"
+          },
+          "response": [
+            {
+              "name": "200 OK (respuesta real verificada, lista abreviada)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": { "raw": "{{base_url}}/redemptions?card_code=CTOD-95176", "host": ["{{base_url}}"], "path": ["redemptions"], "query": [{ "key": "card_code", "value": "CTOD-95176" }] }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"ok\": true,\n  \"member_name\": \"Cliente Prueba 1\",\n  \"card_code\": \"CTOD-95176\",\n  \"pending\": [\n    { \"code\": \"TK-54C5E8\", \"reward_name\": \"Vale Q10 Combustible\",\n      \"category\": \"combustible\", \"points_spent\": 80,\n      \"created_at\": \"2026-07-31T19:03:04.640719+00:00\", \"confirm_status\": \"none\" },\n    { \"code\": \"TK-95A8B3\", \"reward_name\": \"Vale Q10 Combustible\",\n      \"category\": \"combustible\", \"points_spent\": 80,\n      \"created_at\": \"2026-07-31T18:51:23.380075+00:00\", \"confirm_status\": \"none\" }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST /redemptions — action: request (pedir confirmación)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{redemption_code}}\",\n  \"action\": \"request\",\n  \"operator\": {\n    \"external_id\": \"{{operator_external_id}}\",\n    \"name\": \"{{operator_name}}\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/redemptions",
+              "host": ["{{base_url}}"],
+              "path": ["redemptions"]
+            },
+            "description": "Marca el canje como `pending` y le muestra la solicitud al cliente **en su app al instante** (si la tenía cerrada, la ve al abrirla). Después de esto, el POS hace poll con `GET ?code=...` hasta `confirmed` o `cancelled`.\n\n**Scope requerido:** `redemptions:write`"
+          },
+          "response": [
+            {
+              "name": "200 OK — pending",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{ \"code\": \"TK-54C5E8\", \"action\": \"request\", \"operator\": { \"external_id\": \"EMP-017\", \"name\": \"Juan Pérez\" } }" },
+                "url": { "raw": "{{base_url}}/redemptions", "host": ["{{base_url}}"], "path": ["redemptions"] }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"ok\": true, \"status\": \"pending\", \"code\": \"TK-54C5E8\",\n  \"reward_name\": \"Vale Q10 Combustible\", \"member_name\": \"Cliente Prueba 1\",\n  \"reward_icon\": \"⛽\", \"points_spent\": 80 }"
+            }
+          ]
+        },
+        {
+          "name": "POST /redemptions — action: cancel (desistir)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{redemption_code}}\",\n  \"action\": \"cancel\",\n  \"operator\": {\n    \"external_id\": \"{{operator_external_id}}\",\n    \"name\": \"{{operator_name}}\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/redemptions",
+              "host": ["{{base_url}}"],
+              "path": ["redemptions"]
+            },
+            "description": "Si el cliente no responde (~60 s recomendados) o el colaborador desiste. Cierra también la solicitud en el teléfono del cliente.\n\n**Scope requerido:** `redemptions:write`"
+          },
+          "response": [
+            {
+              "name": "200 OK — solicitud cerrada",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{ \"code\": \"TK-54C5E8\", \"action\": \"cancel\", \"operator\": { \"external_id\": \"EMP-017\", \"name\": \"Juan Pérez\" } }" },
+                "url": { "raw": "{{base_url}}/redemptions", "host": ["{{base_url}}"], "path": ["redemptions"] }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"ok\": true, \"status\": \"none\", \"code\": \"TK-54C5E8\" }"
+            }
+          ]
+        },
+        {
+          "name": "POST /redemptions — action: deliver (entregar e imprimir)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{redemption_code}}\",\n  \"action\": \"deliver\",\n  \"operator\": {\n    \"external_id\": \"{{operator_external_id}}\",\n    \"name\": \"{{operator_name}}\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/redemptions",
+              "host": ["{{base_url}}"],
+              "path": ["redemptions"]
+            },
+            "description": "Entrega atómica, atribuida al colaborador (`operator` obligatorio acá). **Exige que el cliente haya confirmado** en su app. La respuesta es el **payload del comprobante**: con ella el POS imprime — único impreso de toda la integración.\n\n**Scope requerido:** `redemptions:write`\n\n**Errores:** `422 not_confirmed` (el cliente aún no confirmó) · `409 already_delivered` (imposible entregar dos veces)\n\n**Nota (ambiente de pruebas):** los teléfonos de las cuentas ficticias los opera Puntos Plus — coordinar por el canal acordado para que confirmen en el momento."
+          },
+          "response": [
+            {
+              "name": "200 OK — delivered (payload del comprobante)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{ \"code\": \"TK-3F9A2C\", \"action\": \"deliver\", \"operator\": { \"external_id\": \"EMP-0147\", \"name\": \"María Tzoc\" } }" },
+                "url": { "raw": "{{base_url}}/redemptions", "host": ["{{base_url}}"], "path": ["redemptions"] }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"ok\": true,\n  \"status\": \"delivered\",\n  \"code\": \"TK-54C5E8\",\n  \"reward_name\": \"Vale Q10 Combustible\",\n  \"category\": \"combustible\",\n  \"points_spent\": 80,\n  \"member_name\": \"Cliente Prueba 1\",\n  \"redeemed_at\": \"2026-07-31T19:03:04.640719+00:00\",\n  \"delivered_at\": \"2026-08-17T15:40:03.000+00:00\"\n}"
+            },
+            {
+              "name": "422 not_confirmed",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{ \"code\": \"TK-3F9A2C\", \"action\": \"deliver\", \"operator\": { \"external_id\": \"EMP-0147\" } }" },
+                "url": { "raw": "{{base_url}}/redemptions", "host": ["{{base_url}}"], "path": ["redemptions"] }
+              },
+              "status": "Unprocessable Entity",
+              "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"error\": \"not_confirmed\", \"message\": \"El cliente aún no ha confirmado la entrega en su app\" }"
+            },
+            {
+              "name": "409 already_delivered",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{ \"code\": \"TK-3F9A2C\", \"action\": \"deliver\", \"operator\": { \"external_id\": \"EMP-0147\" } }" },
+                "url": { "raw": "{{base_url}}/redemptions", "host": ["{{base_url}}"], "path": ["redemptions"] }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{ \"error\": \"already_delivered\", \"message\": \"Este canje ya fue entregado\" }"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
