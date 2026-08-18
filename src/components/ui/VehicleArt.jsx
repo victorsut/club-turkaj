@@ -175,120 +175,146 @@ const MotoCubArt = ({ uid, color }) => (
 // CVT de scooter hacia la rueda trasera y escape lateral visible.
 const NaviWheel = ({ cx, cy, r }) => (
   <g>
-    {/* llanta GORDA + rin de acero estampado con 5 perforaciones (foto) */}
+    {/* llanta GORDA + rin de acero NEGRO con 8 ranuras OVALADAS (foto) */}
     <circle cx={cx} cy={cy} r={r} fill="#141418" />
-    <circle cx={cx} cy={cy} r={r * 0.94} fill="none" stroke="#1F1F24" strokeWidth={r * 0.1} />
-    <circle cx={cx} cy={cy} r={r * 0.58} fill="#26262C" />
-    <circle cx={cx} cy={cy} r={r * 0.58} fill="none" stroke="#3F4147" strokeWidth="1.6" />
-    {[0, 72, 144, 216, 288].map(a => (
-      <circle key={a} cx={cx} cy={cy - r * 0.36} r={r * 0.11} fill="#0D0D0F"
+    <circle cx={cx} cy={cy} r={r * 0.93} fill="none" stroke="#1F1F24" strokeWidth={r * 0.1} />
+    <circle cx={cx} cy={cy} r={r * 0.62} fill="#1E1E23" />
+    <circle cx={cx} cy={cy} r={r * 0.62} fill="none" stroke="#3A3C42" strokeWidth="1.5" />
+    {[0, 45, 90, 135, 180, 225, 270, 315].map(a => (
+      <ellipse key={a} cx={cx} cy={cy - r * 0.4} rx={r * 0.085} ry={r * 0.15} fill="#0B0B0D"
         transform={`rotate(${a} ${cx} ${cy})`} />
     ))}
-    <circle cx={cx} cy={cy} r={r * 0.14} fill="#3A3A42" />
-    <circle cx={cx} cy={cy} r={r * 0.06} fill="#55575E" />
+    {[22, 142, 262].map(a => (
+      <circle key={a} cx={cx} cy={cy - r * 0.19} r={r * 0.045} fill="#9A9EA8"
+        transform={`rotate(${a} ${cx} ${cy})`} />
+    ))}
+    <circle cx={cx} cy={cy} r={r * 0.13} fill="#3A3A42" />
+    <circle cx={cx} cy={cy} r={r * 0.05} fill="#55575E" />
     <path d={`M ${cx - r * 0.8} ${cy - r * 0.5} A ${r * 0.95} ${r * 0.95} 0 0 1 ${cx + r * 0.2} ${cy - r * 0.92}`}
       stroke="rgba(255,255,255,.08)" strokeWidth="3" fill="none" />
   </g>
 );
 
-// Redibujada CONTRA LA FOTO de referencia del dueño
-// (REFERENCIAS INTERFAZ/VEHÍCULOS/HONDA, NAVI.png): guardafango y
-// horquilla NEGROS, tanque en color como CUÑA diagonal con panel gris
-// inserto y disco circular, caja portaequipaje gris oscuro al centro,
-// asiento LARGO con cola levantada sobre la rueda trasera, RESORTE
-// ROJO del amortiguador, escape = bloque oscuro bajo, máscara negra
-// con cresta en color y faro redondeado, llantas gordas de rin
-// estampado. Sin logos ni calcas.
+// Redibujada CONTRA LA FOTO de referencia del dueño, 2ª ronda con la
+// foto ampliada por zonas (REFERENCIAS INTERFAZ/VEHÍCULOS/HONDA, NAVI.png):
+// rines de acero negros con 8 ranuras ovaladas, MOFLE = caja rectangular
+// grande con placa atornillada, RESORTE ROJO en espiral casi vertical,
+// caja portaequipaje FACETADA, cuña en color que llega en punta hasta
+// debajo de la cola, disco con ARO gris + viga del bastidor con ranura,
+// asiento GRUESO con asa en color bajo la cola, guardafangos negros
+// concéntricos a la llanta, máscara con cresta en V y faro GRANDE,
+// espejo de gota en color en alto + espejo espejado bajo. Sin logos.
 const NaviArt = ({ uid, color }) => (
   <g>
     <Shadow cx={120} w={92} />
 
-    <NaviWheel cx={60} cy={98} r={25} />
+    {/* ── tren trasero (eje en 68,97 — moto CORTA, llantas grandes) ── */}
+    <NaviWheel cx={68} cy={97} r={27} />
+    {/* guardafango/faldón trasero negro entre llanta, motor y caja */}
+    <path d="M46 82 A 30 30 0 0 1 98 76 L104 88 L96 92 A 22 22 0 0 0 52 88 Z" fill="#1C1C20" />
 
-    {/* guardafango trasero negro abrazando la rueda (une cola y mecánica) */}
-    <path d="M38 80 Q52 64 80 68 L78 78 Q58 72 46 86 Z" fill="#1C1C20" />
+    {/* MOFLE compacto a la altura del eje: caja con costilla superior y
+        placa oscura atornillada; apenas rebasa la llanta (foto) */}
+    <rect x="36" y="84" width="40" height="21" rx="6" fill="#2A2C31" />
+    <rect x="36" y="84" width="40" height="6.5" rx="3.25" fill="#35373D" />
+    <path d="M43 87 L69 87" stroke="#1D1F24" strokeWidth="2" strokeDasharray="4.5 3.5" />
+    <rect x="40" y="92" width="32" height="10" rx="3.5" fill="#1B1D21" />
+    <circle cx="44.5" cy="97" r="1.5" fill="#8E9096" />
+    <circle cx="67.5" cy="97" r="1.5" fill="#8E9096" />
 
-    {/* motor + CVT (masa oscura) con tapa circular del cigüeñal */}
-    <path d="M72 94 L60 98" stroke="#26262C" strokeWidth="9" strokeLinecap="round" fill="none" />
-    <path d="M70 82 Q66 102 86 106 L106 106 L106 80 Z" fill="#26262C" />
-    <circle cx="88" cy="94" r="11" fill="#33353B" stroke="#22222A" strokeWidth="1.5" />
-    <circle cx="88" cy="94" r="6" fill="#46484F" />
-    {[45, 135, 225, 315].map(a => (
-      <circle key={a} cx={88} cy={85.5} r="1.3" fill="#1A1A1E" transform={`rotate(${a} 88 94)`} />
+    {/* motor: masa oscura + tapa CVT con aletas RADIALES (foto) */}
+    <path d="M80 78 Q76 100 100 102 L116 100 L116 78 Z" fill="#26262C" />
+    <circle cx="94" cy="91" r="10.5" fill="#2E3036" stroke="#1D1D22" strokeWidth="1.4" />
+    {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map(a => (
+      <path key={a} d="M94 82 L94 85" stroke="#1D1D22" strokeWidth="1.4"
+        transform={`rotate(${a} 94 91)`} />
     ))}
+    <circle cx="94" cy="91" r="3.8" fill="#46484F" />
 
-    {/* escape: BLOQUE oscuro bajo con cara plana y punta (foto) */}
-    <path d="M46 96 Q40 98 42 106 L44 110 Q76 118 104 110 L104 100 Q72 106 50 96 Z" fill="#1E1E22" />
-    <path d="M52 102 L98 106 M50 106 L94 110" stroke="#101014" strokeWidth="2" fill="none" />
-    <circle cx="44" cy="103" r="5" fill="#0E0E10" />
+    {/* AMORTIGUADOR sobre el eje trasero: barra + RESORTE ROJO (foto) */}
+    <path d="M79 52 L72 82" stroke="#202024" strokeWidth="3.5" strokeLinecap="round" fill="none" />
+    <path d="M72 58 L80 60.5 L71 63 L79 65.5 L70 68 L78 70.5 L69 73 L77 75.5"
+      stroke="#D23B34" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
 
-    {/* caja portaequipaje gris oscuro texturizada (centro-bajo) */}
-    <rect x="102" y="60" width="48" height="42" rx="9" fill="#2A2A30" stroke="#1A1A1E" strokeWidth="1.5" />
-    <path d="M112 64 L112 98 M122 64 L122 98 M132 64 L132 98 M142 64 L142 98" stroke="#34343A" strokeWidth="3" />
-    <path d="M104 63 Q126 60 148 63" stroke="#3E4046" strokeWidth="2" fill="none" />
+    {/* caja portaequipaje FACETADA gris oscuro con emboss (foto) */}
+    <path d="M116 56 L144 59 L150 72 L146 88 L122 91 L112 80 Z"
+      fill="#26262C" stroke="#17171B" strokeWidth="1.4" />
+    <path d="M120 61 L141 63 L145 73 L124 77 L117 70 Z" fill="#2E3036" />
+    <path d="M124 77 L145 73 L143 85 L126 87 Z" fill="#212126" />
+    <rect x="129" y="79" width="12" height="4" rx="2" fill="#33353B" />
 
-    {/* subchasis oscuro bajo el asiento (delgado) */}
-    <path d="M60 42 L102 58 L100 63 L58 47 Z" fill="#202024" opacity=".85" />
+    {/* carenado de piso negro hacia el frente + posapiés */}
+    <path d="M112 80 L122 91 Q140 94 154 90 L162 95 Q140 102 118 98 Q108 95 106 84 Z" fill="#1B1B1F" />
+    <rect x="146" y="94" width="15" height="4.5" rx="2.25" fill="#33353B" />
 
-    {/* AMORTIGUADOR con RESORTE ROJO (rasgo inconfundible de la foto) */}
-    <path d="M78 46 L94 82" stroke="#202024" strokeWidth="4.5" strokeLinecap="round" fill="none" />
-    <path d="M74 52 L86 55 M77 59 L89 62 M80 66 L92 69 M83 73 L95 76" stroke="#D23B34" strokeWidth="3.6" strokeLinecap="round" />
-
-    {/* tubo del bastidor hacia el motor */}
-    <path d="M164 46 L140 78" stroke="#1E1E22" strokeWidth="7" strokeLinecap="round" fill="none" />
-
-    {/* TANQUE en color: cuña GRANDE que barre en diagonal (foto) */}
-    <path d="M166 42 Q176 42 176 52 L172 60 Q148 64 128 72 Q112 78 102 86 L94 80 Q92 68 104 62 Q132 48 166 42 Z"
+    {/* CUÑA en color (foto): tanque con joroba al frente, banda diagonal
+        bajo el asiento que TERMINA EN PUNTA bajo la cola, y panza que
+        baja hasta el disco */}
+    <path d="M56 34 Q76 39 106 43 Q122 45.5 136 47 L143 38 Q149 33 157 34 Q166 36 166 44 L164 53 Q159 58 151 59 L132 62.5 Q120 65 113 68 Q102 62 96 59 Q86 56 78 58 Q68 60 64 56 Q58 48 56 36 Z"
       fill={`url(#${uid}-body)`} stroke={shade(color, -52)} strokeWidth="1.2" />
-    <path d="M108 60 Q136 48 164 44" stroke={shade(color, 48)} strokeWidth="2.2" opacity=".75" fill="none" />
-    <Gleam d="M120 56 Q142 47 162 45 L158 51 Q138 54 124 60 Z" />
-    {/* panel gris inserto en la parte baja del tanque */}
-    <path d="M120 71 Q144 62 166 56 L168 62 Q146 68 126 77 Z" fill="#55575E" />
-    <path d="M122 73 Q144 65 164 59" stroke="#6B6E76" strokeWidth="1.6" fill="none" />
-    {/* disco circular del extremo del tanque (foto) */}
-    <circle cx="110" cy="79" r="10" fill={`url(#${uid}-body)`} stroke={shade(color, -44)} strokeWidth="2.5" />
-    <circle cx="110" cy="79" r="5.5" fill="none" stroke={shade(color, 36)} strokeWidth="2" />
+    <path d="M144 39 Q152 35 160 37" stroke={shade(color, 48)} strokeWidth="1.8" opacity=".8" fill="none" />
+    <Gleam d="M120 47 Q138 49 146 42 L152 37 L146 36 Q140 44 122 44 Z" />
+    {/* scallop hundido que recorre la banda en diagonal */}
+    <path d="M84 46 Q104 52 122 57 L116 61 Q98 55 80 48 Z" fill={shade(color, -34)} />
 
-    {/* carenado inferior negro + zona del pie */}
-    <path d="M104 86 Q124 92 146 92 L154 100 Q130 104 108 98 Z" fill="#1E1E22" />
-    <rect x="142" y="102" width="18" height="4.5" rx="2.25" fill="#33353B" />
+    {/* viga GRIS del bastidor con ranura, del disco hacia el frente (foto) */}
+    <path d="M110 71 L146 63 L151 71 L117 81 Z" fill="#4A4C53" />
+    <rect x="124" y="68" width="14" height="4" rx="2" fill="#2E3036" transform="rotate(-13 131 70)" />
 
-    {/* ASIENTO delgado con cola LEVANTADA sobre la rueda trasera (foto) */}
-    <path d="M146 46 Q112 34 64 33 Q44 33 36 39 Q32 43 36 47 L46 47 Q84 42 120 45 Q136 47 146 51 Z" fill="#1B1B1F" />
-    <path d="M48 41 Q92 35 138 44" stroke="rgba(255,255,255,.16)" strokeWidth="1.4" strokeDasharray="3.5 2.8" fill="none" />
-    <path d="M38 45 Q52 43 66 42" stroke={shade(color, -6)} strokeWidth="2.2" fill="none" />
-    {/* cola: calavera + direccional ámbar colgante */}
-    <path d="M34 38 Q28 40 30 48 L38 49 L36 41 Z" fill="#17171B" />
-    <rect x="29" y="41" width="6" height="5" rx="2" fill="#C62E2A" />
-    <circle cx="31" cy="52" r="2.6" fill="#F9A825" />
+    {/* DISCO con ARO gris grueso en la panza de la cuña (foto) */}
+    <circle cx="108" cy="70" r="10.5" fill="#3A3C42" />
+    <circle cx="108" cy="70" r="7.2" fill={`url(#${uid}-body)`} stroke={shade(color, -44)} strokeWidth="1.4" />
+    <circle cx="108" cy="70" r="3" fill={shade(color, -24)} />
 
-    <NaviWheel cx={184} cy={98} r={25} />
+    {/* ASIENTO: pad negro GRUESO que sube suave; la cola apenas rebasa
+        la llanta trasera (foto) */}
+    <path d="M138 48 Q114 43 88 39 Q70 36 60 33 Q52 30 51 36 Q50 41 58 43 Q88 51 118 54 Q131 55.5 138 55 Z"
+      fill="#1B1B1F" />
+    <path d="M60 37 Q96 44 132 49" stroke="rgba(255,255,255,.14)" strokeWidth="1.2" strokeDasharray="3.5 2.8" fill="none" />
+    <path d="M58 33 Q94 41 134 48" stroke="#2E3036" strokeWidth="1.4" fill="none" />
+    {/* ASA/riel en color bajo la cola (rasgo llamativo de la foto) */}
+    <path d="M56 38 Q66 42 80 45" stroke={shade(color, -4)} strokeWidth="4" strokeLinecap="round" fill="none" />
+    {/* cola: cowl negro + calavera + soporte con direccional ámbar */}
+    <path d="M58 32 Q49 33 49 41 L53 48 L62 45 L60 34 Z" fill="#17171B" />
+    <rect x="47" y="37" width="5" height="8" rx="2" fill="#C62E2A" />
+    <path d="M54 48 L52 55" stroke="#17171B" strokeWidth="2.4" strokeLinecap="round" />
+    <circle cx="51" cy="58" r="3" fill="#F9A825" />
 
-    {/* horquilla NEGRA gruesa en dos tramos (foto) */}
-    <path d="M166 42 L174 72" stroke="#1E1E22" strokeWidth="8" strokeLinecap="round" fill="none" />
-    <path d="M174 72 L184 97" stroke="#17171B" strokeWidth="9" strokeLinecap="round" fill="none" />
-    <path d="M168 44 L175 70" stroke="#3A3A42" strokeWidth="2" strokeLinecap="round" fill="none" />
+    {/* ── tren delantero (eje en 172,97) ── */}
+    <NaviWheel cx={172} cy={97} r={27} />
+    {/* guardafango delantero NEGRO pegado a la llanta + labio */}
+    <path d="M144 87 A 30 30 0 0 1 198 83 L200 92 L193 93 L192.5 87 A 23.5 23.5 0 0 0 150 91 Z" fill="#1E1E22" />
+    <path d="M152 79 Q170 68 190 76" stroke="#34343A" strokeWidth="2" fill="none" />
 
-    {/* guardafango delantero NEGRO chunky (foto) */}
-    <path d="M160 86 Q160 64 186 63 Q206 65 210 78 L202 84 Q196 70 178 76 Q166 80 166 92 L160 92 Z" fill="#1E1E22" />
-    <path d="M168 70 Q184 64 200 72" stroke="#34343A" strokeWidth="2" fill="none" />
+    {/* horquilla NEGRA gruesa casi vertical + fuelle inferior */}
+    <path d="M173 34 L174 64" stroke="#1E1E22" strokeWidth="8" strokeLinecap="round" fill="none" />
+    <path d="M174 64 L172 96" stroke="#17171B" strokeWidth="8.5" strokeLinecap="round" fill="none" />
+    <path d="M175.5 36 L176 62" stroke="#3A3A42" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+    <path d="M170 66 L178 68 M170 71 L178 73 M170 76 L178 78" stroke="#0E0E10" strokeWidth="2.2" strokeLinecap="round" />
 
-    {/* máscara del faro: base negra + CRESTA en color + faro redondeado */}
-    <path d="M156 28 L182 23 Q196 25 197 38 L194 54 Q178 45 158 44 Z" fill="#1E1E22" />
-    <path d="M154 30 L180 24 Q189 26 190 33 L188 38 Q172 30 156 36 Z"
+    {/* máscara: pod negro angular + CRESTA en V en color + faro GRANDE */}
+    <path d="M160 24 L186 17 Q199 21 200 36 L196 53 Q181 45 161 44 Z" fill="#1E1E22" />
+    <path d="M162 26 L184 19 Q193 23 194 34 L190 43 Q177 31 163 36 Z"
       fill={`url(#${uid}-body)`} stroke={shade(color, -50)} strokeWidth="1" />
-    <circle cx="189" cy="45" r="7" fill="#EFEDE4" stroke="#26262C" strokeWidth="2" />
-    <path d="M185 42 A6 6 0 0 1 192 40" stroke="rgba(255,255,255,.85)" strokeWidth="1.6" fill="none" />
-    <circle cx="194" cy="55" r="2.5" fill="#F9A825" />
+    <path d="M173 21.5 L180 40" stroke="#1E1E22" strokeWidth="3" />
+    <circle cx="188" cy="44" r="7.5" fill="#EFEDE4" stroke="#26262C" strokeWidth="2" />
+    <path d="M184 40.5 A 6 6 0 0 1 191 38.5" stroke="rgba(255,255,255,.85)" strokeWidth="1.6" fill="none" />
+    <path d="M192 52 L195 59 L190 60 Z" fill="#F9A825" />
 
-    {/* manubrio alto: risers, barra, puño, palanca, cable y espejo */}
-    <path d="M168 28 L166 18" stroke="#1E1E22" strokeWidth="4" strokeLinecap="round" fill="none" />
-    <path d="M166 18 L150 22" stroke="#1E1E22" strokeWidth="5" strokeLinecap="round" fill="none" />
-    <path d="M152 21.5 L144 23.5" stroke="#0F0F12" strokeWidth="7" strokeLinecap="round" fill="none" />
-    <path d="M158 18 L172 14" stroke="#33353B" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-    <path d="M152 22 Q146 32 150 42" stroke="#26262C" strokeWidth="1.5" fill="none" />
-    <path d="M160 20 L152 4" stroke="#26262C" strokeWidth="3" strokeLinecap="round" fill="none" />
-    <ellipse cx="150" cy="3.5" rx="6.5" ry="4.6" fill={shade(color, -8)} stroke="#1A1A1E" strokeWidth="1.5" transform="rotate(-22 150 3.5)" />
+    {/* manubrio negro alto con puño, palanca y cables */}
+    <path d="M172 24 L170 14" stroke="#1E1E22" strokeWidth="4.5" strokeLinecap="round" fill="none" />
+    <path d="M170 14 L152 18" stroke="#1E1E22" strokeWidth="5" strokeLinecap="round" fill="none" />
+    <path d="M154 17.5 L146 19.5" stroke="#0F0F12" strokeWidth="6.5" strokeLinecap="round" fill="none" />
+    <path d="M150 18 L141 14" stroke="#33353B" strokeWidth="2.2" strokeLinecap="round" fill="none" />
+    <path d="M156 19 Q150 30 154 42" stroke="#26262C" strokeWidth="1.5" fill="none" />
+    <path d="M160 20 Q156 31 159 42" stroke="#26262C" strokeWidth="1.2" fill="none" />
+    {/* espejo de GOTA en color en alto (firma de la foto) + espejo bajo */}
+    <path d="M165 15 L159 4" stroke="#26262C" strokeWidth="2.6" strokeLinecap="round" fill="none" />
+    <path d="M159 4.5 Q152 0 156 -2.5 Q162 -4.5 164 1 Q164 3.5 159 4.5 Z"
+      fill={shade(color, -4)} stroke={shade(color, -46)} strokeWidth="1.2" />
+    <path d="M159 16 L150 8" stroke="#26262C" strokeWidth="2.2" strokeLinecap="round" fill="none" />
+    <ellipse cx="148" cy="7" rx="5.2" ry="3.8" fill="#1E1E22" transform="rotate(-24 148 7)" />
+    <ellipse cx="148" cy="7" rx="3.2" ry="2.1" fill="#D7DAE0" transform="rotate(-24 148 7)" />
   </g>
 );
 
