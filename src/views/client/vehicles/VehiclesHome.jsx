@@ -6,14 +6,18 @@
 // izquierda/derecha. Debajo: datos relevantes (kilometraje, próximo
 // servicio, aceite y el hueco de telemetría que llena la E2) y la
 // gestión completa (agregar/editar/eliminar con doble tap).
-import { useRef, useState } from 'react';
+import { lazy, Suspense, useRef, useState } from 'react';
 import { BRAND_ORANGE, homeColors } from '../../../constants/styles';
 import { VEHICLE_TYPES } from '../../../components/ui/VehicleIcons';
 import VehicleArt from '../../../components/ui/VehicleArt';
 import { bodyFor } from '../../../constants/vehicleCatalog';
+import { has3D } from '../../../components/ui/vehicle3d/models3d';
 import { plateMask } from '../../../lib/inputMasks';
 import { deleteMyVehicle } from '../../../services/vehicleService';
 import VehicleForm from './VehicleForm';
+
+// El visor 3D (three.js) baja SOLO al abrirlo — chunk propio
+const Vehicle3DSheet = lazy(() => import('../../../components/ui/vehicle3d/Vehicle3DSheet.jsx'));
 
 const fmtPlate = (p) => {
   const raw = plateMask.clean(p || '');
@@ -42,6 +46,7 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
   const hp = homeColors(cTier.name);
   const [idx, setIdx] = useState(0);
   const [form, setForm] = useState(null);          // null | { vehicle|null }
+  const [show3D, setShow3D] = useState(null);      // null | { vehicle, bodyKey }
   const [delArmed, setDelArmed] = useState(false); // doble tap de eliminar
   const delTimer = useRef(null);
   const touch = useRef(null);
@@ -191,6 +196,7 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
               {vehicles.map((veh, i) => {
                 const t = typeInfo(veh.vtype);
                 const col = veh.color || '#9E9E9E';
+                const bodyKey = bodyFor(veh.vtype, veh.model);
                 return (
                   <div key={veh.id || i} style={{ minWidth: '100%', boxSizing: 'border-box' }}>
                     <div style={{
@@ -214,7 +220,16 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
                         )}
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'center', position: 'relative' }}>
-                        <VehicleArt type={veh.vtype} body={bodyFor(veh.vtype, veh.model)} color={col} width={272} />
+                        <VehicleArt type={veh.vtype} body={bodyKey} color={col} width={272} />
+                        {has3D(bodyKey) && (
+                          <button onClick={() => setShow3D({ vehicle: veh, bodyKey })} style={{
+                            position: 'absolute', right: 2, bottom: 6, padding: '7px 13px',
+                            borderRadius: 20, border: 'none', cursor: 'pointer',
+                            background: dark ? 'rgba(255,255,255,.12)' : '#0D0D0D',
+                            color: '#fff', fontFamily: "'DM Sans'", fontSize: 11.5, fontWeight: 900,
+                            letterSpacing: 1,
+                          }}>3D ↻</button>
+                        )}
                       </div>
                       <div style={{ textAlign: 'center', position: 'relative', marginTop: -4 }}>
                         <div style={{ fontSize: 18, fontWeight: 900, color: ink }}>
@@ -284,6 +299,18 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
         background: dark ? 'rgba(255,255,255,.1)' : '#EDEDEF', color: ink,
         fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 800, cursor: 'pointer',
       }}>Volver al inicio</button>
+
+      {/* Visor 3D (chunk perezoso de three.js) */}
+      {show3D && (
+        <Suspense fallback={null}>
+          <Vehicle3DSheet
+            vehicle={show3D.vehicle}
+            bodyKey={show3D.bodyKey}
+            dark={dark}
+            onClose={() => setShow3D(null)}
+          />
+        </Suspense>
+      )}
 
       {/* Sheet de alta/edición */}
       {form && (
