@@ -33,16 +33,20 @@ export default function NaviArt({ uid, color }) {
           </linearGradient>
         </defs>
 
-        {/* ── capas calcadas de la referencia (orden de pintado) ── */}
-        <path d={T.black} fill={`url(#${uid}-nsofa)`} />
-        <path d={T.darkgray} fill="#3A3B41" />
-        <path d={T.midgray} fill={`url(#${uid}-ngray)`} />
-        <path d={T.darkred} fill={shade(color, -34)} />
-        <path d={T.red} fill={`url(#${uid}-body)`} />
-        <path d={T.spring} fill="#E02A28" />
-        <path d={T.taillight} fill="#D02427" />
-        <path d={T.white} fill="#F2F2EF" />
-        <path d={T.amber} fill="#F49C1F" />
+        {/* ── capas calcadas de la referencia (orden de pintado) ──
+            ⚠️ fillRule="evenodd" OBLIGATORIO: potrace emite los agujeros
+            interiores con esa regla; con nonzero (default) los huecos se
+            RELLENAN y zonas enteras se funden (causa raíz de los
+            "elementos fuera de lugar" de POR CORREGIR/img3.png) */}
+        <path d={T.black} fill={`url(#${uid}-nsofa)`} fillRule="evenodd" />
+        <path d={T.darkgray} fill="#3A3B41" fillRule="evenodd" />
+        <path d={T.midgray} fill={`url(#${uid}-ngray)`} fillRule="evenodd" />
+        <path d={T.darkred} fill={shade(color, -34)} fillRule="evenodd" />
+        <path d={T.red} fill={`url(#${uid}-body)`} fillRule="evenodd" />
+        <path d={T.spring} fill="#E02A28" fillRule="evenodd" />
+        <path d={T.taillight} fill="#D02427" fillRule="evenodd" />
+        <path d={T.white} fill="#F2F2EF" fillRule="evenodd" />
+        <path d={T.amber} fill="#F49C1F" fillRule="evenodd" />
 
         {/* ── PROFUNDIDAD: rines "power", CVT y brillos (encima) ──
             centros MEDIDOS del bitmap (wheels.js): trasera (283,780),
