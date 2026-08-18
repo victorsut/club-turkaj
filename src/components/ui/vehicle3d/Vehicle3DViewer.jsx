@@ -6,6 +6,7 @@
 // Vehicle3DSheet) — el bundle base del cliente no crece.
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { buildNavi } from './NaviModel.js';
 
 // Registro de modelos con arte 3D (crecerá con la lista del dueño)
@@ -27,22 +28,32 @@ export default function Vehicle3DViewer({ body = 'm_navi', color = '#C62828', st
     host.appendChild(renderer.domElement);
     renderer.domElement.style.cssText = 'width:100%;height:100%;display:block;touch-action:none;cursor:grab';
 
+    // Tone mapping cinematográfico — clave para que la pintura y el
+    // metal se vean "de estudio" y no plástico plano
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
+
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 60);
     camera.position.set(0, 3.6, 18.5);
     camera.lookAt(0, 1.35, 0);
 
-    // ── Luces: hemisferio + clave con sombra + contorno ORBITANTE ──
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x3c3c46, 0.85));
-    const key = new THREE.DirectionalLight(0xffffff, 2.1);
+    // ── Iluminación de AMBIENTE (reflejos reales en pintura/cromo) ──
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    scene.environmentIntensity = 0.5;   // reflejos sí, colores lavados no
+    pmrem.dispose();
+
+    // ── Luces: clave con sombra + contorno ORBITANTE ──
+    const key = new THREE.DirectionalLight(0xffffff, 1.9);
     key.position.set(4, 7, 5);
     key.castShadow = true;
     key.shadow.mapSize.set(1024, 1024);
     key.shadow.camera.left = -6; key.shadow.camera.right = 6;
     key.shadow.camera.top = 6; key.shadow.camera.bottom = -2;
-    key.shadow.radius = 4;
+    key.shadow.radius = 5;
     scene.add(key);
-    const rim = new THREE.DirectionalLight(0xbfd4ff, 0.7);
+    const rim = new THREE.DirectionalLight(0xbfd4ff, 0.55);
     scene.add(rim);
 
     // ── Modelo sobre tornamesa + piso receptor de sombra ──
@@ -102,6 +113,7 @@ export default function Vehicle3DViewer({ body = 'm_navi', color = '#C62828', st
         if (o.geometry) o.geometry.dispose();
         if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.dispose());
       });
+      scene.environment?.dispose();
       renderer.dispose();
       host.removeChild(renderer.domElement);
       apiRef.current = null;

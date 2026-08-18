@@ -18,17 +18,25 @@ export function buildNavi(colorHex = '#C62828') {
   const add = (mesh, x = 0, y = 0, z = 0) => { mesh.position.set(x, y, z); g.add(mesh); return mesh; };
   const cast = (m) => { m.castShadow = true; return m; };
 
-  // Materiales (los del cuerpo se registran para recolorear)
+  // Materiales (los del cuerpo se registran para recolorear).
+  // El cuerpo usa PINTURA AUTOMOTRIZ: clearcoat = capa de barniz que
+  // refleja el environment map del visor.
   const bodyMats = [];
-  const bodyMat = () => { const m = M(colorHex, 0.32, 0.35); bodyMats.push(m); return m; };
+  const bodyMat = () => {
+    const m = new THREE.MeshPhysicalMaterial({
+      color: colorHex, roughness: 0.3, metalness: 0.1,
+      clearcoat: 1, clearcoatRoughness: 0.12,
+    });
+    bodyMats.push(m); return m;
+  };
   const rubber = M('#1A1B1E', 0.95, 0);
   const rimM = M('#212226', 0.42, 0.35);
   const blackP = M('#1B1C21', 0.6, 0.1);
   const darkG = M('#2E3036', 0.55, 0.12);
   const beamM = M('#4C4E56', 0.5, 0.25);
   const seatM = M('#1B1C21', 0.88, 0);
-  const metal = M('#AEB3BB', 0.3, 0.9);
-  const chrome = M('#D8DCE2', 0.15, 1);
+  const metal = M('#AEB3BB', 0.25, 0.9);
+  const chrome = M('#D8DCE2', 0.08, 1);
   const springM = M('#D93B32', 0.4, 0.2);      // ROJO fijo, como el real
   const lensM = new THREE.MeshStandardMaterial({ color: '#EFEDE6', roughness: 0.1, metalness: 0.1, emissive: '#666055', emissiveIntensity: 0.35 });
   const amber = new THREE.MeshStandardMaterial({ color: '#F5A623', roughness: 0.3, emissive: '#8A5A00', emissiveIntensity: 0.5 });
@@ -70,8 +78,10 @@ export function buildNavi(colorHex = '#C62828') {
   g.add(fender(K.frontAxle, 1.26, 1.40, THREE.MathUtils.degToRad(25), THREE.MathUtils.degToRad(150), 0.92, blackP));
   g.add(fender(K.rearAxle, 1.29, 1.41, THREE.MathUtils.degToRad(38), THREE.MathUtils.degToRad(152), 0.92, blackP));
 
-  // ── Cuerpo en color (contorno calcado, extruido) ──
-  const body = cast(new THREE.Mesh(extrudeCentered(shapeFrom(BODY), 0.56), bodyMat()));
+  // ── Cuerpo en color (contorno calcado, extruido con bisel suave) ──
+  const body = cast(new THREE.Mesh(
+    extrudeCentered(shapeFrom(BODY), 0.5, { bevelThickness: 0.07, bevelSize: 0.07, bevelSegments: 4 }),
+    bodyMat()));
   g.add(body);
   // disco lateral con aro (ambos lados)
   [1, -1].forEach(s => {
@@ -82,7 +92,9 @@ export function buildNavi(colorHex = '#C62828') {
   });
 
   // ── Asiento + asa trasera en color ──
-  g.add(cast(new THREE.Mesh(extrudeCentered(shapeFrom(SEAT), 0.54), seatM)));
+  g.add(cast(new THREE.Mesh(
+    extrudeCentered(shapeFrom(SEAT), 0.46, { bevelThickness: 0.08, bevelSize: 0.08, bevelSegments: 4 }),
+    seatM)));
   [1, -1].forEach(s => {
     const railPts = [P(182, 309), P(240, 330), P(306, 338)].map(([x, y]) => new THREE.Vector3(x, y, s * 0.26));
     const rail = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(railPts), 12, 0.05, 10), bodyMat());
