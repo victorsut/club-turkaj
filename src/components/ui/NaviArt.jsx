@@ -4,7 +4,9 @@
 // "ya no hace falta interpretar nada — mismas dimensiones y estructura,
 // con profundidad estilo 3D y color cambiable"). CERO interpretación:
 // la imagen se separó por CAPAS DE COLOR y cada capa se calcó con
-// potrace (naviTrace.js, generado — ver comentario ahí); este
+// potrace (naviTrace.js, generado — ver comentario ahí; E1.9b: a
+// resolución COMPLETA con filtro de mayoría 5×5 y DILATACIÓN 2px por
+// capa — sin bordes rasgados ni piezas flotantes); este
 // componente solo asigna rellenos y añade la capa de PROFUNDIDAD:
 // degradados verticales por material, rines detallados, aro del CVT y
 // brillos suaves. Recolorear = capas red/darkred usan el degradado
@@ -17,7 +19,7 @@ export default function NaviArt({ uid, color }) {
   return (
     <g>
       <ellipse cx={120} cy={132} rx={96} ry={8} fill="rgba(0,0,0,.20)" />
-      <g transform="translate(25.2 0.1) scale(0.2446)">
+      <g transform="translate(25.2 0.1) scale(0.1223)">
         <defs>
           <linearGradient id={`${uid}-nsofa`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#3A3B42" />
@@ -42,27 +44,27 @@ export default function NaviArt({ uid, color }) {
         <path d={T.amber} fill="#F49C1F" />
 
         {/* ── PROFUNDIDAD: rines "power", CVT y brillos (encima) ── */}
-        {[[170, 407], [630, 407]].map(([cx, cy]) => (
+        {[[340, 815], [1260, 815]].map(([cx, cy]) => (
           <g key={cx}>
-            <circle cx={cx} cy={cy} r={58} fill="#2A2B31" />
-            <path d={`M ${cx} ${cy - 41} A 41 41 0 1 0 ${cx} ${cy - 40.99}`} fill="none"
-              stroke="#45464C" strokeWidth="8" strokeDasharray="193 65" strokeDashoffset="-32"
+            <circle cx={cx} cy={cy} r={116} fill="#2A2B31" />
+            <path d={`M ${cx} ${cy - 82} A 82 82 0 1 0 ${cx} ${cy - 81.98}`} fill="none"
+              stroke="#45464C" strokeWidth="16" strokeDasharray="386 130" strokeDashoffset="-64"
               strokeLinecap="round" />
-            <path d={`M${cx} ${cy - 52} L${cx} ${cy - 27}`} stroke="#45464C" strokeWidth="8" strokeLinecap="round" />
-            <circle cx={cx} cy={cy} r={16} fill="#17181B" />
-            <circle cx={cx} cy={cy} r={6} fill="#3A3B41" />
-            <path d={`M ${cx - 68} ${cy - 52} A 88 88 0 0 1 ${cx + 22} ${cy - 84}`}
-              stroke="rgba(255,255,255,.07)" strokeWidth="9" fill="none" strokeLinecap="round" />
+            <path d={`M${cx} ${cy - 104} L${cx} ${cy - 54}`} stroke="#45464C" strokeWidth="16" strokeLinecap="round" />
+            <circle cx={cx} cy={cy} r={32} fill="#17181B" />
+            <circle cx={cx} cy={cy} r={12} fill="#3A3B41" />
+            <path d={`M ${cx - 136} ${cy - 104} A 176 176 0 0 1 ${cx + 44} ${cy - 168}`}
+              stroke="rgba(255,255,255,.07)" strokeWidth="18" fill="none" strokeLinecap="round" />
           </g>
         ))}
-        <circle cx={320} cy={374} r={44} fill="none" stroke="#3A3B41" strokeWidth="7" />
-        <circle cx={320} cy={374} r={15} fill="#1A1B1E" />
+        <circle cx={640} cy={748} r={88} fill="none" stroke="#3A3B41" strokeWidth="14" />
+        <circle cx={640} cy={748} r={30} fill="#1A1B1E" />
         {/* brillos suaves: tanque, asiento y guardafango delantero */}
-        <path d="M382 162 Q 442 150 496 162" stroke="rgba(255,255,255,.20)" strokeWidth="8" fill="none" strokeLinecap="round" />
-        <path d="M118 152 Q 212 146 280 160" stroke="rgba(255,255,255,.10)" strokeWidth="7" fill="none" strokeLinecap="round" />
-        <path d="M566 322 Q 622 294 682 316" stroke="rgba(255,255,255,.08)" strokeWidth="7" fill="none" strokeLinecap="round" />
+        <path d="M764 324 Q 884 300 992 324" stroke="rgba(255,255,255,.20)" strokeWidth="16" fill="none" strokeLinecap="round" />
+        <path d="M236 304 Q 424 292 560 320" stroke="rgba(255,255,255,.10)" strokeWidth="14" fill="none" strokeLinecap="round" />
+        <path d="M1132 644 Q 1244 588 1364 632" stroke="rgba(255,255,255,.08)" strokeWidth="14" fill="none" strokeLinecap="round" />
         {/* destello del lente del faro */}
-        <path d="M652 172 Q 652 164 660 166 L 662 208" stroke="rgba(255,255,255,.85)" strokeWidth="6" fill="none" strokeLinecap="round" />
+        <path d="M1304 344 Q 1304 328 1320 332 L 1324 416" stroke="rgba(255,255,255,.85)" strokeWidth="12" fill="none" strokeLinecap="round" />
       </g>
     </g>
   );

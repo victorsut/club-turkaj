@@ -220,7 +220,8 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
                         )}
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'center', position: 'relative' }}>
-                        <VehicleArt type={veh.vtype} body={bodyKey} color={col} width={272} />
+                        <VehicleArt type={veh.vtype} body={bodyKey} color={col} width={350}
+                          style={{ maxWidth: '100%', height: 'auto' }} />
                         {has3D(bodyKey) && (
                           <button onClick={() => setShow3D({ vehicle: veh, bodyKey })} style={{
                             position: 'absolute', right: 2, bottom: 6, padding: '7px 13px',
