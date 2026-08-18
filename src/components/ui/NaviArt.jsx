@@ -19,7 +19,8 @@ export default function NaviArt({ uid, color }) {
   return (
     <g>
       <ellipse cx={120} cy={132} rx={96} ry={8} fill="rgba(0,0,0,.20)" />
-      <g transform="translate(25.2 0.1) scale(0.1223)">
+      {/* ty 6.6 asienta las llantas (fondo real y≈952) sobre la sombra */}
+      <g transform="translate(25.2 6.6) scale(0.1223)">
         <defs>
           <linearGradient id={`${uid}-nsofa`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#3A3B42" />
@@ -43,22 +44,28 @@ export default function NaviArt({ uid, color }) {
         <path d={T.white} fill="#F2F2EF" />
         <path d={T.amber} fill="#F49C1F" />
 
-        {/* ── PROFUNDIDAD: rines "power", CVT y brillos (encima) ── */}
-        {[[340, 815], [1260, 815]].map(([cx, cy]) => (
+        {/* ── PROFUNDIDAD: rines "power", CVT y brillos (encima) ──
+            centros MEDIDOS del bitmap (wheels.js): trasera (283,780),
+            delantera (1306,785), r≈169 — antes iban a ojo y quedaban
+            descentrados (POR CORREGIR/img2.png) */}
+        {[[283, 780], [1306, 785]].map(([cx, cy]) => (
           <g key={cx}>
-            <circle cx={cx} cy={cy} r={116} fill="#2A2B31" />
-            <path d={`M ${cx} ${cy - 82} A 82 82 0 1 0 ${cx} ${cy - 81.98}`} fill="none"
-              stroke="#45464C" strokeWidth="16" strokeDasharray="386 130" strokeDashoffset="-64"
+            <circle cx={cx} cy={cy} r={103} fill="#2A2B31" />
+            <path d={`M ${cx} ${cy - 73} A 73 73 0 1 0 ${cx} ${cy - 72.98}`} fill="none"
+              stroke="#45464C" strokeWidth="15" strokeDasharray="344 115" strokeDashoffset="-57"
               strokeLinecap="round" />
-            <path d={`M${cx} ${cy - 104} L${cx} ${cy - 54}`} stroke="#45464C" strokeWidth="16" strokeLinecap="round" />
-            <circle cx={cx} cy={cy} r={32} fill="#17181B" />
-            <circle cx={cx} cy={cy} r={12} fill="#3A3B41" />
-            <path d={`M ${cx - 136} ${cy - 104} A 176 176 0 0 1 ${cx + 44} ${cy - 168}`}
-              stroke="rgba(255,255,255,.07)" strokeWidth="18" fill="none" strokeLinecap="round" />
+            <path d={`M${cx} ${cy - 92} L${cx} ${cy - 46}`} stroke="#45464C" strokeWidth="15" strokeLinecap="round" />
+            <circle cx={cx} cy={cy} r={28} fill="#17181B" />
+            <circle cx={cx} cy={cy} r={11} fill="#3A3B41" />
+            <path d={`M ${cx - 124} ${cy - 95} A 157 157 0 0 1 ${cx + 40} ${cy - 150}`}
+              stroke="rgba(255,255,255,.07)" strokeWidth="16" fill="none" strokeLinecap="round" />
           </g>
         ))}
-        <circle cx={640} cy={748} r={88} fill="none" stroke="#3A3B41" strokeWidth="14" />
-        <circle cx={640} cy={748} r={30} fill="#1A1B1E" />
+        {/* tapas del motor MEDIDAS (dbg-cvt.js): CVT (741,732) y cárter (562,756) */}
+        <circle cx={741} cy={732} r={92} fill="none" stroke="#3E3F46" strokeWidth="13" />
+        <circle cx={741} cy={732} r={30} fill="#1A1B1E" />
+        <circle cx={562} cy={756} r={70} fill="none" stroke="#393A41" strokeWidth="11" opacity=".9" />
+        <circle cx={562} cy={756} r={22} fill="#1A1B1E" />
         {/* brillos suaves: tanque, asiento y guardafango delantero */}
         <path d="M764 324 Q 884 300 992 324" stroke="rgba(255,255,255,.20)" strokeWidth="16" fill="none" strokeLinecap="round" />
         <path d="M236 304 Q 424 292 560 320" stroke="rgba(255,255,255,.10)" strokeWidth="14" fill="none" strokeLinecap="round" />
