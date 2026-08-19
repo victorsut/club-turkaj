@@ -106,7 +106,7 @@ export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved }) {
             background: dark ? 'rgba(255,255,255,.05)' : '#FAFAFB',
             display: 'flex', justifyContent: 'center',
           }}>
-            <VehicleArt type={f.vtype} body={bodyFor(f.vtype, f.model)} color={f.color} width={190} />
+            <VehicleArt type={f.vtype} body={bodyFor(f.vtype, f.model, f.brand)} color={f.color} width={190} />
           </div>
         </div>
 

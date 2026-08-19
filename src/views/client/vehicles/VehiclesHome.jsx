@@ -215,7 +215,7 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
               {vehicles.map((veh, i) => {
                 const t = typeInfo(veh.vtype);
                 const col = veh.color || '#9E9E9E';
-                const bodyKey = bodyFor(veh.vtype, veh.model);
+                const bodyKey = bodyFor(veh.vtype, veh.model, veh.brand);
                 return (
                   <div key={veh.id || i} style={{ minWidth: '100%', boxSizing: 'border-box' }}>
                     <div style={{

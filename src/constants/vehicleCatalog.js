@@ -26,6 +26,8 @@ export const VEHICLE_BRANDS = [
     { name: 'Navi', t: ['moto'] }, { name: 'CB125F', t: ['moto'] },
     { name: 'CGL125', t: ['moto'] }, { name: 'XR150L', t: ['moto'] },
     { name: 'CB190R', t: ['moto'] }, { name: 'Wave 110', t: ['moto'] },
+    { name: 'Activa 125', t: ['moto'] }, { name: 'CRF250', t: ['moto'] },
+    { name: 'GN125', t: ['moto'] },
   ] },
   { brand: 'Nissan', models: [
     { name: 'Sentra', t: ['liviano'] }, { name: 'Versa', t: ['liviano'] },
@@ -150,9 +152,19 @@ export function modelsFor(brand, vtype) {
 // ── Silueta por MODELO ───────────────────────────────────────
 // Capa 1 — MODELOS ESPECÍFICOS con arte propio (más parecidos al
 // real; se amplía con la lista que el dueño irá detallando):
+// El haystack es "marca modelo" en minúsculas — patrones con marca
+// (p.ej. 'honda gn') van ANTES que los de modelo solo para desambiguar.
 const MODEL_SPECIFIC = {
+  m_gnh: ['honda gn'],          // Honda GN (referencia propia del dueño)
+  m_gn125: ['gn125', 'gn 125'], // Suzuki GN125 y GN125F
   m_navi: ['navi'],
-  m_gn125: ['gn125', 'gn 125'], // cubre GN125 y GN125F
+  m_boxer: ['boxer'],
+  m_pulsar: ['pulsar'],
+  m_activa: ['activa'],
+  m_cgl: ['cgl'],
+  m_crf: ['crf'],
+  m_xr: ['xr'],                 // XR150L, XR190...
+  m_zeta: ['italika z', '125z', 'z125', 'z150', 'z 125', 'z 150'],
 };
 // Capa 2 — estilo de CARROCERÍA genérico por palabra clave:
 const MODEL_BODY = {
@@ -180,8 +192,11 @@ const TYPE_DEFAULT_BODY = {
   microbus: 'bus', moto: 'moto_sport', mototaxi: 'mototaxi', otro: 'other',
 };
 
-export function bodyFor(vtype, model) {
-  const m = (model || '').trim().toLowerCase();
+export function bodyFor(vtype, model, brand) {
+  // E1.11: el haystack incluye la MARCA para desambiguar arte por marca
+  // (Honda GN vs Suzuki GN125); los patrones de modelo solo siguen
+  // funcionando porque "marca modelo" los contiene.
+  const m = `${(brand || '').trim()} ${(model || '').trim()}`.trim().toLowerCase();
   if (m) {
     // modelo específico primero (arte propio), luego carrocería genérica
     for (const [art, keys] of Object.entries(MODEL_SPECIFIC)) {

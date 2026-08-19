@@ -7,10 +7,24 @@
 // llantas con rin metálico, faro/calavera y sombra elíptica de piso.
 // Los 8 tipos = catálogo canónico de VehicleIcons (VEHICLE_TYPES).
 // Todo SVG puro — cero librerías, recolorea al instante vía props.
-import { useId } from 'react';
+import { useId, lazy, Suspense } from 'react';
 import { shade } from './vehicleArtUtils.js';
-import NaviArt from './NaviArt.jsx';
-import GnArt from './GnArt.jsx';
+
+// E1.11: los MODELOS calcados (paths grandes de potrace) bajan PEREZOSOS
+// — un chunk chico por modelo, solo al mostrarse; mientras carga se ve
+// la silueta genérica del tipo como fallback.
+const LAZY_MODEL_ART = {
+  m_navi:   lazy(() => import('./NaviArt.jsx')),
+  m_gn125:  lazy(() => import('./GnArt.jsx')),
+  m_gnh:    lazy(() => import('./GnhArt.jsx')),
+  m_boxer:  lazy(() => import('./BoxerArt.jsx')),
+  m_pulsar: lazy(() => import('./PulsarArt.jsx')),
+  m_activa: lazy(() => import('./ActivaArt.jsx')),
+  m_cgl:    lazy(() => import('./CglArt.jsx')),
+  m_crf:    lazy(() => import('./CrfArt.jsx')),
+  m_xr:     lazy(() => import('./XrArt.jsx')),
+  m_zeta:   lazy(() => import('./ZetaArt.jsx')),
+};
 
 export const VEHICLE_COLORS = [
   '#C62828', '#FA5408', '#F9A825', '#2E7D32', '#00838F', '#1565C0',
@@ -300,9 +314,6 @@ const ART = {
   truck: TruckArt, van: VanArt, bus: BusArt,
   moto_sport: MotoArt, moto_cub: MotoCubArt,
   mototaxi: MototaxiArt, other: OtherArt,
-  // modelos ESPECÍFICOS con arte propio (capa 1 de bodyFor)
-  m_navi: NaviArt,
-  m_gn125: GnArt,
   // compatibilidad: claves por TIPO (llamadas con solo type=)
   liviano: SedanArt, picop: PickupArt, camion: TruckArt,
   camion_ligero: VanArt, microbus: BusArt, moto: MotoArt, otro: OtherArt,
@@ -313,12 +324,19 @@ const ART = {
 // `body` (estilo de carrocería) manda; sin él cae al default del `type`.
 export default function VehicleArt({ type = 'liviano', body = null, color = '#9E9E9E', width = 260, style }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const LazyArt = LAZY_MODEL_ART[body];
   const Art = ART[body] || ART[type] || OtherArt;
   return (
     <svg width={width} height={width * (150 / 240)} viewBox="0 0 240 150"
       aria-hidden style={{ display: 'block', ...style }}>
       <Defs uid={uid} color={color} />
-      <Art uid={uid} color={color} />
+      {LazyArt ? (
+        <Suspense fallback={<Art uid={uid} color={color} />}>
+          <LazyArt uid={uid} color={color} />
+        </Suspense>
+      ) : (
+        <Art uid={uid} color={color} />
+      )}
     </svg>
   );
 }
