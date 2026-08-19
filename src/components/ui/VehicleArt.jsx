@@ -24,6 +24,12 @@ const LAZY_MODEL_ART = {
   m_crf:    lazy(() => import('./CrfArt.jsx')),
   m_xr:     lazy(() => import('./XrArt.jsx')),
   m_zeta:   lazy(() => import('./ZetaArt.jsx')),
+  m_dita:   lazy(() => import('./DitaArt.jsx')),
+  m_dm:     lazy(() => import('./DmArt.jsx')),
+  m_ft:     lazy(() => import('./FtArt.jsx')),
+  m_dr:     lazy(() => import('./DrArt.jsx')),
+  m_en:     lazy(() => import('./EnArt.jsx')),
+  m_xtz:    lazy(() => import('./XtzArt.jsx')),
 };
 
 export const VEHICLE_COLORS = [

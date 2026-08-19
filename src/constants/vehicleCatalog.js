@@ -45,7 +45,7 @@ export const VEHICLE_BRANDS = [
     { name: 'Jimny', t: ['liviano'] }, { name: 'Alto', t: ['liviano'] },
     { name: 'Ertiga', t: ['liviano'] }, { name: 'S-Presso', t: ['liviano'] },
     { name: 'GN125', t: ['moto'] }, { name: 'GN125F', t: ['moto'] },
-    { name: 'AX100', t: ['moto'] },
+    { name: 'AX100', t: ['moto'] }, { name: 'DR150', t: ['moto'] },
     { name: 'Gixxer 150', t: ['moto'] }, { name: 'EN125', t: ['moto'] },
   ] },
   { brand: 'Hyundai', models: [
@@ -106,6 +106,7 @@ export const VEHICLE_BRANDS = [
     { name: 'FT125', t: ['moto'] }, { name: 'FT150', t: ['moto'] },
     { name: 'DM150', t: ['moto'] }, { name: 'AT110', t: ['moto'] },
     { name: '125Z', t: ['moto'] }, { name: 'DT150', t: ['moto'] },
+    { name: 'D125', t: ['moto'] },
   ] },
   { brand: 'Yamaha', models: [
     { name: 'YBR125', t: ['moto'] }, { name: 'FZ 2.0', t: ['moto'] },
@@ -165,6 +166,12 @@ const MODEL_SPECIFIC = {
   m_crf: ['crf'],
   m_xr: ['xr'],                 // XR150L, XR190...
   m_zeta: ['italika z', '125z', 'z125', 'z150', 'z 125', 'z 150'],
+  m_dm: ['italika dm', 'dm150', 'dm 150', 'dm200'],
+  m_dita: ['d125'], // solo el modelo exacto ('italika d' capturaría DT150/DM150)
+  m_ft: ['italika ft', 'ft125', 'ft150', 'ft 125', 'ft 150'],
+  m_dr: ['suzuki dr', 'dr150', 'dr 150', 'dr200', 'dr650'],
+  m_en: ['suzuki en', 'en125', 'en 125'],
+  m_xtz: ['xtz'],
 };
 // Capa 2 — estilo de CARROCERÍA genérico por palabra clave:
 const MODEL_BODY = {
