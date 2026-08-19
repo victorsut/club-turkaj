@@ -7,10 +7,11 @@
 // potrace (naviTrace.js, generado — ver comentario ahí; E1.9b: a
 // resolución COMPLETA con filtro de mayoría 5×5 y DILATACIÓN 2px por
 // capa — sin bordes rasgados ni piezas flotantes); este
-// componente solo asigna rellenos y añade la capa de PROFUNDIDAD:
-// degradados verticales por material y brillos suaves (E1.9e: rines,
-// mazas, CVT y cárter ya vienen CALCADOS en las capas engray/wheelgray —
-// no se dibuja estructura a mano). Recolorear = capas red/darkred usan el degradado
+// componente solo asigna rellenos; la sensación 3D viene de los
+// degradados verticales por material (E1.9e: rines, mazas, CVT y cárter
+// ya vienen CALCADOS en las capas engray/wheelgray — no se dibuja
+// estructura a mano; E1.9f: sin brillos de trazo — las líneas arqueadas
+// no existen en la referencia). Recolorear = capas red/darkred usan el degradado
 // `-body` del padre y shade(); el RESORTE y la CALAVERA quedan rojos
 // FIJOS (capas propias), ámbar y lentes no cambian.
 import { shade } from './vehicleArtUtils.js';
@@ -64,23 +65,10 @@ export default function NaviArt({ uid, color }) {
         <path d={T.white} fill="#F2F2EF" fillRule="evenodd" />
         <path d={T.amber} fill="#F49C1F" fillRule="evenodd" />
 
-        {/* ── PROFUNDIDAD: solo brillos NO estructurales ──
-            E1.9e: el kit de rines/CVT dibujado a mano se ELIMINÓ — la
-            estructura ya viene calcada (engray/wheelgray); cualquier
-            disco/aro añadido tapaba el mofle y la horquilla y duplicaba
-            los aros reales (los "elementos grises fuera de lugar" de
-            POR CORREGIR/img1.png). Queda solo el reflejo suave en la
-            llanta, correctamente centrado en (283,780)/(1306,785). */}
-        {[[283, 780], [1306, 785]].map(([cx, cy]) => (
-          <path key={cx} d={`M ${cx - 124} ${cy - 95} A 157 157 0 0 1 ${cx + 40} ${cy - 150}`}
-            stroke="rgba(255,255,255,.07)" strokeWidth="16" fill="none" strokeLinecap="round" />
-        ))}
-        {/* brillos suaves: tanque, asiento y guardafango delantero */}
-        <path d="M764 324 Q 884 300 992 324" stroke="rgba(255,255,255,.20)" strokeWidth="16" fill="none" strokeLinecap="round" />
-        <path d="M236 304 Q 424 292 560 320" stroke="rgba(255,255,255,.10)" strokeWidth="14" fill="none" strokeLinecap="round" />
-        <path d="M1132 644 Q 1244 588 1364 632" stroke="rgba(255,255,255,.08)" strokeWidth="14" fill="none" strokeLinecap="round" />
-        {/* destello del lente del faro */}
-        <path d="M1304 344 Q 1304 328 1320 332 L 1324 416" stroke="rgba(255,255,255,.85)" strokeWidth="12" fill="none" strokeLinecap="round" />
+        {/* E1.9f: SIN brillos de trazo (pedido del dueño 19-ago — las
+            líneas arqueadas grises sobre asiento/ruedas/faro no existen
+            en la referencia). La sensación 3D queda SOLO en los
+            degradados verticales por material de las capas de arriba. */}
       </g>
     </g>
   );
