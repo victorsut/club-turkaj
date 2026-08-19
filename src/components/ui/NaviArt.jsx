@@ -8,8 +8,9 @@
 // resolución COMPLETA con filtro de mayoría 5×5 y DILATACIÓN 2px por
 // capa — sin bordes rasgados ni piezas flotantes); este
 // componente solo asigna rellenos y añade la capa de PROFUNDIDAD:
-// degradados verticales por material, rines detallados, aro del CVT y
-// brillos suaves. Recolorear = capas red/darkred usan el degradado
+// degradados verticales por material y brillos suaves (E1.9e: rines,
+// mazas, CVT y cárter ya vienen CALCADOS en las capas engray/wheelgray —
+// no se dibuja estructura a mano). Recolorear = capas red/darkred usan el degradado
 // `-body` del padre y shade(); el RESORTE y la CALAVERA quedan rojos
 // FIJOS (capas propias), ámbar y lentes no cambian.
 import { shade } from './vehicleArtUtils.js';
@@ -31,6 +32,16 @@ export default function NaviArt({ uid, color }) {
             <stop offset="0%" stopColor="#4E4F57" />
             <stop offset="100%" stopColor="#34353C" />
           </linearGradient>
+          {/* E1.9e: tonos medidos de la referencia — engray (40,42,44) y
+              wheelgray (45,46,48) — con degradado vertical suave */}
+          <linearGradient id={`${uid}-nen`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#2D2F33" />
+            <stop offset="100%" stopColor="#232527" />
+          </linearGradient>
+          <linearGradient id={`${uid}-nwheel`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#35363C" />
+            <stop offset="100%" stopColor="#27282C" />
+          </linearGradient>
         </defs>
 
         {/* ── capas calcadas de la referencia (orden de pintado) ──
@@ -39,6 +50,11 @@ export default function NaviArt({ uid, color }) {
             RELLENAN y zonas enteras se funden (causa raíz de los
             "elementos fuera de lugar" de POR CORREGIR/img3.png) */}
         <path d={T.black} fill={`url(#${uid}-nsofa)`} fillRule="evenodd" />
+        {/* E1.9e: rines/mazas/horquilla/CVT/cárter CALCADOS con clase propia
+            (antes se fundían con black y un kit dibujado a mano quedaba
+            fuera de lugar — POR CORREGIR/img1.png del 19-ago) */}
+        <path d={T.engray} fill={`url(#${uid}-nen)`} fillRule="evenodd" />
+        <path d={T.wheelgray} fill={`url(#${uid}-nwheel)`} fillRule="evenodd" />
         <path d={T.darkgray} fill="#3A3B41" fillRule="evenodd" />
         <path d={T.midgray} fill={`url(#${uid}-ngray)`} fillRule="evenodd" />
         <path d={T.darkred} fill={shade(color, -34)} fillRule="evenodd" />
@@ -48,28 +64,17 @@ export default function NaviArt({ uid, color }) {
         <path d={T.white} fill="#F2F2EF" fillRule="evenodd" />
         <path d={T.amber} fill="#F49C1F" fillRule="evenodd" />
 
-        {/* ── PROFUNDIDAD: rines "power", CVT y brillos (encima) ──
-            centros MEDIDOS del bitmap (wheels.js): trasera (283,780),
-            delantera (1306,785), r≈169 — antes iban a ojo y quedaban
-            descentrados (POR CORREGIR/img2.png) */}
+        {/* ── PROFUNDIDAD: solo brillos NO estructurales ──
+            E1.9e: el kit de rines/CVT dibujado a mano se ELIMINÓ — la
+            estructura ya viene calcada (engray/wheelgray); cualquier
+            disco/aro añadido tapaba el mofle y la horquilla y duplicaba
+            los aros reales (los "elementos grises fuera de lugar" de
+            POR CORREGIR/img1.png). Queda solo el reflejo suave en la
+            llanta, correctamente centrado en (283,780)/(1306,785). */}
         {[[283, 780], [1306, 785]].map(([cx, cy]) => (
-          <g key={cx}>
-            <circle cx={cx} cy={cy} r={103} fill="#2A2B31" />
-            <path d={`M ${cx} ${cy - 73} A 73 73 0 1 0 ${cx} ${cy - 72.98}`} fill="none"
-              stroke="#45464C" strokeWidth="15" strokeDasharray="344 115" strokeDashoffset="-57"
-              strokeLinecap="round" />
-            <path d={`M${cx} ${cy - 92} L${cx} ${cy - 46}`} stroke="#45464C" strokeWidth="15" strokeLinecap="round" />
-            <circle cx={cx} cy={cy} r={28} fill="#17181B" />
-            <circle cx={cx} cy={cy} r={11} fill="#3A3B41" />
-            <path d={`M ${cx - 124} ${cy - 95} A 157 157 0 0 1 ${cx + 40} ${cy - 150}`}
-              stroke="rgba(255,255,255,.07)" strokeWidth="16" fill="none" strokeLinecap="round" />
-          </g>
+          <path key={cx} d={`M ${cx - 124} ${cy - 95} A 157 157 0 0 1 ${cx + 40} ${cy - 150}`}
+            stroke="rgba(255,255,255,.07)" strokeWidth="16" fill="none" strokeLinecap="round" />
         ))}
-        {/* tapas del motor MEDIDAS (dbg-cvt.js): CVT (741,732) y cárter (562,756) */}
-        <circle cx={741} cy={732} r={92} fill="none" stroke="#3E3F46" strokeWidth="13" />
-        <circle cx={741} cy={732} r={30} fill="#1A1B1E" />
-        <circle cx={562} cy={756} r={70} fill="none" stroke="#393A41" strokeWidth="11" opacity=".9" />
-        <circle cx={562} cy={756} r={22} fill="#1A1B1E" />
         {/* brillos suaves: tanque, asiento y guardafango delantero */}
         <path d="M764 324 Q 884 300 992 324" stroke="rgba(255,255,255,.20)" strokeWidth="16" fill="none" strokeLinecap="round" />
         <path d="M236 304 Q 424 292 560 320" stroke="rgba(255,255,255,.10)" strokeWidth="14" fill="none" strokeLinecap="round" />
