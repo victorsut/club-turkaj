@@ -24,10 +24,14 @@ export default function NaviArt({ uid, color }) {
       {/* ty 6.6 asienta las llantas (fondo real y≈952) sobre la sombra */}
       <g transform="translate(25.2 6.6) scale(0.1223)">
         <defs>
+          {/* E1.9g: degradados CENTRADOS en los tonos medidos de la
+              referencia (black ~34,35,42 · engray ~40,42,44 · wheelgray
+              ~45,46,48) con apenas un respiro vertical — los rangos
+              anteriores divergían arriba y el mosaico de clases en zonas
+              de tono intermedio (timón/horquilla) se veía moteado */}
           <linearGradient id={`${uid}-nsofa`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#3A3B42" />
-            <stop offset="45%" stopColor="#26272C" />
-            <stop offset="100%" stopColor="#191A1E" />
+            <stop offset="0%" stopColor="#2E2F36" />
+            <stop offset="100%" stopColor="#1A1B1F" />
           </linearGradient>
           <linearGradient id={`${uid}-ngray`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#4E4F57" />
@@ -36,12 +40,12 @@ export default function NaviArt({ uid, color }) {
           {/* E1.9e: tonos medidos de la referencia — engray (40,42,44) y
               wheelgray (45,46,48) — con degradado vertical suave */}
           <linearGradient id={`${uid}-nen`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#2D2F33" />
-            <stop offset="100%" stopColor="#232527" />
+            <stop offset="0%" stopColor="#2B2D30" />
+            <stop offset="100%" stopColor="#26282A" />
           </linearGradient>
           <linearGradient id={`${uid}-nwheel`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#35363C" />
-            <stop offset="100%" stopColor="#27282C" />
+            <stop offset="0%" stopColor="#313236" />
+            <stop offset="100%" stopColor="#2A2B2E" />
           </linearGradient>
         </defs>
 
