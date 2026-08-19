@@ -10,6 +10,7 @@
 import { useId } from 'react';
 import { shade } from './vehicleArtUtils.js';
 import NaviArt from './NaviArt.jsx';
+import GnArt from './GnArt.jsx';
 
 export const VEHICLE_COLORS = [
   '#C62828', '#FA5408', '#F9A825', '#2E7D32', '#00838F', '#1565C0',
@@ -301,6 +302,7 @@ const ART = {
   mototaxi: MototaxiArt, other: OtherArt,
   // modelos ESPECÍFICOS con arte propio (capa 1 de bodyFor)
   m_navi: NaviArt,
+  m_gn125: GnArt,
   // compatibilidad: claves por TIPO (llamadas con solo type=)
   liviano: SedanArt, picop: PickupArt, camion: TruckArt,
   camion_ligero: VanArt, microbus: BusArt, moto: MotoArt, otro: OtherArt,

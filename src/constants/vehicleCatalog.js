@@ -42,7 +42,8 @@ export const VEHICLE_BRANDS = [
     { name: 'Swift', t: ['liviano'] }, { name: 'Grand Vitara', t: ['liviano'] },
     { name: 'Jimny', t: ['liviano'] }, { name: 'Alto', t: ['liviano'] },
     { name: 'Ertiga', t: ['liviano'] }, { name: 'S-Presso', t: ['liviano'] },
-    { name: 'GN125', t: ['moto'] }, { name: 'AX100', t: ['moto'] },
+    { name: 'GN125', t: ['moto'] }, { name: 'GN125F', t: ['moto'] },
+    { name: 'AX100', t: ['moto'] },
     { name: 'Gixxer 150', t: ['moto'] }, { name: 'EN125', t: ['moto'] },
   ] },
   { brand: 'Hyundai', models: [
@@ -151,6 +152,7 @@ export function modelsFor(brand, vtype) {
 // real; se amplía con la lista que el dueño irá detallando):
 const MODEL_SPECIFIC = {
   m_navi: ['navi'],
+  m_gn125: ['gn125', 'gn 125'], // cubre GN125 y GN125F
 };
 // Capa 2 — estilo de CARROCERÍA genérico por palabra clave:
 const MODEL_BODY = {
