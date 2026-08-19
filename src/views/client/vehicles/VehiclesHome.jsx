@@ -6,14 +6,14 @@
 // izquierda/derecha. Debajo: datos relevantes (kilometraje, próximo
 // servicio, aceite y el hueco de telemetría que llena la E2) y la
 // gestión completa (agregar/editar/eliminar con doble tap).
-import { lazy, Suspense, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { BRAND_ORANGE, homeColors } from '../../../constants/styles';
 import { VEHICLE_TYPES } from '../../../components/ui/VehicleIcons';
 import VehicleArt from '../../../components/ui/VehicleArt';
 import { bodyFor } from '../../../constants/vehicleCatalog';
 import { has3D } from '../../../components/ui/vehicle3d/models3d';
 import { plateMask } from '../../../lib/inputMasks';
-import { deleteMyVehicle } from '../../../services/vehicleService';
+import { deleteMyVehicle, listMyVehicleStats } from '../../../services/vehicleService';
 import VehicleForm from './VehicleForm';
 
 // El visor 3D (three.js) baja SOLO al abrirlo — chunk propio
@@ -50,6 +50,16 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
   const [delArmed, setDelArmed] = useState(false); // doble tap de eliminar
   const delTimer = useRef(null);
   const touch = useRef(null);
+
+  // F6 E2 — telemetría por vehículo (cargas, galones, Q, km/gal, km/día)
+  const [stats, setStats] = useState({});
+  useEffect(() => {
+    let alive = true;
+    listMyVehicleStats().then(({ data }) => {
+      if (alive && data?.ok) setStats(data.stats || {});
+    });
+    return () => { alive = false; };
+  }, []);
 
   const ink = dark ? '#fff' : '#0D0D0D';
   const sub = dark ? 'rgba(255,255,255,.5)' : '#9E9E9E';
@@ -106,6 +116,11 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
   // lo más URGENTE; el otro criterio va como nota secundaria.
   const serviceDays = v ? daysUntil(v.next_service) : null;
   const kmLeft = v && v.next_service_km != null && v.km != null ? v.next_service_km - v.km : null;
+  // E2: telemetría del vehículo activo + estimación de días al servicio
+  // por km según su ritmo real (km/día de las lecturas de odómetro)
+  const st = v ? stats[v.id] : null;
+  const kmEta = kmLeft != null && kmLeft > 0 && st?.km_per_day > 0
+    ? Math.ceil(kmLeft / st.km_per_day) : null;
   const svc = (() => {
     if (!v) return null;
     const hasDate = !!v.next_service;
@@ -115,7 +130,7 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
     const kmNote = !hasKm ? null
       : kmLeft == null ? 'Meta de odómetro (actualiza tu km)'
       : kmLeft <= 0 ? `Pasado por ${Math.abs(kmLeft).toLocaleString('en-US')} km`
-      : `Faltan ${kmLeft.toLocaleString('en-US')} km`;
+      : `Faltan ${kmLeft.toLocaleString('en-US')} km${kmEta ? ` · ≈ ${kmEta} día${kmEta === 1 ? '' : 's'}` : ''}`;
     const dateNote = !hasDate ? null
       : serviceDays < 0 ? `Venció hace ${-serviceDays} día${serviceDays === -1 ? '' : 's'}`
       : serviceDays === 0 ? '¡Es hoy!'
@@ -148,8 +163,12 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
     },
     {
       k: 'fuel', label: 'Combustible',
-      value: v.last_fuel_at ? 'Con historial' : '—',
-      note: 'Pronto: asigna tus cargas y mira su consumo',
+      value: st
+        ? `${st.fuel_count} carga${st.fuel_count === 1 ? '' : 's'} · ${(+st.total_gallons).toLocaleString('en-US')} gal`
+        : '—',
+      note: st
+        ? `Q${(+st.total_amount).toLocaleString('en-US')} en total${st.km_per_gal ? ` · ${st.km_per_gal} km/gal` : ''}`
+        : 'Tus cargas se asignan al calificar la compra',
     },
   ] : [];
 

@@ -35,6 +35,26 @@ export async function deleteMyVehicle(vehicleId) {
   }, { sessionToken: getMemberToken()?.token ?? null });
 }
 
+// ── F6 E2: combustible + telemetría ──────────────────────────
+// El cliente confirma/cambia el vehículo de una compra desde el
+// modal de calificación y opcionalmente reporta el odómetro
+// (ventana de 7 días server-side; todo validado como suyo).
+export async function assignPurchaseVehicle({ purchaseId, vehicleId, km = null }) {
+  if (!sb) return { data: null, error: { message: 'Sin conexión al servidor' } };
+  return callRpc('assign_purchase_vehicle', {
+    p_purchase_id: purchaseId,
+    p_vehicle_id: vehicleId,
+    p_km: km,
+  }, { sessionToken: getMemberToken()?.token ?? null });
+}
+
+// Telemetría por vehículo: { ok, stats: { <vehicleId>: { fuel_count,
+// total_gallons, total_amount, last_fuel_at, km_per_gal, km_per_day } } }
+export async function listMyVehicleStats() {
+  if (!sb) return { data: null, error: { message: 'Sin conexión al servidor' } };
+  return callRpc('list_my_vehicle_stats', {}, { sessionToken: getMemberToken()?.token ?? null });
+}
+
 // ── Admin: lista de la beta (miembros con nombre + interruptor global) ──
 export async function adminListVehiclesBeta() {
   if (!sb) return { data: null, error: { message: 'Sin conexión al servidor' } };

@@ -16,6 +16,8 @@ import { SurveyIcon } from './ui/BentoIcons';
 import LogoSpinner from './ui/LogoSpinner';
 import { firstName } from '../lib/text';
 import { rateOperatorSecure } from '../services/secureReads';
+import { listMyVehicles, assignPurchaseVehicle } from '../services/vehicleService';
+import { VEHICLE_TYPES } from './ui/VehicleIcons';
 
 export default function OpRatingModal({
   data, onClose, dark, memberId, sbConnected, fire,
@@ -27,15 +29,49 @@ export default function OpRatingModal({
   const [closing, setClosing] = useState(false);
   const launchedRef = useRef(false);
 
+  // ── F6 E2: asignación de la carga a un vehículo + odómetro ──
+  // El server ya la auto-asignó al PRINCIPAL (trigger); acá el cliente
+  // la confirma/cambia y opcionalmente reporta el km. Solo para betas
+  // con vehículos (decisión server-side de list_my_vehicles).
+  const [vehOpts, setVehOpts] = useState(null);   // null | vehículos del miembro
+  const [vehSel, setVehSel] = useState(null);     // id elegido
+  const [kmText, setKmText] = useState('');
+  const vehInitial = useRef(null);                // id auto-asignado (principal)
+  const vehSent = useRef(false);                  // la asignación ya se envió
+  useEffect(() => {
+    if (!sbConnected || !data.purchaseId) return;
+    let alive = true;
+    listMyVehicles().then(({ data: res }) => {
+      if (!alive || !res?.ok || !res.beta || !(res.vehicles || []).length) return;
+      setVehOpts(res.vehicles);
+      vehInitial.current = res.vehicles[0].id; // orden del server: principal primero
+      setVehSel(res.vehicles[0].id);
+    });
+    return () => { alive = false; };
+  }, [sbConnected, data.purchaseId]);
+
+  // Envía la asignación UNA vez si hay algo que decir: vehículo distinto
+  // del auto-asignado o lectura de odómetro. Fire-and-forget (no bloquea
+  // el cierre); errores solo a consola (p. ej. compra >7 días).
+  const flushVehicle = useCallback(() => {
+    if (vehSent.current || !vehSel || !data.purchaseId) return;
+    const km = /^\d{1,7}$/.test(kmText.trim()) ? parseInt(kmText.trim(), 10) : null;
+    if (vehSel === vehInitial.current && km == null) return;
+    vehSent.current = true;
+    assignPurchaseVehicle({ purchaseId: data.purchaseId, vehicleId: vehSel, km })
+      .then(({ error }) => { if (error) console.error('[Vehículo]', error); });
+  }, [vehSel, kmText, data.purchaseId]);
+
   // D35: el modal cierra con la animación INVERSA a la apertura
   // (fadeUpOut) antes de desmontar — todos los caminos de salida
   // (Omitir, Ahora no, Cancelar, auto-cierre) pasan por acá.
   const close = useCallback(() => {
+    flushVehicle(); // la asignación de vehículo/km no se pierde al salir
     setClosing(prev => {
       if (!prev) setTimeout(onClose, 200);
       return true;
     });
-  }, [onClose]);
+  }, [onClose, flushVehicle]);
 
   // Encuesta de la estación de ESTA compra (llave: stations.name)
   const surveyTarget = SHELL_SURVEYS.find(s => s.name === data.stationName);
@@ -43,6 +79,7 @@ export default function OpRatingModal({
 
   const submitRating = useCallback(async (starCount) => {
     if (starCount < 1 || saving) return;
+    flushVehicle();
     setSaving(true);
     if (sb && sbConnected) {
       // SEC.C.4: el INSERT abierto de operator_ratings quedó revocado
@@ -55,7 +92,7 @@ export default function OpRatingModal({
     setSaving(false);
     if (canInvite) setStep('survey');
     else close();
-  }, [saving, sbConnected, data.operatorId, memberId, fire, canInvite, close]);
+  }, [saving, sbConnected, data.operatorId, memberId, fire, canInvite, close, flushVehicle]);
 
   const startSurvey = () => {
     if (!surveyTarget || surveyPending) return;
@@ -148,6 +185,50 @@ export default function OpRatingModal({
             {data.stationName && (
               <div style={{ fontSize: 12, fontWeight: 600, color: '#9E9E9E', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                 <Pin /> {data.stationName}
+              </div>
+            )}
+
+            {/* F6 E2: ¿a cuál vehículo va esta carga? (solo betas con
+                vehículos) — chips + odómetro opcional; se envía al
+                calificar u omitir */}
+            {vehOpts && (
+              <div style={{ textAlign: 'left', marginBottom: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: '#9E9E9E', marginBottom: 8 }}>
+                  Carga asignada a
+                </div>
+                <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
+                  {vehOpts.map(veh => {
+                    const t = VEHICLE_TYPES.find(x => x.k === veh.vtype) || VEHICLE_TYPES[VEHICLE_TYPES.length - 1];
+                    const name = [veh.brand, veh.model].filter(Boolean).join(' ') || veh.plate || t.label;
+                    const on = vehSel === veh.id;
+                    return (
+                      <button key={veh.id} onClick={() => { setVehSel(veh.id); vehSent.current = false; }} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
+                        padding: '8px 12px', borderRadius: 12, cursor: 'pointer',
+                        border: on ? `1.5px solid ${BRAND_ORANGE}` : `1.5px solid ${dark ? 'rgba(255,255,255,.15)' : 'rgba(0,0,0,.12)'}`,
+                        background: on ? (dark ? 'rgba(221,29,33,.16)' : '#FDECEA') : 'transparent',
+                        color: on ? (dark ? '#FF8A80' : '#C62828') : (dark ? '#E0E0E0' : '#424242'),
+                        fontFamily: "'DM Sans'", fontSize: 12.5, fontWeight: 800,
+                      }}>
+                        <t.Icon size={15} /> {name}
+                      </button>
+                    );
+                  })}
+                </div>
+                <input
+                  inputMode="numeric" pattern="[0-9]*" maxLength={7}
+                  value={kmText}
+                  onChange={e => { setKmText(e.target.value.replace(/\D/g, '')); vehSent.current = false; }}
+                  placeholder="Odómetro actual en km (opcional)"
+                  style={{
+                    width: '100%', boxSizing: 'border-box', marginTop: 8,
+                    padding: '10px 12px', borderRadius: 12,
+                    border: `1.5px solid ${dark ? 'rgba(255,255,255,.15)' : 'rgba(0,0,0,.12)'}`,
+                    background: dark ? 'rgba(255,255,255,.06)' : '#FAFAFA',
+                    color: dark ? '#fff' : '#0D0D0D',
+                    fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 700,
+                  }}
+                />
               </div>
             )}
 
