@@ -108,6 +108,10 @@ export const VEHICLE_BRANDS = [
     { name: '125Z', t: ['moto'] }, { name: 'DT150', t: ['moto'] },
     { name: 'D125', t: ['moto'] },
   ] },
+  { brand: 'Hero', models: [
+    { name: 'Eco Deluxe', t: ['moto'] }, { name: 'Eco 100', t: ['moto'] },
+    { name: 'XPulse 200', t: ['moto'] },
+  ] },
   { brand: 'Yamaha', models: [
     { name: 'YBR125', t: ['moto'] }, { name: 'FZ 2.0', t: ['moto'] },
     { name: 'Crypton', t: ['moto'] }, { name: 'XTZ125', t: ['moto'] },
@@ -172,6 +176,11 @@ const MODEL_SPECIFIC = {
   m_dr: ['suzuki dr', 'dr150', 'dr 150', 'dr200', 'dr650'],
   m_en: ['suzuki en', 'en125', 'en 125'],
   m_xtz: ['xtz'],
+  // E1.12 — 'eco' a secas chocaría con Ford EcoSport (capa 2 la captura
+  // por 'ecosport' → suv); por eso solo patrones con marca/serie:
+  m_eco: ['hero eco', 'eco deluxe', 'eco 100', 'eco100'],
+  m_xpulse: ['xpulse', 'x pulse', 'x-pulse'],
+  m_ybr: ['ybr'],
 };
 // Capa 2 — estilo de CARROCERÍA genérico por palabra clave:
 const MODEL_BODY = {

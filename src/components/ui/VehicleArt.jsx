@@ -30,6 +30,9 @@ const LAZY_MODEL_ART = {
   m_dr:     lazy(() => import('./DrArt.jsx')),
   m_en:     lazy(() => import('./EnArt.jsx')),
   m_xtz:    lazy(() => import('./XtzArt.jsx')),
+  m_eco:    lazy(() => import('./EcoArt.jsx')),
+  m_xpulse: lazy(() => import('./XpulseArt.jsx')),
+  m_ybr:    lazy(() => import('./YbrArt.jsx')),
 };
 
 export const VEHICLE_COLORS = [
