@@ -311,6 +311,13 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
               fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 800,
             }}>{delArmed ? '¿Eliminar?' : 'Eliminar'}</button>
           </div>
+
+          {/* Descargo de marcas (F6): las marcas/modelos identifican el
+              vehículo del socio; las ilustraciones son propias, sin logos */}
+          <div style={{ fontSize: 10.5, color: sub, textAlign: 'center', lineHeight: 1.6, maxWidth: 330, margin: '18px auto 0' }}>
+            Las marcas y modelos se usan únicamente para identificar tu vehículo y no implican
+            afiliación con los fabricantes. Las ilustraciones son representaciones propias, sin logotipos.
+          </div>
         </>
       )}
 

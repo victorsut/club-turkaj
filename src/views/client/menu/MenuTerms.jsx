@@ -54,7 +54,7 @@ export const TERMS_SECS = [
   },
   {
     title: 'PROPIEDAD INTELECTUAL',
-    body: 'La aplicación Puntos Plus, su diseño, marca, logotipos, contenidos y código fuente son propiedad exclusiva de la plataforma Puntos Plus. Las marcas y nombres comerciales de las estaciones afiliadas (Gasolineras Turkaj) y de terceros pertenecen a sus respectivos titulares. El usuario no podrá reproducir, copiar, distribuir ni modificar ningún elemento de la aplicación sin autorización expresa y por escrito.',
+    body: 'La aplicación Puntos Plus, su diseño, marca, logotipos, contenidos y código fuente son propiedad exclusiva de la plataforma Puntos Plus. Las marcas y nombres comerciales de las estaciones afiliadas (Gasolineras Turkaj) y de terceros pertenecen a sus respectivos titulares. Las marcas y modelos de vehículos disponibles en la aplicación se mencionan únicamente para que el usuario identifique su propio vehículo; su uso no implica afiliación, patrocinio ni aval de los fabricantes. Las ilustraciones de vehículos son representaciones genéricas propias del Programa, sin logotipos ni emblemas de terceros. El usuario no podrá reproducir, copiar, distribuir ni modificar ningún elemento de la aplicación sin autorización expresa y por escrito.',
   },
   {
     title: 'LIMITACIÓN DE RESPONSABILIDAD',
@@ -87,7 +87,7 @@ export default function MenuTerms({ TH, onBack }) {
       <div style={{ marginTop: 24, padding: '14px 16px', borderRadius: 16, background: TH.surface }}>
         <div style={{ fontSize: 11, color: TH.sub, textAlign: 'center', lineHeight: 1.6 }}>
           Al utilizar Puntos Plus aceptás estos términos y condiciones.<br />
-          Última actualización: Julio 2026
+          Última actualización: Agosto 2026
         </div>
       </div>
     </>
