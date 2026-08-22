@@ -1,10 +1,10 @@
 // src/components/ui/EcoArt.jsx
-// F6 E1.12 (22-ago-2026) — HERO, ECO VECTORIZADA de la
-// referencia del dueño (REFERENCIAS INTERFAZ/VEHÍCULOS/MOTOS/HERO, ECO.png)
-// con el arnés paramétrico de calco (trace-motos): capas de color por
-// anclas MEDIDAS + potrace. Ensamblador PURO: cada capa lleva su tono
-// de referencia (cero profundidad dibujada — decisión E1.9f); la capa
-// de color recolorea vía el degradado -body del padre.
+// F6 E1.13 (22-ago-2026) — HERO, ECO recalcada con las
+// correcciones del dueño (REFERENCIAS INTERFAZ/VEHÍCULOS/MOTOS/HERO, ECO.png):
+// arnés trace-motos con anclas finas fusionadas (mergeInto), whiteBox
+// con tope superior (el fondo IA 250-253 ya no se pinta de blanco) y
+// despeckle de islas blancas. Ensamblador PURO (decisión E1.9f); la
+// capa de color recolorea vía el degradado -body del padre.
 import { ECO_TRACE as T } from './ecoTrace.js';
 
 export default function EcoArt({ uid }) {
@@ -12,9 +12,7 @@ export default function EcoArt({ uid }) {
     <g>
       <ellipse cx={120} cy={132} rx={98} ry={8} fill="rgba(0,0,0,.20)" />
       <g transform="translate(19.3 8.6) scale(0.1288)">
-        <path d={T.dark} fill="#2E3235" fillRule="evenodd" />
         <path d={T.black} fill="#363A3D" fillRule="evenodd" />
-        <path d={T.char2} fill="#3D4245" fillRule="evenodd" />
         <path d={T.char} fill="#44494C" fillRule="evenodd" />
         <path d={T.midgray} fill="#7D7E80" fillRule="evenodd" />
         <path d={T.gray} fill="#A0A0A1" fillRule="evenodd" />

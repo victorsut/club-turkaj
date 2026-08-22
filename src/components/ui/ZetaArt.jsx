@@ -1,10 +1,10 @@
 // src/components/ui/ZetaArt.jsx
-// F6 E1.11 (19-ago-2026) — ITALIKA, Z VECTORIZADA de la
-// referencia del dueño (REFERENCIAS INTERFAZ/VEHÍCULOS/ITALIKA, Z.png)
-// con el arnés paramétrico de calco (trace-multi): capas de color por
-// anclas MEDIDAS + potrace. Ensamblador PURO: cada capa lleva su tono
-// de referencia (cero profundidad dibujada — decisión E1.9f); la capa
-// de color recolorea vía el degradado -body del padre.
+// F6 E1.13 (22-ago-2026) — ITALIKA, Z recalcada con las
+// correcciones del dueño (REFERENCIAS INTERFAZ/VEHÍCULOS/MOTOS/ITALIKA, Z.png):
+// arnés trace-motos con anclas finas fusionadas (mergeInto), whiteBox
+// con tope superior (el fondo IA 250-253 ya no se pinta de blanco) y
+// despeckle de islas blancas. Ensamblador PURO (decisión E1.9f); la
+// capa de color recolorea vía el degradado -body del padre.
 import { ZETA_TRACE as T } from './zetaTrace.js';
 
 export default function ZetaArt({ uid }) {
@@ -20,7 +20,7 @@ export default function ZetaArt({ uid }) {
         <path d={T.lightgray} fill="#CCCDD2" fillRule="evenodd" />
         <path d={T.xlight} fill="#DDDEE0" fillRule="evenodd" />
         <path d={T.green} fill={`url(#${uid}-body)`} fillRule="evenodd" />
-        <path d={T.white} fill="#F2F3F3" fillRule="evenodd" />
+        <path d={T.white} fill="#EDEDED" fillRule="evenodd" />
       </g>
     </g>
   );

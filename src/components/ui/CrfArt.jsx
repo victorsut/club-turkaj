@@ -1,10 +1,10 @@
 // src/components/ui/CrfArt.jsx
-// F6 E1.11 (19-ago-2026) — HONDA, CRF VECTORIZADA de la
-// referencia del dueño (REFERENCIAS INTERFAZ/VEHÍCULOS/HONDA, CRF.png)
-// con el arnés paramétrico de calco (trace-multi): capas de color por
-// anclas MEDIDAS + potrace. Ensamblador PURO: cada capa lleva su tono
-// de referencia (cero profundidad dibujada — decisión E1.9f); la capa
-// de color recolorea vía el degradado -body del padre.
+// F6 E1.13 (22-ago-2026) — HONDA, CRF recalcada con las
+// correcciones del dueño (REFERENCIAS INTERFAZ/VEHÍCULOS/MOTOS/HONDA, CRF.png):
+// arnés trace-motos con anclas finas fusionadas (mergeInto), whiteBox
+// con tope superior (el fondo IA 250-253 ya no se pinta de blanco) y
+// despeckle de islas blancas. Ensamblador PURO (decisión E1.9f); la
+// capa de color recolorea vía el degradado -body del padre.
 import { shade } from './vehicleArtUtils.js';
 import { CRF_TRACE as T } from './crfTrace.js';
 
@@ -23,7 +23,6 @@ export default function CrfArt({ uid, color }) {
         <path d={T.xlight} fill="#DDDEE0" fillRule="evenodd" />
         <path d={T.darkred} fill={shade(color, -14)} fillRule="evenodd" />
         <path d={T.red} fill={`url(#${uid}-body)`} fillRule="evenodd" />
-        <path d={T.spring} fill="#E02A28" fillRule="evenodd" />
         <path d={T.white} fill="#F4F5F5" fillRule="evenodd" />
       </g>
     </g>
