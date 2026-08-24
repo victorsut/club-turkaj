@@ -169,13 +169,15 @@ const MODEL_SPECIFIC = {
   m_cgl: ['cgl'],
   m_crf: ['crf'],
   m_xr: ['xr'],                 // XR150L, XR190...
+  // m_xtz ANTES que m_zeta: "xtz125" contiene 'z125' y la Italika Z
+  // capturaba a la Yamaha XTZ125 (bug reportado por el dueño 24-ago)
+  m_xtz: ['xtz'],
   m_zeta: ['italika z', '125z', 'z125', 'z150', 'z 125', 'z 150'],
   m_dm: ['italika dm', 'dm150', 'dm 150', 'dm200'],
   m_dita: ['d125'], // solo el modelo exacto ('italika d' capturaría DT150/DM150)
   m_ft: ['italika ft', 'ft125', 'ft150', 'ft 125', 'ft 150'],
   m_dr: ['suzuki dr', 'dr150', 'dr 150', 'dr200', 'dr650'],
   m_en: ['suzuki en', 'en125', 'en 125'],
-  m_xtz: ['xtz'],
   // E1.12 — 'eco' a secas chocaría con Ford EcoSport (capa 2 la captura
   // por 'ecosport' → suv); por eso solo patrones con marca/serie:
   m_eco: ['hero eco', 'eco deluxe', 'eco 100', 'eco100'],

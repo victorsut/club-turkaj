@@ -1,10 +1,12 @@
 // src/components/ui/DitaArt.jsx
-// F6 E1.13 (22-ago-2026) — ITALIKA, D recalcada con las
-// correcciones del dueño (REFERENCIAS INTERFAZ/VEHÍCULOS/MOTOS/ITALIKA, D.png):
-// arnés trace-motos con anclas finas fusionadas (mergeInto), whiteBox
-// con tope superior (el fondo IA 250-253 ya no se pinta de blanco) y
-// despeckle de islas blancas. Ensamblador PURO (decisión E1.9f); la
-// capa de color recolorea vía el degradado -body del padre.
+// F6 E1.14 (24-ago-2026) — ITALIKA, D recalcada por 3ª vez (feedback del
+// dueño: frente y faro con las formas mal): whiteBox frontal ampliada a
+// [1010,190,1345,660] (la VENTANA blanca de la máscara teal y el borde
+// alto del delantal quedaban fuera → huecos que rasgaban el frente) y
+// aro del rin unificado a UNA clase (los fixed ahora aplican también
+// sobre white — antes el aro se partía white/ring y salía grumoso).
+// Ensamblador PURO (decisión E1.9f); la capa de color recolorea vía el
+// degradado -body del padre.
 import { shade } from './vehicleArtUtils.js';
 import { DITA_TRACE as T } from './ditaTrace.js';
 
