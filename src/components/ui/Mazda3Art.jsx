@@ -20,7 +20,7 @@ export default function Mazda3Art({ uid, color }) {
         <path d={T.silver} fill={"#D4D4D4"} fillRule="evenodd" />
         <path d={T.darkred} fill={shade(color, -18)} fillRule="evenodd" />
         <path d={T.red} fill={`url(#${uid}-body)`} fillRule="evenodd" />
-        <path d={T.white} fill={"#F9F9F9"} fillRule="evenodd" />
+        <path d={T.white} fill={"#E4E4E4"} fillRule="evenodd" />
       </g>
     </g>
   );

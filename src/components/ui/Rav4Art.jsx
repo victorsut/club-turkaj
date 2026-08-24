@@ -20,6 +20,7 @@ export default function Rav4Art({ uid, color }) {
         <path d={T.darkred} fill={shade(color, -27)} fillRule="evenodd" />
         <path d={T.red2} fill={shade(color, -13)} fillRule="evenodd" />
         <path d={T.red} fill={`url(#${uid}-body)`} fillRule="evenodd" />
+        <path d={T.white} fill={"#EFEFEF"} fillRule="evenodd" />
       </g>
     </g>
   );

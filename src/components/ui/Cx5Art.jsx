@@ -21,6 +21,7 @@ export default function Cx5Art({ uid, color }) {
         <path d={T.darkred} fill={shade(color, -25)} fillRule="evenodd" />
         <path d={T.red2} fill={shade(color, -12)} fillRule="evenodd" />
         <path d={T.red} fill={`url(#${uid}-body)`} fillRule="evenodd" />
+        <path d={T.white} fill={"#E9E9E9"} fillRule="evenodd" />
       </g>
     </g>
   );

@@ -18,6 +18,7 @@ export default function CrvArt({ uid, color }) {
         <path d={T.silver} fill={"#BAB8B8"} fillRule="evenodd" />
         <path d={T.darkred} fill={shade(color, -14)} fillRule="evenodd" />
         <path d={T.red} fill={`url(#${uid}-body)`} fillRule="evenodd" />
+        <path d={T.white} fill={"#F0EFEF"} fillRule="evenodd" />
       </g>
     </g>
   );
