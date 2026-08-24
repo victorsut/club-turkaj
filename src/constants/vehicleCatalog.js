@@ -15,7 +15,8 @@ export const VEHICLE_BRANDS = [
     { name: 'Hilux', t: ['picop'] }, { name: 'RAV4', t: ['liviano'] },
     { name: 'Prado', t: ['liviano'] }, { name: 'Agya', t: ['liviano'] },
     { name: 'Rush', t: ['liviano'] }, { name: 'Corolla Cross', t: ['liviano'] },
-    { name: 'Fortuner', t: ['liviano'] }, { name: 'Coaster', t: ['microbus'] },
+    { name: 'Fortuner', t: ['liviano'] }, { name: '4Runner', t: ['liviano'] },
+    { name: 'Coaster', t: ['microbus'] },
     { name: 'Hiace', t: ['camion_ligero', 'microbus'] },
   ] },
   { brand: 'Honda', models: [
@@ -73,6 +74,9 @@ export const VEHICLE_BRANDS = [
     { name: 'Mazda 3', t: ['liviano'] }, { name: 'CX-5', t: ['liviano'] },
     { name: 'Mazda 2', t: ['liviano'] }, { name: 'CX-30', t: ['liviano'] },
     { name: 'BT-50', t: ['picop'] },
+  ] },
+  { brand: 'Scion', models: [
+    { name: 'xB', t: ['liviano'] }, { name: 'xD', t: ['liviano'] },
   ] },
   { brand: 'Isuzu', models: [
     { name: 'D-Max', t: ['picop'] }, { name: 'NPR', t: ['camion'] },
@@ -183,6 +187,26 @@ const MODEL_SPECIFIC = {
   m_eco: ['hero eco', 'eco deluxe', 'eco 100', 'eco100'],
   m_xpulse: ['xpulse', 'x pulse', 'x-pulse'],
   m_ybr: ['ybr'],
+  // E1.15 (24-ago) — AUTOS LIVIANOS + SUV. Guardas anti-colisión ANTES
+  // de su arte: 'corolla cross' es SUV genérico (no el sedán calcado) y
+  // 'mazda 32x' (323/326) no debe caer en el arte del Mazda 3.
+  suv: ['corolla cross'],
+  sedan: ['mazda 32'],
+  m_corolla: ['corolla'],
+  m_yaris: ['yaris'],
+  m_civic: ['civic'],
+  m_accent: ['accent'],
+  m_picanto: ['picanto'],
+  m_rio: ['kia rio', 'rio'],
+  m_mazda3: ['mazda 3', 'mazda3'],
+  m_xb: ['scion xb', 'xb'],
+  m_xd: ['scion xd', 'xd'],
+  m_crv: ['cr-v', 'crv'],
+  m_tucson: ['tucson'],
+  m_sportage: ['sportage'],
+  m_cx5: ['cx-5', 'cx5'],
+  m_runner: ['4runner', '4 runner'],
+  m_rav4: ['rav4', 'rav 4'],
 };
 // Capa 2 — estilo de CARROCERÍA genérico por palabra clave:
 const MODEL_BODY = {

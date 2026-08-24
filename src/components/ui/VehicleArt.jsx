@@ -33,6 +33,22 @@ const LAZY_MODEL_ART = {
   m_eco:    lazy(() => import('./EcoArt.jsx')),
   m_xpulse: lazy(() => import('./XpulseArt.jsx')),
   m_ybr:    lazy(() => import('./YbrArt.jsx')),
+  // E1.15 (24-ago) — tanda AUTOS LIVIANOS + SUV (todos en categoría liviano)
+  m_civic:    lazy(() => import('./CivicArt.jsx')),
+  m_accent:   lazy(() => import('./AccentArt.jsx')),
+  m_picanto:  lazy(() => import('./PicantoArt.jsx')),
+  m_rio:      lazy(() => import('./RioArt.jsx')),
+  m_mazda3:   lazy(() => import('./Mazda3Art.jsx')),
+  m_corolla:  lazy(() => import('./CorollaArt.jsx')),
+  m_yaris:    lazy(() => import('./YarisArt.jsx')),
+  m_xb:       lazy(() => import('./XbArt.jsx')),
+  m_xd:       lazy(() => import('./XdArt.jsx')),
+  m_crv:      lazy(() => import('./CrvArt.jsx')),
+  m_tucson:   lazy(() => import('./TucsonArt.jsx')),
+  m_sportage: lazy(() => import('./SportageArt.jsx')),
+  m_cx5:      lazy(() => import('./Cx5Art.jsx')),
+  m_runner:   lazy(() => import('./RunnerArt.jsx')),
+  m_rav4:     lazy(() => import('./Rav4Art.jsx')),
 };
 
 export const VEHICLE_COLORS = [
