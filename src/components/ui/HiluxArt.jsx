@@ -23,7 +23,7 @@ export default function HiluxArt({ uid, color }) {
         <path d={T.rD} fill={shade(color, -21)} fillRule="evenodd" />
         <path d={T.red2} fill={shade(color, -14)} fillRule="evenodd" />
         <path d={T.rB} fill={shade(color, -7)} fillRule="evenodd" />
-        <path d={T.red} fill={`url(#${uid}-body)`} fillRule="evenodd" />
+        <path d={T.red} fill={color} fillRule="evenodd" />
         <path d={T.lamp} fill={"#CCCCCC"} fillRule="evenodd" />
         <path d={T.white} fill={"#FAFAFA"} fillRule="evenodd" />
       </g>

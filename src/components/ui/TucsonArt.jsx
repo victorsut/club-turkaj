@@ -24,7 +24,7 @@ export default function TucsonArt({ uid, color }) {
         <path d={T.rD} fill={shade(color, -18)} fillRule="evenodd" />
         <path d={T.red2} fill={shade(color, -12)} fillRule="evenodd" />
         <path d={T.rB} fill={shade(color, -6)} fillRule="evenodd" />
-        <path d={T.red} fill={`url(#${uid}-body)`} fillRule="evenodd" />
+        <path d={T.red} fill={color} fillRule="evenodd" />
         <path d={T.lamp} fill={"#C2C0C0"} fillRule="evenodd" />
         <path d={T.white} fill={"#E9E8E8"} fillRule="evenodd" />
       </g>

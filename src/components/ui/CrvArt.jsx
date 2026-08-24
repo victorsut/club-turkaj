@@ -15,6 +15,7 @@ export default function CrvArt({ uid, color }) {
     <g>
       <ellipse cx={120} cy={132} rx={100} ry={8} fill="rgba(0,0,0,.20)" />
       <g transform="translate(25.7 21.9) scale(0.1233)">
+        <path d={T.tailred} fill={"#A51818"} fillRule="evenodd" />
         <path d={T.deep} fill={"#181818"} fillRule="evenodd" />
         <path d={T.char} fill={"#2C2C2C"} fillRule="evenodd" />
         <path d={T.silver} fill={"#BAB8B8"} fillRule="evenodd" />

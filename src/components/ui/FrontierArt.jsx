@@ -25,7 +25,7 @@ export default function FrontierArt({ uid, color }) {
         <path d={T.rD} fill={shade(color, -18)} fillRule="evenodd" />
         <path d={T.red2} fill={shade(color, -12)} fillRule="evenodd" />
         <path d={T.rB} fill={shade(color, -6)} fillRule="evenodd" />
-        <path d={T.red} fill={`url(#${uid}-body)`} fillRule="evenodd" />
+        <path d={T.red} fill={color} fillRule="evenodd" />
         <path d={T.lamp} fill={"#C6C6C6"} fillRule="evenodd" />
         <path d={T.white} fill={"#FAFAFA"} fillRule="evenodd" />
       </g>

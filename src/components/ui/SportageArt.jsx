@@ -24,7 +24,7 @@ export default function SportageArt({ uid, color }) {
         <path d={T.rD} fill={shade(color, -19)} fillRule="evenodd" />
         <path d={T.red2} fill={shade(color, -12)} fillRule="evenodd" />
         <path d={T.rB} fill={shade(color, -6)} fillRule="evenodd" />
-        <path d={T.red} fill={`url(#${uid}-body)`} fillRule="evenodd" />
+        <path d={T.red} fill={color} fillRule="evenodd" />
         <path d={T.lamp} fill={"#C6C5C5"} fillRule="evenodd" />
         <path d={T.white} fill={"#EFEFEF"} fillRule="evenodd" />
       </g>

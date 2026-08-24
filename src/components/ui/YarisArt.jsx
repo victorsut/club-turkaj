@@ -14,6 +14,7 @@ export default function YarisArt({ uid }) {
     <g>
       <ellipse cx={120} cy={132} rx={100} ry={8} fill="rgba(0,0,0,.20)" />
       <g transform="translate(20.4 18.3) scale(0.1288)">
+        <path d={T.cabin} fill={"#D04545"} fillRule="evenodd" />
         <path d={T.black} fill={"#313436"} fillRule="evenodd" />
         <path d={T.dark} fill={"#3D4042"} fillRule="evenodd" />
         <path d={T.gray} fill={"#969696"} fillRule="evenodd" />

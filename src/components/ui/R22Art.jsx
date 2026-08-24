@@ -26,7 +26,7 @@ export default function R22Art({ uid, color }) {
         <path d={T.rD} fill={shade(color, -24)} fillRule="evenodd" />
         <path d={T.red2} fill={shade(color, -16)} fillRule="evenodd" />
         <path d={T.rB} fill={shade(color, -8)} fillRule="evenodd" />
-        <path d={T.red} fill={`url(#${uid}-body)`} fillRule="evenodd" />
+        <path d={T.red} fill={color} fillRule="evenodd" />
         <path d={T.amber} fill={shade(color, 3)} fillRule="evenodd" />
         <path d={T.white} fill={"#FCFCFC"} fillRule="evenodd" />
       </g>

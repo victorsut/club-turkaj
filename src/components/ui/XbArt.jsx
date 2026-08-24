@@ -25,7 +25,7 @@ export default function XbArt({ uid, color }) {
         <path d={T.rE} fill={shade(color, -32)} fillRule="evenodd" />
         <path d={T.red2} fill={shade(color, -16)} fillRule="evenodd" />
         <path d={T.rB} fill={shade(color, -8)} fillRule="evenodd" />
-        <path d={T.red} fill={`url(#${uid}-body)`} fillRule="evenodd" />
+        <path d={T.red} fill={color} fillRule="evenodd" />
         <path d={T.lamp} fill={"#C6C5C5"} fillRule="evenodd" />
         <path d={T.white} fill={"#F2F2F2"} fillRule="evenodd" />
         <path d={T.amber} fill={shade(color, -12)} fillRule="evenodd" />

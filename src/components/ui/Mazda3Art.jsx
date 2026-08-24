@@ -15,6 +15,7 @@ export default function Mazda3Art({ uid, color }) {
     <g>
       <ellipse cx={120} cy={132} rx={100} ry={8} fill="rgba(0,0,0,.20)" />
       <g transform="translate(26.3 23.7) scale(0.1226)">
+        <path d={T.tailred} fill={"#C21F20"} fillRule="evenodd" />
         <path d={T.black} fill={"#313335"} fillRule="evenodd" />
         <path d={T.dark} fill={"#3F4041"} fillRule="evenodd" />
         <path d={T.gray} fill={"#969696"} fillRule="evenodd" />
