@@ -1,10 +1,12 @@
 // src/components/ui/Mazda3Art.jsx
-// F6 E1.15 (24-ago-2026) — tanda AUTOS LIVIANOS + SUV: vectorizada de
-// REFERENCIAS INTERFAZ/VEHÍCULOS/AUTOS LIVIANOS/MAZDA, MAZDA 3.png con el arnés trace-autos
-// (anclas finas de rojo fusionadas, sombra de piso por banda con
-// elipses de rin exentas, blancos de faros por whiteBox espacial).
-// Ensamblador PURO (decisión E1.9f); la capa de color recolorea vía
-// el degradado -body del padre.
+// F6 E1.18 (24-ago-2026) — ronda de INTERPRETACIÓN (decisión del dueño:
+// mostrar el modelo TAL CUAL la referencia): lámparas estructuradas
+// (lente plata + destello blanco + elementos oscuros vía cajas de faro),
+// degradado del cuerpo con TODAS las bandas finas de rojo (cada banda
+// recolorea con shade(color, deltaR)) y ámbares fijos donde la
+// referencia los tiene. GENERADO por gen-arts-auto.js — regenerar con
+// el arnés, no editar a mano. Vectorizada de
+// REFERENCIAS INTERFAZ/VEHÍCULOS/AUTOS LIVIANOS/MAZDA, MAZDA 3.png.
 import { shade } from './vehicleArtUtils.js';
 import { MAZDA3_TRACE as T } from './mazda3Trace.js';
 
@@ -20,6 +22,7 @@ export default function Mazda3Art({ uid, color }) {
         <path d={T.silver} fill={"#D4D4D4"} fillRule="evenodd" />
         <path d={T.darkred} fill={shade(color, -18)} fillRule="evenodd" />
         <path d={T.red} fill={`url(#${uid}-body)`} fillRule="evenodd" />
+        <path d={T.lamp} fill={"#8E8F91"} fillRule="evenodd" />
         <path d={T.white} fill={"#E4E4E4"} fillRule="evenodd" />
       </g>
     </g>
