@@ -49,6 +49,14 @@ const LAZY_MODEL_ART = {
   m_cx5:      lazy(() => import('./Cx5Art.jsx')),
   m_runner:   lazy(() => import('./RunnerArt.jsx')),
   m_rav4:     lazy(() => import('./Rav4Art.jsx')),
+  // E1.16 (24-ago) — tanda PICOPS (categoría picop)
+  m_dmax:      lazy(() => import('./DmaxArt.jsx')),
+  m_gladiator: lazy(() => import('./GladiatorArt.jsx')),
+  m_l200:      lazy(() => import('./L200Art.jsx')),
+  m_frontier:  lazy(() => import('./FrontierArt.jsx')),
+  m_r22:       lazy(() => import('./R22Art.jsx')),
+  m_hilux:     lazy(() => import('./HiluxArt.jsx')),
+  m_tacoma:    lazy(() => import('./TacomaArt.jsx')),
 };
 
 export const VEHICLE_COLORS = [

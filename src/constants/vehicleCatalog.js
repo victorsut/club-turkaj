@@ -12,7 +12,8 @@
 export const VEHICLE_BRANDS = [
   { brand: 'Toyota', models: [
     { name: 'Corolla', t: ['liviano'] }, { name: 'Yaris', t: ['liviano'] },
-    { name: 'Hilux', t: ['picop'] }, { name: 'RAV4', t: ['liviano'] },
+    { name: 'Hilux', t: ['picop'] }, { name: 'Tacoma', t: ['picop'] },
+    { name: '22R', t: ['picop'] }, { name: 'RAV4', t: ['liviano'] },
     { name: 'Prado', t: ['liviano'] }, { name: 'Agya', t: ['liviano'] },
     { name: 'Rush', t: ['liviano'] }, { name: 'Corolla Cross', t: ['liviano'] },
     { name: 'Fortuner', t: ['liviano'] }, { name: '4Runner', t: ['liviano'] },
@@ -77,6 +78,10 @@ export const VEHICLE_BRANDS = [
   ] },
   { brand: 'Scion', models: [
     { name: 'xB', t: ['liviano'] }, { name: 'xD', t: ['liviano'] },
+  ] },
+  { brand: 'Jeep', models: [
+    { name: 'Gladiator', t: ['picop'] }, { name: 'Wrangler', t: ['liviano'] },
+    { name: 'Grand Cherokee', t: ['liviano'] },
   ] },
   { brand: 'Isuzu', models: [
     { name: 'D-Max', t: ['picop'] }, { name: 'NPR', t: ['camion'] },
@@ -207,6 +212,15 @@ const MODEL_SPECIFIC = {
   m_cx5: ['cx-5', 'cx5'],
   m_runner: ['4runner', '4 runner'],
   m_rav4: ['rav4', 'rav 4'],
+  // E1.16 (24-ago) — PICOPS. m_r22 ANTES que m_hilux: el 22R es una
+  // generación de Hilux y "hilux 22r" debe mostrar el arte del clásico.
+  m_dmax: ['d-max', 'dmax', 'd max'],
+  m_gladiator: ['gladiator'],
+  m_l200: ['l200', 'l 200'],
+  m_frontier: ['frontier'],
+  m_r22: ['22r', '22 r'],
+  m_hilux: ['hilux'],
+  m_tacoma: ['tacoma'],
 };
 // Capa 2 — estilo de CARROCERÍA genérico por palabra clave:
 const MODEL_BODY = {
@@ -215,7 +229,7 @@ const MODEL_BODY = {
     'creta', 'kona', 'tracker', 'escape', 'explorer', 'cx-5', 'cx5', 'cx-30',
     'cx30', 'mu-x', 'mux', 'tiguan', 'montero', 'prado', 'fortuner', 'rush',
     'seltos', 'sorento', 'pilot', 'territory', 'xpander', 'ertiga',
-    'corolla cross', 'ecosport'],
+    'corolla cross', 'ecosport', 'wrangler', 'grand cherokee'],
   hatch: ['yaris', 'swift', 'fit', 'march', 'mirage', 'grand i10', 'picanto',
     'spark', 'beat', 'agya', 'alto', 's-presso', 'gol', 'mazda 2', 'i10'],
   pickup2: ['hilux', 'l200', 'frontier', 'd-max', 'dmax', 'ranger', 'bt-50',
