@@ -28,6 +28,7 @@ export default function Cx5Art({ uid, color }) {
         <path d={T.red} fill={color} fillRule="evenodd" />
         <path d={T.lamp} fill={"#C6C5C5"} fillRule="evenodd" />
         <path d={T.white} fill={"#E9E9E9"} fillRule="evenodd" />
+        <path d={T.amber} fill={"#A86446"} fillRule="evenodd" />
       </g>
     </g>
   );

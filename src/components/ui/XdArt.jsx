@@ -29,7 +29,7 @@ export default function XdArt({ uid, color }) {
         <path d={T.red} fill={color} fillRule="evenodd" />
         <path d={T.lamp} fill={"#C9C8C8"} fillRule="evenodd" />
         <path d={T.white} fill={"#F4F4F4"} fillRule="evenodd" />
-        <path d={T.amber} fill={shade(color, 1)} fillRule="evenodd" />
+        <path d={T.amber} fill={"#E39555"} fillRule="evenodd" />
       </g>
     </g>
   );
