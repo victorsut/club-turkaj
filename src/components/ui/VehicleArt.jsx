@@ -7,56 +7,75 @@
 // llantas con rin metálico, faro/calavera y sombra elíptica de piso.
 // Los 8 tipos = catálogo canónico de VehicleIcons (VEHICLE_TYPES).
 // Todo SVG puro — cero librerías, recolorea al instante vía props.
-import { useId, lazy, Suspense } from 'react';
+import { useId, lazy, Suspense, Component } from 'react';
 import { shade } from './vehicleArtUtils.js';
 
 // E1.11: los MODELOS calcados (paths grandes de potrace) bajan PEREZOSOS
 // — un chunk chico por modelo, solo al mostrarse; mientras carga se ve
 // la silueta genérica del tipo como fallback.
+// 28-ago: import RESILIENTE — si el chunk no carga (deploy entre medio →
+// el hash viejo ya no existe en Vercel y responde text/html; o sin red)
+// el módulo resuelve a un componente que pinta la silueta genérica del
+// tipo (prop `fallback`) en vez de tumbar toda la vista con el TypeError
+// de React.lazy ("reading 'default'"). main.jsx sigue recargando la
+// página vía vite:preloadError para traer los hashes vigentes.
+const lazyArt = (load) => lazy(() => load().catch((err) => {
+  console.warn('[VehicleArt] chunk de arte no disponible, silueta genérica:', err && err.message);
+  return { default: ({ fallback: Fallback, ...p }) => (Fallback ? <Fallback {...p} /> : null) };
+}));
+
+// Errores en RENDER del arte calcado (no de carga) → misma silueta genérica.
+class ArtBoundary extends Component {
+  constructor(p) { super(p); this.state = { failed: false }; }
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch(err) { console.warn('[VehicleArt] arte calcado falló al renderizar:', err && err.message); }
+  render() { return this.state.failed ? this.props.fallback : this.props.children; }
+}
+
 const LAZY_MODEL_ART = {
-  m_navi:   lazy(() => import('./NaviArt.jsx')),
-  m_gn125:  lazy(() => import('./GnArt.jsx')),
-  m_gnh:    lazy(() => import('./GnhArt.jsx')),
-  m_boxer:  lazy(() => import('./BoxerArt.jsx')),
-  m_pulsar: lazy(() => import('./PulsarArt.jsx')),
-  m_activa: lazy(() => import('./ActivaArt.jsx')),
-  m_cgl:    lazy(() => import('./CglArt.jsx')),
-  m_crf:    lazy(() => import('./CrfArt.jsx')),
-  m_xr:     lazy(() => import('./XrArt.jsx')),
-  m_zeta:   lazy(() => import('./ZetaArt.jsx')),
-  m_dita:   lazy(() => import('./DitaArt.jsx')),
-  m_dm:     lazy(() => import('./DmArt.jsx')),
-  m_ft:     lazy(() => import('./FtArt.jsx')),
-  m_dr:     lazy(() => import('./DrArt.jsx')),
-  m_en:     lazy(() => import('./EnArt.jsx')),
-  m_xtz:    lazy(() => import('./XtzArt.jsx')),
-  m_eco:    lazy(() => import('./EcoArt.jsx')),
-  m_xpulse: lazy(() => import('./XpulseArt.jsx')),
-  m_ybr:    lazy(() => import('./YbrArt.jsx')),
+  m_navi:   lazyArt(() => import('./NaviArt.jsx')),
+  m_gn125:  lazyArt(() => import('./GnArt.jsx')),
+  m_gnh:    lazyArt(() => import('./GnhArt.jsx')),
+  m_boxer:  lazyArt(() => import('./BoxerArt.jsx')),
+  m_pulsar: lazyArt(() => import('./PulsarArt.jsx')),
+  m_activa: lazyArt(() => import('./ActivaArt.jsx')),
+  m_cgl:    lazyArt(() => import('./CglArt.jsx')),
+  m_crf:    lazyArt(() => import('./CrfArt.jsx')),
+  m_xr:     lazyArt(() => import('./XrArt.jsx')),
+  m_zeta:   lazyArt(() => import('./ZetaArt.jsx')),
+  m_dita:   lazyArt(() => import('./DitaArt.jsx')),
+  m_dm:     lazyArt(() => import('./DmArt.jsx')),
+  m_ft:     lazyArt(() => import('./FtArt.jsx')),
+  m_dr:     lazyArt(() => import('./DrArt.jsx')),
+  m_en:     lazyArt(() => import('./EnArt.jsx')),
+  m_xtz:    lazyArt(() => import('./XtzArt.jsx')),
+  m_eco:    lazyArt(() => import('./EcoArt.jsx')),
+  m_xpulse: lazyArt(() => import('./XpulseArt.jsx')),
+  m_ybr:    lazyArt(() => import('./YbrArt.jsx')),
   // E1.15 (24-ago) — tanda AUTOS LIVIANOS + SUV (todos en categoría liviano)
-  m_civic:    lazy(() => import('./CivicArt.jsx')),
-  m_accent:   lazy(() => import('./AccentArt.jsx')),
-  m_picanto:  lazy(() => import('./PicantoArt.jsx')),
-  m_rio:      lazy(() => import('./RioArt.jsx')),
-  m_mazda3:   lazy(() => import('./Mazda3Art.jsx')),
-  m_corolla:  lazy(() => import('./CorollaArt.jsx')),
-  m_yaris:    lazy(() => import('./YarisArt.jsx')),
-  m_xb:       lazy(() => import('./XbArt.jsx')),
-  m_xd:       lazy(() => import('./XdArt.jsx')),
-  m_crv:      lazy(() => import('./CrvArt.jsx')),
-  m_tucson:   lazy(() => import('./TucsonArt.jsx')),
-  m_sportage: lazy(() => import('./SportageArt.jsx')),
-  m_cx5:      lazy(() => import('./Cx5Art.jsx')),
-  m_runner:   lazy(() => import('./RunnerArt.jsx')),
-  m_rav4:     lazy(() => import('./Rav4Art.jsx')),
+  m_civic:    lazyArt(() => import('./CivicArt.jsx')),
+  m_accent:   lazyArt(() => import('./AccentArt.jsx')),
+  m_picanto:  lazyArt(() => import('./PicantoArt.jsx')),
+  m_rio:      lazyArt(() => import('./RioArt.jsx')),
+  m_mazda3:   lazyArt(() => import('./Mazda3Art.jsx')),
+  m_corolla:  lazyArt(() => import('./CorollaArt.jsx')),
+  m_yaris:    lazyArt(() => import('./YarisArt.jsx')),
+  m_xb:       lazyArt(() => import('./XbArt.jsx')),
+  m_xd:       lazyArt(() => import('./XdArt.jsx')),
+  m_crv:      lazyArt(() => import('./CrvArt.jsx')),
+  m_tucson:   lazyArt(() => import('./TucsonArt.jsx')),
+  m_sportage: lazyArt(() => import('./SportageArt.jsx')),
+  m_cx5:      lazyArt(() => import('./Cx5Art.jsx')),
+  m_runner:   lazyArt(() => import('./RunnerArt.jsx')),
+  m_rav4:     lazyArt(() => import('./Rav4Art.jsx')),
   // E1.16 (24-ago) — tanda PICOPS (categoría picop)
-  m_dmax:      lazy(() => import('./DmaxArt.jsx')),
-  m_gladiator: lazy(() => import('./GladiatorArt.jsx')),
-  m_l200:      lazy(() => import('./L200Art.jsx')),
-  m_frontier:  lazy(() => import('./FrontierArt.jsx')),
-  m_r22:       lazy(() => import('./R22Art.jsx')),
-  m_hilux:     lazy(() => import('./HiluxArt.jsx')),
-  m_tacoma:    lazy(() => import('./TacomaArt.jsx')),
+  m_dmax:      lazyArt(() => import('./DmaxArt.jsx')),
+  m_gladiator: lazyArt(() => import('./GladiatorArt.jsx')),
+  m_l200:      lazyArt(() => import('./L200Art.jsx')),
+  m_frontier:  lazyArt(() => import('./FrontierArt.jsx')),
+  m_r22:       lazyArt(() => import('./R22Art.jsx')),
+  m_hilux:     lazyArt(() => import('./HiluxArt.jsx')),
+  m_tacoma:    lazyArt(() => import('./TacomaArt.jsx')),
 };
 
 export const VEHICLE_COLORS = [
@@ -364,9 +383,11 @@ export default function VehicleArt({ type = 'liviano', body = null, color = '#9E
       aria-hidden style={{ display: 'block', ...style }}>
       <Defs uid={uid} color={color} />
       {LazyArt ? (
-        <Suspense fallback={<Art uid={uid} color={color} />}>
-          <LazyArt uid={uid} color={color} />
-        </Suspense>
+        <ArtBoundary fallback={<Art uid={uid} color={color} />}>
+          <Suspense fallback={<Art uid={uid} color={color} />}>
+            <LazyArt uid={uid} color={color} fallback={Art} />
+          </Suspense>
+        </ArtBoundary>
       ) : (
         <Art uid={uid} color={color} />
       )}
