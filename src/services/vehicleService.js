@@ -55,6 +55,18 @@ export async function listMyVehicleStats() {
   return callRpc('list_my_vehicle_stats', {}, { sessionToken: getMemberToken()?.token ?? null });
 }
 
+// ── F6 E3a: historial de cargas del miembro ──────────────────
+// { ok, loads: [{ id, created_at, station_name, fuel_type, gallons,
+// amount, vehicle_id, km_reading }], editable_days } — base del
+// historial de consumo y del editor de reasignación (cargas mal
+// atribuidas cuando el modal no apareció por falta de conexión).
+export async function listMyFuelHistory(limit = 40) {
+  if (!sb) return { data: null, error: { message: 'Sin conexión al servidor' } };
+  return callRpc('list_my_fuel_history', {
+    p_limit: limit,
+  }, { sessionToken: getMemberToken()?.token ?? null });
+}
+
 // ── Admin: lista de la beta (miembros con nombre + interruptor global) ──
 export async function adminListVehiclesBeta() {
   if (!sb) return { data: null, error: { message: 'Sin conexión al servidor' } };

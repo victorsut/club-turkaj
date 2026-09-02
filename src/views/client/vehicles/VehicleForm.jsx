@@ -19,8 +19,13 @@ import { plateMask } from '../../../lib/inputMasks';
 import { saveMyVehicle } from '../../../services/vehicleService';
 import useBackLayer from '../../../hooks/useBackLayer';
 
-export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved }) {
+// mode (E1.27): 'full' = alta completa · 'look' = solo personalización
+// (tipo, color, marca, modelo, versión — con vista previa) · 'data' =
+// solo datos puntuales (placa, km, aceite, próximo servicio).
+export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved, mode = 'full' }) {
   const editing = !!vehicle?.id;
+  const showLook = mode !== 'data';
+  const showData = mode !== 'look';
   const [f, setF] = useState(() => ({
     vtype: vehicle?.vtype || 'liviano',
     brand: vehicle?.brand || '',
@@ -185,134 +190,142 @@ export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved }) {
       }}>
         <div style={{ width: 44, height: 5, borderRadius: 3, background: dark ? 'rgba(255,255,255,.2)' : '#E0E0E0', margin: '0 auto 14px' }} />
         <div style={{ fontSize: 19, fontWeight: 900, color: ink }}>
-          {editing ? 'Editar vehículo' : 'Agregar vehículo'}
+          {mode === 'look' ? 'Personalizar vehículo'
+            : mode === 'data' ? 'Datos y ajustes'
+            : editing ? 'Editar vehículo' : 'Agregar vehículo'}
         </div>
 
-        {/* Vista previa en vivo: tipo, MODELO (silueta) y color repintan
-            al instante. STICKY (pedido del dueño 15-ago): queda FIJA
-            arriba mientras se escribe/elige — con el teclado abierto y
-            el sheet scrolleado, el diseño sigue siempre a la vista. */}
-        <div style={{
-          position: 'sticky', top: 0, zIndex: 3,
-          margin: '14px -20px 2px', padding: '6px 20px 4px',
-          background: bg,
-          boxShadow: dark ? '0 10px 14px -8px rgba(0,0,0,.6)' : '0 10px 14px -8px rgba(0,0,0,.14)',
-        }}>
+        {showLook && (<>
+  {/* Vista previa en vivo: tipo, MODELO (silueta) y color repintan
+              al instante. STICKY (pedido del dueño 15-ago): queda FIJA
+              arriba mientras se escribe/elige — con el teclado abierto y
+              el sheet scrolleado, el diseño sigue siempre a la vista. */}
           <div style={{
-            borderRadius: 18, padding: '8px 0 2px',
-            background: dark ? 'rgba(255,255,255,.05)' : '#FAFAFB',
-            display: 'flex', justifyContent: 'center',
+            position: 'sticky', top: 0, zIndex: 3,
+            margin: '14px -20px 2px', padding: '6px 20px 4px',
+            background: bg,
+            boxShadow: dark ? '0 10px 14px -8px rgba(0,0,0,.6)' : '0 10px 14px -8px rgba(0,0,0,.14)',
           }}>
-            <VehicleArt type={f.vtype} body={bodyFor(f.vtype, f.model, f.brand)} color={f.color} width={190} />
-          </div>
-        </div>
-
-        {/* Tipo */}
-        <label style={lbl}>Tipo de vehículo</label>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {VEHICLE_TYPES.map(t => (
-            <button key={t.k} onClick={() => changeType(t.k)} style={{ ...chip(f.vtype === t.k), display: 'flex', alignItems: 'center', gap: 6 }}>
-              <t.Icon size={16} /> {t.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Color */}
-        <label style={lbl}>Color</label>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9 }}>
-          {VEHICLE_COLORS.map(c => (
-            <button key={c} onClick={() => set('color', c)} aria-label={`Color ${c}`} style={{
-              width: 34, height: 34, borderRadius: 12, background: c, cursor: 'pointer',
-              border: f.color === c ? `3px solid ${BRAND_ORANGE}` : `1px solid ${dark ? 'rgba(255,255,255,.2)' : 'rgba(0,0,0,.12)'}`,
-              boxSizing: 'border-box',
-            }} />
-          ))}
-        </div>
-
-        {/* Marca / modelo / versión — catálogo híbrido D23 con desplegable
-            propio (E1.25): la flecha abre la lista completa del tipo y
-            escribir filtra; la entrada libre sigue permitida. */}
-        {openSugg && <div onClick={() => setOpenSugg(null)} style={{ position: 'fixed', inset: 0, zIndex: 5 }} />}
-        <label style={lbl}>Marca</label>
-        <div style={{ position: 'relative' }}>
-          <input value={f.brand} onChange={e => set('brand', e.target.value)}
-            onFocus={() => setOpenSugg('brand')}
-            placeholder={brandSugg.slice(0, 3).join(', ') + '...'}
-            style={{ ...input, paddingRight: 44 }} />
-          <button aria-label="Ver marcas" onClick={() => setOpenSugg(openSugg === 'brand' ? null : 'brand')}
-            style={arrowBtn(openSugg === 'brand')}><Chevron open={openSugg === 'brand'} /></button>
-          {openSugg === 'brand' && (
-            <SuggPanel opts={brandOpts} current={f.brand} onPick={pickBrand}
-              empty="Sin sugerencias — escribe la marca" />
-          )}
-        </div>
-
-        <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1.4 }}>
-            <label style={lbl}>Modelo / línea</label>
-            <div style={{ position: 'relative' }}>
-              <input value={f.model} onChange={e => set('model', e.target.value)}
-                onFocus={() => setOpenSugg('model')}
-                placeholder={modelSugg[0] || 'Corolla'}
-                style={{ ...input, paddingRight: 44 }} />
-              <button aria-label="Ver modelos" onClick={() => setOpenSugg(openSugg === 'model' ? null : 'model')}
-                style={arrowBtn(openSugg === 'model')}><Chevron open={openSugg === 'model'} /></button>
-              {openSugg === 'model' && (
-                <SuggPanel opts={modelOpts} current={f.model} onPick={pickModel}
-                  empty="Sin sugerencias — escribe el modelo" />
-              )}
+            <div style={{
+              borderRadius: 18, padding: '8px 0 2px',
+              background: dark ? 'rgba(255,255,255,.05)' : '#FAFAFB',
+              display: 'flex', justifyContent: 'center',
+            }}>
+              <VehicleArt type={f.vtype} body={bodyFor(f.vtype, f.model, f.brand)} color={f.color} width={190} />
             </div>
           </div>
-          <div style={{ flex: 1 }}>
-            <label style={lbl}>Versión / año</label>
-            <input value={f.version} onChange={e => set('version', e.target.value)}
-              placeholder="2022" style={input} />
-          </div>
-        </div>
+        </>)}
 
-        {/* Placa + kilometraje */}
-        <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}>
-            <label style={lbl}>Placa</label>
-            <input value={plateMask.format(f.plate)}
-              onChange={e => set('plate', plateMask.clean(e.target.value))}
-              placeholder="P 123 ABC" autoCapitalize="characters"
-              style={{ ...input, fontFamily: "'JetBrains Mono', monospace", letterSpacing: 1 }} />
+        {showLook && (<>
+  {/* Tipo */}
+          <label style={lbl}>Tipo de vehículo</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {VEHICLE_TYPES.map(t => (
+              <button key={t.k} onClick={() => changeType(t.k)} style={{ ...chip(f.vtype === t.k), display: 'flex', alignItems: 'center', gap: 6 }}>
+                <t.Icon size={16} /> {t.label}
+              </button>
+            ))}
           </div>
-          <div style={{ flex: 1 }}>
-            <label style={lbl}>Kilometraje</label>
-            <input value={f.km} inputMode="numeric"
-              onChange={e => set('km', e.target.value.replace(/[^0-9]/g, '').slice(0, 7))}
-              placeholder="45000" style={{ ...input, fontFamily: "'JetBrains Mono', monospace" }} />
-          </div>
-        </div>
 
-        {/* Aceite */}
-        <label style={lbl}>Tipo de aceite</label>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 8 }}>
-          {OIL_TYPES.map(o => (
-            <button key={o} onClick={() => set('oil_type', f.oil_type === o ? '' : o)} style={chip(f.oil_type === o)}>{o}</button>
-          ))}
-        </div>
-        <input value={f.oil_type} onChange={e => set('oil_type', e.target.value)}
-          placeholder="O escribe el tuyo (ej. 15W-40 sintético)" style={input} />
+          {/* Color */}
+          <label style={lbl}>Color</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9 }}>
+            {VEHICLE_COLORS.map(c => (
+              <button key={c} onClick={() => set('color', c)} aria-label={`Color ${c}`} style={{
+                width: 34, height: 34, borderRadius: 12, background: c, cursor: 'pointer',
+                border: f.color === c ? `3px solid ${BRAND_ORANGE}` : `1px solid ${dark ? 'rgba(255,255,255,.2)' : 'rgba(0,0,0,.12)'}`,
+                boxSizing: 'border-box',
+              }} />
+            ))}
+          </div>
 
-        {/* Próximo servicio — por FECHA o por KILOMETRAJE (o ambos) */}
-        <label style={lbl}>Próximo servicio</label>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: sub, marginBottom: 5 }}>Por fecha</div>
-            <input type="date" value={f.next_service}
-              onChange={e => set('next_service', e.target.value)}
-              style={{ ...input, colorScheme: dark ? 'dark' : 'light' }} />
+          {/* Marca / modelo / versión — catálogo híbrido D23 con desplegable
+              propio (E1.25): la flecha abre la lista completa del tipo y
+              escribir filtra; la entrada libre sigue permitida. */}
+          {openSugg && <div onClick={() => setOpenSugg(null)} style={{ position: 'fixed', inset: 0, zIndex: 5 }} />}
+          <label style={lbl}>Marca</label>
+          <div style={{ position: 'relative' }}>
+            <input value={f.brand} onChange={e => set('brand', e.target.value)}
+              onFocus={() => setOpenSugg('brand')}
+              placeholder={brandSugg.slice(0, 3).join(', ') + '...'}
+              style={{ ...input, paddingRight: 44 }} />
+            <button aria-label="Ver marcas" onClick={() => setOpenSugg(openSugg === 'brand' ? null : 'brand')}
+              style={arrowBtn(openSugg === 'brand')}><Chevron open={openSugg === 'brand'} /></button>
+            {openSugg === 'brand' && (
+              <SuggPanel opts={brandOpts} current={f.brand} onPick={pickBrand}
+                empty="Sin sugerencias — escribe la marca" />
+            )}
           </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: sub, marginBottom: 5 }}>O al llegar a (km)</div>
-            <input value={f.next_service_km} inputMode="numeric"
-              onChange={e => set('next_service_km', e.target.value.replace(/[^0-9]/g, '').slice(0, 7))}
-              placeholder="50000" style={{ ...input, fontFamily: "'JetBrains Mono', monospace" }} />
+
+          <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ flex: 1.4 }}>
+              <label style={lbl}>Modelo / línea</label>
+              <div style={{ position: 'relative' }}>
+                <input value={f.model} onChange={e => set('model', e.target.value)}
+                  onFocus={() => setOpenSugg('model')}
+                  placeholder={modelSugg[0] || 'Corolla'}
+                  style={{ ...input, paddingRight: 44 }} />
+                <button aria-label="Ver modelos" onClick={() => setOpenSugg(openSugg === 'model' ? null : 'model')}
+                  style={arrowBtn(openSugg === 'model')}><Chevron open={openSugg === 'model'} /></button>
+                {openSugg === 'model' && (
+                  <SuggPanel opts={modelOpts} current={f.model} onPick={pickModel}
+                    empty="Sin sugerencias — escribe el modelo" />
+                )}
+              </div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={lbl}>Versión / año</label>
+              <input value={f.version} onChange={e => set('version', e.target.value)}
+                placeholder="2022" style={input} />
+            </div>
           </div>
-        </div>
+        </>)}
+
+        {showData && (<>
+  {/* Placa + kilometraje */}
+          <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ flex: 1 }}>
+              <label style={lbl}>Placa</label>
+              <input value={plateMask.format(f.plate)}
+                onChange={e => set('plate', plateMask.clean(e.target.value))}
+                placeholder="P 123 ABC" autoCapitalize="characters"
+                style={{ ...input, fontFamily: "'JetBrains Mono', monospace", letterSpacing: 1 }} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={lbl}>Kilometraje</label>
+              <input value={f.km} inputMode="numeric"
+                onChange={e => set('km', e.target.value.replace(/[^0-9]/g, '').slice(0, 7))}
+                placeholder="45000" style={{ ...input, fontFamily: "'JetBrains Mono', monospace" }} />
+            </div>
+          </div>
+
+          {/* Aceite */}
+          <label style={lbl}>Tipo de aceite</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 8 }}>
+            {OIL_TYPES.map(o => (
+              <button key={o} onClick={() => set('oil_type', f.oil_type === o ? '' : o)} style={chip(f.oil_type === o)}>{o}</button>
+            ))}
+          </div>
+          <input value={f.oil_type} onChange={e => set('oil_type', e.target.value)}
+            placeholder="O escribe el tuyo (ej. 15W-40 sintético)" style={input} />
+
+          {/* Próximo servicio — por FECHA o por KILOMETRAJE (o ambos) */}
+          <label style={lbl}>Próximo servicio</label>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: sub, marginBottom: 5 }}>Por fecha</div>
+              <input type="date" value={f.next_service}
+                onChange={e => set('next_service', e.target.value)}
+                style={{ ...input, colorScheme: dark ? 'dark' : 'light' }} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: sub, marginBottom: 5 }}>O al llegar a (km)</div>
+              <input value={f.next_service_km} inputMode="numeric"
+                onChange={e => set('next_service_km', e.target.value.replace(/[^0-9]/g, '').slice(0, 7))}
+                placeholder="50000" style={{ ...input, fontFamily: "'JetBrains Mono', monospace" }} />
+            </div>
+          </div>
+        </>)}
 
         {/* Acciones */}
         <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>

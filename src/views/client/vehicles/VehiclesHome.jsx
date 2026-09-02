@@ -15,6 +15,7 @@ import { has3D } from '../../../components/ui/vehicle3d/models3d';
 import { plateMask } from '../../../lib/inputMasks';
 import { deleteMyVehicle, listMyVehicleStats } from '../../../services/vehicleService';
 import VehicleForm from './VehicleForm';
+import VehicleFuel from './VehicleFuel';
 
 // El visor 3D (three.js) baja SOLO al abrirlo — chunk propio
 const Vehicle3DSheet = lazy(() => import('../../../components/ui/vehicle3d/Vehicle3DSheet.jsx'));
@@ -53,13 +54,14 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
 
   // F6 E2 — telemetría por vehículo (cargas, galones, Q, km/gal, km/día)
   const [stats, setStats] = useState({});
+  const [statsK, setStatsK] = useState(0); // E3a: reasignar en el historial recarga la telemetría
   useEffect(() => {
     let alive = true;
     listMyVehicleStats().then(({ data }) => {
       if (alive && data?.ok) setStats(data.stats || {});
     });
     return () => { alive = false; };
-  }, []);
+  }, [statsK]);
 
   const ink = dark ? '#fff' : '#0D0D0D';
   const sub = dark ? 'rgba(255,255,255,.5)' : '#9E9E9E';
@@ -241,6 +243,20 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
                       <div style={{ display: 'flex', justifyContent: 'center', position: 'relative' }}>
                         <VehicleArt type={veh.vtype} body={bodyKey} color={col} width={350}
                           style={{ maxWidth: '100%', height: 'auto' }} />
+                        {/* E3a: personalización directa sobre la imagen (color/marca/modelo) */}
+                        <button aria-label="Personalizar" onClick={() => setForm({ vehicle: veh, mode: 'look' })} style={{
+                          position: 'absolute', right: 2, top: 2, width: 38, height: 38,
+                          borderRadius: 13, border: 'none', cursor: 'pointer',
+                          background: dark ? 'rgba(255,255,255,.12)' : '#0D0D0D', color: '#fff',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M9 1.8a7.2 7.2 0 1 0 0 14.4c1 0 1.6-.8 1.3-1.7-.3-.8.2-1.7 1.1-1.7h1.9A2.9 2.9 0 0 0 16.2 10 7.6 7.6 0 0 0 9 1.8Z" />
+                            <circle cx="5.6" cy="8" r=".9" fill="currentColor" stroke="none" />
+                            <circle cx="8.7" cy="5.4" r=".9" fill="currentColor" stroke="none" />
+                            <circle cx="12.2" cy="7.2" r=".9" fill="currentColor" stroke="none" />
+                          </svg>
+                        </button>
                         {has3D(bodyKey) && (
                           <button onClick={() => setShow3D({ vehicle: veh, bodyKey })} style={{
                             position: 'absolute', right: 2, bottom: 6, padding: '7px 13px',
@@ -299,10 +315,10 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
 
           {/* ── Acciones del vehículo activo ── */}
           <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
-            <button onClick={() => setForm({ vehicle: v })} style={{
+            <button onClick={() => setForm({ vehicle: v, mode: 'data' })} style={{
               flex: 1.5, padding: 14, borderRadius: 15, border: 'none', cursor: 'pointer',
               background: hp.vehicle, color: '#fff', fontFamily: "'DM Sans'", fontSize: 13.5, fontWeight: 800,
-            }}>Editar y personalizar</button>
+            }}>Datos y ajustes</button>
             <button onClick={armDelete} style={{
               flex: 1, padding: 14, borderRadius: 15, cursor: 'pointer',
               border: delArmed ? 'none' : `1.5px solid ${dark ? 'rgba(255,255,255,.2)' : 'rgba(0,0,0,.15)'}`,
@@ -311,6 +327,13 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
               fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 800,
             }}>{delArmed ? '¿Eliminar?' : 'Eliminar'}</button>
           </div>
+
+          {/* E3a: rendimiento, consumo por mes e historial de cargas con
+              editor de reasignación (cargas mal atribuidas sin conexión) */}
+          <VehicleFuel
+            dark={dark} fire={fire} vehicles={vehicles} vehicle={v}
+            stats={stats} onStatsDirty={() => setStatsK(k => k + 1)}
+          />
 
           {/* Descargo de marcas (F6): las marcas/modelos identifican el
               vehículo del socio; las ilustraciones son propias, sin logos */}
@@ -340,6 +363,7 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
       {form && (
         <VehicleForm
           vehicle={form.vehicle}
+          mode={form.mode || 'full'}
           dark={dark}
           fire={fire}
           onClose={() => setForm(null)}
