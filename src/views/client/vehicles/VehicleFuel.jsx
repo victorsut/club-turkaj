@@ -12,7 +12,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BRAND_ORANGE } from '../../../constants/styles';
 import { VEHICLE_TYPES } from '../../../components/ui/VehicleIcons';
-import { assignPurchaseVehicle, listMyFuelHistory } from '../../../services/vehicleService';
+import { addMyFuelLog, assignPurchaseVehicle, deleteMyFuelLog, listMyFuelHistory } from '../../../services/vehicleService';
 
 const fmtN = (n, d = 1) => (+n).toLocaleString('en-US', { maximumFractionDigits: d });
 const fmtDay = (iso) => new Date(iso).toLocaleDateString('es-GT', { day: 'numeric', month: 'short' });
@@ -29,7 +29,17 @@ export default function VehicleFuel({ dark, fire, vehicles, vehicle, stats, onSt
   const [editingId, setEditingId] = useState(null);
   const [busyId, setBusyId] = useState(null);
   const [showAll, setShowAll] = useState(false);
+  // E3b: registro MANUAL de consumo (cargas fuera de Turkaj)
+  const [reg, setReg] = useState(false);
+  const [rg, setRg] = useState({ gal: '', amt: '', km: '' });
+  const [savingReg, setSavingReg] = useState(false);
+  const [delLogArmed, setDelLogArmed] = useState(null); // id armado para borrar
 
+  const fetchLoads = () => listMyFuelHistory().then(({ data, error }) => {
+    if (error || !data?.ok) { setLoads(false); return; }
+    setLoads(Array.isArray(data.loads) ? data.loads : []);
+    if (data.editable_days) setEditableDays(data.editable_days);
+  });
   useEffect(() => {
     if (preload) return;
     let alive = true;
@@ -123,6 +133,35 @@ export default function VehicleFuel({ dark, fire, vehicles, vehicle, stats, onSt
   const visible = Array.isArray(loads) ? (showAll ? loads : loads.slice(0, 8)) : [];
   const canEdit = (l) => (Date.now() - new Date(l.created_at)) / 86400000 <= editableDays;
 
+  const saveLog = async () => {
+    if (savingReg) return;
+    const gal = parseFloat(rg.gal);
+    if (!(gal > 0)) { fire('Ingresa los galones cargados', 'warn'); return; }
+    const amt = rg.amt === '' ? null : parseFloat(rg.amt);
+    const km = rg.km === '' ? null : parseInt(rg.km, 10);
+    setSavingReg(true);
+    const { data, error } = await addMyFuelLog({ vehicleId: vehicle.id, gallons: gal, amount: amt, km });
+    setSavingReg(false);
+    if (error || !data?.ok) { fire('No se pudo registrar: ' + (error?.message || 'error'), 'error'); return; }
+    setReg(false);
+    setRg({ gal: '', amt: '', km: '' });
+    fire('Consumo registrado', 'success');
+    fetchLoads();
+    onStatsDirty?.();
+  };
+
+  // borrar un registro manual (doble tap — un manual equivocado
+  // envenena la telemetría y debe poder corregirse)
+  const delLog = async (l) => {
+    if (delLogArmed !== l.id) { setDelLogArmed(l.id); setTimeout(() => setDelLogArmed(x => (x === l.id ? null : x)), 2500); return; }
+    setDelLogArmed(null);
+    const { error } = await deleteMyFuelLog(l.id);
+    if (error) { fire('No se pudo borrar: ' + (error.message || 'error'), 'error'); return; }
+    fire('Registro borrado', 'success');
+    fetchLoads();
+    onStatsDirty?.();
+  };
+
   const reassign = async (l, vid) => {
     if (busyId) return;
     setBusyId(l.id);
@@ -170,6 +209,63 @@ export default function VehicleFuel({ dark, fire, vehicles, vehicle, stats, onSt
         </div>
       )}
 
+      {/* E3b: registrar consumo MANUAL (carga fuera de Turkaj) — útil
+          para comparar rendimiento; puede ser llenado PARCIAL (la
+          telemetría nunca asume tanque lleno) */}
+      {!reg ? (
+        <button onClick={() => setReg(true)} style={{
+          width: '100%', marginTop: 10, padding: 13, borderRadius: 15, cursor: 'pointer',
+          border: `1.5px dashed ${dark ? 'rgba(255,255,255,.25)' : 'rgba(0,0,0,.18)'}`,
+          background: 'transparent', color: ink,
+          fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 800,
+        }}>+ Registrar consumo</button>
+      ) : (
+        <div style={{ background: cardBg, borderRadius: 17, padding: '13px 14px', marginTop: 10 }}>
+          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: sub }}>
+            Registrar consumo · {vehName(vehicle.id)}
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+            {[
+              { k: 'gal', label: 'Galones', ph: '8.5', mode: 'decimal' },
+              { k: 'amt', label: 'Precio (Q)', ph: '320', mode: 'decimal' },
+              { k: 'km', label: 'Odómetro', ph: '45900', mode: 'numeric' },
+            ].map(f => (
+              <div key={f.k} style={{ flex: 1 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: sub, marginBottom: 4 }}>{f.label}</div>
+                <input value={rg[f.k]} inputMode={f.mode} placeholder={f.ph}
+                  onChange={e => {
+                    const v = f.mode === 'numeric'
+                      ? e.target.value.replace(/[^0-9]/g, '').slice(0, 7)
+                      : e.target.value.replace(/[^0-9.]/g, '').replace(/(..*)./g, '$1').slice(0, 8);
+                    setRg(prev => ({ ...prev, [f.k]: v }));
+                  }}
+                  style={{
+                    width: '100%', boxSizing: 'border-box', padding: '11px 10px', borderRadius: 12,
+                    border: 'none', background: dark ? 'rgba(255,255,255,.1)' : '#fff', color: ink,
+                    fontFamily: "'JetBrains Mono', monospace", fontSize: 14, fontWeight: 700, outline: 'none',
+                  }} />
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 10.5, color: sub, fontWeight: 600, lineHeight: 1.5, marginTop: 8 }}>
+            No importa si el tanque no quedó lleno: el rendimiento se calcula con TODO el
+            combustible registrado entre tus lecturas de odómetro.
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+            <button onClick={() => { setReg(false); setRg({ gal: '', amt: '', km: '' }); }} disabled={savingReg} style={{
+              flex: 1, padding: 11, borderRadius: 12, border: 'none', cursor: 'pointer',
+              background: dark ? 'rgba(255,255,255,.1)' : '#fff', color: ink,
+              fontFamily: "'DM Sans'", fontSize: 12.5, fontWeight: 700,
+            }}>Cancelar</button>
+            <button onClick={saveLog} disabled={savingReg} style={{
+              flex: 1.4, padding: 11, borderRadius: 12, border: 'none', cursor: 'pointer',
+              background: savingReg ? (dark ? '#3A3A3A' : '#BDBDBD') : BRAND_ORANGE, color: '#fff',
+              fontFamily: "'DM Sans'", fontSize: 12.5, fontWeight: 800,
+            }}>{savingReg ? 'Guardando…' : 'Guardar consumo'}</button>
+          </div>
+        </div>
+      )}
+
       {/* Historial de cargas del miembro + editor de reasignación */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', margin: '18px 0 8px' }}>
         <div style={lbl}>Historial de cargas</div>
@@ -204,7 +300,7 @@ export default function VehicleFuel({ dark, fire, vehicles, vehicle, stats, onSt
                   <span style={{ color: sub, fontWeight: 600 }}> · {fmtN(l.gallons, 2)} gal · Q{fmtN(l.amount, 0)}</span>
                 </div>
                 <div style={{ fontSize: 10.5, color: sub, fontWeight: 600, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {[l.station_name, l.km_reading != null ? `${fmtN(l.km_reading, 0)} km` : null, kmgal ? `${kmgal} km/gal` : null]
+                  {[l.source === 'manual' ? 'Registro manual' : l.station_name, l.km_reading != null ? `${fmtN(l.km_reading, 0)} km` : null, kmgal ? `${kmgal} km/gal` : null]
                     .filter(Boolean).join(' · ') || '—'}
                 </div>
               </div>
@@ -216,7 +312,19 @@ export default function VehicleFuel({ dark, fire, vehicles, vehicle, stats, onSt
                 {dot && <span style={{ width: 8, height: 8, borderRadius: 4, background: dot, flexShrink: 0 }} />}
                 <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name || 'Sin vehículo'}</span>
               </span>
-              {canEdit(l) && vehicles.length > 0 && (
+              {l.source === 'manual' && (
+                <button aria-label="Borrar registro" onClick={() => delLog(l)} style={{
+                  width: 30, height: 30, borderRadius: 10, border: 'none', cursor: 'pointer', flexShrink: 0,
+                  background: delLogArmed === l.id ? '#C62828' : (dark ? 'rgba(255,255,255,.1)' : '#fff'),
+                  color: delLogArmed === l.id ? '#fff' : sub,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+                    <path d="M2.5 4h11M6.5 4V2.5h3V4M4 4l.8 10h6.4L12 4M6.7 7v4.5M9.3 7v4.5" />
+                  </svg>
+                </button>
+              )}
+              {l.source !== 'manual' && canEdit(l) && vehicles.length > 0 && (
                 <button aria-label="Corregir vehículo" onClick={() => setEditingId(open ? null : l.id)} style={{
                   width: 30, height: 30, borderRadius: 10, border: 'none', cursor: 'pointer', flexShrink: 0,
                   background: open ? BRAND_ORANGE : (dark ? 'rgba(255,255,255,.1)' : '#fff'),

@@ -67,6 +67,26 @@ export async function listMyFuelHistory(limit = 40) {
   }, { sessionToken: getMemberToken()?.token ?? null });
 }
 
+// ── F6 E3b: consumos MANUALES (cargas fuera de Turkaj) ───────
+// Completan la telemetría: con llenados parciales el rendimiento
+// solo es correcto si TODO el combustible entre lecturas cuenta.
+export async function addMyFuelLog({ vehicleId, gallons, amount = null, km = null }) {
+  if (!sb) return { data: null, error: { message: 'Sin conexión al servidor' } };
+  return callRpc('add_my_fuel_log', {
+    p_vehicle_id: vehicleId,
+    p_gallons: gallons,
+    p_amount: amount,
+    p_km: km,
+  }, { sessionToken: getMemberToken()?.token ?? null });
+}
+
+export async function deleteMyFuelLog(logId) {
+  if (!sb) return { data: null, error: { message: 'Sin conexión al servidor' } };
+  return callRpc('delete_my_fuel_log', {
+    p_log_id: logId,
+  }, { sessionToken: getMemberToken()?.token ?? null });
+}
+
 // ── Admin: lista de la beta (miembros con nombre + interruptor global) ──
 export async function adminListVehiclesBeta() {
   if (!sb) return { data: null, error: { message: 'Sin conexión al servidor' } };
