@@ -236,27 +236,27 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 10.5, fontWeight: 800, letterSpacing: 1, color: sub, textTransform: 'uppercase' }}>
                           <t.Icon size={15} /> {t.label}
                         </span>
-                        {i === 0 && veh.last_fuel_at && (
-                          <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1, color: '#fff', background: BRAND_ORANGE, borderRadius: 20, padding: '4px 10px' }}>PRINCIPAL</span>
-                        )}
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                          {i === 0 && veh.last_fuel_at && (
+                            <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1, color: '#fff', background: BRAND_ORANGE, borderRadius: 20, padding: '4px 10px' }}>PRINCIPAL</span>
+                          )}
+                          {/* E3a: personalización (color/marca/modelo) — pincel a la
+                              DERECHA de la insignia PRINCIPAL (pedido del dueño) */}
+                          <button aria-label="Personalizar" onClick={() => setForm({ vehicle: veh, mode: 'look' })} style={{
+                            width: 32, height: 32, borderRadius: 11, border: 'none', cursor: 'pointer',
+                            background: dark ? 'rgba(255,255,255,.12)' : '#0D0D0D', color: '#fff',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                          }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M9.06 11.9 17.13 3.84a2.85 2.85 0 1 1 4.03 4.03L13.1 15.93" />
+                              <path d="M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-2.5 1.52-2 2.02 1.08 1.1 2.49 2.02 4 2.02 2.2 0 4-1.8 4-4.04a3.01 3.01 0 0 0-3-3.02Z" />
+                            </svg>
+                          </button>
+                        </span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'center', position: 'relative' }}>
                         <VehicleArt type={veh.vtype} body={bodyKey} color={col} width={350}
                           style={{ maxWidth: '100%', height: 'auto' }} />
-                        {/* E3a: personalización directa sobre la imagen (color/marca/modelo) */}
-                        <button aria-label="Personalizar" onClick={() => setForm({ vehicle: veh, mode: 'look' })} style={{
-                          position: 'absolute', right: 2, top: 2, width: 38, height: 38,
-                          borderRadius: 13, border: 'none', cursor: 'pointer',
-                          background: dark ? 'rgba(255,255,255,.12)' : '#0D0D0D', color: '#fff',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>
-                          <svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M9 1.8a7.2 7.2 0 1 0 0 14.4c1 0 1.6-.8 1.3-1.7-.3-.8.2-1.7 1.1-1.7h1.9A2.9 2.9 0 0 0 16.2 10 7.6 7.6 0 0 0 9 1.8Z" />
-                            <circle cx="5.6" cy="8" r=".9" fill="currentColor" stroke="none" />
-                            <circle cx="8.7" cy="5.4" r=".9" fill="currentColor" stroke="none" />
-                            <circle cx="12.2" cy="7.2" r=".9" fill="currentColor" stroke="none" />
-                          </svg>
-                        </button>
                         {has3D(bodyKey) && (
                           <button onClick={() => setShow3D({ vehicle: veh, bodyKey })} style={{
                             position: 'absolute', right: 2, bottom: 6, padding: '7px 13px',
