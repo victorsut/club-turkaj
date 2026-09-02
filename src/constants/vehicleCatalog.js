@@ -18,7 +18,7 @@ export const VEHICLE_BRANDS = [
     { name: 'Rush', t: ['liviano'] }, { name: 'Corolla Cross', t: ['liviano'] },
     { name: 'Fortuner', t: ['liviano'] }, { name: '4Runner', t: ['liviano'] },
     { name: 'Coaster', t: ['microbus'] },
-    { name: 'Hiace', t: ['camion_ligero', 'microbus'] },
+    { name: 'Hiace', t: ['microbus'] },
   ] },
   { brand: 'Honda', models: [
     { name: 'Civic', t: ['liviano'] }, { name: 'CR-V', t: ['liviano'] },
@@ -35,7 +35,7 @@ export const VEHICLE_BRANDS = [
     { name: 'Sentra', t: ['liviano'] }, { name: 'Versa', t: ['liviano'] },
     { name: 'Frontier', t: ['picop'] }, { name: 'Kicks', t: ['liviano'] },
     { name: 'X-Trail', t: ['liviano'] }, { name: 'March', t: ['liviano'] },
-    { name: 'Urvan', t: ['camion_ligero', 'microbus'] },
+    { name: 'Urvan', t: ['microbus'] },
   ] },
   { brand: 'Mitsubishi', models: [
     { name: 'L200', t: ['picop'] }, { name: 'Montero', t: ['liviano'] },
@@ -54,15 +54,15 @@ export const VEHICLE_BRANDS = [
     { name: 'Accent', t: ['liviano'] }, { name: 'Tucson', t: ['liviano'] },
     { name: 'Santa Fe', t: ['liviano'] }, { name: 'Creta', t: ['liviano'] },
     { name: 'Grand i10', t: ['liviano'] }, { name: 'Kona', t: ['liviano'] },
-    { name: 'H1', t: ['camion_ligero', 'microbus'] },
-    { name: 'Grace', t: ['microbus', 'camion_ligero'] },
+    { name: 'H1', t: ['microbus'] },
+    { name: 'Grace', t: ['microbus'] },
     { name: 'H100', t: ['camion_ligero'] },
   ] },
   { brand: 'Kia', models: [
     { name: 'Rio', t: ['liviano'] }, { name: 'Sportage', t: ['liviano'] },
     { name: 'Picanto', t: ['liviano'] }, { name: 'Sorento', t: ['liviano'] },
     { name: 'Seltos', t: ['liviano'] }, { name: 'Soluto', t: ['liviano'] },
-    { name: 'Pregio', t: ['microbus', 'camion_ligero'] },
+    { name: 'Pregio', t: ['microbus'] },
     { name: 'K2700', t: ['camion_ligero'] },
   ] },
   { brand: 'Chevrolet', models: [
