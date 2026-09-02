@@ -55,11 +55,15 @@ export const VEHICLE_BRANDS = [
     { name: 'Santa Fe', t: ['liviano'] }, { name: 'Creta', t: ['liviano'] },
     { name: 'Grand i10', t: ['liviano'] }, { name: 'Kona', t: ['liviano'] },
     { name: 'H1', t: ['camion_ligero', 'microbus'] },
+    { name: 'Grace', t: ['microbus', 'camion_ligero'] },
+    { name: 'H100', t: ['camion_ligero'] },
   ] },
   { brand: 'Kia', models: [
     { name: 'Rio', t: ['liviano'] }, { name: 'Sportage', t: ['liviano'] },
     { name: 'Picanto', t: ['liviano'] }, { name: 'Sorento', t: ['liviano'] },
     { name: 'Seltos', t: ['liviano'] }, { name: 'Soluto', t: ['liviano'] },
+    { name: 'Pregio', t: ['microbus', 'camion_ligero'] },
+    { name: 'K2700', t: ['camion_ligero'] },
   ] },
   { brand: 'Chevrolet', models: [
     { name: 'Spark', t: ['liviano'] }, { name: 'Aveo', t: ['liviano'] },
@@ -109,7 +113,10 @@ export const VEHICLE_BRANDS = [
     { name: 'Pulsar 125', t: ['moto'] }, { name: 'Pulsar NS160', t: ['moto'] },
     { name: 'Pulsar NS200', t: ['moto'] }, { name: 'Boxer 100', t: ['moto'] },
     { name: 'Boxer 150', t: ['moto'] }, { name: 'CT 100', t: ['moto'] },
-    { name: 'RE', t: ['mototaxi'] },
+    { name: 'RE', t: ['mototaxi'] }, { name: 'Torito', t: ['mototaxi'] },
+  ] },
+  { brand: 'Piaggio', models: [
+    { name: 'Ape', t: ['mototaxi'] },
   ] },
   { brand: 'Italika', models: [
     { name: 'FT125', t: ['moto'] }, { name: 'FT150', t: ['moto'] },
@@ -221,6 +228,18 @@ const MODEL_SPECIFIC = {
   m_r22: ['22r', '22 r'],
   m_hilux: ['hilux'],
   m_tacoma: ['tacoma'],
+  // TANDA 9 (2-sep) — MICRO BUS, MOTO TAXIS y CAMIÓN LIGERO.
+  // m_h100 ANTES que m_h1: "h100" contiene 'h1' y caería en el arte
+  // equivocado; m_ape solo por MARCA ('ape' a secas capturaría Escape).
+  m_grace: ['grace'],
+  m_pregio: ['pregio'],
+  m_urvan: ['urvan'],
+  m_hiace: ['hiace'],
+  m_torito: ['torito', 'bajaj re'],
+  m_ape: ['piaggio'],
+  m_h100: ['h100', 'h 100'],
+  m_h1: ['hyundai h1', 'h1'],
+  m_k2700: ['k2700', 'k 2700', '2700'],
 };
 // Capa 2 — estilo de CARROCERÍA genérico por palabra clave:
 const MODEL_BODY = {

@@ -76,6 +76,16 @@ const LAZY_MODEL_ART = {
   m_r22:       lazyArt(() => import('./R22Art.jsx')),
   m_hilux:     lazyArt(() => import('./HiluxArt.jsx')),
   m_tacoma:    lazyArt(() => import('./TacomaArt.jsx')),
+  // TANDA 9 (2-sep) — MICRO BUS, MOTO TAXIS y CAMIÓN LIGERO
+  m_grace:  lazyArt(() => import('./GraceArt.jsx')),
+  m_h1:     lazyArt(() => import('./H1Art.jsx')),
+  m_pregio: lazyArt(() => import('./PregioArt.jsx')),
+  m_urvan:  lazyArt(() => import('./UrvanArt.jsx')),
+  m_hiace:  lazyArt(() => import('./HiaceArt.jsx')),
+  m_torito: lazyArt(() => import('./ToritoArt.jsx')),
+  m_ape:    lazyArt(() => import('./ApeArt.jsx')),
+  m_h100:   lazyArt(() => import('./H100Art.jsx')),
+  m_k2700:  lazyArt(() => import('./K2700Art.jsx')),
 };
 
 export const VEHICLE_COLORS = [
