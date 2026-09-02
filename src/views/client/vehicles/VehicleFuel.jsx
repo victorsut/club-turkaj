@@ -234,9 +234,13 @@ export default function VehicleFuel({ dark, fire, vehicles, vehicle, stats, onSt
                 <div style={{ fontSize: 10, fontWeight: 700, color: sub, marginBottom: 4 }}>{f.label}</div>
                 <input value={rg[f.k]} inputMode={f.mode} placeholder={f.ph}
                   onChange={e => {
-                    const v = f.mode === 'numeric'
-                      ? e.target.value.replace(/[^0-9]/g, '').slice(0, 7)
-                      : e.target.value.replace(/[^0-9.]/g, '').replace(/(..*)./g, '$1').slice(0, 8);
+                    // decimal: dígitos + UN punto (galones 8.5, precio 319.90)
+                    let v = e.target.value.replace(f.mode === 'numeric' ? /[^0-9]/g : /[^0-9.]/g, '');
+                    if (f.mode !== 'numeric') {
+                      const i = v.indexOf('.');
+                      if (i >= 0) v = v.slice(0, i + 1) + v.slice(i + 1).replace(/\./g, '');
+                    }
+                    v = v.slice(0, f.mode === 'numeric' ? 7 : 8);
                     setRg(prev => ({ ...prev, [f.k]: v }));
                   }}
                   style={{
