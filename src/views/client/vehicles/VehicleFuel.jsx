@@ -14,6 +14,7 @@ import { BRAND_ORANGE } from '../../../constants/styles';
 import { FUEL_LABELS } from '../../../constants/config';
 import { VEHICLE_TYPES } from '../../../components/ui/VehicleIcons';
 import { addMyFuelLog, assignPurchaseVehicle, deleteMyFuelLog, listMyFuelHistory } from '../../../services/vehicleService';
+import { MonthBars, TrendChart } from './VehicleCharts';
 
 const fmtN = (n, d = 1) => (+n).toLocaleString('en-US', { maximumFractionDigits: d });
 const fmtDay = (iso) => new Date(iso).toLocaleDateString('es-GT', { day: 'numeric', month: 'short' });
@@ -106,12 +107,21 @@ export default function VehicleFuel({ dark, fire, vehicles, vehicle, stats, onSt
     for (const l of mine) {
       const d = new Date(l.created_at);
       const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const e = acc.get(k) || { label: fmtMonth(l.created_at), n: 0, gal: 0, amt: 0 };
+      const e = acc.get(k) || {
+        label: fmtMonth(l.created_at),
+        short: new Date(l.created_at).toLocaleDateString('es-GT', { month: 'short' }).replace('.', ''),
+        n: 0, gal: 0, amt: 0,
+      };
       e.n++; e.gal += +l.gallons || 0; e.amt += +l.amount || 0;
       acc.set(k, e);
     }
-    return [...acc.entries()].sort((a, b) => b[0].localeCompare(a[0])).slice(0, 3).map(x => x[1]);
+    return [...acc.entries()].sort((a, b) => b[0].localeCompare(a[0])).slice(0, 6).map(x => x[1]);
   }, [mine]);
+  // E3e: puntos de la gráfica de rendimiento (tramos en orden cronológico)
+  const trendPoints = useMemo(
+    () => [...mine].reverse().filter(l => segKmGal[l.id] != null)
+      .map(l => ({ label: fmtDay(l.created_at), v: segKmGal[l.id] })),
+    [mine, segKmGal]);
 
   const st = vehicle ? stats?.[vehicle.id] : null;
   const galCarga = st?.fuel_count > 0 ? st.total_gallons / st.fuel_count : null;
@@ -218,11 +228,24 @@ export default function VehicleFuel({ dark, fire, vehicles, vehicle, stats, onSt
         ))}
       </div>
 
-      {/* Consumo por mes (vehículo activo) */}
+      {/* E3e: rendimiento por carga — línea de tramos km/gal con el
+          promedio punteado (con ≥2 tramos; tap en un punto = detalle) */}
+      {trendPoints.length >= 2 && (
+        <div style={{ background: cardBg, borderRadius: 17, padding: '12px 14px 8px', marginTop: 10 }}>
+          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: sub, marginBottom: 6 }}>Rendimiento por carga</div>
+          <TrendChart points={trendPoints} avg={trendPoints.reduce((s, p) => s + p.v, 0) / trendPoints.length}
+            dark={dark} ink={ink} sub={sub} surface={dark ? '#2A2A30' : '#F5F5F7'} />
+        </div>
+      )}
+
+      {/* Consumo por mes (vehículo activo) — barras con ≥2 meses
+          (tap en una barra = cargas y galones); con 1 mes, fila simple */}
       {months.length > 0 && (
-        <div style={{ background: cardBg, borderRadius: 17, padding: '12px 14px', marginTop: 10 }}>
+        <div style={{ background: cardBg, borderRadius: 17, padding: '12px 14px 8px', marginTop: 10 }}>
           <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: sub, marginBottom: 8 }}>Consumo por mes</div>
-          {months.map(m => (
+          {months.length >= 2 ? (
+            <MonthBars months={[...months].reverse()} dark={dark} ink={ink} sub={sub} />
+          ) : months.map(m => (
             <div key={m.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '5px 0' }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: ink }}>{m.label}</span>
               <span style={{ fontSize: 12, color: sub, fontWeight: 600 }}>
