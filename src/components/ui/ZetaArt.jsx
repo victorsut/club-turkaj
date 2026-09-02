@@ -21,6 +21,9 @@ export default function ZetaArt({ uid }) {
         <path d={T.xlight} fill="#DDDEE0" fillRule="evenodd" />
         <path d={T.green} fill={`url(#${uid}-body)`} fillRule="evenodd" />
         <path d={T.white} fill="#EDEDED" fillRule="evenodd" />
+        {/* E1.22: puntos de maza (islas que el despeckle fundía) */}
+        <path d={T.hubdot} fill="#8E8F92" fillRule="evenodd" />
+        <path d={T.hubdot2} fill="#DDDDDE" fillRule="evenodd" />
       </g>
     </g>
   );
