@@ -1,8 +1,14 @@
 // src/views/client/vehicles/VehicleForm.jsx
 // F6 Etapa 1 — Sheet de ALTA/EDICIÓN de vehículo con vista previa en
 // VIVO de la ilustración (cambiar tipo o color repinta al instante).
-// Catálogo híbrido D23: marca/modelo con sugerencias (datalist) +
-// entrada libre. La placa usa plateMask (BD guarda crudo P123ABC).
+// Catálogo híbrido D23: marca/modelo con sugerencias + entrada libre.
+// E1.25 (2-sep, pedido del dueño): cambiar de TIPO limpia marca y
+// modelo; la flecha de cada campo abre un desplegable PROPIO con el
+// catálogo completo del tipo (el datalist nativo filtraba por el texto
+// ya escrito y no dejaba re-elegir) — con un modelo exacto elegido se
+// muestra la lista COMPLETA; sin marca, el desplegable de modelo lista
+// "modelo · marca" y elegir uno llena ambos campos.
+// La placa usa plateMask (BD guarda crudo P123ABC).
 // Guarda por save_my_vehicle (sesión de miembro, whitelist server).
 import { useState, useMemo } from 'react';
 import { BRAND_ORANGE } from '../../../constants/styles';
@@ -28,6 +34,7 @@ export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved }) {
     next_service_km: vehicle?.next_service_km != null ? String(vehicle.next_service_km) : '',
   }));
   const [saving, setSaving] = useState(false);
+  const [openSugg, setOpenSugg] = useState(null); // 'brand' | 'model' | null
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
   useBackLayer(true, onClose);
 
@@ -54,6 +61,94 @@ export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved }) {
   // escritura libre sigue permitida (catálogo híbrido D23).
   const brandSugg = useMemo(() => brandsFor(f.vtype), [f.vtype]);
   const modelSugg = useMemo(() => modelsFor(f.brand, f.vtype), [f.brand, f.vtype]);
+
+  // Cambiar de TIPO limpia marca y modelo elegidos (E1.25): las
+  // sugerencias del tipo nuevo ya no corresponden a lo escrito.
+  const changeType = (k) => {
+    if (k === f.vtype) return;
+    setF(p => ({ ...p, vtype: k, brand: '', model: '' }));
+    setOpenSugg(null);
+  };
+
+  // Opciones del desplegable: si el texto actual es EXACTAMENTE una
+  // opción (ya eligió), se muestra la lista COMPLETA para re-elegir;
+  // si está escribiendo, se filtra por lo escrito; sin coincidencias,
+  // lista completa (la escritura libre no se bloquea).
+  const filterOpts = (all, text) => {
+    const t = text.trim().toLowerCase();
+    if (!t || all.some(o => o.v.toLowerCase() === t)) return all;
+    const fil = all.filter(o => o.v.toLowerCase().includes(t));
+    return fil.length ? fil : all;
+  };
+  const brandOpts = useMemo(
+    () => filterOpts(brandSugg.map(b => ({ v: b })), f.brand),
+    [brandSugg, f.brand]);
+  const modelOpts = useMemo(() => {
+    let all;
+    if (f.brand.trim() && modelSugg.length) {
+      all = modelSugg.map(m => ({ v: m }));
+    } else {
+      // sin marca: catálogo completo del tipo — elegir llena AMBOS campos
+      all = [];
+      for (const b of brandsFor(f.vtype)) {
+        for (const m of modelsFor(b, f.vtype)) all.push({ v: m, brand: b });
+      }
+    }
+    return filterOpts(all, f.model);
+  }, [f.brand, f.vtype, f.model, modelSugg]);
+
+  const pickBrand = (o) => {
+    setF(p => ({
+      ...p, brand: o.v,
+      // el modelo elegido se conserva solo si existe en la marca nueva
+      model: modelsFor(o.v, p.vtype).some(m => m.toLowerCase() === p.model.trim().toLowerCase()) ? p.model : '',
+    }));
+    setOpenSugg(null);
+  };
+  const pickModel = (o) => {
+    setF(p => ({ ...p, model: o.v, brand: o.brand || p.brand }));
+    setOpenSugg(null);
+  };
+
+  // ── desplegable propio (campo + flecha) ──
+  const arrowBtn = (open) => ({
+    position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+    width: 34, height: 34, borderRadius: 10, border: 'none', cursor: 'pointer',
+    background: 'transparent', color: open ? BRAND_ORANGE : sub,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+  });
+  const panelSt = {
+    position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 6,
+    maxHeight: 216, overflowY: 'auto', borderRadius: 14, padding: 6, boxSizing: 'border-box',
+    background: dark ? '#232327' : '#fff',
+    border: `1px solid ${dark ? 'rgba(255,255,255,.12)' : 'rgba(0,0,0,.08)'}`,
+    boxShadow: '0 14px 30px rgba(0,0,0,.28)',
+  };
+  const rowSt = (on) => ({
+    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    gap: 10, padding: '11px 12px', borderRadius: 10, border: 'none', cursor: 'pointer',
+    background: on ? (dark ? 'rgba(255,255,255,.09)' : '#F5F5F7') : 'transparent',
+    color: ink, fontFamily: "'DM Sans'", fontSize: 14, fontWeight: on ? 800 : 600, textAlign: 'left',
+  });
+  const Chevron = ({ open }) => (
+    <svg width="16" height="16" viewBox="0 0 16 16" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .18s' }}>
+      <path d="M3.5 6 8 10.5 12.5 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+  const SuggPanel = ({ opts, current, onPick, empty }) => (
+    <div style={panelSt}>
+      {opts.length === 0 && (
+        <div style={{ padding: '11px 12px', color: sub, fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 600 }}>{empty}</div>
+      )}
+      {opts.map(o => (
+        <button key={(o.brand || '') + o.v} onClick={() => onPick(o)}
+          style={rowSt(o.v.toLowerCase() === current.trim().toLowerCase())}>
+          <span>{o.v}</span>
+          {o.brand && <span style={{ color: sub, fontSize: 11.5, fontWeight: 700 }}>{o.brand}</span>}
+        </button>
+      ))}
+    </div>
+  );
 
   const save = async () => {
     if (saving) return;
@@ -114,7 +209,7 @@ export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved }) {
         <label style={lbl}>Tipo de vehículo</label>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {VEHICLE_TYPES.map(t => (
-            <button key={t.k} onClick={() => set('vtype', t.k)} style={{ ...chip(f.vtype === t.k), display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button key={t.k} onClick={() => changeType(t.k)} style={{ ...chip(f.vtype === t.k), display: 'flex', alignItems: 'center', gap: 6 }}>
               <t.Icon size={16} /> {t.label}
             </button>
           ))}
@@ -132,22 +227,39 @@ export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved }) {
           ))}
         </div>
 
-        {/* Marca / modelo / versión (catálogo híbrido D23) */}
+        {/* Marca / modelo / versión — catálogo híbrido D23 con desplegable
+            propio (E1.25): la flecha abre la lista completa del tipo y
+            escribir filtra; la entrada libre sigue permitida. */}
+        {openSugg && <div onClick={() => setOpenSugg(null)} style={{ position: 'fixed', inset: 0, zIndex: 5 }} />}
         <label style={lbl}>Marca</label>
-        <input list="pp-veh-brands" value={f.brand} onChange={e => set('brand', e.target.value)}
-          placeholder={brandSugg.slice(0, 3).join(', ') + '...'} style={input} />
-        <datalist id="pp-veh-brands">
-          {brandSugg.map(b => <option key={b} value={b} />)}
-        </datalist>
+        <div style={{ position: 'relative' }}>
+          <input value={f.brand} onChange={e => set('brand', e.target.value)}
+            onFocus={() => setOpenSugg('brand')}
+            placeholder={brandSugg.slice(0, 3).join(', ') + '...'}
+            style={{ ...input, paddingRight: 44 }} />
+          <button aria-label="Ver marcas" onClick={() => setOpenSugg(openSugg === 'brand' ? null : 'brand')}
+            style={arrowBtn(openSugg === 'brand')}><Chevron open={openSugg === 'brand'} /></button>
+          {openSugg === 'brand' && (
+            <SuggPanel opts={brandOpts} current={f.brand} onPick={pickBrand}
+              empty="Sin sugerencias — escribe la marca" />
+          )}
+        </div>
 
         <div style={{ display: 'flex', gap: 10 }}>
           <div style={{ flex: 1.4 }}>
             <label style={lbl}>Modelo / línea</label>
-            <input list="pp-veh-models" value={f.model} onChange={e => set('model', e.target.value)}
-              placeholder={modelSugg[0] || 'Corolla'} style={input} />
-            <datalist id="pp-veh-models">
-              {modelSugg.map(m => <option key={m} value={m} />)}
-            </datalist>
+            <div style={{ position: 'relative' }}>
+              <input value={f.model} onChange={e => set('model', e.target.value)}
+                onFocus={() => setOpenSugg('model')}
+                placeholder={modelSugg[0] || 'Corolla'}
+                style={{ ...input, paddingRight: 44 }} />
+              <button aria-label="Ver modelos" onClick={() => setOpenSugg(openSugg === 'model' ? null : 'model')}
+                style={arrowBtn(openSugg === 'model')}><Chevron open={openSugg === 'model'} /></button>
+              {openSugg === 'model' && (
+                <SuggPanel opts={modelOpts} current={f.model} onPick={pickModel}
+                  empty="Sin sugerencias — escribe el modelo" />
+              )}
+            </div>
           </div>
           <div style={{ flex: 1 }}>
             <label style={lbl}>Versión / año</label>
