@@ -4,6 +4,7 @@
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "crons": [
-    { "path": "/api/degradation-alerts", "schedule": "0 15 * * *" }
+    { "path": "/api/degradation-alerts", "schedule": "0 15 * * *" },
+    { "path": "/api/vehicle-service-alerts", "schedule": "10 15 * * *" }
   ]
 }

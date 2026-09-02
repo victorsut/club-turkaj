@@ -37,6 +37,8 @@ export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved, mod
     oil_type: vehicle?.oil_type || '',
     next_service: vehicle?.next_service || '',
     next_service_km: vehicle?.next_service_km != null ? String(vehicle.next_service_km) : '',
+    tank_gal: vehicle?.tank_gal != null ? String(vehicle.tank_gal) : '',
+    fuel_pref: vehicle?.fuel_pref || '',
   }));
   const [saving, setSaving] = useState(false);
   const [openSugg, setOpenSugg] = useState(null); // 'brand' | 'model' | null
@@ -171,6 +173,8 @@ export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved, mod
       oil_type: f.oil_type.trim(),
       next_service: f.next_service || null,
       next_service_km: f.next_service_km === '' ? null : parseInt(f.next_service_km, 10),
+      tank_gal: f.tank_gal === '' ? null : parseFloat(f.tank_gal),
+      fuel_pref: f.fuel_pref || null,
     });
     setSaving(false);
     if (error) { fire('Error: ' + (error.message || 'no se pudo guardar'), 'error'); return; }
@@ -329,6 +333,31 @@ export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved, mod
           </div>
           <input value={f.oil_type} onChange={e => set('oil_type', e.target.value)}
             placeholder="O escribe el tuyo (ej. 15W-40 sintético)" style={input} />
+
+          {/* E3d: combustible habitual + capacidad del tanque — el
+              habitual alimenta el detector de cargas mal asignadas y
+              el tanque la autonomía estimada (tanque × km/gal) */}
+          <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ flex: 1.6 }}>
+              <label style={lbl}>Combustible habitual</label>
+              <div style={{ display: 'flex', gap: 7 }}>
+                {[['regular', 'Regular'], ['super', 'Súper'], ['diesel', 'Diésel']].map(([k, label]) => (
+                  <button key={k} onClick={() => set('fuel_pref', f.fuel_pref === k ? '' : k)} style={chip(f.fuel_pref === k)}>{label}</button>
+                ))}
+              </div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={lbl}>Tanque (gal)</label>
+              <input value={f.tank_gal} inputMode="decimal" placeholder="12.5"
+                onChange={e => {
+                  let v = e.target.value.replace(/[^0-9.]/g, '');
+                  const i = v.indexOf('.');
+                  if (i >= 0) v = v.slice(0, i + 1) + v.slice(i + 1).replace(/\./g, '');
+                  set('tank_gal', v.slice(0, 5));
+                }}
+                style={{ ...input, fontFamily: "'JetBrains Mono', monospace" }} />
+            </div>
+          </div>
 
           {/* Próximo servicio — por FECHA o por KILOMETRAJE (o ambos) */}
           <label style={lbl}>Próximo servicio</label>

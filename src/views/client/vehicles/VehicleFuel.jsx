@@ -11,6 +11,7 @@
 // simplemente no aparece (la app no rompe — precedente E2).
 import { useEffect, useMemo, useState } from 'react';
 import { BRAND_ORANGE } from '../../../constants/styles';
+import { FUEL_LABELS } from '../../../constants/config';
 import { VEHICLE_TYPES } from '../../../components/ui/VehicleIcons';
 import { addMyFuelLog, assignPurchaseVehicle, deleteMyFuelLog, listMyFuelHistory } from '../../../services/vehicleService';
 
@@ -34,6 +35,7 @@ export default function VehicleFuel({ dark, fire, vehicles, vehicle, stats, onSt
   const [rg, setRg] = useState({ gal: '', amt: '', km: '' });
   const [savingReg, setSavingReg] = useState(false);
   const [delLogArmed, setDelLogArmed] = useState(null); // id armado para borrar
+  const [histOpen, setHistOpen] = useState(false); // E3d: historial contraído por defecto
 
   const fetchLoads = () => listMyFuelHistory().then(({ data, error }) => {
     if (error || !data?.ok) { setLoads(false); return; }
@@ -121,11 +123,33 @@ export default function VehicleFuel({ dark, fire, vehicles, vehicle, stats, onSt
     return days >= 1 ? Math.round(days / (mine.length - 1)) : null;
   }, [mine]);
 
+  // E3d: TENDENCIA — último tramo km/gal vs el promedio de los tramos
+  // del vehículo (caída ≥10% = aviso: servicio/llantas/presión)
+  const trend = useMemo(() => {
+    const tramos = mine.filter(l => segKmGal[l.id] != null).map(l => segKmGal[l.id]);
+    if (tramos.length < 2) return null;
+    const avg = tramos.reduce((s, v) => s + v, 0) / tramos.length;
+    if (!(avg > 0)) return null;
+    return { pct: Math.round(((tramos[0] - avg) / avg) * 100), last: tramos[0] };
+  }, [mine, segKmGal]);
+  // E3d: costo mensual proyectado y autonomía por tanque
+  const costoMes = costoKm && st?.km_per_day > 0 ? costoKm * st.km_per_day * 30.4 : null;
+  const autonomia = vehicle?.tank_gal > 0 && st?.km_per_gal > 0 ? Math.round(vehicle.tank_gal * st.km_per_gal) : null;
+
   if (loads === false || !vehicle) return null; // migración pendiente o sin vehículo
 
   const insights = [
-    { k: 'kmgal', label: 'Rendimiento', value: st?.km_per_gal ? `${fmtN(st.km_per_gal)} km/gal` : '—', note: st?.km_per_gal ? 'Entre tus lecturas de odómetro' : 'Reporta tu odómetro al calificar' },
+    {
+      k: 'kmgal', label: 'Rendimiento',
+      value: st?.km_per_gal ? `${fmtN(st.km_per_gal)} km/gal` : '—',
+      note: trend
+        ? `${trend.pct >= 0 ? '▲' : '▼'} ${Math.abs(trend.pct)}% vs tu promedio${trend.pct <= -10 ? ' — revisa servicio, llantas o presión' : ''}`
+        : (st?.km_per_gal ? 'Entre tus lecturas de odómetro' : 'Reporta tu odómetro al calificar'),
+      warn: trend ? trend.pct <= -10 : false,
+    },
     { k: 'costo', label: 'Costo por km', value: costoKm ? `Q${fmtN(costoKm, 2)}` : '—', note: costoKm ? `A Q${fmtN(qGal, 2)} el galón` : 'Necesita rendimiento' },
+    { k: 'mes', label: 'Costo mensual', value: costoMes ? `~Q${fmtN(costoMes, 0)}` : '—', note: costoMes ? `A tu ritmo de ${fmtN(st.km_per_day, 0)} km/día` : 'Necesita rendimiento y ritmo' },
+    { k: 'auto', label: 'Autonomía', value: autonomia ? `~${fmtN(autonomia, 0)} km` : '—', note: autonomia ? `Por tanque de ${fmtN(vehicle.tank_gal)} gal` : 'Agrega el tanque en Datos y ajustes' },
     { k: 'galc', label: 'Por carga', value: galCarga ? `${fmtN(galCarga)} gal` : '—', note: galCarga ? `Q${fmtN(st.total_amount / st.fuel_count, 0)} en promedio` : 'Aún sin cargas' },
     { k: 'frec', label: 'Frecuencia', value: frecuencia ? `Cada ${frecuencia} día${frecuencia === 1 ? '' : 's'}` : '—', note: frecuencia ? `${mine.length} cargas recientes` : 'Con 2+ cargas' },
   ];
@@ -188,8 +212,8 @@ export default function VehicleFuel({ dark, fire, vehicles, vehicle, stats, onSt
         {insights.map(t => (
           <div key={t.k} style={{ background: cardBg, borderRadius: 17, padding: '12px 14px' }}>
             <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: sub }}>{t.label}</div>
-            <div style={{ fontSize: 15.5, fontWeight: 800, marginTop: 5, color: ink }}>{t.value}</div>
-            <div style={{ fontSize: 10.5, color: sub, fontWeight: 600, marginTop: 3 }}>{t.note}</div>
+            <div style={{ fontSize: 15.5, fontWeight: 800, marginTop: 5, color: t.warn ? '#E65100' : ink }}>{t.value}</div>
+            <div style={{ fontSize: 10.5, color: t.warn ? '#E65100' : sub, fontWeight: 600, marginTop: 3 }}>{t.note}</div>
           </div>
         ))}
       </div>
@@ -255,6 +279,23 @@ export default function VehicleFuel({ dark, fire, vehicles, vehicle, stats, onSt
             No importa si el tanque no quedó lleno: el rendimiento se calcula con TODO el
             combustible registrado entre tus lecturas de odómetro.
           </div>
+          {/* E3d: guardas SUAVES de calidad de datos (no bloquean) — un
+              dedazo en el odómetro o los galones envenena la telemetría */}
+          {(() => {
+            const kmIn = rg.km === '' ? null : parseInt(rg.km, 10);
+            const galIn = rg.gal === '' ? null : parseFloat(rg.gal);
+            const lastKm = Math.max(vehicle.km || 0, ...mine.filter(l => l.km_reading != null).map(l => l.km_reading));
+            const warns = [];
+            if (kmIn != null && lastKm > 0 && kmIn < lastKm) {
+              warns.push(`Ojo: el odómetro es menor que tu última lectura (${fmtN(lastKm, 0)} km) — revísalo si es un error.`);
+            }
+            if (galIn != null && vehicle.tank_gal > 0 && galIn > vehicle.tank_gal) {
+              warns.push(`Ojo: los galones superan la capacidad de tu tanque (${fmtN(vehicle.tank_gal)} gal).`);
+            }
+            return warns.map(w => (
+              <div key={w} style={{ fontSize: 10.5, color: '#E65100', fontWeight: 700, lineHeight: 1.5, marginTop: 6 }}>{w}</div>
+            ));
+          })()}
           <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
             <button onClick={() => { setReg(false); setRg({ gal: '', amt: '', km: '' }); }} disabled={savingReg} style={{
               flex: 1, padding: 11, borderRadius: 12, border: 'none', cursor: 'pointer',
@@ -270,10 +311,20 @@ export default function VehicleFuel({ dark, fire, vehicles, vehicle, stats, onSt
         </div>
       )}
 
-      {/* Historial de cargas del miembro + editor de reasignación */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', margin: '18px 0 8px' }}>
-        <div style={lbl}>Historial de cargas</div>
-        {Array.isArray(loads) && loads.length > 8 && (
+      {/* Historial de cargas del miembro + editor de reasignación.
+          E3d: CONTRAÍDO por defecto (pedido del dueño — la vista del
+          vehículo se saturaba); el encabezado despliega/contrae */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '18px 0 8px' }}>
+        <button onClick={() => setHistOpen(o => !o)} style={{
+          border: 'none', background: 'transparent', cursor: 'pointer', padding: 0,
+          display: 'inline-flex', alignItems: 'center', gap: 7,
+        }}>
+          <span style={lbl}>Historial de cargas{Array.isArray(loads) && loads.length > 0 ? ` (${loads.length})` : ''}</span>
+          <svg width="13" height="13" viewBox="0 0 16 16" style={{ color: sub, transform: histOpen ? 'rotate(180deg)' : 'none', transition: 'transform .18s' }}>
+            <path d="M3.5 6 8 10.5 12.5 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        {histOpen && Array.isArray(loads) && loads.length > 8 && (
           <button onClick={() => setShowAll(s => !s)} style={{
             border: 'none', background: 'transparent', cursor: 'pointer', padding: 0,
             color: BRAND_ORANGE, fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 800,
@@ -290,7 +341,7 @@ export default function VehicleFuel({ dark, fire, vehicles, vehicle, stats, onSt
         </div>
       )}
 
-      {visible.map(l => {
+      {histOpen && visible.map(l => {
         const name = l.vehicle_id ? vehName(l.vehicle_id) : null;
         const dot = vehById[l.vehicle_id]?.color;
         const kmgal = segKmGal[l.id];
@@ -306,6 +357,12 @@ export default function VehicleFuel({ dark, fire, vehicles, vehicle, stats, onSt
                 <div style={{ fontSize: 10.5, color: sub, fontWeight: 600, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {[l.source === 'manual' ? 'Registro manual' : l.station_name, l.km_reading != null ? `${fmtN(l.km_reading, 0)} km` : null, kmgal ? `${kmgal} km/gal` : null]
                     .filter(Boolean).join(' · ') || '—'}
+                  {/* E3d: combustible DISTINTO al habitual del vehículo
+                      asignado = probable carga mal asignada */}
+                  {l.source !== 'manual' && l.fuel_type && vehById[l.vehicle_id]?.fuel_pref
+                    && l.fuel_type !== vehById[l.vehicle_id].fuel_pref && (
+                    <span style={{ color: '#E65100', fontWeight: 700 }}> · {FUEL_LABELS[l.fuel_type] || l.fuel_type} ≠ su habitual, ¿de otro vehículo?</span>
+                  )}
                 </div>
               </div>
               <span style={{
@@ -362,7 +419,7 @@ export default function VehicleFuel({ dark, fire, vehicles, vehicle, stats, onSt
         );
       })}
 
-      {Array.isArray(loads) && loads.length > 0 && (
+      {histOpen && Array.isArray(loads) && loads.length > 0 && (
         <div style={{ fontSize: 10.5, color: sub, fontWeight: 600, lineHeight: 1.5, marginTop: 4 }}>
           ¿Una carga quedó en el vehículo equivocado? Tócale el lápiz y corrígela
           (hasta {editableDays} días — pasa cuando calificas sin conexión).

@@ -229,6 +229,18 @@ export default function OpRatingModal({
                     fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 700,
                   }}
                 />
+                {/* E3d: guarda SUAVE — lectura menor que la conocida del
+                    vehículo elegido = probable dedazo (no bloquea) */}
+                {(() => {
+                  const sel = (vehOpts || []).find(x => x.id === vehSel);
+                  const kmIn = /^\d{1,7}$/.test(kmText.trim()) ? parseInt(kmText.trim(), 10) : null;
+                  if (kmIn == null || !(sel?.km > 0) || kmIn >= sel.km) return null;
+                  return (
+                    <div style={{ fontSize: 10.5, color: '#E65100', fontWeight: 700, marginTop: 5, lineHeight: 1.4 }}>
+                      Ojo: es menor que la última lectura de este vehículo ({sel.km.toLocaleString('en-US')} km) — revísala si es un error.
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
