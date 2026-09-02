@@ -80,8 +80,10 @@ export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved }) {
     const fil = all.filter(o => o.v.toLowerCase().includes(t));
     return fil.length ? fil : all;
   };
+  // E1.26: opciones SIEMPRE en orden alfabético (pedido del dueño)
+  const abc = (a, b) => a.v.localeCompare(b.v, 'es') || (a.brand || '').localeCompare(b.brand || '', 'es');
   const brandOpts = useMemo(
-    () => filterOpts(brandSugg.map(b => ({ v: b })), f.brand),
+    () => filterOpts(brandSugg.map(b => ({ v: b })).sort(abc), f.brand),
     [brandSugg, f.brand]);
   const modelOpts = useMemo(() => {
     let all;
@@ -94,7 +96,7 @@ export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved }) {
         for (const m of modelsFor(b, f.vtype)) all.push({ v: m, brand: b });
       }
     }
-    return filterOpts(all, f.model);
+    return filterOpts(all.sort(abc), f.model);
   }, [f.brand, f.vtype, f.model, modelSugg]);
 
   const pickBrand = (o) => {

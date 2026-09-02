@@ -42,7 +42,7 @@ const daysUntil = (d) => {
 };
 
 export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
-  const { cTier, dark, fire, setCScr } = ctx;
+  const { cTier, dark, fire } = ctx;
   const hp = homeColors(cTier.name);
   const [idx, setIdx] = useState(0);
   const [form, setForm] = useState(null);          // null | { vehicle|null }
@@ -321,11 +321,8 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
         </>
       )}
 
-      <button onClick={() => setCScr('home')} style={{
-        display: 'block', margin: '26px auto 0', padding: '12px 28px', borderRadius: 14, border: 'none',
-        background: dark ? 'rgba(255,255,255,.1)' : '#EDEDEF', color: ink,
-        fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 800, cursor: 'pointer',
-      }}>Volver al inicio</button>
+      {/* E1.26: sin botón "Volver al inicio" (pedido del dueño) — la
+          vista es pestaña de la barra inferior y el regreso vive ahí */}
 
       {/* Visor 3D (chunk perezoso de three.js) */}
       {show3D && (

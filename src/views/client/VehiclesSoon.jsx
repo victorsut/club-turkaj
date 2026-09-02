@@ -19,7 +19,7 @@ import LogoSpinner from '../../components/ui/LogoSpinner';
 const VehiclesHome = lazy(() => import('./vehicles/VehiclesHome'));
 
 export default function VehiclesSoon(ctx) {
-  const { cTier, setCScr, me, dark } = ctx;
+  const { cTier, me, dark } = ctx;
 
   // ── Compuerta de la beta F6 ──
   const [beta, setBeta] = useState(false);
@@ -101,13 +101,8 @@ export default function VehiclesSoon(ctx) {
         </div>
       )}
 
-      <button onClick={() => setCScr('home')} style={{
-        marginTop: 28, padding: '12px 28px', borderRadius: 14, border: 'none',
-        background: dark ? 'rgba(255,255,255,.1)' : '#0D0D0D', color: '#fff',
-        fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 800, cursor: 'pointer',
-      }}>
-        Volver al inicio
-      </button>
+      {/* E1.26: sin botón "Volver al inicio" (pedido del dueño) — la
+          vista es pestaña de la barra inferior y el regreso vive ahí */}
     </div>
   );
 }
