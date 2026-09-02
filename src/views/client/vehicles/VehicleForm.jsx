@@ -229,7 +229,7 @@ export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved, mod
 
           {/* Color */}
           <label style={lbl}>Color</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9, alignItems: 'center' }}>
             {VEHICLE_COLORS.map(c => (
               <button key={c} onClick={() => set('color', c)} aria-label={`Color ${c}`} style={{
                 width: 34, height: 34, borderRadius: 12, background: c, cursor: 'pointer',
@@ -237,6 +237,27 @@ export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved, mod
                 boxSizing: 'border-box',
               }} />
             ))}
+            {/* E3c (pedido del dueño): color PERSONALIZADO — selector del
+                sistema; si el color actual no es de los 12, esta ficha lo
+                muestra seleccionado */}
+            {(() => {
+              const isCustom = !VEHICLE_COLORS.some(c => c.toLowerCase() === (f.color || '').toLowerCase());
+              return (
+                <label aria-label="Color personalizado" style={{
+                  width: 34, height: 34, borderRadius: 12, cursor: 'pointer', boxSizing: 'border-box',
+                  border: isCustom ? `3px solid ${BRAND_ORANGE}` : `1px solid ${dark ? 'rgba(255,255,255,.2)' : 'rgba(0,0,0,.12)'}`,
+                  background: isCustom ? f.color
+                    : 'conic-gradient(#E53935, #FB8C00, #FDD835, #43A047, #00ACC1, #1E88E5, #8E24AA, #E53935)',
+                  position: 'relative', overflow: 'hidden', display: 'inline-block',
+                }}>
+                  <input type="color" value={f.color} onChange={e => set('color', e.target.value)}
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', border: 'none', padding: 0 }} />
+                </label>
+              );
+            })()}
+          </div>
+          <div style={{ fontSize: 10.5, color: sub, fontWeight: 600, marginTop: 6 }}>
+            La ficha multicolor abre el selector para elegir cualquier tono.
           </div>
 
           {/* Marca / modelo / versión — catálogo híbrido D23 con desplegable

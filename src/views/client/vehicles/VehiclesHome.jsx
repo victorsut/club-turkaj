@@ -222,8 +222,11 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
                   <div key={veh.id || i} style={{ minWidth: '100%', boxSizing: 'border-box' }}>
                     <div style={{
                       position: 'relative', borderRadius: 22, padding: '18px 16px 12px',
-                      background: dark ? 'rgba(255,255,255,.06)' : '#FFFFFF',
-                      border: dark ? '1px solid rgba(255,255,255,.08)' : '1px solid rgba(0,0,0,.06)',
+                      // E3c: en claro, MISMO fondo que los cuadros de información
+                      // (la tarjeta blanca sobre fondo blanco cortaba el resplandor
+                      // del color contra un borde invisible — referencia del dueño)
+                      background: dark ? 'rgba(255,255,255,.06)' : '#F5F5F7',
+                      border: dark ? '1px solid rgba(255,255,255,.08)' : '1px solid rgba(0,0,0,.05)',
                       overflow: 'hidden',
                     }}>
                       {/* resplandor del color del vehículo */}
