@@ -75,6 +75,27 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
     setVehicleFocus?.(null);
   }, [vehicleFocus?.at, vehicles.length]);
 
+  // ── la INFORMACIÓN entra en la dirección del cambio (3-sep): los
+  // cuadros de datos, escalonados, y la sección de combustible, sin
+  // remontar nada (Web Animations API sobre los nodos vivos).
+  const tilesRef = useRef(null);
+  const fuelRef = useRef(null);
+  const firstIdx = useRef(true);
+  useEffect(() => {
+    if (firstIdx.current) { firstIdx.current = false; return; }
+    const from = `${dirRef.current * 28}px`;
+    const ease = 'cubic-bezier(.32,1.2,.4,1)';
+    const kids = tilesRef.current ? [...tilesRef.current.children] : [];
+    kids.forEach((el, i) => el.animate(
+      [{ opacity: 0, transform: `translateX(${from}) scale(.96)` }, { opacity: 1, transform: 'none' }],
+      { duration: 380, delay: i * 45, easing: ease, fill: 'backwards' },
+    ));
+    fuelRef.current?.animate(
+      [{ opacity: 0, transform: `translateX(${from})` }, { opacity: 1, transform: 'none' }],
+      { duration: 420, delay: 120, easing: ease, fill: 'backwards' },
+    );
+  }, [idx]);
+
   const ink = dark ? '#fff' : '#0D0D0D';
   const sub = dark ? 'rgba(255,255,255,.5)' : '#9E9E9E';
   const cardBg = dark ? 'rgba(255,255,255,.07)' : '#F5F5F7';
@@ -82,15 +103,45 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
   const v = vehicles[idx] || null;
   const typeInfo = (k) => VEHICLE_TYPES.find(t => t.k === k) || VEHICLE_TYPES[7];
 
-  // ── swipe del carrusel (mismo patrón de PromoBentoTile) ──
-  const onTouchStart = (e) => { touch.current = e.touches[0].clientX; };
-  const onTouchEnd = (e) => {
-    if (touch.current == null) return;
-    const dx = e.changedTouches[0].clientX - touch.current;
-    touch.current = null;
-    if (Math.abs(dx) < 50) return;
-    setIdx(i => Math.max(0, Math.min(vehicles.length - 1, i + (dx < 0 ? 1 : -1))));
+  // ── carrusel: sigue al DEDO (3-sep) y encaja con rebote suave ──
+  // touch = { x0, y0, t0, axis: null|'x'|'y', dx }. El contenedor lleva
+  // touch-action: pan-y: el navegador se queda el scroll vertical y el
+  // gesto horizontal es nuestro; el eje se decide tras 8 px.
+  const track = useRef(null);
+  const dirRef = useRef(1); // +1 = siguiente (entra desde la derecha)
+  const setTrack = (dxPx, animate) => {
+    const el = track.current; if (!el) return;
+    el.style.transition = animate ? 'transform .42s cubic-bezier(.32,1.2,.4,1)' : 'none';
+    el.style.transform = `translateX(calc(${-idx * 100}% + ${dxPx}px))`;
   };
+  const onTouchStart = (e) => {
+    touch.current = { x0: e.touches[0].clientX, y0: e.touches[0].clientY, t0: Date.now(), axis: null, dx: 0 };
+  };
+  const onTouchMove = (e) => {
+    const t = touch.current; if (!t) return;
+    const dx = e.touches[0].clientX - t.x0, dy = e.touches[0].clientY - t.y0;
+    if (!t.axis) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      t.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+    }
+    if (t.axis !== 'x') return;
+    // resistencia en los extremos (no hay más vehículos hacia ese lado)
+    const atEdge = (dx > 0 && idx === 0) || (dx < 0 && idx === vehicles.length - 1);
+    t.dx = atEdge ? dx * 0.35 : dx;
+    setTrack(t.dx, false);
+  };
+  const onTouchEnd = () => {
+    const t = touch.current; touch.current = null;
+    if (!t || t.axis !== 'x') return;
+    const v = Math.abs(t.dx) / Math.max(1, Date.now() - t.t0); // px/ms
+    const go = (Math.abs(t.dx) > 60 || (Math.abs(t.dx) > 20 && v > 0.5)) ? (t.dx < 0 ? 1 : -1) : 0;
+    const next = Math.max(0, Math.min(vehicles.length - 1, idx + go));
+    if (next === idx) { setTrack(0, true); return; }
+    dirRef.current = go;
+    setIdx(next);
+  };
+  // al cambiar idx (swipe, puntos o foco) el carril encaja animado
+  useEffect(() => { setTrack(0, true); }, [idx]);
 
   const onSaved = (saved) => {
     setForm(null);
@@ -208,18 +259,24 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
       ) : (
         <>
           {/* ── Carrusel héroe con swipe ── */}
-          <div onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
-            style={{ overflow: 'hidden', borderRadius: 22, margin: '10px 0 4px' }}>
-            <div style={{
-              display: 'flex', transition: 'transform .32s cubic-bezier(.25,.8,.35,1)',
-              transform: `translateX(-${idx * 100}%)`,
+          <div onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onTouchCancel={onTouchEnd}
+            style={{ overflow: 'hidden', borderRadius: 22, margin: '10px 0 4px', touchAction: 'pan-y' }}>
+            <div ref={track} style={{
+              display: 'flex', willChange: 'transform',
+              transform: `translateX(${-idx * 100}%)`,
             }}>
               {vehicles.map((veh, i) => {
                 const t = typeInfo(veh.vtype);
                 const col = veh.color || '#9E9E9E';
                 const bodyKey = bodyFor(veh.vtype, veh.model, veh.brand);
                 return (
-                  <div key={veh.id || i} style={{ minWidth: '100%', boxSizing: 'border-box' }}>
+                  <div key={veh.id || i} style={{
+                    /* activa a escala completa; vecinas atrás y atenuadas */
+                    minWidth: '100%', boxSizing: 'border-box',
+                    transform: i === idx ? 'scale(1)' : 'scale(.93)',
+                    opacity: i === idx ? 1 : .55,
+                    transition: 'transform .42s cubic-bezier(.32,1.2,.4,1), opacity .35s ease',
+                  }}>
                     <div style={{
                       position: 'relative', borderRadius: 22, padding: '18px 16px 12px',
                       // E3c: en claro, MISMO fondo que los cuadros de información
@@ -295,7 +352,7 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
           {vehicles.length > 1 && (
             <div style={{ display: 'flex', justifyContent: 'center', gap: 6, margin: '10px 0 2px' }}>
               {vehicles.map((_, i) => (
-                <button key={i} onClick={() => setIdx(i)} aria-label={`Vehículo ${i + 1}`} style={{
+                <button key={i} onClick={() => { dirRef.current = i > idx ? 1 : -1; setIdx(i); }} aria-label={`Vehículo ${i + 1}`} style={{
                   width: i === idx ? 20 : 7, height: 7, borderRadius: 4, border: 'none', padding: 0, cursor: 'pointer',
                   background: i === idx ? BRAND_ORANGE : (dark ? 'rgba(255,255,255,.25)' : '#D5D5D8'),
                   transition: 'width .25s ease',
@@ -305,7 +362,7 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
           )}
 
           {/* ── Datos relevantes ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12 }}>
+          <div ref={tilesRef} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12 }}>
             {tiles.map(tl => (
               <div key={tl.k} style={{ background: cardBg, borderRadius: 17, padding: '13px 14px' }}>
                 <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: sub }}>{tl.label}</div>
@@ -345,10 +402,12 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
 
           {/* E3a: rendimiento, consumo por mes e historial de cargas con
               editor de reasignación (cargas mal atribuidas sin conexión) */}
-          <VehicleFuel
-            dark={dark} fire={fire} vehicles={vehicles} vehicle={v}
-            stats={stats} onStatsDirty={() => setStatsK(k => k + 1)}
-          />
+          <div ref={fuelRef}>
+            <VehicleFuel
+              dark={dark} fire={fire} vehicles={vehicles} vehicle={v}
+              stats={stats} onStatsDirty={() => setStatsK(k => k + 1)}
+            />
+          </div>
 
           {/* Descargo de marcas (F6): las marcas/modelos identifican el
               vehículo del socio; las ilustraciones son propias, sin logos */}

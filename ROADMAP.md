@@ -1953,6 +1953,12 @@ al 3-sep y las migraciones ejecutadas en producción:
   no se puede deshacer" + botón rojo); hojas de personalizar, datos y servicio
   sobre `BottomSheet` nuevo con apertura/cierre animados, arrastre hacia abajo
   para cerrar y tap fuera.
+- **Animación al cambiar de vehículo (3-sep, tarde):** el carrusel de artes
+  sigue al dedo (touch-action pan-y, resistencia en los extremos, encaje con
+  rebote), la tarjeta activa a escala completa y las vecinas atrás y
+  atenuadas; los cuadros de información entran escalonados en la dirección
+  del cambio y la sección de combustible los sigue (Web Animations API, sin
+  remontar componentes).
 - **Regla operativa nueva (§0.3):** el ROADMAP se sincroniza en el mismo commit
   en que se cierra una etapa — este documento llevaba 19 días desfasado.
 - **Restante de desarrollo:** ≈15-30 hs (rollout + flecos D22/D4/D24 + go-live)
