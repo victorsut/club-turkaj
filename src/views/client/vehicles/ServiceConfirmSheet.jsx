@@ -10,7 +10,7 @@
 import { useState } from 'react';
 import { BRAND_ORANGE } from '../../../constants/styles';
 import { confirmMyVehicleService } from '../../../services/vehicleService';
-import useBackLayer from '../../../hooks/useBackLayer';
+import BottomSheet from '../../../components/ui/BottomSheet';
 
 const todayISO = () => {
   const d = new Date();
@@ -34,7 +34,6 @@ const fmtDate = (iso) => {
 const fmtKm = (km) => `${Number(km).toLocaleString('en-US')} km`;
 
 export default function ServiceConfirmSheet({ vehicle: v, dark, fire, onClose, onSaved }) {
-  useBackLayer(true, onClose);
   const [step, setStep] = useState('ask');
   const [saving, setSaving] = useState(false);
 
@@ -63,7 +62,6 @@ export default function ServiceConfirmSheet({ vehicle: v, dark, fire, onClose, o
     : kmLeft != null ? `Faltan ${fmtKm(kmLeft)} para la meta de ${fmtKm(v.next_service_km)}`
     : v.next_service ? `Programado para ${fmtDate(v.next_service)}` : 'Sin programar';
 
-  const bg = dark ? '#141417' : '#fff';
   const ink = dark ? '#fff' : '#0D0D0D';
   const sub = dark ? 'rgba(255,255,255,.5)' : '#9E9E9E';
   const fieldBg = dark ? 'rgba(255,255,255,.08)' : '#F5F5F7';
@@ -80,7 +78,7 @@ export default function ServiceConfirmSheet({ vehicle: v, dark, fire, onClose, o
     fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 800,
   });
 
-  const save = async () => {
+  const save = async (close) => {
     if (saving) return;
     if (!f.done_on || f.done_on > today) { fire('La fecha del servicio no puede ser futura', 'warn'); return; }
     const km = f.km === '' ? null : parseInt(f.km, 10);
@@ -97,20 +95,12 @@ export default function ServiceConfirmSheet({ vehicle: v, dark, fire, onClose, o
     const nxt = data.vehicle.next_service ? fmtDate(data.vehicle.next_service)
       : `${fmtKm(data.vehicle.next_service_km)}`;
     fire(`Servicio registrado · próximo: ${nxt}`, 'success');
-    onSaved(data.vehicle);
+    close(() => onSaved(data.vehicle));
   };
 
   return (
-    <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,.55)',
-      backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-    }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        width: '100%', maxWidth: 480, maxHeight: '92vh', overflowY: 'auto',
-        background: bg, borderRadius: '24px 24px 0 0', padding: '18px 20px 28px',
-        boxSizing: 'border-box', animation: 'slideUp .28s ease-out',
-      }}>
-        <div style={{ width: 44, height: 5, borderRadius: 3, background: dark ? 'rgba(255,255,255,.2)' : '#E0E0E0', margin: '0 auto 14px' }} />
+    <BottomSheet dark={dark} onClose={onClose}>
+      {(close) => (<>
         <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 2, color: BRAND_ORANGE, textTransform: 'uppercase' }}>Servicio</div>
         <div style={{ fontSize: 19, fontWeight: 900, color: ink, marginTop: 2 }}>{name}</div>
         <div style={{ fontSize: 12.5, color: '#E65100', fontWeight: 700, marginTop: 6 }}>{status}</div>
@@ -127,7 +117,7 @@ export default function ServiceConfirmSheet({ vehicle: v, dark, fire, onClose, o
             recordando hasta que lo confirmes.
           </div>
           <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
-            <button onClick={onClose} style={btn(false)}>Aún no</button>
+            <button onClick={() => close()} style={btn(false)}>Aún no</button>
             <button onClick={() => setStep('form')} style={btn(true)}>Sí, ya lo hice</button>
           </div>
         </>) : (<>
@@ -168,12 +158,12 @@ export default function ServiceConfirmSheet({ vehicle: v, dark, fire, onClose, o
 
           <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
             <button onClick={() => setStep('ask')} disabled={saving} style={btn(false)}>Atrás</button>
-            <button onClick={save} disabled={saving} style={{ ...btn(true), background: saving ? (dark ? '#3A3A3A' : '#BDBDBD') : BRAND_ORANGE }}>
+            <button onClick={() => save(close)} disabled={saving} style={{ ...btn(true), background: saving ? (dark ? '#3A3A3A' : '#BDBDBD') : BRAND_ORANGE }}>
               {saving ? 'Guardando...' : 'Guardar servicio'}
             </button>
           </div>
         </>)}
-      </div>
-    </div>
+      </>)}
+    </BottomSheet>
   );
 }

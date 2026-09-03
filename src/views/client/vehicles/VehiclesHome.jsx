@@ -13,7 +13,7 @@ import VehicleArt from '../../../components/ui/VehicleArt';
 import { bodyFor } from '../../../constants/vehicleCatalog';
 import { has3D } from '../../../components/ui/vehicle3d/models3d';
 import { plateMask } from '../../../lib/inputMasks';
-import { deleteMyVehicle, listMyVehicleStats } from '../../../services/vehicleService';
+import { listMyVehicleStats } from '../../../services/vehicleService';
 import VehicleForm from './VehicleForm';
 import VehicleFuel from './VehicleFuel';
 import ServiceConfirmSheet from './ServiceConfirmSheet';
@@ -50,8 +50,6 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
   const [form, setForm] = useState(null);          // null | { vehicle|null }
   const [confirm, setConfirm] = useState(null);    // E4: null | { vehicle }
   const [show3D, setShow3D] = useState(null);      // null | { vehicle, bodyKey }
-  const [delArmed, setDelArmed] = useState(false); // doble tap de eliminar
-  const delTimer = useRef(null);
   const touch = useRef(null);
 
   // F6 E2 — telemetría por vehículo (cargas, galones, Q, km/gal, km/día)
@@ -73,7 +71,6 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
     const i = vehicles.findIndex(x => x.id === vehicleFocus.vehicleId);
     const target = i >= 0 ? i : 0;
     setIdx(target);
-    setDelArmed(false);
     if (vehicleFocus.confirm) setConfirm({ vehicle: vehicles[target] });
     setVehicleFocus?.(null);
   }, [vehicleFocus?.at, vehicles.length]);
@@ -92,7 +89,6 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
     const dx = e.changedTouches[0].clientX - touch.current;
     touch.current = null;
     if (Math.abs(dx) < 50) return;
-    setDelArmed(false);
     setIdx(i => Math.max(0, Math.min(vehicles.length - 1, i + (dx < 0 ? 1 : -1))));
   };
 
@@ -106,27 +102,12 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
     });
   };
 
-  const armDelete = async () => {
-    if (!v) return;
-    if (!delArmed) {
-      setDelArmed(true);
-      clearTimeout(delTimer.current);
-      delTimer.current = setTimeout(() => setDelArmed(false), 2500);
-      return;
-    }
-    clearTimeout(delTimer.current);
-    setDelArmed(false);
-    const gone = v;
-    // Optimista: desaparece al instante, el server confirma detrás
+  // 3-sep: la eliminación vive en Datos y ajustes (zona de riesgo con
+  // confirmación); el servidor ya borró cuando llega aquí.
+  const onDeleted = (gone) => {
+    setForm(null);
     setVehicles(prev => prev.filter(x => x.id !== gone.id));
-    setIdx(i => Math.max(0, i - (idx >= vehicles.length - 1 ? 1 : 0)));
-    const { error } = await deleteMyVehicle(gone.id);
-    if (error) {
-      fire('No se pudo eliminar: ' + (error.message || 'error'), 'error');
-      setVehicles(prev => [...prev, gone]);
-    } else {
-      fire('Vehículo eliminado', 'success');
-    }
+    setIdx(i => Math.max(0, Math.min(i, vehicles.length - 2)));
   };
 
   // ── Próximo servicio: por FECHA, por KM o ambos (E1.1) — se muestra
@@ -314,7 +295,7 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
           {vehicles.length > 1 && (
             <div style={{ display: 'flex', justifyContent: 'center', gap: 6, margin: '10px 0 2px' }}>
               {vehicles.map((_, i) => (
-                <button key={i} onClick={() => { setIdx(i); setDelArmed(false); }} aria-label={`Vehículo ${i + 1}`} style={{
+                <button key={i} onClick={() => setIdx(i)} aria-label={`Vehículo ${i + 1}`} style={{
                   width: i === idx ? 20 : 7, height: 7, borderRadius: 4, border: 'none', padding: 0, cursor: 'pointer',
                   background: i === idx ? BRAND_ORANGE : (dark ? 'rgba(255,255,255,.25)' : '#D5D5D8'),
                   transition: 'width .25s ease',
@@ -357,16 +338,9 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
           {/* ── Acciones del vehículo activo ── */}
           <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
             <button onClick={() => setForm({ vehicle: v, mode: 'data' })} style={{
-              flex: 1.5, padding: 14, borderRadius: 15, border: 'none', cursor: 'pointer',
+              flex: 1, padding: 14, borderRadius: 15, border: 'none', cursor: 'pointer',
               background: hp.vehicle, color: '#fff', fontFamily: "'DM Sans'", fontSize: 13.5, fontWeight: 800,
             }}>Datos y ajustes</button>
-            <button onClick={armDelete} style={{
-              flex: 1, padding: 14, borderRadius: 15, cursor: 'pointer',
-              border: delArmed ? 'none' : `1.5px solid ${dark ? 'rgba(255,255,255,.2)' : 'rgba(0,0,0,.15)'}`,
-              background: delArmed ? '#C62828' : 'transparent',
-              color: delArmed ? '#fff' : sub,
-              fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 800,
-            }}>{delArmed ? '¿Eliminar?' : 'Eliminar'}</button>
           </div>
 
           {/* E3a: rendimiento, consumo por mes e historial de cargas con
@@ -420,6 +394,7 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
           fire={fire}
           onClose={() => setForm(null)}
           onSaved={onSaved}
+          onDeleted={onDeleted}
         />
       )}
     </div>

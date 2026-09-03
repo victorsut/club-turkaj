@@ -16,13 +16,16 @@ import { VEHICLE_TYPES } from '../../../components/ui/VehicleIcons';
 import VehicleArt, { VEHICLE_COLORS } from '../../../components/ui/VehicleArt';
 import { OIL_TYPES, brandsFor, modelsFor, bodyFor } from '../../../constants/vehicleCatalog';
 import { plateMask } from '../../../lib/inputMasks';
-import { saveMyVehicle } from '../../../services/vehicleService';
-import useBackLayer from '../../../hooks/useBackLayer';
+import { saveMyVehicle, deleteMyVehicle } from '../../../services/vehicleService';
+import BottomSheet from '../../../components/ui/BottomSheet';
 
 // mode (E1.27): 'full' = alta completa · 'look' = solo personalización
 // (tipo, color, marca, modelo, versión — con vista previa) · 'data' =
 // solo datos puntuales (placa, km, aceite, próximo servicio).
-export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved, mode = 'full' }) {
+// onDeleted (3-sep): la ELIMINACIÓN vive aquí, en Datos y ajustes, dentro
+// de una zona de riesgo con confirmación explícita (pedido del dueño: que
+// no se borre por accidente) — ya no hay botón suelto en la vista.
+export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved, onDeleted, mode = 'full' }) {
   const editing = !!vehicle?.id;
   const showLook = mode !== 'data';
   const showData = mode !== 'look';
@@ -43,7 +46,10 @@ export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved, mod
   const [saving, setSaving] = useState(false);
   const [openSugg, setOpenSugg] = useState(null); // 'brand' | 'model' | null
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
-  useBackLayer(true, onClose);
+  // zona de riesgo: 0 = cerrada · 1 = abierta (aviso + casilla + botón rojo)
+  const [delStep, setDelStep] = useState(0);
+  const [delAck, setDelAck] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // ── superficies según modo (FORMATO GENERAL) ──
   const bg = dark ? '#141417' : '#fff';
@@ -159,7 +165,17 @@ export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved, mod
     </div>
   );
 
-  const save = async () => {
+  const removeVehicle = async (close) => {
+    if (deleting || !delAck || !vehicle?.id) return;
+    setDeleting(true);
+    const { error } = await deleteMyVehicle(vehicle.id);
+    setDeleting(false);
+    if (error) { fire('No se pudo eliminar: ' + (error.message || 'error'), 'error'); return; }
+    fire('Vehículo eliminado', 'success');
+    close(() => onDeleted?.(vehicle));
+  };
+
+  const save = async (close) => {
     if (saving) return;
     const rawPlate = plateMask.clean(f.plate);
     if (rawPlate && rawPlate.length !== 7) { fire('La placa debe estar completa (L 123 ABC) o vacía', 'warn'); return; }
@@ -179,20 +195,14 @@ export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved, mod
     setSaving(false);
     if (error) { fire('Error: ' + (error.message || 'no se pudo guardar'), 'error'); return; }
     fire(editing ? 'Vehículo actualizado' : 'Vehículo agregado', 'success');
-    onSaved(data.vehicle);
+    close(() => onSaved(data.vehicle));
   };
 
+  const vName = [vehicle?.brand, vehicle?.model].filter(Boolean).join(' ') || 'este vehículo';
+
   return (
-    <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,.55)',
-      backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-    }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        width: '100%', maxWidth: 480, maxHeight: '92vh', overflowY: 'auto',
-        background: bg, borderRadius: '24px 24px 0 0', padding: '18px 20px 28px',
-        boxSizing: 'border-box', animation: 'slideUp .28s ease-out',
-      }}>
-        <div style={{ width: 44, height: 5, borderRadius: 3, background: dark ? 'rgba(255,255,255,.2)' : '#E0E0E0', margin: '0 auto 14px' }} />
+    <BottomSheet dark={dark} onClose={onClose}>
+      {(close) => (<>
         <div style={{ fontSize: 19, fontWeight: 900, color: ink }}>
           {mode === 'look' ? 'Personalizar vehículo'
             : mode === 'data' ? 'Datos y ajustes'
@@ -379,17 +389,60 @@ export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved, mod
 
         {/* Acciones */}
         <div style={{ display: 'flex', gap: 10, marginTop: 22 }}>
-          <button onClick={onClose} disabled={saving} style={{
+          <button onClick={() => close()} disabled={saving} style={{
             flex: 1, padding: 15, borderRadius: 15, border: 'none', cursor: 'pointer',
             background: fieldBg, color: ink, fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 700,
           }}>Cancelar</button>
-          <button onClick={save} disabled={saving} style={{
+          <button onClick={() => save(close)} disabled={saving} style={{
             flex: 1.6, padding: 15, borderRadius: 15, border: 'none', cursor: 'pointer',
             background: saving ? (dark ? '#3A3A3A' : '#BDBDBD') : BRAND_ORANGE, color: '#fff',
             fontFamily: "'DM Sans'", fontSize: 14, fontWeight: 800,
           }}>{saving ? 'Guardando...' : editing ? 'Guardar cambios' : 'Agregar vehículo'}</button>
         </div>
-      </div>
-    </div>
+
+        {/* Zona de riesgo (solo al editar datos): eliminar con confirmación explícita */}
+        {editing && showData && (
+          <div style={{
+            marginTop: 26, padding: '14px 16px', borderRadius: 16,
+            border: '1.5px solid rgba(198,40,40,.35)', background: dark ? 'rgba(198,40,40,.08)' : '#FFF5F5',
+          }}>
+            <div style={{ fontSize: 10.5, fontWeight: 900, letterSpacing: 1.5, color: '#C62828', textTransform: 'uppercase' }}>Zona de riesgo</div>
+            {delStep === 0 ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 8 }}>
+                <div style={{ fontSize: 12, color: sub, lineHeight: 1.5 }}>Eliminar {vName} borra sus datos y su historial de servicios. No se puede deshacer.</div>
+                <button onClick={() => { setDelStep(1); setDelAck(false); }} style={{
+                  flexShrink: 0, padding: '10px 14px', borderRadius: 12, cursor: 'pointer',
+                  border: '1.5px solid #C62828', background: 'transparent', color: '#C62828',
+                  fontFamily: "'DM Sans'", fontSize: 12.5, fontWeight: 800,
+                }}>Eliminar…</button>
+              </div>
+            ) : (
+              <div style={{ marginTop: 8 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: ink }}>¿Eliminar {vName}?</div>
+                <div style={{ fontSize: 12, color: sub, lineHeight: 1.5, marginTop: 4 }}>
+                  Se borrarán su kilometraje, aceite, servicios y telemetría. Sus cargas de combustible quedarán sin vehículo asignado. Esta acción no se puede deshacer.
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12, cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: ink }}>
+                  <input type="checkbox" checked={delAck} onChange={e => setDelAck(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#C62828' }} />
+                  Entiendo que no se puede deshacer
+                </label>
+                <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+                  <button onClick={() => setDelStep(0)} disabled={deleting} style={{
+                    flex: 1, padding: 12, borderRadius: 13, border: 'none', cursor: 'pointer',
+                    background: fieldBg, color: ink, fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700,
+                  }}>Conservar</button>
+                  <button onClick={() => removeVehicle(close)} disabled={!delAck || deleting} style={{
+                    flex: 1.4, padding: 12, borderRadius: 13, border: 'none',
+                    cursor: delAck ? 'pointer' : 'not-allowed',
+                    background: delAck ? '#C62828' : (dark ? 'rgba(198,40,40,.25)' : '#F3B8B8'), color: '#fff',
+                    fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 800,
+                  }}>{deleting ? 'Eliminando...' : 'Sí, eliminar'}</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </>)}
+    </BottomSheet>
   );
 }

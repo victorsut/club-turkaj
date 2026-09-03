@@ -1948,6 +1948,11 @@ al 3-sep y las migraciones ejecutadas en producción:
   VehiclesHome y `/assets/` excluido del rewrite SPA (404 limpio en vez de
   HTML). La "pantalla negra de verificación" que vio el dueño es el Security
   Checkpoint de Vercel (rutina de la plataforma, no de la app).
+- **Pulido de Vehículos (3-sep, tarde):** Eliminar sale de la vista y pasa a
+  una ZONA DE RIESGO dentro de Datos y ajustes (aviso + casilla "Entiendo que
+  no se puede deshacer" + botón rojo); hojas de personalizar, datos y servicio
+  sobre `BottomSheet` nuevo con apertura/cierre animados, arrastre hacia abajo
+  para cerrar y tap fuera.
 - **Regla operativa nueva (§0.3):** el ROADMAP se sincroniza en el mismo commit
   en que se cierra una etapa — este documento llevaba 19 días desfasado.
 - **Restante de desarrollo:** ≈15-30 hs (rollout + flecos D22/D4/D24 + go-live)
