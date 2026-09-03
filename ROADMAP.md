@@ -1,9 +1,10 @@
 # Puntos Plus — Roadmap de Producto
 
-> **Versión:** 4.0
+> **Versión:** 4.1
 > **Fecha de creación:** 17 de mayo de 2026
-> **Última actualización:** 15 de agosto de 2026
+> **Última actualización:** 3 de septiembre de 2026
 > **Estado:** Vivo (este documento evoluciona con el proyecto)
+> **Alcance v4.1:** **F6 VEHÍCULOS CERRADA EN CÓDIGO** (15-ago → 3-sep-2026, verificada contra commits y migraciones): entidad + beta controlada, 50 artes por modelo, combustible y telemetría, consumos manuales, análisis y gráficas, push de servicio D24 con confirmación (E4), unificación jsonb→tabla (E2b) y retiro de Mi cuenta → Vehículos. Queda el **ROLLOUT** (encender `vehicles_beta.enabled`) en manos del dueño. Regla nueva (§0.3): cada cierre de etapa se refleja aquí el mismo día.
 > **Alcance v4.0:** **RECONCILIACIÓN CON LA REALIDAD DEL REPO** (verificada contra código y migraciones el 15-ago-2026). Desde v3.0 se CERRARON: SEC-lite, **SEC.C completo** (C.1–C.6), **F7a** (API PROPER, `docs/API-PROPER.md`), **F1**, **F2 incluida PROMO-2** (lavados por consumo + beneficio recurrente mensual) y **F5 en código** (OTP de registro implementado con interruptor apagado hasta Twilio). **F4/F7b quedan EN PAUSA** por decisión del dueño (11-ago: tarjeta SOLO digital). La única fase grande de desarrollo restante es **F6 (Vehículos)**; F9 quedó parcialmente cubierta por el grupo Análisis del admin. Se agrega el track operativo **TIENDAS/LANZAMIENTO** (Play/App Store + checklist de go-live). Este documento sigue siendo el PLAN MAESTRO ÚNICO (producto + seguridad).
 > **Alcance v3.0 (histórico):** re-planificación Nivel 2 — marca "Puntos Plus" (D30); F3 disuelta en R1a + track R1b; F7 dividida en F7a/F7b; nueva PROMO-1; SEC-lite slotteada; FB cerrada (D36).
 
@@ -31,6 +32,8 @@ Este documento debe actualizarse cuando:
 - Aparece deuda técnica nueva (apéndice B).
 
 La regla de oro: **si tomaste una decisión que afecta el roadmap, escribíla acá. No confíes en tu memoria a 6 meses.**
+
+**Regla operativa (3-sep-2026, pedido del dueño):** el ROADMAP se sincroniza EN EL MISMO COMMIT (o el inmediato) en que se cierra una etapa, se ejecuta una migración o se toma una decisión — no en reconciliaciones mensuales. Como mínimo se tocan: la fila de la fase en §4.1, el bloque de detalle en §5 y el Changelog.
 
 ---
 
@@ -213,6 +216,7 @@ Esta sección documenta las decisiones tomadas durante las conversaciones de pla
 ### D24 — Alertas push de servicios con umbrales globales
 **Decisión:** alertas de servicios pendientes con umbrales configurados globalmente por admin. Cliente puede silenciar alertas por vehículo individualmente.
 **Motivo:** simplicidad operativa.
+**Implementación (v4.1, 2→3-sep-2026):** umbrales FIJOS en código (por fecha: avisos a 7/3/1/0 días y vencido cada 7 días; por kilometraje: al cruzar los 500 km restantes y al pasarse, cada 14 días), sin silencio por vehículo; la alerta se apaga al CONFIRMAR el servicio desde la propia notificación (E4). Umbrales editables por admin y silencio por vehículo quedan como fleco post-rollout.
 
 ### D25 — App nativa: decisión técnica diferida
 **Decisión:** la migración a app nativa para iOS y Android es candidato post-roadmap.
@@ -359,14 +363,14 @@ Mover el `useState(checkingPhone)` al tope del componente con los otros useState
 | 8 | F4 | Tarjeta física + extensiones operador | 50-70 hs | Media | ⏸️ **EN PAUSA** (decisión del dueño 11-ago: tarjeta SOLO DIGITAL; la física es deseo a futuro que podría descartarse). Esquema listo (`physical_cards` con seed inactivo reversible) — NO implementar sin pedido explícito |
 | 9 | F7b | Endpoints `/physical-members` (completa contrato PROPER) | 8-12 hs | Media | ⏸️ **EN PAUSA** (depende de F4) |
 | 10 | F5 | Features faltantes (WhatsApp+SMS, password, dirección) | 56-73 hs | Media | ✅ **CERRADA EN CÓDIGO** (8-ago, mig `20260808c`) — OTP al registrar implementado (Twilio Verify + `/api/verify-phone` + `phone_verifications`; interruptor `phone_verification` APAGADO hasta configurar `TWILIO_*` en Vercel); dirección estructurada ✓ (`AddressPicker` + `geoGt.js`); confirmación de compra de boletos ✓ (sheet en ClientRaffle). Recuperación de password RESUELTA por decisión del dueño (14-ago): vía chat de WhatsApp — NO SMS/correo. PENDIENTE OPERATIVO: credenciales Twilio + encender el interruptor |
-| 11 | F6 | Vehículos como entidad + alertas push | 72-93 hs | Media | 📋 **Pendiente — la única fase grande de desarrollo restante** (la pestaña Vehículos sigue en PRÓXIMAMENTE) |
+| 11 | F6 | Vehículos como entidad + alertas push | 72-93 hs | Media | ✅ **CERRADA EN CÓDIGO** (15-ago → 3-sep, v4.1; migs `20260815_f6e1/b`, `20260819_f6e2`, `20260902/b/c`, `20260903/b/c`) — entidad `vehicles` + BETA controlada, 50 artes por modelo (E1), combustible y telemetría (E2), análisis, consumos manuales, gráficas y push de servicio D24 (E3), confirmación de servicio desde la notificación (E4), unificación jsonb→tabla (E2b) y retiro de Mi cuenta → Vehículos. 🟡 **ROLLOUT PENDIENTE del dueño:** encender `vehicles_beta.enabled` en Admin → Configuración y luego retirar el placeholder PRÓXIMAMENTE |
 | 12 | F8 | Spike Club Business | 1 sem | Baja | Pendiente |
 | 13 | F9 | Reportería enriquecida (opcional) | 40-55 hs | Opcional | 🟡 **PARCIAL** — el grupo Análisis del admin (13-ago: AnClientes/AnOperadores/AnPromos/AnIntegridad con RPCs `report_*`, integridad auditada; sin método de pago — solo Q total) cubre el grueso; el resto queda opcional |
 | — | **TIENDAS** | **Track operativo nuevo (v4.0):** publicación en Play Store (TWA/PWABuilder + `assetlinks.json`) y App Store (Sign in with Apple + push APNs, decisiones del dueño 14-ago) — checklist en `docs/TIENDAS.md` | 15-25 hs + gestiones | Alta | 🟡 **PREPARADO** (14-ago: manifest completo, privacidad/eliminación corregidas, iconos 192). BLOQUEADO por cuentas del dueño (Play Console + Apple Developer) + capturas 1080×1920 + cuenta demo |
-| — | **GO-LIVE** | **Checklist de lanzamiento:** encender motor de degradación (`set_degradation_enabled` — el contador de todos arranca en cero), encender `phone_verification` (con Twilio), verificación general | 4-8 hs | Alta | 📋 Pendiente (los interruptores están apagados A PROPÓSITO hasta el lanzamiento oficial) |
+| — | **GO-LIVE** | **Checklist de lanzamiento:** rollout de Vehículos (`vehicles_beta.enabled`, v4.1), encender motor de degradación (`set_degradation_enabled` — el contador de todos arranca en cero), encender `phone_verification` (con Twilio), revocar la API key "Pruebas" de PROPER, verificación general | 4-8 hs | Alta | 📋 Pendiente (los interruptores están apagados A PROPÓSITO hasta el lanzamiento oficial) |
 | ∥ | **R1b** | **Track paralelo: rediseño visual iterativo por vistas** (Home → Promociones → Historiales → Menú → Canjes/Rifa) | 75-110 hs | Alta | 🔛 ACTIVO — **R1b.1 Home ✅ CERRADA** (17-jul, `4972e1d`→`dd50f30`, validada por el dueño: bento adaptable, cuadrados fijos Promos/Vehículo, degradados+iconos SVG, historiales con períodos derivados de datos + libro mayor de puntos, container transform con tinte de continuidad). **R1b.2 Promociones ✅ CERRADA** (18-jul, `dbe2ffd`→`6adb57c`, validada por el dueño) — cards verticales 3:4 en grid de 2 (vista PROMOCIONES con chips), 1:1 en el home (carrusel arrastrable, tap → vista); imagen 900×1200 como FONDO completo con textos encima (saltos de línea manuales, color por bloque via `text_colors` jsonb), preview admin a tamaño real; bucket promo-images solo-service-role + `/api/upload-promo-image`. **Actualización v4.0 (15-ago):** desde entonces el track cerró TODAS las vistas base del cliente — Menú (23-jul), modo claro/oscuro completo (24-jul), paleta por nivel + BLACK galaxia (23-jul→14-ago), Historiales con filtros por tipo + paginado (11-ago), Admin v2 con shell lateral y lienzo ancho (4→6-ago), divisiones <500 líneas de App/ClientHome/Settings/AdminDash (12→15-ago), code splitting por rol (cliente 354 kB, 14-ago) y **splash de entrada con monedas PP 3D** según referencia "idea intro" (15-ago). El track sigue ACTIVO para correcciones visuales puntuales según referencias |
 
-**Total restante estimado (v4.0):** ≈95-135 hs de desarrollo (F6 72-93 + flecos D22/D4 + go-live) + F8 (1 sem, baja) + F9 opcional restante + gestiones externas del dueño (PROPER, Twilio, Play/Apple). El estimado v3.0 de 550-750 hs quedó ejecutado en ~80% entre el 17-jul y el 15-ago.
+**Total restante estimado (v4.1):** ≈15-30 hs de desarrollo (rollout de F6 + flecos D22/D4/D24 + go-live) + F8 (1 sem, baja) + F9 opcional restante + gestiones externas del dueño (PROPER, Twilio, Play/Apple). F6 (72-93 hs estimadas) se ejecutó entre el 15-ago y el 3-sep; el plan v3.0 de 550-750 hs queda ejecutado en ~95%.
 
 > **Nota v3.0:** este orden ES la re-planificación (Nivel 2) que v2.4/v2.5
 > difirieron. F3 ya no existe como fase monolítica: se disuelve en R1a + track
@@ -1101,12 +1105,55 @@ Vistas base del track R1b rediseñadas + gestiones Twilio/WhatsApp completadas.
 
 Sin cambios respecto a v2.1. Ver versiones anteriores del documento para detalle si hace falta consultarlas.
 
-- **F6 — Vehículos como entidad + alertas push:** 72-93 hs. **📋 PENDIENTE — la
-  única fase grande de desarrollo restante (v4.0).** La pestaña Vehículos sigue
-  como placeholder PRÓXIMAMENTE; hoy los vehículos viven como jsonb en
-  `members.vehicles` (wizard + Mi Cuenta). Alcance vigente: entidad propia,
-  catálogo híbrido (D23), tracking de servicios y alertas push por umbrales
-  globales (D24).
+- **F6 — Vehículos como entidad + alertas push:** 72-93 hs. **✅ CERRADA EN CÓDIGO
+  (15-ago → 3-sep-2026, v4.1) · 🟡 ROLLOUT PENDIENTE del dueño.** Ejecutada en
+  etapas, cada una validada por el dueño en su celular:
+  - **E1 (15-ago, migs `20260815_f6e1` + `20260815b`):** tabla `vehicles` cerrada
+    a la API abierta (RPCs `list/save/delete_my_vehicle` con sesión), ventana
+    real `VehiclesHome` en BETA CONTROLADA (`program_config.vehicles_beta` +
+    tabla `vehicles_beta`, gestión en Admin → Configuración), catálogo híbrido
+    D23 filtrado por tipo con desplegables propios, servicio por FECHA o
+    KILOMETRAJE (E1.1), descargo legal de marcas (22-ago, `c54b720`). **Arte
+    por modelo (E1.3 → E1.26, 15-ago → 2-sep):** 50 ilustraciones SVG calcadas
+    de referencias propias (19 motos, autos livianos, SUV, picops, microbuses,
+    moto taxis, camiones ligeros), recoloreables por el socio (12 colores +
+    color libre), lazy chunk por modelo; el pipeline de calco (trazadores,
+    generador de componentes, comparador ref-vs-arte y analizador de manchas)
+    vive en `tools/artes/` desde el 3-sep. Visor 3D (three.js) EN PAUSA.
+  - **E2 (19-ago, mig `20260819_f6e2`):** combustible + telemetría — selector
+    de vehículo y odómetro en el modal de calificación, auto-asignación por
+    trigger (`purchases.vehicle_id`/`km_reading`), km/gal y km/día por
+    vehículo. Validado con compras reales el 3-sep.
+  - **E3 (2-sep, migs `20260902`, `20260902b`, `20260902c`):** análisis de
+    combustible (rendimiento por tramo, costo por km, consumo por mes,
+    historial con editor de reasignación a 30 días), consumos MANUALES fuera
+    de Turkaj con llenados parciales (`vehicle_fuel_logs`, solo telemetría —
+    cero puntos), pincel/datos como ediciones separadas, tendencia del
+    rendimiento, costo mensual, tanque → autonomía, combustible habitual →
+    detector de cargas ajenas, guardas suaves de odómetro/tanque, gráficas
+    SVG puras (VehicleCharts) y **alertas push de servicio D24** (RPC
+    `list_vehicle_service_alerts` solo service_role + cron
+    `api/vehicle-service-alerts` 09:10 GT, patrón degradation-alerts).
+  - **E4 (3-sep, mig `20260903_f6e4`):** confirmación de servicio desde la
+    notificación (deep-link `/?goto=vehiculo`, NOTIFICATION_CLICK e inbox →
+    `ServiceConfirmSheet`: fecha, km y próximo servicio con el intervalo
+    anterior propuesto), botón en la vista cuando el servicio está en época,
+    recordatorios SIN techo hasta confirmar (`last_service`/`last_service_km`).
+  - **E2b (3-sep, migs `20260903b` + `20260903c`):** la tabla es la única
+    fuente de verdad; `members.vehicles`/`plate` = espejo por trigger
+    (`trg_vehicles_mirror`); los escritores legados del jsonb (wizard, admin)
+    se reconcilian por placa (`trg_members_sync_vehicles`). **Mi cuenta →
+    Vehículos RETIRADO (E2b.1):** toda la gestión vive en la pestaña. ⚠️
+    Incidente: el backfill de `20260903b` borró 2 vehículos de la beta por
+    reconciliar desde un jsonb desactualizado antes de espejar; reparado en
+    `20260903c` (vehículos recreados, compras re-ligadas, regla de borrado
+    endurecida) — ver Apéndice B.
+  - **PENDIENTE:** (1) **rollout** — encender `vehicles_beta.enabled` (Admin →
+    Configuración) y después retirar el placeholder `VehiclesSoon` montando
+    `VehiclesHome` directo; (2) flecos de D24: umbrales editables por admin y
+    silencio por vehículo (hoy fijos 7 días / 500 km); (3) benchmark anónimo
+    de rendimiento entre socios (idea del dueño 2-sep, a futuro); (4) afinar
+    las artes Pulsar/CGL/DR (restos sub-visibles a escala de tarjeta).
 - **F8 — Spike Club Business:** 1 semana. Pendiente (baja).
 - **F9 — Reportería enriquecida (opcional):** 40-55 hs. **🟡 PARCIAL (v4.0):**
   el grupo **Análisis** del admin (13-ago) cubrió el grueso — 4 vistas de
@@ -1722,6 +1769,9 @@ quedó **RESUELTO** aparte (commit `5270f98`).
 
 | Item | Severidad | Cuándo |
 |---|---|---|
+| **Incidente 3-sep (F6 E2b):** el backfill de `20260903b` reconcilió la tabla `vehicles` desde un `members.vehicles` desactualizado ANTES de espejar y borró 2 vehículos de la beta (Hero Eco Deluxe de Ezer M. con 3 compras re-ligadas; Hero Eco 100 de Fernando M.). Reparado en `20260903c`; color/km/aceite/próximo servicio de ambos NO recuperables (reingreso por el socio). LECCIÓN: en toda unificación, espejar primero y NUNCA borrar filas con datos propios desde una fuente legada | Alta (cerrado) | ✅ 3-sep-2026 |
+| `ESTADO-PROYECTO.md` desactualizado (última actualización junio 2026: "57 archivos", stack sin F6/PROPER/push) — reconciliar con el repo | Baja | Próxima sesión documental |
+| Placeholder `VehiclesSoon` + compuerta de beta en `list_my_vehicles` quedarán muertos tras el rollout de F6 — retirar y montar `VehiclesHome` directo | Baja | Tras encender `vehicles_beta.enabled` |
 | `App.jsx` con 1591 líneas (medido junio 2026) — refactor a componentes más pequeños | Media | F3 |
 | Credenciales de admins NO migradas a BD | Media | F1 |
 | `OpRedeem.jsx` sin cablear al nuevo flujo de QR | Alta | F2 |
@@ -1867,6 +1917,35 @@ Cambios mayores van en commits separados con mensaje `docs: actualizar ROADMAP �
 ---
 
 ## Changelog
+
+### Versión 4.1 — 3 de septiembre de 2026
+
+**F6 Vehículos cerrada en código** — verificada contra los commits del 15-ago
+al 3-sep y las migraciones ejecutadas en producción:
+
+- **F6 E1 (15-ago → 2-sep):** entidad `vehicles` con BETA controlada, catálogo
+  híbrido D23, servicio por fecha o km, descargo legal de marcas y **50 artes
+  SVG por modelo** calcadas de referencias propias (pipeline en `tools/artes/`).
+- **F6 E2 (19-ago):** combustible + telemetría (selector y odómetro al calificar,
+  auto-asignación por trigger, km/gal, km/día).
+- **F6 E3 (2-sep):** análisis de combustible, consumos manuales, gráficas y
+  **push de servicio D24** (cron diario). D24 implementado con umbrales FIJOS
+  (7 días / 500 km) y sin silencio por vehículo — anotado como fleco.
+- **F6 E4 (3-sep):** confirmación de servicio desde la notificación; los
+  recordatorios siguen hasta confirmar.
+- **F6 E2b (3-sep):** unificación — la tabla es la verdad, el jsonb legado es
+  espejo por trigger; **Mi cuenta → Vehículos retirado** (decisión del dueño:
+  toda la gestión en la pestaña). Incidente del backfill (2 vehículos borrados)
+  reparado el mismo día en `20260903c` (Apéndice B).
+- **Validaciones del dueño (3-sep):** telemetría, selector con compras reales
+  y E4 — "todo funciona bien".
+- **GO-LIVE** suma el rollout de Vehículos y la revocación de la API key
+  "Pruebas" de PROPER.
+- **Regla operativa nueva (§0.3):** el ROADMAP se sincroniza en el mismo commit
+  en que se cierra una etapa — este documento llevaba 19 días desfasado.
+- **Restante de desarrollo:** ≈15-30 hs (rollout + flecos D22/D4/D24 + go-live)
+  + F8 (baja) + F9 opcional + gestiones externas. `ESTADO-PROYECTO.md` sigue
+  en su versión de junio (deuda documental, Apéndice B).
 
 ### Versión 4.0 — 15 de agosto de 2026
 
