@@ -1,4 +1,4 @@
-﻿{
+{
   "permissions": {
     "deny": [
       "mcp__supabase__apply_migration",
@@ -14,5 +14,8 @@
       "mcp__vercel__import-claude-design-from-url",
       "mcp__vercel__get_access_to_vercel_url"
     ]
+  },
+  "enabledPlugins": {
+    "ui-ux-pro-max@ui-ux-pro-max-skill": true
   }
 }
