@@ -4,7 +4,8 @@
 // y biometría. CANDADOS 8-ago-2026 (pedido del dueño): el TELÉFONO solo
 // cambia con verificación OTP (PhoneChangeSection) y el NIT cada 2 meses
 // (candado server-side en update_my_profile — aquí solo se refleja).
-// Vehículos extraídos a VehiclesSection (límite de 500 líneas).
+// Vehículos: desde el 3-sep-2026 (F6 E2b) toda la gestión vive en la
+// pestaña VEHÍCULOS — la sección de Mi cuenta se retiró (pedido del dueño).
 import { useState, useEffect } from 'react';
 import { sb } from '../../../lib/supabaseClient';
 import { inputFlat, btnStyle, bento, BRAND_ORANGE } from '../../../constants/styles';
@@ -20,7 +21,6 @@ import { SectionHeader } from './menuUi';
 import AvatarEditor from './AvatarEditor';
 import DeleteAccountSection from './DeleteAccountSection';
 import PhoneChangeSection from './PhoneChangeSection';
-import VehiclesSection from './VehiclesSection';
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 // Fecha legible desde 'YYYY-MM-DD' (completa) o 'MM-DD' (registros viejos)
@@ -322,9 +322,6 @@ export default function MenuAccount({ ctx, TH, onBack }) {
       <button onClick={saveAccount} disabled={saving} style={{ ...btnPrimary, marginBottom: 28, opacity: saving ? .7 : 1 }}>
         {saving ? 'Guardando...' : 'Guardar cambios'}
       </button>
-
-      {/* ── Vehículos (extraídos a su propio componente, 8-ago) ── */}
-      <VehiclesSection ctx={{ me, setMe, fire, sbConnected }} TH={TH} />
 
       {/* ── Contraseña ── */}
       <button onClick={() => setShowPassSec(p => !p)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderRadius: 16, border: 'none', background: TH.surface, fontFamily: "'DM Sans'", cursor: 'pointer', marginBottom: showPassSec ? 12 : 0, textAlign: 'left' }}>
