@@ -87,6 +87,21 @@ export async function deleteMyFuelLog(logId) {
   }, { sessionToken: getMemberToken()?.token ?? null });
 }
 
+// ── F6 E4: CONFIRMAR servicio realizado + programar el próximo ──
+// Estampa last_service/last_service_km, avanza el odómetro si la
+// lectura es mayor y fija next_service / next_service_km (al menos
+// uno) — con eso las alertas del cron se cortan solas.
+export async function confirmMyVehicleService({ vehicleId, doneOn, km = null, nextService = null, nextServiceKm = null }) {
+  if (!sb) return { data: null, error: { message: 'Sin conexión al servidor' } };
+  return callRpc('confirm_my_vehicle_service', {
+    p_vehicle_id: vehicleId,
+    p_done_on: doneOn,
+    p_km: km,
+    p_next_service: nextService,
+    p_next_service_km: nextServiceKm,
+  }, { sessionToken: getMemberToken()?.token ?? null });
+}
+
 // ── Admin: lista de la beta (miembros con nombre + interruptor global) ──
 export async function adminListVehiclesBeta() {
   if (!sb) return { data: null, error: { message: 'Sin conexión al servidor' } };

@@ -34,7 +34,7 @@ export default function ClientHome(ctx) {
     showSurveys, setShowSurveys, fire,
     pendingOpRating, setPendingOpRating, sbConnected,
     activityLog, redeemedList,
-    setCScr, setNavOrigin, dark, chosenDark,
+    setCScr, setNavOrigin, dark, chosenDark, setVehicleFocus,
     myNotifs, markNotifsRead, clearNotifs, rewardQrCloseSignal } = ctx;
 
   // FIX (11-ago): el guard va ANTES de todos los hooks (Rules of Hooks).
@@ -311,6 +311,15 @@ export default function ClientHome(ctx) {
           clearNotifs={clearNotifs}
           tierName={cTier.name}
           dark={dark}
+          onNavigate={(n) => {
+            // F6 E4: aviso de servicio → Vehículos, en ese vehículo,
+            // con la confirmación abierta (mismo destino que el push)
+            if (n.type === 'vehiculo_servicio') {
+              setShowNotifs(null);
+              setVehicleFocus?.({ vehicleId: n.data?.vehicle_id || null, confirm: true, at: Date.now() });
+              setCScr('veh');
+            }
+          }}
         />
       )}
 

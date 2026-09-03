@@ -16,6 +16,7 @@ import { plateMask } from '../../../lib/inputMasks';
 import { deleteMyVehicle, listMyVehicleStats } from '../../../services/vehicleService';
 import VehicleForm from './VehicleForm';
 import VehicleFuel from './VehicleFuel';
+import ServiceConfirmSheet from './ServiceConfirmSheet';
 
 // El visor 3D (three.js) baja SOLO al abrirlo — chunk propio
 const Vehicle3DSheet = lazy(() => import('../../../components/ui/vehicle3d/Vehicle3DSheet.jsx'));
@@ -43,10 +44,11 @@ const daysUntil = (d) => {
 };
 
 export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
-  const { cTier, dark, fire } = ctx;
+  const { cTier, dark, fire, vehicleFocus, setVehicleFocus } = ctx;
   const hp = homeColors(cTier.name);
   const [idx, setIdx] = useState(0);
   const [form, setForm] = useState(null);          // null | { vehicle|null }
+  const [confirm, setConfirm] = useState(null);    // E4: null | { vehicle }
   const [show3D, setShow3D] = useState(null);      // null | { vehicle, bodyKey }
   const [delArmed, setDelArmed] = useState(false); // doble tap de eliminar
   const delTimer = useRef(null);
@@ -62,6 +64,19 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
     });
     return () => { alive = false; };
   }, [statsK]);
+
+  // E4: llegada desde la notificación de servicio (push, deep-link o
+  // inbox): ir a ESE vehículo y abrir la confirmación; se consume una
+  // sola vez (setVehicleFocus(null)).
+  useEffect(() => {
+    if (!vehicleFocus || !vehicles.length) return;
+    const i = vehicles.findIndex(x => x.id === vehicleFocus.vehicleId);
+    const target = i >= 0 ? i : 0;
+    setIdx(target);
+    setDelArmed(false);
+    if (vehicleFocus.confirm) setConfirm({ vehicle: vehicles[target] });
+    setVehicleFocus?.(null);
+  }, [vehicleFocus?.at, vehicles.length]);
 
   const ink = dark ? '#fff' : '#0D0D0D';
   const sub = dark ? 'rgba(255,255,255,.5)' : '#9E9E9E';
@@ -146,6 +161,10 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
     }
     return { value: fmtDate(v.next_service), note: dateNote + (hasKm ? ` · o a los ${kmVal}` : ''), warn: dateWarn };
   })();
+  // E4: servicio EN ÉPOCA (≤7 días / ≤500 km) o vencido → botón de
+  // confirmación; mientras no se confirme, el cron sigue recordando.
+  const svcDue = !!v && ((serviceDays != null && serviceDays <= 7) || (kmLeft != null && kmLeft <= 500));
+  const vName = v ? ([v.brand, v.model].filter(Boolean).join(' ') || 'tu vehículo') : '';
 
   // Tiles de datos del vehículo activo
   const tiles = v ? [
@@ -319,6 +338,22 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
             ))}
           </div>
 
+          {/* E4: ¿ya hiciste el servicio? — mismo destino que el push */}
+          {svcDue && (
+            <button onClick={() => setConfirm({ vehicle: v })} style={{
+              width: '100%', marginTop: 10, padding: '13px 14px', borderRadius: 15, cursor: 'pointer',
+              border: '1.5px solid #E65100', background: dark ? 'rgba(230,81,0,.14)' : '#FFF3E9',
+              color: '#E65100', fontFamily: "'DM Sans'", textAlign: 'left',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+            }}>
+              <span>
+                <div style={{ fontSize: 13.5, fontWeight: 800 }}>¿Ya hiciste el servicio de {vName}?</div>
+                <div style={{ fontSize: 11, fontWeight: 600, marginTop: 2, opacity: .85 }}>Confírmalo y anota el próximo — así dejamos de recordártelo</div>
+              </span>
+              <span style={{ fontSize: 20, fontWeight: 800, flexShrink: 0 }}>›</span>
+            </button>
+          )}
+
           {/* ── Acciones del vehículo activo ── */}
           <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
             <button onClick={() => setForm({ vehicle: v, mode: 'data' })} style={{
@@ -363,6 +398,17 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
             onClose={() => setShow3D(null)}
           />
         </Suspense>
+      )}
+
+      {/* E4: confirmación de servicio (push / inbox / botón) */}
+      {confirm && (
+        <ServiceConfirmSheet
+          vehicle={confirm.vehicle}
+          dark={dark}
+          fire={fire}
+          onClose={() => setConfirm(null)}
+          onSaved={(saved) => { setConfirm(null); onSaved(saved); }}
+        />
       )}
 
       {/* Sheet de alta/edición */}

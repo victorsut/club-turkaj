@@ -18,6 +18,8 @@ const TYPE_META = {
   purchase:    { Icon: Fuel, color: bento.green,  label: 'Compra' },
   reward:      { Icon: Gift, color: BRAND_ORANGE, label: 'Premio' },
   degradacion: { Icon: Warn, color: bento.amber,  label: 'Nivel' },
+  // F6 E4: tocar la fila lleva a Vehículos con la confirmación abierta
+  vehiculo_servicio: { Icon: Warn, color: '#E65100', label: 'Servicio', nav: true },
   general:     { Icon: Info, color: '#8E8E93',    label: 'Aviso' },
 };
 
@@ -36,7 +38,7 @@ function fmtWhen(iso) {
   return `${date} · ${time}`;
 }
 
-export default function NotificationsSheet({ origin, onClose, notifs, markRead, clearNotifs, tierName, dark }) {
+export default function NotificationsSheet({ origin, onClose, notifs, markRead, clearNotifs, tierName, dark, onNavigate }) {
   const [closing, setClosing] = useState(false);
 
   // Limpiar TODAS (14-ago): doble tap de confirmación — el primer tap
@@ -137,10 +139,12 @@ export default function NotificationsSheet({ origin, onClose, notifs, markRead, 
         {items.map(n => {
           const meta = TYPE_META[n.type] || TYPE_META.general;
           const isNew = unreadAtOpen.current.has(n.id);
+          const navigable = !!(meta.nav && onNavigate);
           return (
-            <div key={n.id} style={{
+            <div key={n.id} onClick={navigable ? () => onNavigate(n) : undefined} style={{
               display: 'flex', gap: 12, alignItems: 'flex-start',
               background: TH.surface, borderRadius: 16, padding: '12px 14px',
+              cursor: navigable ? 'pointer' : 'default',
             }}>
               <div style={{
                 width: 38, height: 38, borderRadius: 12, flexShrink: 0,
@@ -171,7 +175,7 @@ export default function NotificationsSheet({ origin, onClose, notifs, markRead, 
                 </div>
               </div>
               {/* Quitar ESTA notificación (14-ago) */}
-              <button onClick={() => clearNotifs?.(n.id)} aria-label="Quitar notificación" style={{
+              <button onClick={(e) => { e.stopPropagation(); clearNotifs?.(n.id); }} aria-label="Quitar notificación" style={{
                 border: 'none', cursor: 'pointer', background: 'none',
                 color: TH.sub, padding: 4, margin: '-4px -6px 0 0',
                 flexShrink: 0, display: 'flex', alignSelf: 'flex-start',

@@ -47,6 +47,9 @@ export default function App() {
   const [scr, setScr] = useState('dash');            // admin screen
   const [cScr, setCScr] = useState('home');           // client screen
   const [oScr, setOScr] = useState('ohome');          // operator screen
+  // F6 E4: foco en un vehículo al llegar desde la notificación de
+  // servicio ({ vehicleId, confirm, at }) — lo consume VehiclesHome.
+  const [vehicleFocus, setVehicleFocus] = useState(null);
 
   // ===== AUTH STATE =====
   // Restaurar sesion de operador/admin/cliente desde localStorage
@@ -282,7 +285,7 @@ export default function App() {
   // (mensajes del Service Worker y deep-links por URL).
   const { myNotifs, markNotifsRead, clearNotifs } = useNotificationsInbox({
     me, authScreen, sbConnected, viewRef,
-    setCScr, setPendingOpRating, setCatPendingSignal,
+    setCScr, setPendingOpRating, setCatPendingSignal, setVehicleFocus,
   });
 
   // ===== CARGAR ENCUESTAS DEL DIA AL CAMBIAR DE USUARIO =====
@@ -394,7 +397,7 @@ export default function App() {
     addPurchase, redeem, buyTickets, doSurvey, logout,
     // Navigation
     view, setView, scr, setScr, cScr, setCScr, oScr, setOScr,
-    setNavOrigin,
+    setNavOrigin, vehicleFocus, setVehicleFocus,
     isA, isO, isC,
   };
 

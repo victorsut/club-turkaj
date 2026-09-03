@@ -10,7 +10,7 @@ import { fetchNotifications, markNotificationsRead, clearNotifications, fetchPur
 
 export default function useNotificationsInbox({
   me, authScreen, sbConnected, viewRef,
-  setCScr, setPendingOpRating, setCatPendingSignal,
+  setCScr, setPendingOpRating, setCatPendingSignal, setVehicleFocus,
 }) {
   // Inbox de la campana del inicio: notificaciones del miembro logueado.
   const [myNotifs, setMyNotifs] = useState([]);
@@ -114,6 +114,12 @@ export default function useNotificationsInbox({
           setCScr('cat');
           setCatPendingSignal(s => s + 1);
         }
+        // F6 E4: aviso de servicio → Vehículos, en ese vehículo, con la
+        // confirmación abierta ("¿ya hiciste el servicio?").
+        if (d.type === 'vehiculo_servicio') {
+          setVehicleFocus?.({ vehicleId: d.vehicle_id || null, confirm: true, at: Date.now() });
+          setCScr('veh');
+        }
         // Otros tipos (degradacion, general): basta traer la app al frente.
       }
     };
@@ -147,6 +153,13 @@ export default function useNotificationsInbox({
     if (params.get('goto') === 'pendientes' && me?.id) {
       setCScr('cat');
       setCatPendingSignal(s => s + 1);
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+    // F6 E4: deep-link del push de servicio (app cerrada): Vehículos con
+    // la confirmación del vehículo indicado.
+    if (params.get('goto') === 'vehiculo' && me?.id) {
+      setVehicleFocus?.({ vehicleId: params.get('vehicle') || null, confirm: true, at: Date.now() });
+      setCScr('veh');
       window.history.replaceState(null, '', window.location.pathname);
     }
   }, [me?.id]);

@@ -84,11 +84,15 @@ export default async function handler(req, res) {
       if (row.kind === 'fecha' && !shouldSendFecha(row.days_left)) continue;
       if (blocked(row)) continue;
       const msg = messageFor(row);
+      // E4: el toque abre la ventana VEHÍCULOS en ese vehículo con la
+      // confirmación de servicio (app cerrada → deep-link; abierta →
+      // NOTIFICATION_CLICK con los mismos datos). Los recordatorios
+      // siguen hasta que el socio confirme (RPC sin techo de días/km).
       const r = await pushToMembers(row.member_id, {
         type: 'vehiculo_servicio',
         title: msg.title,
-        body: msg.body,
-        url: '/',
+        body: msg.body + ' Tocá para confirmar si ya lo hiciste.',
+        url: `/?goto=vehiculo&vehicle=${row.vehicle_id}`,
         data: { vehicle_id: row.vehicle_id, kind: row.kind, days_left: row.days_left, km_left: row.km_left },
       });
       notified++;
