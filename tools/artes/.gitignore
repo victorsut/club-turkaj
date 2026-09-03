@@ -1,0 +1,7 @@
+node_modules/
+*-trace.svg
+*-cls.png
+*.png
+*.webp
+analisis.json
+cmp-*.json

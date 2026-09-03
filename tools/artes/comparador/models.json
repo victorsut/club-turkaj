@@ -1,0 +1,363 @@
+[
+ [
+  "accent",
+  "AccentArt",
+  "AUTOS LIVIANOS/HYUNDAI, ACCENT.png",
+  "Autos livianos",
+  "Hyundai Accent"
+ ],
+ [
+  "civic",
+  "CivicArt",
+  "AUTOS LIVIANOS/HONDA, CIVIC.png",
+  "Autos livianos",
+  "Honda Civic"
+ ],
+ [
+  "picanto",
+  "PicantoArt",
+  "AUTOS LIVIANOS/KIA, PICANTO.png",
+  "Autos livianos",
+  "Kia Picanto"
+ ],
+ [
+  "rio",
+  "RioArt",
+  "AUTOS LIVIANOS/KIA, RIO.png",
+  "Autos livianos",
+  "Kia Rio"
+ ],
+ [
+  "mazda3",
+  "Mazda3Art",
+  "AUTOS LIVIANOS/MAZDA, MAZDA 3.png",
+  "Autos livianos",
+  "Mazda 3",
+  "#2AA545"
+ ],
+ [
+  "corolla",
+  "CorollaArt",
+  "AUTOS LIVIANOS/TOYOTA, COROLLA.png",
+  "Autos livianos",
+  "Toyota Corolla"
+ ],
+ [
+  "yaris",
+  "YarisArt",
+  "AUTOS LIVIANOS/TOYOTA, YARIS.png",
+  "Autos livianos",
+  "Toyota Yaris",
+  "#24A840"
+ ],
+ [
+  "xb",
+  "XbArt",
+  "AUTOS LIVIANOS/SCION, XB.png",
+  "Autos livianos",
+  "Scion xB"
+ ],
+ [
+  "xd",
+  "XdArt",
+  "AUTOS LIVIANOS/SCION, XD.png",
+  "Autos livianos",
+  "Scion xD"
+ ],
+ [
+  "crv",
+  "CrvArt",
+  "SUV/HONDA, CR-V.png",
+  "SUV",
+  "Honda CR-V"
+ ],
+ [
+  "tucson",
+  "TucsonArt",
+  "SUV/HYUNDAI, TUCSON.png",
+  "SUV",
+  "Hyundai Tucson"
+ ],
+ [
+  "sportage",
+  "SportageArt",
+  "SUV/KIA, SPORTAGE.png",
+  "SUV",
+  "Kia Sportage"
+ ],
+ [
+  "cx5",
+  "Cx5Art",
+  "SUV/MAZDA, CX-5.png",
+  "SUV",
+  "Mazda CX-5"
+ ],
+ [
+  "runner",
+  "RunnerArt",
+  "SUV/TOYOTA, 4RUNNER.png",
+  "SUV",
+  "Toyota 4Runner"
+ ],
+ [
+  "rav4",
+  "Rav4Art",
+  "SUV/TOYOTA, RAV4.png",
+  "SUV",
+  "Toyota RAV4"
+ ],
+ [
+  "dmax",
+  "DmaxArt",
+  "PICOPS/ISUZU, DMAX.png",
+  "Picops",
+  "Isuzu D-Max"
+ ],
+ [
+  "gladiator",
+  "GladiatorArt",
+  "PICOPS/JEEP, GLADIATOR.png",
+  "Picops",
+  "Jeep Gladiator"
+ ],
+ [
+  "l200",
+  "L200Art",
+  "PICOPS/MITSUBISHI, L200.png",
+  "Picops",
+  "Mitsubishi L200"
+ ],
+ [
+  "frontier",
+  "FrontierArt",
+  "PICOPS/NISSAN, FRONTIER.png",
+  "Picops",
+  "Nissan Frontier"
+ ],
+ [
+  "r22",
+  "R22Art",
+  "PICOPS/TOYOTA, 22R.png",
+  "Picops",
+  "Toyota 22R"
+ ],
+ [
+  "hilux",
+  "HiluxArt",
+  "PICOPS/TOYOTA, HILUX.png",
+  "Picops",
+  "Toyota Hilux"
+ ],
+ [
+  "tacoma",
+  "TacomaArt",
+  "PICOPS/TOYOTA, TACOMA.png",
+  "Picops",
+  "Toyota Tacoma"
+ ],
+ [
+  "navi",
+  "NaviArt",
+  "MOTOS/HONDA, NAVI.png",
+  "Motos",
+  "Honda Navi"
+ ],
+ [
+  "gn125",
+  "GnArt",
+  "MOTOS/SUZUKI, GN125 y GN125F.png",
+  "Motos",
+  "Suzuki GN125"
+ ],
+ [
+  "gnh",
+  "GnhArt",
+  "MOTOS/HONDA, GN.png",
+  "Motos",
+  "Honda GN"
+ ],
+ [
+  "boxer",
+  "BoxerArt",
+  "MOTOS/BAJAJ, BOXER.png",
+  "Motos",
+  "Bajaj Boxer"
+ ],
+ [
+  "pulsar",
+  "PulsarArt",
+  "MOTOS/BAJAJ, PULSAR.png",
+  "Motos",
+  "Bajaj Pulsar"
+ ],
+ [
+  "activa",
+  "ActivaArt",
+  "MOTOS/HONDA, ACTIVA.png",
+  "Motos",
+  "Honda Activa"
+ ],
+ [
+  "cgl",
+  "CglArt",
+  "MOTOS/HONDA, CGL.png",
+  "Motos",
+  "Honda CGL"
+ ],
+ [
+  "crf",
+  "CrfArt",
+  "MOTOS/HONDA, CRF.png",
+  "Motos",
+  "Honda CRF"
+ ],
+ [
+  "xr",
+  "XrArt",
+  "MOTOS/HONDA, XR.png",
+  "Motos",
+  "Honda XR"
+ ],
+ [
+  "zeta",
+  "ZetaArt",
+  "MOTOS/ITALIKA, Z.png",
+  "Motos",
+  "Italika Z"
+ ],
+ [
+  "dita",
+  "DitaArt",
+  "MOTOS/ITALIKA, D.png",
+  "Motos",
+  "Italika D"
+ ],
+ [
+  "dm",
+  "DmArt",
+  "MOTOS/ITALIKA, DM.png",
+  "Motos",
+  "Italika DM"
+ ],
+ [
+  "ft",
+  "FtArt",
+  "MOTOS/ITALIKA, FT.png",
+  "Motos",
+  "Italika FT"
+ ],
+ [
+  "dr",
+  "DrArt",
+  "MOTOS/SUZUKI, DR.png",
+  "Motos",
+  "Suzuki DR"
+ ],
+ [
+  "en",
+  "EnArt",
+  "MOTOS/SUZUKI, EN.png",
+  "Motos",
+  "Suzuki EN"
+ ],
+ [
+  "xtz",
+  "XtzArt",
+  "MOTOS/YAMAHA, XTZ.png",
+  "Motos",
+  "Yamaha XTZ"
+ ],
+ [
+  "eco",
+  "EcoArt",
+  "MOTOS/HERO, ECO.png",
+  "Motos",
+  "Hero Eco"
+ ],
+ [
+  "xpulse",
+  "XpulseArt",
+  "MOTOS/HERO, XPULSE.png",
+  "Motos",
+  "Hero XPulse"
+ ],
+ [
+  "ybr",
+  "YbrArt",
+  "MOTOS/YAMAHA, YBR.png",
+  "Motos",
+  "Yamaha YBR"
+ ],
+ [
+  "grace",
+  "GraceArt",
+  "MICRO BUS/HYUNDAI, GRACE.png",
+  "Micro bus",
+  "Hyundai Grace",
+  "#2E6532"
+ ],
+ [
+  "h1",
+  "H1Art",
+  "MICRO BUS/HYUNDAI, H1.png",
+  "Micro bus",
+  "Hyundai H1",
+  "#3B6B3D"
+ ],
+ [
+  "pregio",
+  "PregioArt",
+  "MICRO BUS/KIA, PREGIO.png",
+  "Micro bus",
+  "Kia Pregio",
+  "#376A3D"
+ ],
+ [
+  "urvan",
+  "UrvanArt",
+  "MICRO BUS/NISSAN, URVAN.png",
+  "Micro bus",
+  "Nissan Urvan",
+  "#366A39"
+ ],
+ [
+  "hiace",
+  "HiaceArt",
+  "MICRO BUS/TOYOTA, HIACE.png",
+  "Micro bus",
+  "Toyota Hiace",
+  "#437F47"
+ ],
+ [
+  "torito",
+  "ToritoArt",
+  "MOTO TAXIS/BAJAJ, TORITO.png",
+  "Moto taxis",
+  "Bajaj Torito",
+  "#1E9835"
+ ],
+ [
+  "ape",
+  "ApeArt",
+  "MOTO TAXIS/PIAGGIO, APE.png",
+  "Moto taxis",
+  "Piaggio Ape",
+  "#109027"
+ ],
+ [
+  "h100",
+  "H100Art",
+  "CAMIÓN LIGERO/HYUNDAI, H100.png",
+  "Camión ligero",
+  "Hyundai H100",
+  "#EAE6E3"
+ ],
+ [
+  "k2700",
+  "K2700Art",
+  "CAMIÓN LIGERO/KIA, 2700.png",
+  "Camión ligero",
+  "Kia K2700",
+  "#EDEDED"
+ ]
+]

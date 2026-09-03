@@ -1,0 +1,224 @@
+<title>Calco vs Referencia</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#EEF0F3; --panel:#FFFFFF; --panel2:#F6F7F9; --line:#D6DAE1; --ink:#1C1E23; --ink2:#5B6170; --ink3:#8A90A0;
+  --accent:#2F5BD7; --accent-ink:#FFFFFF; --diff:#FF00C8; --ok:#1E8E5A; --warn:#C7791A; --bad:#C62839;
+  --shadow:0 1px 2px rgba(20,24,40,.06),0 8px 24px rgba(20,24,40,.08);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#15171B; --panel:#1E2127; --panel2:#24272E; --line:#343843; --ink:#E7E9EE; --ink2:#A2A8B6; --ink3:#6F7584;
+  --accent:#6E8DF0; --accent-ink:#0E1220; --diff:#FF3BD6; --ok:#4CC286; --warn:#E39A3B; --bad:#EF5E6D;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+}}
+:root[data-theme="dark"]{
+  --bg:#15171B; --panel:#1E2127; --panel2:#24272E; --line:#343843; --ink:#E7E9EE; --ink2:#A2A8B6; --ink3:#6F7584;
+  --accent:#6E8DF0; --accent-ink:#0E1220; --diff:#FF3BD6; --ok:#4CC286; --warn:#E39A3B; --bad:#EF5E6D;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,sans-serif;font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+.cond{font-family:"Barlow Condensed","Arial Narrow",Impact,sans-serif}
+.app{display:grid;grid-template-columns:270px 1fr;min-height:100vh}
+/* riel */
+.rail{border-right:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow:hidden}
+.rail-head{padding:18px 18px 12px;border-bottom:1px solid var(--line)}
+.rail-head h1{margin:0;font-size:26px;font-weight:700;line-height:1;letter-spacing:.01em;text-wrap:balance}
+.rail-head p{margin:6px 0 0;color:var(--ink2);font-size:12.5px}
+.rail-list{overflow-y:auto;padding:8px 8px 16px;flex:1}
+.cat{margin:10px 6px 4px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3)}
+.item{display:grid;grid-template-columns:14px 1fr auto;gap:10px;align-items:center;width:100%;text-align:left;border:0;background:none;color:var(--ink);padding:8px 10px;border-radius:8px;cursor:pointer;font:inherit}
+.item:hover{background:var(--panel2)}
+.item:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.item[aria-current="true"]{background:var(--accent);color:var(--accent-ink)}
+.sw{width:14px;height:14px;border-radius:4px;border:1px solid rgba(0,0,0,.15)}
+.chip{font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:14px;font-variant-numeric:tabular-nums;padding:1px 7px;border-radius:999px;background:var(--panel2);color:var(--ink2)}
+.item[aria-current="true"] .chip{background:rgba(255,255,255,.22);color:inherit}
+.chip.warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.chip.bad{background:color-mix(in srgb,var(--bad) 18%,transparent);color:var(--bad)}
+/* visor */
+.main{padding:22px 26px 40px;min-width:0}
+.head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;margin-bottom:14px}
+.head h2{margin:0;font-size:44px;font-weight:700;line-height:.95;letter-spacing:.005em}
+.head .sub{color:var(--ink2);margin-top:4px}
+.stats{display:flex;gap:22px}
+.stat b{display:block;font-family:"Barlow Condensed",sans-serif;font-size:30px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+.stat span{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+.bar{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin:0 0 12px}
+.tabs{display:inline-flex;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px}
+.tabs button{border:0;background:none;color:var(--ink2);font:inherit;font-weight:500;padding:6px 14px;border-radius:7px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--panel);color:var(--ink);box-shadow:var(--shadow)}
+.tabs button:focus-visible{outline:2px solid var(--accent)}
+.ctl{display:flex;align-items:center;gap:8px;color:var(--ink2);font-size:12.5px}
+.ctl input[type=range]{accent-color:var(--accent);width:150px}
+.hint{color:var(--ink3);font-size:12.5px;margin-left:auto}
+.stage{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.viewport{position:relative;overflow:auto;max-height:calc(100vh - 210px);cursor:grab;background:#fff}
+.viewport.drag{cursor:grabbing}
+.canvas{position:relative;width:100%;aspect-ratio:var(--ar,1.5);transform-origin:0 0}
+.canvas img{position:absolute;inset:0;width:100%;height:100%;display:block;user-select:none;-webkit-user-drag:none}
+.side{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line)}
+.side figure{margin:0;background:#fff;position:relative}
+.side img{width:100%;display:block}
+.side figcaption{position:absolute;left:10px;top:10px;font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:rgba(28,30,35,.78);padding:3px 8px;border-radius:6px}
+.handle{position:absolute;top:0;bottom:0;width:2px;background:var(--accent);transform:translateX(-1px);pointer-events:none}
+.handle::after{content:"◀ ▶";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--accent);color:var(--accent-ink);font-size:10px;letter-spacing:.05em;padding:6px 8px;border-radius:999px;white-space:nowrap;font-family:"IBM Plex Sans",sans-serif;font-weight:600}
+.tag{position:absolute;top:10px;font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:rgba(28,30,35,.78);padding:3px 8px;border-radius:6px;pointer-events:none}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;padding:10px 14px;border-top:1px solid var(--line);color:var(--ink2);font-size:12.5px;background:var(--panel)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--diff);vertical-align:-1px;margin-right:6px}
+.notes{margin-top:18px;max-width:68ch;color:var(--ink2)}
+.notes h3{margin:0 0 6px;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);font-weight:600}
+.notes p{margin:0 0 8px}
+kbd{font:inherit;font-size:12px;background:var(--panel2);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 6px}
+.mobile-sel{display:none}
+@media (max-width:820px){
+  .app{grid-template-columns:1fr}
+  .rail{display:none}
+  .mobile-sel{display:block;margin:0 0 12px}
+  .mobile-sel select{width:100%;font:inherit;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+  .main{padding:16px 14px 32px}
+  .head h2{font-size:34px}
+  .viewport{max-height:none}
+  .hint{display:none}
+}
+@media (prefers-reduced-motion:no-preference){.canvas{transition:transform .12s ease-out}}
+</style>
+
+<div class="app">
+  <aside class="rail">
+    <div class="rail-head">
+      <h1 class="cond">Calco vs Referencia</h1>
+      <p>41 artes de producción sobre su referencia, 1:1.</p>
+    </div>
+    <nav class="rail-list" id="list" aria-label="Modelos"></nav>
+  </aside>
+
+  <main class="main">
+    <div class="mobile-sel"><select id="msel" aria-label="Modelo"></select></div>
+    <header class="head">
+      <div>
+        <h2 class="cond" id="name">—</h2>
+        <div class="sub" id="sub"></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><b class="cond" id="sDiff">—</b><span>diff del lienzo</span></div>
+        <div class="stat"><b class="cond" id="sInk">—</b><span>diff sobre tinta</span></div>
+        <div class="stat"><b class="cond" id="sColor">—</b><span>color muestreado</span></div>
+      </div>
+    </header>
+
+    <div class="bar">
+      <div class="tabs" role="tablist" id="tabs">
+        <button role="tab" data-mode="side" aria-selected="true">Lado a lado</button>
+        <button role="tab" data-mode="over" aria-selected="false">Superponer</button>
+        <button role="tab" data-mode="diff" aria-selected="false">Diff</button>
+      </div>
+      <label class="ctl" id="ctlSplit">Cortina <input type="range" id="split" min="0" max="100" value="50"></label>
+      <label class="ctl" id="ctlOpa">Arte al <input type="range" id="opa" min="0" max="100" value="100"><span id="opaV">100 %</span></label>
+      <label class="ctl">Zoom <input type="range" id="zoom" min="1" max="4" step="0.25" value="1"><span id="zoomV">1×</span></label>
+      <span class="hint"><kbd>←</kbd> <kbd>→</kbd> cambia modelo · <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> modo · <kbd>espacio</kbd> alterna ref/arte</span>
+    </div>
+
+    <section class="stage">
+      <div class="viewport" id="vp">
+        <div class="side" id="side">
+          <figure><img id="sRef" alt="Referencia"><figcaption>Referencia</figcaption></figure>
+          <figure><img id="sArt" alt="Arte de la app"><figcaption>Arte en la app</figcaption></figure>
+        </div>
+        <div class="canvas" id="canvas" hidden>
+          <img id="cRef" alt="Referencia">
+          <img id="cArt" alt="Arte de la app">
+          <img id="cDif" alt="Diferencias" hidden>
+          <div class="handle" id="handle"></div>
+          <span class="tag" id="tagL" style="left:10px">Referencia</span>
+          <span class="tag" id="tagR" style="right:10px">Arte en la app</span>
+        </div>
+      </div>
+      <div class="legend"><span><i></i>píxel distinto (Δ &gt; 70 en algún canal)</span><span>Gris: referencia atenuada.</span><span>El arte se pinta con el color dominante muestreado de la referencia; la sombra de piso de la app no se dibuja.</span></div>
+    </section>
+
+    <div class="notes">
+      <h3>Cómo leer</h3>
+      <p><b>Superponer</b> es la vista honesta: arrastrá la cortina o bajá la opacidad del arte para ver dónde una forma se corre o un color se desvía. <b>Diff</b> marca en magenta cada píxel que difiere; un contorno fino en todo el borde es solo el antialias del calco (normal, ~2 % del lienzo). Manchas sólidas dentro de una pieza son desviaciones reales.</p>
+      <p>«Diff sobre tinta» divide entre los píxeles no blancos de la referencia — compara mejor entre modelos con distinto tamaño de silueta.</p>
+      <p>La <b>sombra de piso</b> de la referencia no se calca (la app dibuja la suya): en los modelos con sombra oscura (Scion xB/xD, Mazda CX-5, Toyota 4Runner) esa mancha bajo las llantas infla el porcentaje y se puede ignorar.</p>
+    </div>
+  </main>
+</div>
+
+<script>
+const DATA = /*__DATA__*/[];
+const $ = (id) => document.getElementById(id);
+const CATS = [...new Set(DATA.map(d => d.cat))];
+let cur = 0, mode = 'side', showArt = true;
+
+function chipClass(v){ return v >= 10 ? 'bad' : v >= 7 ? 'warn' : ''; }
+function buildList(){
+  const list = $('list'); list.innerHTML = '';
+  const sel = $('msel'); sel.innerHTML = '';
+  CATS.forEach(cat => {
+    const h = document.createElement('div'); h.className = 'cat'; h.textContent = cat; list.appendChild(h);
+    const og = document.createElement('optgroup'); og.label = cat; sel.appendChild(og);
+    DATA.forEach((d, i) => { if (d.cat !== cat) return;
+      const b = document.createElement('button'); b.className = 'item'; b.dataset.i = i;
+      b.innerHTML = `<span class="sw" style="background:${d.color}"></span><span>${d.name}</span><span class="chip ${chipClass(d.diffInk)}">${d.diffInk.toFixed(1)} %</span>`;
+      b.addEventListener('click', () => show(i)); list.appendChild(b);
+      const o = document.createElement('option'); o.value = i; o.textContent = `${d.name} · ${d.diffInk.toFixed(1)} %`; og.appendChild(o);
+    });
+  });
+  sel.addEventListener('change', e => show(+e.target.value));
+}
+function show(i){
+  cur = i; const d = DATA[i];
+  document.querySelectorAll('.item').forEach(b => b.setAttribute('aria-current', +b.dataset.i === i ? 'true' : 'false'));
+  $('msel').value = i;
+  $('name').textContent = d.name; $('sub').textContent = `${d.cat} · referencia ${d.w}×${d.h}${d.scale ? ' · escala en la app ' + d.scale : ''}`;
+  $('sDiff').textContent = d.diff.toFixed(2) + ' %'; $('sInk').textContent = d.diffInk.toFixed(1) + ' %';
+  $('sColor').innerHTML = `<span class="sw" style="display:inline-block;vertical-align:-1px;background:${d.color}"></span> ${d.color.toUpperCase()}`;
+  $('sRef').src = d.ref; $('sArt').src = d.art; $('cRef').src = d.ref; $('cArt').src = d.art; $('cDif').src = d.dif;
+  $('canvas').style.setProperty('--ar', d.w / d.h);
+  try { localStorage.setItem('cmp_cur', d.key); } catch {}
+  document.querySelector('.item[aria-current="true"]')?.scrollIntoView({ block: 'nearest' });
+  applyMode();
+}
+function setMode(m){ mode = m; document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.mode === m ? 'true' : 'false')); applyMode(); }
+function applyMode(){
+  const over = mode !== 'side';
+  $('side').hidden = over; $('canvas').hidden = !over;
+  $('ctlSplit').style.visibility = mode === 'over' ? 'visible' : 'hidden';
+  $('ctlOpa').style.visibility = mode === 'over' ? 'visible' : 'hidden';
+  $('cDif').hidden = mode !== 'diff'; $('cArt').hidden = mode !== 'over'; $('cRef').hidden = mode !== 'over';
+  $('handle').hidden = mode !== 'over'; $('tagL').hidden = mode !== 'over'; $('tagR').hidden = mode !== 'over';
+  applySplit();
+}
+function applySplit(){
+  const p = +$('split').value; const o = +$('opa').value / 100;
+  const art = $('cArt');
+  art.style.clipPath = showArt ? `inset(0 0 0 ${p}%)` : 'inset(0 0 0 100%)';
+  art.style.opacity = o; $('handle').style.left = p + '%'; $('opaV').textContent = Math.round(o * 100) + ' %';
+}
+$('split').addEventListener('input', applySplit);
+$('opa').addEventListener('input', applySplit);
+$('zoom').addEventListener('input', e => { const z = +e.target.value; $('zoomV').textContent = z + '×'; $('canvas').style.transform = `scale(${z})`; $('canvas').style.marginBottom = `calc((${z} - 1) * 100% / var(--ar))`; $('canvas').style.marginRight = `calc((${z} - 1) * 100%)`; });
+$('tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setMode(b.dataset.mode); });
+// arrastre de la cortina sobre el lienzo (modo superponer) y paneo con zoom
+const vp = $('vp'); let dragging = null;
+vp.addEventListener('pointerdown', e => {
+  if (mode === 'over' && +$('zoom').value === 1) { dragging = 'split'; moveSplit(e); }
+  else { dragging = { x: e.clientX, y: e.clientY, sl: vp.scrollLeft, st: vp.scrollTop }; vp.classList.add('drag'); }
+  vp.setPointerCapture(e.pointerId);
+});
+vp.addEventListener('pointermove', e => { if (!dragging) return; if (dragging === 'split') moveSplit(e); else { vp.scrollLeft = dragging.sl - (e.clientX - dragging.x); vp.scrollTop = dragging.st - (e.clientY - dragging.y); } });
+vp.addEventListener('pointerup', () => { dragging = null; vp.classList.remove('drag'); });
+function moveSplit(e){ const r = $('canvas').getBoundingClientRect(); const p = Math.max(0, Math.min(100, (e.clientX - r.left) / r.width * 100)); $('split').value = p; applySplit(); }
+window.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (e.key === 'ArrowRight') show((cur + 1) % DATA.length);
+  else if (e.key === 'ArrowLeft') show((cur - 1 + DATA.length) % DATA.length);
+  else if (e.key === '1') setMode('side'); else if (e.key === '2') setMode('over'); else if (e.key === '3') setMode('diff');
+  else if (e.key === ' ') { e.preventDefault(); if (mode !== 'over') setMode('over'); showArt = !showArt; applySplit(); }
+});
+buildList();
+let start = 0; try { const k = localStorage.getItem('cmp_cur'); const i = DATA.findIndex(d => d.key === k); if (i >= 0) start = i; } catch {}
+show(start);
+</script>

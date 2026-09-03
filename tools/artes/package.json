@@ -1,0 +1,8 @@
+{
+  "name": "puntos-plus-artes",
+  "private": true,
+  "description": "Arneses de calco de los artes de vehiculos (F6). sharp se toma del node_modules raiz del repo; potrace se instala aqui con npm install.",
+  "devDependencies": {
+    "potrace": "^2.1.8"
+  }
+}
