@@ -164,7 +164,12 @@ export default function VehicleFuel({ dark, fire, vehicles, vehicle, stats, onSt
     { k: 'frec', label: 'Frecuencia', value: frecuencia ? `Cada ${frecuencia} día${frecuencia === 1 ? '' : 's'}` : '—', note: frecuencia ? `${mine.length} cargas recientes` : 'Con 2+ cargas' },
   ];
 
-  const visible = Array.isArray(loads) ? (showAll ? loads : loads.slice(0, 8)) : [];
+  // 3-sep (pedido del dueño): el historial muestra SOLO las cargas del
+  // vehículo seleccionado; "Ver todas" abre el historial general (todos
+  // los vehículos + cargas sin asignar) — ahí vive el editor de reasignación.
+  const visible = Array.isArray(loads) ? (showAll ? loads : mine) : [];
+  const othersN = Array.isArray(loads) ? loads.length - mine.length : 0;
+  useEffect(() => { setShowAll(false); }, [vehicle?.id]);
   const canEdit = (l) => (Date.now() - new Date(l.created_at)) / 86400000 <= editableDays;
 
   const saveLog = async () => {
@@ -342,18 +347,24 @@ export default function VehicleFuel({ dark, fire, vehicles, vehicle, stats, onSt
           border: 'none', background: 'transparent', cursor: 'pointer', padding: 0,
           display: 'inline-flex', alignItems: 'center', gap: 7,
         }}>
-          <span style={lbl}>Historial de cargas{Array.isArray(loads) && loads.length > 0 ? ` (${loads.length})` : ''}</span>
+          <span style={lbl}>Historial de cargas{Array.isArray(loads) && loads.length > 0 ? ` (${showAll ? loads.length : mine.length})` : ''}</span>
           <svg width="13" height="13" viewBox="0 0 16 16" style={{ color: sub, transform: histOpen ? 'rotate(180deg)' : 'none', transition: 'transform .18s' }}>
             <path d="M3.5 6 8 10.5 12.5 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        {histOpen && Array.isArray(loads) && loads.length > 8 && (
+        {histOpen && othersN > 0 && (
           <button onClick={() => setShowAll(s => !s)} style={{
             border: 'none', background: 'transparent', cursor: 'pointer', padding: 0,
             color: BRAND_ORANGE, fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 800,
-          }}>{showAll ? 'Ver menos' : `Ver todas (${loads.length})`}</button>
+          }}>{showAll ? 'Solo este vehículo' : `Ver todas (${loads.length})`}</button>
         )}
       </div>
+
+      {histOpen && Array.isArray(loads) && loads.length > 0 && !showAll && mine.length === 0 && (
+        <div style={{ background: cardBg, borderRadius: 17, padding: '14px', fontSize: 12.5, color: sub, fontWeight: 600, lineHeight: 1.5 }}>
+          Este vehículo aún no tiene cargas registradas. Toca <b style={{ color: BRAND_ORANGE }}>Ver todas</b> para revisar el historial general y asignarle alguna.
+        </div>
+      )}
 
       {loads === null && (
         <div style={{ fontSize: 12, color: sub, fontWeight: 600 }}>Cargando…</div>

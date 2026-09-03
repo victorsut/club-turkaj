@@ -1959,6 +1959,11 @@ al 3-sep y las migraciones ejecutadas en producción:
   atenuadas; los cuadros de información entran escalonados en la dirección
   del cambio y la sección de combustible los sigue (Web Animations API, sin
   remontar componentes).
+- **Historial de cargas por vehículo (3-sep, tarde):** al desplegarlo muestra
+  solo las cargas del vehículo seleccionado; "Ver todas (N)" abre el historial
+  general (todos los vehículos + cargas sin asignar, donde vive el editor de
+  reasignación) y "Solo este vehículo" regresa; cambiar de vehículo vuelve al
+  filtro.
 - **Regla operativa nueva (§0.3):** el ROADMAP se sincroniza en el mismo commit
   en que se cierra una etapa — este documento llevaba 19 días desfasado.
 - **Restante de desarrollo:** ≈15-30 hs (rollout + flecos D22/D4/D24 + go-live)
