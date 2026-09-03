@@ -8,6 +8,7 @@
 // porque sus iconos viven junto a las vistas que los usan.
 import { lazy, Suspense } from 'react';
 import LogoSpinner from '../components/ui/LogoSpinner';
+import ChunkBoundary from '../components/ui/ChunkBoundary';
 import { Fuel, Users, Gift, Ticket, House, TicketStar, Car } from '../components/ui/Icons';
 
 // Auth Views
@@ -148,6 +149,10 @@ export default function ScreenRouter({ ctx, companyPicked, setCompanyPicked, nav
     /* Suspense del code splitting por rol: mientras baja el chunk
        del operador/admin se muestra el spinner de marca centrado
        (el cliente es eager — nunca lo ve en su camino). */
+    /* ChunkBoundary (3-sep): un chunk que no carga tras un deploy ya no
+       deja la pantalla en blanco — recarga una vez y, si persiste,
+       muestra Reintentar (la BottomNav sigue viva). */
+    <ChunkBoundary dark={isA || (isC && dark)} resetKey={isC ? cScr : isA ? scr : oScr}>
     <Suspense fallback={
       <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <LogoSpinner size={44} dark={isA || (isC && dark)} />
@@ -169,5 +174,6 @@ export default function ScreenRouter({ ctx, companyPicked, setCompanyPicked, nav
           ? <AdminShell ctx={ctx}>{renderScreen()}</AdminShell>
           : renderScreen()}
     </Suspense>
+    </ChunkBoundary>
   );
 }

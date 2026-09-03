@@ -1941,6 +1941,13 @@ al 3-sep y las migraciones ejecutadas en producción:
   y E4 — "todo funciona bien".
 - **GO-LIVE** suma el rollout de Vehículos y la revocación de la API key
   "Pruebas" de PROPER.
+- **Fix de robustez (3-sep, tarde):** pantalla en blanco al abrir Vehículos
+  justo después de un deploy (el chunk perezoso con hash viejo ya no existía y
+  React.lazy tumbaba el árbol) → `ChunkBoundary` en ScreenRouter (recarga una
+  vez, luego Reintentar con la BottomNav viva), reintento del import de
+  VehiclesHome y `/assets/` excluido del rewrite SPA (404 limpio en vez de
+  HTML). La "pantalla negra de verificación" que vio el dueño es el Security
+  Checkpoint de Vercel (rutina de la plataforma, no de la app).
 - **Regla operativa nueva (§0.3):** el ROADMAP se sincroniza en el mismo commit
   en que se cierra una etapa — este documento llevaba 19 días desfasado.
 - **Restante de desarrollo:** ≈15-30 hs (rollout + flecos D22/D4/D24 + go-live)

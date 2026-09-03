@@ -16,7 +16,12 @@ import LogoSpinner from '../../components/ui/LogoSpinner';
 // LAZY (code splitting por rol, mismo criterio del 14-ago): la ventana
 // real —con el arte de los vehículos y el formulario— solo la descargan
 // los miembros de la BETA; la audiencia masiva no paga esos ~26 kB.
-const VehiclesHome = lazy(() => import('./vehicles/VehiclesHome'));
+// 3-sep: un REINTENTO tras 800 ms antes de rendirse (deploy entre medio o
+// red inestable); si vuelve a fallar, el ChunkBoundary del router recarga
+// una vez y luego ofrece Reintentar — nunca más pantalla en blanco.
+const VehiclesHome = lazy(() => import('./vehicles/VehiclesHome').catch(() =>
+  new Promise(r => setTimeout(r, 800)).then(() => import('./vehicles/VehiclesHome'))
+));
 
 export default function VehiclesSoon(ctx) {
   const { cTier, me, dark } = ctx;
