@@ -281,7 +281,7 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
           <div style={{ fontSize: 13, fontWeight: 700 }}>
             {pendingOnly
               ? 'No tenés canjes pendientes de usar'
-              : (isCompras ? '{typeLabel ? `Sin ${typeLabel.toLowerCase()} en este período` : 'Sin movimientos de puntos en este período'}' : 'Sin canjes en este período')}
+              : (isCompras ? (typeLabel ? `Sin ${typeLabel.toLowerCase()} en este período` : 'Sin movimientos de puntos en este período') : 'Sin canjes en este período')}
           </div>
         </div>
       )}
