@@ -7,29 +7,32 @@ import PromoBentoTile from '../../src/views/client/home/PromoBentoTile';
 import { homeTileColors } from '../../src/constants/styles';
 
 const seed = (id, v) => localStorage.setItem(`pp_home_vehicle_${id}`, JSON.stringify(v));
-seed('navi', { id: 'a', vtype: 'moto', brand: 'Honda', model: 'Navi', color: '#C62828' });
-seed('cx5', { id: 'b', vtype: 'liviano', brand: 'Mazda', model: 'CX-5', color: '#E0E0E0' });
-seed('picop', { id: 'c', vtype: 'picop', brand: 'Toyota', model: 'Hilux', color: '#1565C0' });
+seed('navi', { id: 'a', vtype: 'moto', brand: 'Honda', model: 'Navi', color: '#2E7D32' });
+seed('hilux', { id: 'b', vtype: 'picop', brand: 'Toyota', model: 'Hilux', color: '#37474F' });
+seed('gen_liv', { id: 'c', vtype: 'liviano', brand: 'Chevrolet', model: 'Aveo', color: '#C62828' });
+seed('gen_moto', { id: 'd', vtype: 'moto', brand: 'Genérica', model: 'XYZ', color: '#1565C0' });
+seed('cx5', { id: 'e', vtype: 'liviano', brand: 'Mazda', model: 'CX-5', color: '#E0E0E0' });
+seed('bus', { id: 'f', vtype: 'microbus', brand: 'Toyota', model: 'Hiace', color: '#F9A825' });
+seed('tuk', { id: 'g', vtype: 'mototaxi', brand: 'Bajaj', model: 'Torito', color: '#C62828' });
 localStorage.removeItem('pp_home_vehicle_none');
 
-const Row = ({ tier, dark, id }) => {
+const Row = ({ tier, dark, ids }) => {
   const htp = homeTileColors(tier, dark);
   return (
     <div style={{ background: dark ? '#0B0B0D' : '#F7F7F9', padding: 12 }}>
       <div style={{ fontSize: 11, fontWeight: 800, color: dark ? '#fff' : '#333', marginBottom: 6 }}>{tier} · {dark ? 'oscuro' : 'claro'}</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 11 }}>
-        <VehicleBentoTile me={{ id }} htp={htp} onOpen={() => {}} />
-        <VehicleBentoTile me={{ id: 'none' }} htp={htp} onOpen={() => {}} />
+        {ids.map(id => <VehicleBentoTile key={id} me={{ id }} htp={htp} onOpen={() => {}} />)}
       </div>
     </div>
   );
 };
 
 createRoot(document.getElementById('root')).render(
-  <div style={{ width: 390, margin: '0 auto' }}>
-    <Row tier="ORO" dark={false} id="navi" />
-    <Row tier="PLATINO" dark={false} id="cx5" />
-    <Row tier="BLACK" dark={true} id="picop" />
+  <div style={{ width: 390 }}>
+    <Row tier="PLATINO" dark={false} ids={['navi', 'hilux', 'gen_liv', 'gen_moto']} />
+    <Row tier="ORO" dark={false} ids={['cx5', 'bus']} />
+    <Row tier="BLACK" dark={true} ids={['tuk', 'none']} />
   </div>
 );
 // Uso: npx vite --config tools/harness/vite.harness.config.js

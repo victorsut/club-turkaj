@@ -1954,7 +1954,13 @@ dueño ("la ventana sí va para todos"):
   sobre el mismo fondo del cuadro (`home/VehicleBentoTile`, caché por socio en
   localStorage para pintar al instante + refresco por `list_my_vehicles`); sin
   vehículos, el carrito de siempre. Verificado con arnés `tools/harness/`
-  (captura ORO/PLATINO/BLACK, con y sin vehículo).
+  (captura ORO/PLATINO/BLACK, con y sin vehículo). **Encaje del arte (misma
+  tarde, referencias POR CORREGIR):** la sombra pegaba con el título y cada
+  arte usa distinto el lienzo → el cuadro MIDE el contorno real del dibujo
+  (`getBBox`, sombra incluida) y lo escala y centra en el área libre sobre el
+  título (90 % del ancho / 86 % del alto, tope ×1.3); se re-mide al llegar el
+  chunk calcado y al cambiar el tamaño del cuadro. Verificado con 7 casos
+  (Navi, Hilux, sedán y moto genéricos, CX-5, Hiace, Torito).
 - **GO-LIVE:** el rollout de Vehículos sale del checklist; restante ≈12-25 hs
   (flecos D22/D4/D24 + go-live).
 
