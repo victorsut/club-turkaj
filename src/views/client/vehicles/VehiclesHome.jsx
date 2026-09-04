@@ -45,7 +45,10 @@ const daysUntil = (d) => {
 };
 
 export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
-  const { cTier, dark, fire, vehicleFocus, setVehicleFocus } = ctx;
+  const { cTier, dark, fire, cfg, vehicleFocus, setVehicleFocus } = ctx;
+  // D24: mismos umbrales que el push (editables por el admin)
+  const alertDays = cfg?.serviceAlerts?.days ?? 7;
+  const alertKm = cfg?.serviceAlerts?.km ?? 500;
   const hp = homeColors(cTier.name);
   const [idx, setIdx] = useState(0);
   const [form, setForm] = useState(null);          // null | { vehicle|null }
@@ -139,8 +142,8 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
       : serviceDays < 0 ? `Venció hace ${-serviceDays} día${serviceDays === -1 ? '' : 's'}`
       : serviceDays === 0 ? '¡Es hoy!'
       : `En ${serviceDays} día${serviceDays === 1 ? '' : 's'}`;
-    const kmWarn = kmLeft != null && kmLeft <= 500;
-    const dateWarn = serviceDays != null && serviceDays <= 7;
+    const kmWarn = kmLeft != null && kmLeft <= alertKm;
+    const dateWarn = serviceDays != null && serviceDays <= alertDays;
     // ¿Cuál manda? el vencido primero; luego el que esté en alerta
     const kmFirst = hasKm && (!hasDate || (kmLeft != null && kmLeft <= 0) || (kmWarn && !dateWarn));
     if (kmFirst) {
@@ -148,9 +151,9 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
     }
     return { value: fmtDate(v.next_service), note: dateNote + (hasKm ? ` · o a los ${kmVal}` : ''), warn: dateWarn };
   })();
-  // E4: servicio EN ÉPOCA (≤7 días / ≤500 km) o vencido → botón de
+  // E4: servicio EN ÉPOCA (umbrales D24) o vencido → botón de
   // confirmación; mientras no se confirme, el cron sigue recordando.
-  const svcDue = !!v && ((serviceDays != null && serviceDays <= 7) || (kmLeft != null && kmLeft <= 500));
+  const svcDue = !!v && ((serviceDays != null && serviceDays <= alertDays) || (kmLeft != null && kmLeft <= alertKm));
   const vName = v ? ([v.brand, v.model].filter(Boolean).join(' ') || 'tu vehículo') : '';
 
   // Tiles de datos del vehículo activo
@@ -162,7 +165,8 @@ export default function VehiclesHome({ ctx, vehicles, setVehicles }) {
     },
     {
       k: 'service', label: 'Próximo servicio',
-      value: svc.value, note: svc.note, warn: svc.warn,
+      value: svc.value, warn: svc.warn,
+      note: svc.note + (v.alerts_muted ? ' · sin recordatorios' : ''),
     },
     {
       k: 'oil', label: 'Aceite',

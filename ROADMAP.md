@@ -217,7 +217,7 @@ Esta sección documenta las decisiones tomadas durante las conversaciones de pla
 ### D24 — Alertas push de servicios con umbrales globales
 **Decisión:** alertas de servicios pendientes con umbrales configurados globalmente por admin. Cliente puede silenciar alertas por vehículo individualmente.
 **Motivo:** simplicidad operativa.
-**Implementación (v4.1, 2→3-sep-2026):** umbrales FIJOS en código (por fecha: avisos a 7/3/1/0 días y vencido cada 7 días; por kilometraje: al cruzar los 500 km restantes y al pasarse, cada 14 días), sin silencio por vehículo; la alerta se apaga al CONFIRMAR el servicio desde la propia notificación (E4). Umbrales editables por admin y silencio por vehículo quedan como fleco post-rollout.
+**Implementación (v4.2, 2→4-sep-2026):** ✅ COMPLETA. Umbrales globales en `program_config.service_alerts` (aviso previo por fecha en días y por kilometraje en km; cadencia de recordatorios de vencido por fecha y por km), editables en Admin → Configuración → Alertas de servicio (RPC `set_service_alerts_config`, auditada; mig `20260904b`). Defaults 7 días / 500 km / cada 7 / cada 14. El cliente pinta el aviso naranja y el botón de confirmación con el MISMO umbral. Silencio por vehículo: interruptor "Recordatorios de servicio" en Datos y ajustes (`vehicles.alerts_muted`); el RPC de candidatos excluye los silenciados. La alerta se apaga al CONFIRMAR el servicio desde la notificación (E4).
 
 ### D25 — App nativa: decisión técnica diferida
 **Decisión:** la migración a app nativa para iOS y Android es candidato post-roadmap.
@@ -371,7 +371,7 @@ Mover el `useState(checkingPhone)` al tope del componente con los otros useState
 | — | **GO-LIVE** | **Checklist de lanzamiento:** ~~rollout de Vehículos~~ (✅ 4-sep), encender motor de degradación (`set_degradation_enabled` — el contador de todos arranca en cero), encender `phone_verification` (con Twilio), revocar la API key "Pruebas" de PROPER, verificación general | 4-8 hs | Alta | 📋 Pendiente (los interruptores están apagados A PROPÓSITO hasta el lanzamiento oficial) |
 | ∥ | **R1b** | **Track paralelo: rediseño visual iterativo por vistas** (Home → Promociones → Historiales → Menú → Canjes/Rifa) | 75-110 hs | Alta | 🔛 ACTIVO — **R1b.1 Home ✅ CERRADA** (17-jul, `4972e1d`→`dd50f30`, validada por el dueño: bento adaptable, cuadrados fijos Promos/Vehículo, degradados+iconos SVG, historiales con períodos derivados de datos + libro mayor de puntos, container transform con tinte de continuidad). **R1b.2 Promociones ✅ CERRADA** (18-jul, `dbe2ffd`→`6adb57c`, validada por el dueño) — cards verticales 3:4 en grid de 2 (vista PROMOCIONES con chips), 1:1 en el home (carrusel arrastrable, tap → vista); imagen 900×1200 como FONDO completo con textos encima (saltos de línea manuales, color por bloque via `text_colors` jsonb), preview admin a tamaño real; bucket promo-images solo-service-role + `/api/upload-promo-image`. **Actualización v4.0 (15-ago):** desde entonces el track cerró TODAS las vistas base del cliente — Menú (23-jul), modo claro/oscuro completo (24-jul), paleta por nivel + BLACK galaxia (23-jul→14-ago), Historiales con filtros por tipo + paginado (11-ago), Admin v2 con shell lateral y lienzo ancho (4→6-ago), divisiones <500 líneas de App/ClientHome/Settings/AdminDash (12→15-ago), code splitting por rol (cliente 354 kB, 14-ago) y **splash de entrada con monedas PP 3D** según referencia "idea intro" (15-ago). El track sigue ACTIVO para correcciones visuales puntuales según referencias |
 
-**Total restante estimado (v4.2):** ≈12-25 hs de desarrollo (flecos D22/D4/D24 + go-live) + F8 (1 sem, baja) + F9 opcional restante + gestiones externas del dueño (PROPER, Twilio, Play/Apple). F6 (72-93 hs estimadas) se ejecutó entre el 15-ago y el 3-sep; el plan v3.0 de 550-750 hs queda ejecutado en ~95%.
+**Total restante estimado (v4.2):** ≈8-18 hs de desarrollo (flecos D22/D4 + go-live) + F8 (1 sem, baja) + F9 opcional restante + gestiones externas del dueño (PROPER, Twilio, Play/Apple). F6 (72-93 hs estimadas) se ejecutó entre el 15-ago y el 3-sep; el plan v3.0 de 550-750 hs queda ejecutado en ~95%.
 
 > **Nota v3.0:** este orden ES la re-planificación (Nivel 2) que v2.4/v2.5
 > difirieron. F3 ya no existe como fase monolítica: se disuelve en R1a + track
@@ -1159,12 +1159,15 @@ Sin cambios respecto a v2.1. Ver versiones anteriores del documento para detalle
     vehículos. La misma migración limpia la placa duplicada ABC123 del socio
     de pruebas. El vehículo de Fernando M. NO se recrea (lo borró el dueño
     probando el 3-sep, 14:26).
-  - **PENDIENTE:** (1) flecos de D24: umbrales editables por admin y
-    silencio por vehículo (hoy fijos 7 días / 500 km); (2) benchmark anónimo
-    de rendimiento entre socios (idea del dueño 2-sep, a futuro); (3) afinar
-    las artes Pulsar/CGL/DR (restos sub-visibles a escala de tarjeta);
-    (4) retirar el campo `beta: true` de compatibilidad en `list_my_vehicles`
-    cuando ya no queden PWA con el placeholder cacheado.
+  - **D24 flecos (4-sep, mig `20260904b`):** umbrales editables por admin
+    (`program_config.service_alerts`, tarjeta Alertas de servicio) y silencio
+    por vehículo (`vehicles.alerts_muted`, interruptor en Datos y ajustes);
+    cron y RPC de candidatos leen la config; la vista usa los mismos umbrales.
+  - **PENDIENTE:** (1) benchmark anónimo de rendimiento entre socios (idea del
+    dueño 2-sep, a futuro); (2) afinar las artes Pulsar/CGL/DR (restos
+    sub-visibles a escala de tarjeta); (3) retirar el campo `beta: true` de
+    compatibilidad en `list_my_vehicles` cuando ya no queden PWA con el
+    placeholder cacheado.
 - **F8 — Spike Club Business:** 1 semana. Pendiente (baja).
 - **F9 — Reportería enriquecida (opcional):** 40-55 hs. **🟡 PARCIAL (v4.0):**
   el grupo **Análisis** del admin (13-ago) cubrió el grueso — 4 vistas de
@@ -1970,8 +1973,14 @@ dueño ("la ventana sí va para todos"):
   activa. El gesto se extrajo a `hooks/useSwipeTrack` (+ `slideIn`) y
   Vehículos lo consume también (sin cambio visual). Arnés `tools/harness/
   raffle.html` con ctx simulado; capturas claro/oscuro verificadas.
-- **GO-LIVE:** el rollout de Vehículos sale del checklist; restante ≈12-25 hs
-  (flecos D22/D4/D24 + go-live).
+- **D24 cerrada (misma tarde, mig `20260904b`):** umbrales de las alertas de
+  servicio EDITABLES por el admin (aviso previo por fecha/km y cadencia de los
+  recordatorios de vencido; tarjeta nueva en Configuración, RPC auditada) y
+  SILENCIO por vehículo (interruptor "Recordatorios de servicio" en Datos y
+  ajustes, `vehicles.alerts_muted`; el RPC de candidatos lo excluye). Cron
+  `api/vehicle-service-alerts` y la ventana Vehículos leen la misma config.
+- **GO-LIVE:** el rollout de Vehículos sale del checklist; restante ≈8-18 hs
+  (flecos D22/D4 + go-live).
 
 ### Versión 4.1 — 3 de septiembre de 2026
 

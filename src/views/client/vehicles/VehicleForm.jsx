@@ -42,6 +42,7 @@ export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved, onD
     next_service_km: vehicle?.next_service_km != null ? String(vehicle.next_service_km) : '',
     tank_gal: vehicle?.tank_gal != null ? String(vehicle.tank_gal) : '',
     fuel_pref: vehicle?.fuel_pref || '',
+    alerts_muted: !!vehicle?.alerts_muted, // D24: recordatorios apagados
   }));
   const [saving, setSaving] = useState(false);
   const [openSugg, setOpenSugg] = useState(null); // 'brand' | 'model' | null
@@ -191,6 +192,7 @@ export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved, onD
       next_service_km: f.next_service_km === '' ? null : parseInt(f.next_service_km, 10),
       tank_gal: f.tank_gal === '' ? null : parseFloat(f.tank_gal),
       fuel_pref: f.fuel_pref || null,
+      alerts_muted: f.alerts_muted,
     });
     setSaving(false);
     if (error) { fire('Error: ' + (error.message || 'no se pudo guardar'), 'error'); return; }
@@ -383,6 +385,33 @@ export default function VehicleForm({ vehicle, dark, fire, onClose, onSaved, onD
               <input value={f.next_service_km} inputMode="numeric"
                 onChange={e => set('next_service_km', e.target.value.replace(/[^0-9]/g, '').slice(0, 7))}
                 placeholder="50000" style={{ ...input, fontFamily: "'JetBrains Mono', monospace" }} />
+            </div>
+          </div>
+
+          {/* D24: silencio por vehículo — apaga los push de servicio de ESTE
+              vehículo (los umbrales globales los fija el admin) */}
+          <div onClick={() => set('alerts_muted', !f.alerts_muted)} style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+            marginTop: 14, padding: '12px 14px', borderRadius: 13, background: fieldBg, cursor: 'pointer',
+          }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: ink }}>Recordatorios de servicio</div>
+              <div style={{ fontSize: 11, color: sub, marginTop: 2, lineHeight: 1.4 }}>
+                {f.alerts_muted
+                  ? 'Apagados — no recibirás avisos de este vehículo'
+                  : 'Te avisamos cuando se acerque por fecha o kilometraje'}
+              </div>
+            </div>
+            <div aria-hidden style={{
+              width: 44, height: 26, borderRadius: 13, flexShrink: 0, position: 'relative',
+              background: f.alerts_muted ? (dark ? 'rgba(255,255,255,.15)' : '#D5D5D8') : BRAND_ORANGE,
+              transition: 'background .2s ease',
+            }}>
+              <div style={{
+                position: 'absolute', top: 3, left: f.alerts_muted ? 3 : 21, width: 20, height: 20,
+                borderRadius: '50%', background: '#fff', transition: 'left .2s ease',
+                boxShadow: '0 1px 3px rgba(0,0,0,.25)',
+              }} />
             </div>
           </div>
         </>)}

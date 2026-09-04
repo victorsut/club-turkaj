@@ -12,6 +12,7 @@ import { useState, useEffect } from 'react';
 import { sb } from '../../lib/supabaseClient';
 import { sMono, adminTheme as AT, inputStyleDark } from '../../constants/styles';
 import { getAdminToken } from '../../services/sessionTokens';
+import ServiceAlertsCard from './settings/ServiceAlertsCard';
 import ReasonModal from '../../components/ui/ReasonModal';
 // División 15-ago-2026 (regla de 500 líneas): los modales de llaves
 // API y de precios de combustible viven en views/admin/settings/.
@@ -411,6 +412,12 @@ export default function Settings(ctx) {
             Generar llave de API
           </button>
         </div>
+
+        {/* D24: umbrales de las alertas push de servicio de vehículos */}
+        <ServiceAlertsCard
+          cfg={cfg} setCfg={setCfg} loggedAdmin={loggedAdmin} fire={fire}
+          card={card} cardTitle={cardTitle} cardHint={cardHint}
+        />
 
       </div>
 

@@ -107,6 +107,12 @@ export async function loadFromSupabase({
         const comp = cfgMap.company
           ? (typeof cfgMap.company === 'string' ? JSON.parse(cfgMap.company) : cfgMap.company)
           : {};
+        // D24 (4-sep): umbrales de las alertas push de servicio de
+        // vehículos — editables en Admin → Configuración; el cliente
+        // pinta el aviso con el MISMO umbral que el push.
+        const sa = cfgMap.service_alerts
+          ? (typeof cfgMap.service_alerts === 'string' ? JSON.parse(cfgMap.service_alerts) : cfgMap.service_alerts)
+          : {};
         let fp;
         if (cfgMap.fuel_prices) {
           fp = typeof cfgMap.fuel_prices === 'string' ? JSON.parse(cfgMap.fuel_prices) : cfgMap.fuel_prices;
@@ -126,6 +132,10 @@ export async function loadFromSupabase({
           supportPhone: sup.phone || '49741067',
           companyName: comp.name || 'Gasolineras Turkaj',
           companyLocation: comp.location || 'Chichicastenango',
+          serviceAlerts: {
+            days: +sa.days || 7, km: +sa.km || 500,
+            overdueEveryDays: +sa.overdue_every_days || 7, kmEveryDays: +sa.km_every_days || 14,
+          },
         });
       }
     }
