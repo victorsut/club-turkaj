@@ -1,4 +1,4 @@
-# Club Turkaj v2 — Guía Rápida de Despliegue
+# Puntos Plus — Guía Rápida de Despliegue
 
 ## 1. Instalar dependencias
 ```bash

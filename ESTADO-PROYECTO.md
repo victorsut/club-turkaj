@@ -302,7 +302,7 @@ WiFi por estación viven ahí.
 - **GO-LIVE:** encender degradación (`set_degradation_enabled`), encender
   `phone_verification` (requiere Twilio), revocar la API key "Pruebas" de
   PROPER, verificación general. ≈4-8 hs.
-- Flecos D22/D4; retirar `beta: true` de compatibilidad en `list_my_vehicles`
+- Fleco D4 (precios por estación); retirar `beta: true` de compatibilidad en `list_my_vehicles`
   cuando no queden PWA viejas cacheadas.
 - Track TIENDAS (Play Store / App Store) y contacto técnico de PROPER —
   gestiones del dueño.

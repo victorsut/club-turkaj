@@ -371,7 +371,7 @@ Mover el `useState(checkingPhone)` al tope del componente con los otros useState
 | — | **GO-LIVE** | **Checklist de lanzamiento:** ~~rollout de Vehículos~~ (✅ 4-sep), encender motor de degradación (`set_degradation_enabled` — el contador de todos arranca en cero), encender `phone_verification` (con Twilio), revocar la API key "Pruebas" de PROPER, verificación general | 4-8 hs | Alta | 📋 Pendiente (los interruptores están apagados A PROPÓSITO hasta el lanzamiento oficial) |
 | ∥ | **R1b** | **Track paralelo: rediseño visual iterativo por vistas** (Home → Promociones → Historiales → Menú → Canjes/Rifa) | 75-110 hs | Alta | 🔛 ACTIVO — **R1b.1 Home ✅ CERRADA** (17-jul, `4972e1d`→`dd50f30`, validada por el dueño: bento adaptable, cuadrados fijos Promos/Vehículo, degradados+iconos SVG, historiales con períodos derivados de datos + libro mayor de puntos, container transform con tinte de continuidad). **R1b.2 Promociones ✅ CERRADA** (18-jul, `dbe2ffd`→`6adb57c`, validada por el dueño) — cards verticales 3:4 en grid de 2 (vista PROMOCIONES con chips), 1:1 en el home (carrusel arrastrable, tap → vista); imagen 900×1200 como FONDO completo con textos encima (saltos de línea manuales, color por bloque via `text_colors` jsonb), preview admin a tamaño real; bucket promo-images solo-service-role + `/api/upload-promo-image`. **Actualización v4.0 (15-ago):** desde entonces el track cerró TODAS las vistas base del cliente — Menú (23-jul), modo claro/oscuro completo (24-jul), paleta por nivel + BLACK galaxia (23-jul→14-ago), Historiales con filtros por tipo + paginado (11-ago), Admin v2 con shell lateral y lienzo ancho (4→6-ago), divisiones <500 líneas de App/ClientHome/Settings/AdminDash (12→15-ago), code splitting por rol (cliente 354 kB, 14-ago) y **splash de entrada con monedas PP 3D** según referencia "idea intro" (15-ago). El track sigue ACTIVO para correcciones visuales puntuales según referencias |
 
-**Total restante estimado (v4.2):** ≈8-18 hs de desarrollo (flecos D22/D4 + go-live) + F8 (1 sem, baja) + F9 opcional restante + gestiones externas del dueño (PROPER, Twilio, Play/Apple). F6 (72-93 hs estimadas) se ejecutó entre el 15-ago y el 3-sep; el plan v3.0 de 550-750 hs queda ejecutado en ~95%.
+**Total restante estimado (v4.2):** ≈6-14 hs de desarrollo (fleco D4 + go-live) + F8 (1 sem, baja) + F9 opcional restante + gestiones externas del dueño (PROPER, Twilio, Play/Apple). F6 (72-93 hs estimadas) se ejecutó entre el 15-ago y el 3-sep; el plan v3.0 de 550-750 hs queda ejecutado en ~95%.
 
 > **Nota v3.0:** este orden ES la re-planificación (Nivel 2) que v2.4/v2.5
 > difirieron. F3 ya no existe como fase monolítica: se disuelve en R1a + track
@@ -939,8 +939,11 @@ F0 + FA completadas.
 > `max_uses_per_member_month`. El "voucher con QR universal" (D20) quedó cubierto
 > por el flujo existente de redemptions (canje costo-0 con código TK, Realtime,
 > entrega OpRedeem/POS, impresión FA-lite) — no se construyó un sistema aparte.
-> **FLECO ABIERTO:** D22 — plazo y estación de entrega configurables del premio
-> de rifa (hoy solo el costo por boleto es configurable por rifa).
+> ~~FLECO ABIERTO: D22~~ — **CERRADO** (mig `20260806d_d22_plazo_estacion_rifa`):
+> plazo (`claim_days`, default 15) y estación de entrega (`claim_station_id`,
+> default Turkaj 1) editables por rifa en `AdminRaffleForm`; el modal del
+> ganador muestra la fecha límite y la estación. La nota de "fleco abierto"
+> quedó desfasada hasta la reconciliación del 4-sep-2026.
 
 #### 5.2.1 Objetivo
 
@@ -1986,8 +1989,14 @@ dueño ("la ventana sí va para todos"):
   Realtime, triggers, 125 RPCs por familia, endpoints y crons, variables de
   entorno, funcionalidad por vista, reglas vigentes, estaciones, herramientas
   de verificación, pendientes). El plan sigue viviendo en este ROADMAP.
-- **GO-LIVE:** el rollout de Vehículos sale del checklist; restante ≈8-18 hs
-  (flecos D22/D4 + go-live).
+- **Reconciliación de flecos:** D22 (plazo y estación del premio de rifa)
+  estaba IMPLEMENTADO desde el 6-ago (`20260806d`, formulario de rifa y modal
+  del ganador) — la nota de "fleco abierto" en §5.2 era un desfase; se marca
+  cerrado. Queda D4 como único fleco de producto: precios de combustible por
+  estación (hoy globales en `program_config.fuel_prices`).
+- **`DEPLOY.md`** renombrado a Puntos Plus.
+- **GO-LIVE:** el rollout de Vehículos sale del checklist; restante ≈6-14 hs
+  (fleco D4 + go-live).
 
 ### Versión 4.1 — 3 de septiembre de 2026
 
