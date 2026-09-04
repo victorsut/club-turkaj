@@ -2,9 +2,12 @@
 // Filtros compactos del historial (pedido del dueño 4-sep-2026): de
 // hasta TRES filas de chips (período · mes/año · tipo) a UNA fila de
 // períodos + un ICONO de tipo en la esquina superior derecha.
-//   · PeriodRow: una sola fila desplazable derivada de los datos —
-//     "Hoy" (si hay movimientos hoy), los meses con movimientos, los
-//     años y "Todo". Valor: 'hoy' | 'm:YYYY-MM' | 'y:YYYY' | 'todo'.
+//   · PeriodRow: una sola fila desplazable derivada de los datos, en
+//     este ORDEN (pedido del dueño 4-sep, pensando en historiales de
+//     muchos meses): "Todo", los años, "Hoy" (si hay movimientos hoy) y
+//     los meses del más reciente al más antiguo — lo general y lo de
+//     hoy quedan al alcance sin desplazar; los meses viejos, al final.
+//     Valor: 'hoy' | 'm:YYYY-MM' | 'y:YYYY' | 'todo'.
 //   · TypeFilterButton: embudo en el hueco derecho del encabezado (el
 //     mismo que ocupa el reloj de pendientes en Canjes); abre un menú
 //     anclado con "Todos" + los grupos CON movimientos, cada uno con su
@@ -28,13 +31,13 @@ export const periodLabel = (p) => {
 
 export function PeriodRow({ hasToday, months, years, value, onChange, chip }) {
   const opts = [
+    { id: 'todo', label: 'Todo' },
+    ...years.map(y => ({ id: `y:${y}`, label: y })),
     ...(hasToday ? [{ id: 'hoy', label: 'Hoy' }] : []),
     ...months.map(ym => ({ id: `m:${ym}`, label: monthLabel(ym) })),
-    ...years.map(y => ({ id: `y:${y}`, label: y })),
-    { id: 'todo', label: 'Todo' },
   ];
   return (
-    <ChipScroller padding="10px 14px 8px">
+    <ChipScroller padding="8px 14px 10px">
       {opts.map(o => (
         <button key={o.id} onClick={() => onChange(o.id)} style={chip(value === o.id)}>
           {o.label}

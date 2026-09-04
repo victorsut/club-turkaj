@@ -203,12 +203,13 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
       {tint && (
         <div className={closing ? 'pp-tint-in' : 'pp-tint'} style={{ position: 'absolute', inset: 0, background: tint, zIndex: 5 }} />
       )}
+      {/* Bloque PEGAJOSO (4-sep, pedido del dueño): encabezado + fila de
+          períodos siguen visibles al desplazar la lista — se cambia de
+          filtro aunque se esté al fondo del historial */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 2, background: TH.bg }}>
       {/* Header (formato de la ventana Promociones: flecha suelta +
           título centrado; en Canjes, ícono de PENDIENTES a la derecha) */}
-      <div style={{
-        position: 'sticky', top: 0, zIndex: 2, background: TH.bg,
-        padding: '16px 14px 8px', display: 'flex', alignItems: 'center',
-      }}>
+      <div style={{ padding: '16px 14px 8px', display: 'flex', alignItems: 'center' }}>
         <button onClick={close} aria-label="Volver" style={{
           width: 40, height: 40, border: 'none', cursor: 'pointer',
           background: 'none', color: TH.header, padding: 0,
@@ -269,6 +270,7 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
       {!pendingOnly && (
         <PeriodRow hasToday={hasToday} months={months} years={years} value={period} onChange={setPeriod} chip={subChip} />
       )}
+      </div>
 
       {/* Lista */}
       {items.length === 0 && (

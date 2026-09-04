@@ -2013,7 +2013,10 @@ dueño ("la ventana sí va para todos"):
   con menú anclado en la esquina derecha (mismo hueco del reloj de
   pendientes en Canjes; acento + punto cuando hay un tipo elegido); el
   subtítulo dice qué se está viendo ("12 canjes · Sep 2026"). Aplica a
-  Compras y Puntos y a Canjes (`history/HistoryFilters`).
+  Compras y Puntos y a Canjes (`history/HistoryFilters`). Validado en el
+  celular; segunda pasada el mismo día: orden de la fila Todo · años · Hoy ·
+  meses (reciente → antiguo) para historiales largos, y encabezado + fila
+  PEGAJOSOS al desplazar la lista (se cambia de filtro desde el fondo).
 - **GO-LIVE:** el rollout de Vehículos sale del checklist; restante ≈4-8 hs
   (solo go-live).
 
