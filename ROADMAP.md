@@ -1961,6 +1961,15 @@ dueño ("la ventana sí va para todos"):
   título (90 % del ancho / 86 % del alto, tope ×1.3); se re-mide al llegar el
   chunk calcado y al cambiar el tamaño del cuadro. Verificado con 7 casos
   (Navi, Hilux, sedán y moto genéricos, CX-5, Hiace, Torito).
+- **Rifa → cambio de mes con ARRASTRE (pedido del dueño):** la tarjeta del
+  premio pasa a un carrusel por mes (año en curso hasta el actual) con la
+  MISMA animación del cambio de vehículo: sigue al dedo, resistencia en los
+  extremos, encaje con rebote, activa a escala completa y vecinas atrás;
+  puntos y flechas ‹ › fijan la dirección; compra y participantes entran
+  escalonados desde esa dirección; la altura del carril sigue a la tarjeta
+  activa. El gesto se extrajo a `hooks/useSwipeTrack` (+ `slideIn`) y
+  Vehículos lo consume también (sin cambio visual). Arnés `tools/harness/
+  raffle.html` con ctx simulado; capturas claro/oscuro verificadas.
 - **GO-LIVE:** el rollout de Vehículos sale del checklist; restante ≈12-25 hs
   (flecos D22/D4/D24 + go-live).
 

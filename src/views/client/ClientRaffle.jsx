@@ -1,18 +1,23 @@
 // src/views/client/ClientRaffle.jsx
 // R1b.4 — Pestaña RIFA con FORMATO GENERAL (estructura original:
 // premio → boletos → participantes), ahora con:
-//   · Navegación a meses anteriores (‹ ›): premio del mes y GANADOR.
+//   · Navegación a meses anteriores (‹ › y ARRASTRE con el dedo, 4-sep:
+//     misma animación que el cambio de vehículo — raffle/RafflePrizeCarousel
+//     + hooks/useSwipeTrack): premio del mes y GANADOR.
 //   · Imagen real del premio (raffle_calendar.prize_image_url) con
 //     fallback al ícono SVG adecuado (rewardIconFor).
 //   · MIS BOLETOS = comprados por mí en el mes; TOTAL = de todos.
 //   · Participantes en orden ALEATORIO, salvo yo siempre primero.
 // El sorteo es automático al cierre del mes (draw_due_raffles, ponderado
 // por boletos); acá solo se muestra el resultado.
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { bento, BRAND_ORANGE } from '../../constants/styles';
 import { Back, Chev, TicketStar } from '../../components/ui/Icons';
-import { rewardIconFor } from '../../components/ui/RewardIcon';
 import useBackLayer from '../../hooks/useBackLayer';
+import useSwipeTrack, { slideIn } from '../../hooks/useSwipeTrack';
+import RafflePrizeCarousel from './raffle/RafflePrizeCarousel';
+
+const EMPTY_MONTH = { m: 'Mes', name: null, icon: null, img: null, v: 'Q0', winnerId: null };
 
 const shuffle = (arr) => {
   const a = arr.slice();
@@ -26,6 +31,19 @@ const shuffle = (arr) => {
 export default function ClientRaffle(ctx) {
   const { me, cfg, cTier, raffleCal, rafData, buyTickets, curMonth, custs, dark } = ctx;
   const [viewMonth, setViewMonth] = useState(curMonth);
+  // Meses del año en curso hasta el actual (una tarjeta por mes en el
+  // carrusel); el gesto y la dirección viven en el hook compartido.
+  const months = Array.from({ length: curMonth + 1 }, (_, i) => raffleCal[i] || EMPTY_MONTH);
+  const swipe = useSwipeTrack({ count: months.length, idx: viewMonth, setIdx: setViewMonth });
+  // Al cambiar de mes, compra y participantes entran desde la dirección
+  // del cambio (misma coreografía que la información de Vehículos).
+  const buyRef = useRef(null);
+  const partsRef = useRef(null);
+  const firstMonth = useRef(true);
+  useEffect(() => {
+    if (firstMonth.current) { firstMonth.current = false; return; }
+    slideIn([buyRef.current, partsRef.current], swipe.dirRef.current, { delay: 90, stagger: 70 });
+  }, [viewMonth]);
   // Confirmación de compra de boletos (bottom sheet con cierre animado,
   // mismo patrón del sheet de canjes).
   const [buyConfirm, setBuyConfirm] = useState(null); // { n, cost } | null
@@ -49,7 +67,7 @@ export default function ClientRaffle(ctx) {
 
   if (!me) return null;
 
-  const rm = raffleCal[viewMonth] || { m: 'Mes', name: null, icon: null, img: null, v: 'Q0', winnerId: null };
+  const rm = months[viewMonth] || EMPTY_MONTH;
   const isCurrent = viewMonth === curMonth;
   // Costo del boleto: configurable por rifa (raffle_calendar.ticket_points);
   // si la rifa no define uno, rige el global cfg.ticketPts.
@@ -62,15 +80,12 @@ export default function ClientRaffle(ctx) {
   const rowLine = dark ? 'rgba(255,255,255,.08)' : '#F0F0F0';
   const good = dark ? '#7CD98F' : bento.green;
 
-  const myTickets = parts.find(p => p.cid === me.id)?.tickets || 0;
-  const totalTickets = parts.reduce((s, p) => s + p.tickets, 0);
   // 1-ago: el ganador se anuncia con su APODO (display_name de la lista
   // de participantes); custs queda como fallback de datos viejos.
-  const winnerName = rm.winnerId
-    ? (parts.find(p => p.cid === rm.winnerId)?.name
-        || (custs || []).find(c => c.id === rm.winnerId)?.name || 'Ganador')
+  const winnerNameFor = (month, mParts) => month.winnerId
+    ? (mParts.find(p => p.cid === month.winnerId)?.name
+        || (custs || []).find(c => c.id === month.winnerId)?.name || 'Ganador')
     : null;
-  const PrizeIcon = rewardIconFor({ name: rm.name || '', icon: rm.icon || '' });
 
   // Chevrons de navegación: sin caja (solo el glifo), naranjas cuando hay
   // a dónde ir — se leen como control, no como cuadro de información.
@@ -86,7 +101,7 @@ export default function ClientRaffle(ctx) {
 
       {/* Header compacto: navegación de meses integrada al título */}
       <div style={{ display: 'flex', alignItems: 'center', padding: '14px 12px 10px' }}>
-        <button onClick={() => viewMonth > 0 && setViewMonth(viewMonth - 1)} aria-label="Mes anterior" style={navBtn(viewMonth > 0)}>
+        <button onClick={() => swipe.go(viewMonth - 1)} aria-label="Mes anterior" style={navBtn(viewMonth > 0)}>
           <Back />
         </button>
         <div style={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
@@ -95,80 +110,23 @@ export default function ClientRaffle(ctx) {
             {rm.m} {rm.year || ''} · sorteo al cierre del mes
           </div>
         </div>
-        <button onClick={() => viewMonth < curMonth && setViewMonth(viewMonth + 1)} aria-label="Mes siguiente" style={navBtn(viewMonth < curMonth)}>
+        <button onClick={() => swipe.go(viewMonth + 1)} aria-label="Mes siguiente" style={navBtn(viewMonth < curMonth)}>
           <Chev />
         </button>
       </div>
 
-      {/* ── Premio del mes + mis boletos/total (una sola tarjeta de
-          información — los números NO son botones) ── */}
-      <div style={{ margin: '0 16px 10px', padding: '16px 16px 12px', borderRadius: 20, background: surface, textAlign: 'center' }}>
-        <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase', color: subTxt, marginBottom: 10 }}>
-          Premio de {rm.m}
-        </div>
-        {rm.img ? (
-          <img src={rm.img} alt={rm.name || 'Premio'} style={{
-            width: '100%', maxWidth: 220, aspectRatio: '4 / 3', objectFit: 'cover',
-            borderRadius: 14, margin: '0 auto 10px', display: 'block',
-          }} />
-        ) : (
-          <div style={{
-            width: 56, height: 56, borderRadius: 16, margin: '0 auto 10px',
-            background: bento.red, color: '#fff',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <div style={{ transform: 'scale(1.4)', lineHeight: 0 }}><PrizeIcon /></div>
-          </div>
-        )}
-        <div style={{ fontSize: 17, fontWeight: 800, color: headerTxt, lineHeight: 1.25 }}>
-          {rm.name || 'Premio por anunciar'}
-        </div>
-        <div style={{ fontSize: 12, fontWeight: 700, color: subTxt, marginTop: 2 }}>
-          Valorado en {rm.v}
-        </div>
-
-        {/* Resultado del sorteo (meses anteriores) */}
-        {!isCurrent && (
-          winnerName ? (
-            <div style={{
-              display: 'inline-block', marginTop: 10, padding: '7px 14px', borderRadius: 12,
-              background: dark ? 'rgba(30,122,51,.25)' : 'rgba(30,122,51,.12)',
-              fontSize: 12.5, fontWeight: 800, color: good,
-            }}>
-              GANADOR · {winnerName}
-            </div>
-          ) : (
-            <div style={{
-              display: 'inline-block', marginTop: 10, padding: '7px 14px', borderRadius: 12,
-              background: dark ? 'rgba(255,255,255,.06)' : '#F5F5F7',
-              fontSize: 12, fontWeight: 700, color: subTxt,
-            }}>
-              {totalTickets > 0 ? 'Sorteo pendiente' : 'Sin participantes este mes'}
-            </div>
-          )
-        )}
-
-        {/* Mis boletos / Total — integrados a la tarjeta del premio */}
-        <div style={{
-          display: 'flex', marginTop: 14, paddingTop: 12,
-          borderTop: `1px solid ${rowLine}`,
-        }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 24, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: BRAND_ORANGE }}>{myTickets}</div>
-            <div style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: subTxt, marginTop: 1 }}>Mis boletos</div>
-          </div>
-          <div style={{ width: 1, background: rowLine }} />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 24, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: headerTxt }}>{totalTickets}</div>
-            <div style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: subTxt, marginTop: 1 }}>Total del mes</div>
-          </div>
-        </div>
-      </div>
+      {/* ── Premio del mes + mis boletos/total: carrusel por mes que
+          sigue al dedo (4-sep) — una tarjeta de información por mes ── */}
+      <RafflePrizeCarousel
+        months={months} rafData={rafData} me={me} curMonth={curMonth}
+        idx={viewMonth} swipe={swipe} dark={dark} winnerNameFor={winnerNameFor}
+        colors={{ headerTxt, subTxt, surface, rowLine, good }}
+      />
 
       {/* ── Comprar boletos (solo mes en curso) — UNA tarjeta; los
           botones son NARANJAS sólidos para diferenciarse de la info ── */}
       {isCurrent && (
-        <div style={{ margin: '0 16px 14px', padding: '12px 14px', borderRadius: 20, background: surface }}>
+        <div ref={buyRef} style={{ margin: '0 16px 14px', padding: '12px 14px', borderRadius: 20, background: surface }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <span style={{ fontSize: 12, color: subTxt, fontWeight: 600 }}>Tus puntos</span>
             <span style={{ fontSize: 15, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: headerTxt }}>{me.points}</span>
@@ -196,7 +154,7 @@ export default function ClientRaffle(ctx) {
       )}
 
       {/* ── Participantes (orden aleatorio, yo primero) ── */}
-      <div style={{ padding: '0 16px' }}>
+      <div ref={partsRef} style={{ padding: '0 16px' }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: subTxt, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 10 }}>
           Participantes ({parts.length})
         </div>
