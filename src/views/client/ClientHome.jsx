@@ -16,11 +16,12 @@ import StationsMapModal from './home/StationsMapModal';
 import SurveyStationsModal from './home/SurveyStationsModal';
 import HomeHeader from './home/HomeHeader';
 import PromoBentoTile from './home/PromoBentoTile';
+import VehicleBentoTile from './home/VehicleBentoTile';
 import useShortScreen from '../../hooks/useShortScreen';
 import useSurveyFlow from '../../hooks/useSurveyFlow';
 import NotificationsSheet from './NotificationsSheet';
 import SupportSheet from '../../components/ui/SupportSheet';
-import { CarIcon, WifiIcon, SurveyIcon, PinIcon, TicketStarIcon, BagIcon } from '../../components/ui/BentoIcons';
+import { WifiIcon, SurveyIcon, PinIcon, TicketStarIcon, BagIcon } from '../../components/ui/BentoIcons';
 import { originFromEvent, centerDeltaFromEvent } from '../../lib/motionOrigin';
 
 export default function ClientHome(ctx) {
@@ -142,12 +143,11 @@ export default function ClientHome(ctx) {
           onOpen={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('promos'); }}
         />
 
-        {/* 2 · Vehículo (placeholder hasta F6 — D34) */}
-        <BentoTile
-          index={1} square color={htp.vehicle} titleColor={htp.vehicleTitle} ink={htp.vehicleInk || '#fff'}
-          icon={<CarIcon color={htp.vehicleInk} />} title="Vehículo"
-          sub="Administra y consulta tus vehículos" badge="PRÓXIMAMENTE"
-          onClick={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('veh'); }}
+        {/* 2 · Vehículo (F6 en producción, 4-sep): arte del principal
+            si el socio tiene vehículos; carrito si no. home/VehicleBentoTile */}
+        <VehicleBentoTile
+          me={me} htp={htp}
+          onOpen={(e) => { if (setNavOrigin) setNavOrigin(originFromEvent(e)); setCScr('veh'); }}
         />
 
         {/* 3 · WiFi (beneficio PLATINO/BLACK — D34) */}

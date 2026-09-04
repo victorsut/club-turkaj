@@ -1949,6 +1949,12 @@ dueño ("la ventana sí va para todos"):
   socio+placa). Verificado en Supabase que la reparación `20260903c` sí corrió;
   el vehículo de Fernando M. fue borrado después por el dueño en una prueba
   (`delete_my_vehicle`, 3-sep 14:26) y NO se recrea.
+- **Inicio → cuadro VEHÍCULO (referencia PANTALLA DE INICIO):** sin rótulo
+  PRÓXIMAMENTE; el socio con vehículos ve el ARTE de su principal en su color
+  sobre el mismo fondo del cuadro (`home/VehicleBentoTile`, caché por socio en
+  localStorage para pintar al instante + refresco por `list_my_vehicles`); sin
+  vehículos, el carrito de siempre. Verificado con arnés `tools/harness/`
+  (captura ORO/PLATINO/BLACK, con y sin vehículo).
 - **GO-LIVE:** el rollout de Vehículos sale del checklist; restante ≈12-25 hs
   (flecos D22/D4/D24 + go-live).
 
