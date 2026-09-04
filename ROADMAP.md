@@ -1163,9 +1163,9 @@ Sin cambios respecto a v2.1. Ver versiones anteriores del documento para detalle
     (`program_config.service_alerts`, tarjeta Alertas de servicio) y silencio
     por vehículo (`vehicles.alerts_muted`, interruptor en Datos y ajustes);
     cron y RPC de candidatos leen la config; la vista usa los mismos umbrales.
+  - **Artes Pulsar/CGL/DR:** validadas por el dueño el 4-sep ("todo bien").
   - **PENDIENTE:** (1) benchmark anónimo de rendimiento entre socios (idea del
-    dueño 2-sep, a futuro); (2) afinar las artes Pulsar/CGL/DR (restos
-    sub-visibles a escala de tarjeta); (3) retirar el campo `beta: true` de
+    dueño 2-sep, a futuro); (2) retirar el campo `beta: true` de
     compatibilidad en `list_my_vehicles` cuando ya no queden PWA con el
     placeholder cacheado.
 - **F8 — Spike Club Business:** 1 semana. Pendiente (baja).
@@ -1784,7 +1784,7 @@ quedó **RESUELTO** aparte (commit `5270f98`).
 | Item | Severidad | Cuándo |
 |---|---|---|
 | **Incidente 3-sep (F6 E2b):** el backfill de `20260903b` reconcilió la tabla `vehicles` desde un `members.vehicles` desactualizado ANTES de espejar y borró 2 vehículos de la beta (Hero Eco Deluxe de Ezer M. con 3 compras re-ligadas; Hero Eco 100 de Fernando M.). Reparado en `20260903c`; color/km/aceite/próximo servicio de ambos NO recuperables (reingreso por el socio). LECCIÓN: en toda unificación, espejar primero y NUNCA borrar filas con datos propios desde una fuente legada | Alta (cerrado) | ✅ 3-sep-2026 |
-| `ESTADO-PROYECTO.md` desactualizado (última actualización junio 2026: "57 archivos", stack sin F6/PROPER/push) — reconciliar con el repo | Baja | Próxima sesión documental |
+| ~~`ESTADO-PROYECTO.md` desactualizado (junio 2026)~~ — reescrito el 4-sep-2026 contra el repo (626 archivos, 268 en src) y la base (38 tablas, 125 funciones, Realtime, buckets, crons, env, RPCs por familia) | Baja (cerrado) | ✅ 4-sep-2026 |
 | ~~Placeholder `VehiclesSoon` + compuerta de beta en `list_my_vehicles` quedarán muertos tras el rollout de F6~~ — retirados en el rollout (mig `20260904`); queda solo el campo `beta: true` de compatibilidad en el payload | Baja (cerrado) | ✅ 4-sep-2026 |
 | `App.jsx` con 1591 líneas (medido junio 2026) — refactor a componentes más pequeños | Media | F3 |
 | Credenciales de admins NO migradas a BD | Media | F1 |
@@ -1979,6 +1979,13 @@ dueño ("la ventana sí va para todos"):
   SILENCIO por vehículo (interruptor "Recordatorios de servicio" en Datos y
   ajustes, `vehicles.alerts_muted`; el RPC de candidatos lo excluye). Cron
   `api/vehicle-service-alerts` y la ventana Vehículos leen la misma config.
+- **Validación del dueño (4-sep):** rollout, cuadro Vehículo del inicio, carrusel
+  de la rifa, D24 y las artes Pulsar/CGL/DR — "todo bien".
+- **Deuda documental saldada:** `ESTADO-PROYECTO.md` reescrito como referencia
+  técnica vigente (stack, árbol del repo, accesos por rol, schema por dominio,
+  Realtime, triggers, 125 RPCs por familia, endpoints y crons, variables de
+  entorno, funcionalidad por vista, reglas vigentes, estaciones, herramientas
+  de verificación, pendientes). El plan sigue viviendo en este ROADMAP.
 - **GO-LIVE:** el rollout de Vehículos sale del checklist; restante ≈8-18 hs
   (flecos D22/D4 + go-live).
 
