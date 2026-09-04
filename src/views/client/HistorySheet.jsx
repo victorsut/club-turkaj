@@ -3,14 +3,18 @@
 // canjes). Períodos DERIVADOS de los datos (feedback del dueño):
 // "Hoy" solo aparece si hay movimientos hoy; "Mes" y "Año" abren un
 // selector solo con los meses/años que tienen movimientos.
-// Objetivo #3 (11-ago): filtro por TIPO de movimiento (chips también
-// derivados de los datos) + paginado incremental de 30 en 30.
+// Objetivo #3 (11-ago): filtro por TIPO de movimiento (derivado de los
+// datos) + paginado incremental de 30 en 30.
+// 4-sep (pedido del dueño: los filtros ocupaban mucho): UNA fila de
+// períodos (Hoy · meses · años · Todo) y el tipo como ICONO con menú en
+// la esquina derecha; el filtro activo se lee en el subtítulo
+// (history/HistoryFilters).
 // Entra desde su tile (container transform D35) y se guarda al cerrar.
 import { useState, useEffect, useRef } from 'react';
 import { sMono, bento, clientMainBg } from '../../constants/styles';
 import { ArrowLeft, Gift, Clock, Fuel, Ticket, Cake, Car, Clipboard, StarLine } from '../../components/ui/Icons';
 import RewardIcon, { rewardIconFor } from '../../components/ui/RewardIcon';
-import ChipScroller from '../../components/ui/ChipScroller';
+import { PeriodRow, TypeFilterButton, periodLabel } from './history/HistoryFilters';
 import RewardQrSheet from './RewardQrSheet';
 import useBackLayer from '../../hooks/useBackLayer';
 import { stripEmojis } from '../../lib/text';
@@ -47,9 +51,6 @@ const typeGroupOf = (t) =>
 // Paginado incremental (Objetivo #3): filas por tanda.
 const PAGE = 30;
 
-const MES_CORTO = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-const monthLabel = (ym) => `${MES_CORTO[parseInt(ym.slice(5, 7), 10) - 1] || '?'} ${ym.slice(0, 4)}`;
-
 // Fecha del item normalizada a 'YYYY-MM-DD' en hora de Guatemala.
 // Formato INTERNO: los filtros de período recortan por slice — no cambiar.
 const itemDay = (raw) => {
@@ -84,9 +85,8 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
   const months = [...new Set(days.map(d => d.slice(0, 7)))].sort().reverse();
   const years = [...new Set(days.map(d => d.slice(0, 4)))].sort().reverse();
 
-  const [mode, setMode] = useState(() => (hasToday ? 'hoy' : months.length ? 'mes' : 'todo'));
-  const [selMonth, setSelMonth] = useState(() => months[0] || null);
-  const [selYear, setSelYear] = useState(() => years[0] || null);
+  // Período único: 'hoy' | 'm:YYYY-MM' | 'y:YYYY' | 'todo' (4-sep)
+  const [period, setPeriod] = useState(() => (hasToday ? 'hoy' : months[0] ? `m:${months[0]}` : 'todo'));
   const [closing, setClosing] = useState(false);
   // Objetivo #3: filtro por tipo (solo libro mayor) + paginado.
   const [typeFilter, setTypeFilter] = useState('todos');
@@ -137,11 +137,11 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
   useBackLayer(true, close);
 
   const inPeriod = (day) => {
-    if (mode === 'todo') return true;
+    if (period === 'todo') return true;
     if (!day) return false;
-    if (mode === 'hoy') return day === todayGT;
-    if (mode === 'mes') return !!selMonth && day.slice(0, 7) === selMonth;
-    if (mode === 'anio') return !!selYear && day.slice(0, 4) === selYear;
+    if (period === 'hoy') return day === todayGT;
+    if (period.startsWith('m:')) return day.slice(0, 7) === period.slice(2);
+    if (period.startsWith('y:')) return day.slice(0, 4) === period.slice(2);
     return true;
   };
   const items = (!isCompras && pendingOnly)
@@ -155,7 +155,7 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
     : [];
 
   // Al cambiar cualquier filtro, el paginado vuelve a la primera tanda
-  useEffect(() => { setShown(PAGE); }, [mode, selMonth, selYear, typeFilter, pendingOnly]);
+  useEffect(() => { setShown(PAGE); }, [period, typeFilter, pendingOnly]);
   const visible = items.slice(0, shown);
 
   const ganados = isCompras
@@ -174,15 +174,9 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
     border: dark ? 'rgba(255,255,255,.08)' : '#EDEDED',
     chipOn: accent || (isCompras ? bento.orange : bento.teal),
     chipInk: accentInk || '#fff',
+    menuBg: dark ? '#1C1C22' : '#fff',
   };
-
-  // Modos disponibles según los datos (feedback: sin movimientos, sin chip)
-  const modes = [
-    ...(hasToday ? [{ id: 'hoy', label: 'Hoy' }] : []),
-    ...(months.length ? [{ id: 'mes', label: 'Mes' }] : []),
-    ...(years.length ? [{ id: 'anio', label: 'Año' }] : []),
-    { id: 'todo', label: 'Todo' },
-  ];
+  const typeLabel = typeFilter === 'todos' ? null : (TYPE_GROUPS.find(g => g.id === typeFilter)?.label || null);
 
   const subChip = (selected) => ({
     padding: '8px 14px', borderRadius: 12, border: 'none', flexShrink: 0,
@@ -231,8 +225,9 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
               ? `${items.length} pendiente${items.length === 1 ? '' : 's'} de usar`
               : <>
                   {items.length} {isCompras
-                    ? (items.length === 1 ? 'movimiento' : 'movimientos')
+                    ? (typeLabel ? typeLabel.toLowerCase() : (items.length === 1 ? 'movimiento' : 'movimientos'))
                     : (items.length === 1 ? 'canje' : 'canjes')}
+                  {period !== 'todo' && ` · ${periodLabel(period)}`}
                   {items.length > 0 && (isCompras
                     ? ` · +${ganados}${usados > 0 ? ` / −${usados}` : ''} pts`
                     : ` · ${usados} pts canjeados`)}
@@ -262,67 +257,18 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
               </span>
             )}
           </button>
+        ) : typeGroups.length > 1 ? (
+          <TypeFilterButton groups={typeGroups} value={typeFilter} onChange={setTypeFilter} TH={TH} />
         ) : (
           <div style={{ width: 40, flexShrink: 0 }} />
         )}
       </div>
 
-      {/* Chips de período (ocultos en la vista de pendientes): fila fija
-          que se reparte el ancho — sin barra de desplazamiento */}
-      {!pendingOnly && (<>
-      <div style={{ display: 'flex', gap: 7, padding: '10px 14px 8px' }}>
-        {modes.map(m => (
-          <button key={m.id} onClick={() => setMode(m.id)} style={{
-            flex: '1 1 0', minWidth: 0, padding: '10px 2px', borderRadius: 12, border: 'none',
-            background: mode === m.id ? TH.chipOn : TH.surface,
-            color: mode === m.id ? TH.chipInk : TH.txt,
-            fontFamily: "'DM Sans'", fontSize: 12, fontWeight: 700, cursor: 'pointer',
-            textAlign: 'center', whiteSpace: 'nowrap',
-            transition: 'background .2s, color .2s',
-          }}>
-            {m.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Selector de mes (solo meses con movimientos) — chips
-          desplazables sin barra visible (ChipScroller) */}
-      {mode === 'mes' && months.length > 0 && (
-        <ChipScroller padding="2px 14px 10px">
-          {months.map(ym => (
-            <button key={ym} onClick={() => setSelMonth(ym)} style={subChip(selMonth === ym)}>
-              {monthLabel(ym)}
-            </button>
-          ))}
-        </ChipScroller>
+      {/* Período: UNA fila desplazable derivada de los datos (oculta en
+          la vista de pendientes); el tipo vive en el embudo del encabezado */}
+      {!pendingOnly && (
+        <PeriodRow hasToday={hasToday} months={months} years={years} value={period} onChange={setPeriod} chip={subChip} />
       )}
-
-      {/* Selector de año (solo años con movimientos) */}
-      {mode === 'anio' && years.length > 0 && (
-        <ChipScroller padding="2px 14px 10px">
-          {years.map(y => (
-            <button key={y} onClick={() => setSelYear(y)} style={subChip(selYear === y)}>
-              {y}
-            </button>
-          ))}
-        </ChipScroller>
-      )}
-
-      {/* Objetivo #3: filtro por TIPO de movimiento (solo libro mayor;
-          chips derivados de los datos — sin variedad, sin fila) */}
-      {isCompras && typeGroups.length > 1 && (
-        <ChipScroller padding="2px 14px 10px">
-          <button onClick={() => setTypeFilter('todos')} style={subChip(typeFilter === 'todos')}>
-            Todos
-          </button>
-          {typeGroups.map(g => (
-            <button key={g.id} onClick={() => setTypeFilter(g.id)} style={subChip(typeFilter === g.id)}>
-              {g.label}
-            </button>
-          ))}
-        </ChipScroller>
-      )}
-      </>)}
 
       {/* Lista */}
       {items.length === 0 && (
@@ -335,7 +281,7 @@ export default function HistorySheet({ type, origin, tint, accent, accentInk, on
           <div style={{ fontSize: 13, fontWeight: 700 }}>
             {pendingOnly
               ? 'No tenés canjes pendientes de usar'
-              : (isCompras ? 'Sin movimientos de puntos en este período' : 'Sin canjes en este período')}
+              : (isCompras ? '{typeLabel ? `Sin ${typeLabel.toLowerCase()} en este período` : 'Sin movimientos de puntos en este período'}' : 'Sin canjes en este período')}
           </div>
         </div>
       )}

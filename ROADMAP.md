@@ -2007,6 +2007,13 @@ dueño ("la ventana sí va para todos"):
   curso; también solo entregados); el cuadro "Canjeados" del inicio usa la
   suma real y el promedio del catálogo × cantidad queda como respaldo con la
   etiqueta "(estimado)" si el RPC no responde.
+- **Historiales: filtros compactos (pedido del dueño):** de hasta tres filas
+  de chips (período · mes/año · tipo) a UNA fila de períodos derivada de los
+  datos (Hoy · meses · años · Todo) y el filtro de TIPO como icono de embudo
+  con menú anclado en la esquina derecha (mismo hueco del reloj de
+  pendientes en Canjes; acento + punto cuando hay un tipo elegido); el
+  subtítulo dice qué se está viendo ("12 canjes · Sep 2026"). Aplica a
+  Compras y Puntos y a Canjes (`history/HistoryFilters`).
 - **GO-LIVE:** el rollout de Vehículos sale del checklist; restante ≈4-8 hs
   (solo go-live).
 
