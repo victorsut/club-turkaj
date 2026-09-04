@@ -137,6 +137,7 @@ Esta sección documenta las decisiones tomadas durante las conversaciones de pla
 ### D4 — Toggle de precios globales vs por estación
 **Decisión:** admin elige si los precios son iguales en todas las estaciones o si cada una tiene los suyos.
 **Motivo:** flexibilidad operativa. Hoy son iguales, pero en el futuro podría haber diferencias por ubicación.
+**Implementación (v4.2, 4-sep-2026, mig `20260904c`):** ✅ COMPLETA. Interruptor `program_config.fuel_prices_mode.per_station` (RPC `set_fuel_prices_mode`, auditado) en Admin → Configuración → Precios de Combustible; con el modo encendido cada estación puede tener `stations.fuel_prices` propio (RPC `update_station_fuel_prices`, mismo modal con motivo; "Usar los precios globales" lo borra) y las que no lo tienen siguen con los globales. `register_purchase` resuelve el precio con `fuel_price_for(estación, combustible)`. La API de PROPER no cambia (galones reales de la factura). El estimado en Q del dashboard sigue usando el precio global.
 
 ### D5 — Club Business como spike
 **Decisión:** Club Business (B2B para flotas) se trata como spike de viabilidad, no desarrollo.
@@ -371,7 +372,7 @@ Mover el `useState(checkingPhone)` al tope del componente con los otros useState
 | — | **GO-LIVE** | **Checklist de lanzamiento:** ~~rollout de Vehículos~~ (✅ 4-sep), encender motor de degradación (`set_degradation_enabled` — el contador de todos arranca en cero), encender `phone_verification` (con Twilio), revocar la API key "Pruebas" de PROPER, verificación general | 4-8 hs | Alta | 📋 Pendiente (los interruptores están apagados A PROPÓSITO hasta el lanzamiento oficial) |
 | ∥ | **R1b** | **Track paralelo: rediseño visual iterativo por vistas** (Home → Promociones → Historiales → Menú → Canjes/Rifa) | 75-110 hs | Alta | 🔛 ACTIVO — **R1b.1 Home ✅ CERRADA** (17-jul, `4972e1d`→`dd50f30`, validada por el dueño: bento adaptable, cuadrados fijos Promos/Vehículo, degradados+iconos SVG, historiales con períodos derivados de datos + libro mayor de puntos, container transform con tinte de continuidad). **R1b.2 Promociones ✅ CERRADA** (18-jul, `dbe2ffd`→`6adb57c`, validada por el dueño) — cards verticales 3:4 en grid de 2 (vista PROMOCIONES con chips), 1:1 en el home (carrusel arrastrable, tap → vista); imagen 900×1200 como FONDO completo con textos encima (saltos de línea manuales, color por bloque via `text_colors` jsonb), preview admin a tamaño real; bucket promo-images solo-service-role + `/api/upload-promo-image`. **Actualización v4.0 (15-ago):** desde entonces el track cerró TODAS las vistas base del cliente — Menú (23-jul), modo claro/oscuro completo (24-jul), paleta por nivel + BLACK galaxia (23-jul→14-ago), Historiales con filtros por tipo + paginado (11-ago), Admin v2 con shell lateral y lienzo ancho (4→6-ago), divisiones <500 líneas de App/ClientHome/Settings/AdminDash (12→15-ago), code splitting por rol (cliente 354 kB, 14-ago) y **splash de entrada con monedas PP 3D** según referencia "idea intro" (15-ago). El track sigue ACTIVO para correcciones visuales puntuales según referencias |
 
-**Total restante estimado (v4.2):** ≈6-14 hs de desarrollo (fleco D4 + go-live) + F8 (1 sem, baja) + F9 opcional restante + gestiones externas del dueño (PROPER, Twilio, Play/Apple). F6 (72-93 hs estimadas) se ejecutó entre el 15-ago y el 3-sep; el plan v3.0 de 550-750 hs queda ejecutado en ~95%.
+**Total restante estimado (v4.2):** ≈4-8 hs de desarrollo (solo go-live) + F8 (1 sem, baja) + F9 opcional restante + gestiones externas del dueño (PROPER, Twilio, Play/Apple). F6 (72-93 hs estimadas) se ejecutó entre el 15-ago y el 3-sep; el plan v3.0 de 550-750 hs queda ejecutado en ~95%.
 
 > **Nota v3.0:** este orden ES la re-planificación (Nivel 2) que v2.4/v2.5
 > difirieron. F3 ya no existe como fase monolítica: se disuelve en R1a + track
@@ -1995,8 +1996,14 @@ dueño ("la ventana sí va para todos"):
   cerrado. Queda D4 como único fleco de producto: precios de combustible por
   estación (hoy globales en `program_config.fuel_prices`).
 - **`DEPLOY.md`** renombrado a Puntos Plus.
-- **GO-LIVE:** el rollout de Vehículos sale del checklist; restante ≈6-14 hs
-  (fleco D4 + go-live).
+- **D4 cerrada (mig `20260904c`):** precios de combustible globales o POR
+  ESTACIÓN — interruptor auditado en la tarjeta Precios de Combustible
+  (`settings/FuelPricesCard`, extraída de Settings), precio propio por estación
+  con el mismo modal y motivo (`FuelPricesModal` con `station`), "Usar los
+  precios globales" para volver, y `register_purchase` resuelve el precio con
+  `fuel_price_for`. Arnés `tools/harness/d4.html` verificado.
+- **GO-LIVE:** el rollout de Vehículos sale del checklist; restante ≈4-8 hs
+  (solo go-live).
 
 ### Versión 4.1 — 3 de septiembre de 2026
 

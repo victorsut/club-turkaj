@@ -42,6 +42,26 @@ export async function updateFuelPrices(prices, audit = {}) {
   return callRpc('update_fuel_prices', params);
 }
 
+// ── D4 (4-sep): interruptor global vs por estación + precios de una
+// estación. Ambos con sesión de admin STRICT (token) y auditoría. ──
+const auditParams = (audit = {}) => ({
+  p_admin_id: audit.adminId ?? null,
+  p_admin_name: audit.adminName ?? null,
+  p_admin_email: audit.adminEmail ?? null,
+  p_reason_text: audit.reasonText ?? null,
+});
+
+export async function setFuelPricesMode(perStation, audit = {}) {
+  return callRpc('set_fuel_prices_mode', { p_per_station: !!perStation, ...auditParams(audit) },
+    { sessionToken: getAdminToken()?.token ?? null });
+}
+
+// prices = { super, regular, diesel } · null = la estación vuelve a los globales
+export async function updateStationFuelPrices(stationId, prices, audit = {}) {
+  return callRpc('update_station_fuel_prices', { p_station_id: stationId, p_prices: prices, ...auditParams(audit) },
+    { sessionToken: getAdminToken()?.token ?? null });
+}
+
 // ──────────────────────────────────────────────
 // 7. AUDITORÍA — log_admin_action (client-first)
 // ──────────────────────────────────────────────

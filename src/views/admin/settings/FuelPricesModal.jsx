@@ -7,21 +7,27 @@
 // el formulario intacto. Settings lo monta condicionalmente: el
 // formulario se siembra desde cfg al montar (equivale al viejo
 // openPriceModal) y onClose desmonta todo el flujo.
+// D4 (4-sep): con `station` edita los precios PROPIOS de esa estación
+// (update_station_fuel_prices; "Usar globales" los borra) y refleja el
+// cambio en ctx.stations; sin `station` sigue siendo el global.
 import { useState, useEffect } from 'react';
 import { adminTheme as AT, inputStyleDark } from '../../../constants/styles';
-import { updateFuelPrices } from '../../../services/adminRpcServices';
+import { updateFuelPrices, updateStationFuelPrices } from '../../../services/adminRpcServices';
 import ReasonModal from '../../../components/ui/ReasonModal';
 
-export default function FuelPricesModal({ cfg, setCfg, fire, loggedAdmin, onClose }) {
+export default function FuelPricesModal({ cfg, setCfg, fire, loggedAdmin, onClose, station = null, setStations = null }) {
   const [showPriceModal, setShowPriceModal] = useState(true);
   const [showReasonModal, setShowReasonModal] = useState(false);
   // Siembra al montar = el viejo openPriceModal (el componente se
   // desmonta al cerrar, así que cada apertura re-siembra desde cfg).
+  const seed = station?.fuelPrices || cfg.fuelPrices;
   const [priceForm, setPriceForm] = useState(() => ({
-    super: String(cfg.fuelPrices?.super ?? 0),
-    regular: String(cfg.fuelPrices?.regular ?? 0),
-    diesel: String(cfg.fuelPrices?.diesel ?? 0),
+    super: String(seed?.super ?? 0),
+    regular: String(seed?.regular ?? 0),
+    diesel: String(seed?.diesel ?? 0),
   }));
+  // D4: "Usar globales" en una estación = borrar su precio propio
+  const [clearing, setClearing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
 
@@ -50,8 +56,9 @@ export default function FuelPricesModal({ cfg, setCfg, fire, loggedAdmin, onClos
 
   // PASO 1: valida los precios y abre el ReasonModal (cierra el de
   // precios sin tocar priceForm, para poder reabrirlo si el RPC falla).
-  const openReasonStep = () => {
-    if (formInvalid) return;
+  const openReasonStep = (clear = false) => {
+    if (!clear && formInvalid) return;
+    setClearing(clear);
     setSaveError('');
     setShowPriceModal(false);
     setShowReasonModal(true);
@@ -86,7 +93,9 @@ export default function FuelPricesModal({ cfg, setCfg, fire, loggedAdmin, onClos
     };
 
     try {
-      const { data, error } = await updateFuelPrices(payload, audit);
+      const { data, error } = station
+        ? await updateStationFuelPrices(station.id, clearing ? null : payload, audit)
+        : await updateFuelPrices(payload, audit);
 
       if (error) {
         // RPC falló: cerrar ReasonModal, reabrir Modal de precios
@@ -106,10 +115,24 @@ export default function FuelPricesModal({ cfg, setCfg, fire, loggedAdmin, onClos
         return;
       }
 
-      // Éxito: actualizar cfg, cerrar todo el flujo, toast de éxito.
-      setCfg(prev => ({ ...prev, fuelPrices: data }));
+      if (data.error) {
+        setShowReasonModal(false);
+        setShowPriceModal(true);
+        setSaveError(data.error);
+        fire('Error al guardar: ' + data.error);
+        return;
+      }
+
+      // Éxito: reflejar en cfg (global) o en ctx.stations (estación),
+      // cerrar todo el flujo, toast de éxito.
+      if (station) {
+        setStations?.(prev => prev.map(s => s.id === station.id ? { ...s, fuelPrices: data.fuel_prices || null } : s));
+        fire(clearing ? `${station.name} vuelve a los precios globales` : `Precios de ${station.name} actualizados`);
+      } else {
+        setCfg(prev => ({ ...prev, fuelPrices: data }));
+        fire('Precios actualizados');
+      }
       setShowReasonModal(false);
-      fire('Precios actualizados');
       onClose();
     } catch (err) {
       setShowReasonModal(false);
@@ -143,10 +166,12 @@ export default function FuelPricesModal({ cfg, setCfg, fire, loggedAdmin, onClos
             }}
           >
             <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginBottom: 4 }}>
-              Editar precios de combustible
+              {station ? `Precios de ${station.name}` : 'Editar precios de combustible'}
             </div>
             <div style={{ fontSize: 12, color: '#9E9E9E', marginBottom: 20 }}>
-              Rango válido: Q1.00 a Q100.00 por galón
+              {station
+                ? (station.fuelPrices ? 'Precio propio de esta estación · ' : 'Hoy usa los globales · ') + 'Rango Q1.00 a Q100.00'
+                : 'Rango válido: Q1.00 a Q100.00 por galón'}
             </div>
 
             {[
@@ -197,6 +222,17 @@ export default function FuelPricesModal({ cfg, setCfg, fire, loggedAdmin, onClos
               </div>
             )}
 
+            {station?.fuelPrices && (
+              <button onClick={() => openReasonStep(true)} disabled={saving} style={{
+                width: '100%', marginBottom: 10, padding: '11px 16px',
+                background: 'transparent', border: `1px dashed ${AT.border}`, borderRadius: 14,
+                color: '#9E9E9E', fontFamily: "'DM Sans'", fontSize: 13, fontWeight: 700,
+                cursor: saving ? 'not-allowed' : 'pointer',
+              }}>
+                Usar los precios globales en esta estación
+              </button>
+            )}
+
             <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
               <button
                 onClick={closePriceModal}
@@ -212,7 +248,7 @@ export default function FuelPricesModal({ cfg, setCfg, fire, loggedAdmin, onClos
                 Cancelar
               </button>
               <button
-                onClick={openReasonStep}
+                onClick={() => openReasonStep(false)}
                 disabled={formInvalid || saving}
                 style={{
                   flex: 1, padding: '14px 16px',
@@ -235,7 +271,7 @@ export default function FuelPricesModal({ cfg, setCfg, fire, loggedAdmin, onClos
         open={showReasonModal}
         onClose={() => { setShowReasonModal(false); onClose(); }}
         onConfirm={confirmSaveWithReason}
-        actionLabel="Actualizar precios de combustible"
+        actionLabel={station ? (clearing ? `Volver a precios globales en ${station.name}` : `Actualizar precios de ${station.name}`) : 'Actualizar precios de combustible'}
         loading={saving}
       />
     </>

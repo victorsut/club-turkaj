@@ -17,10 +17,10 @@ import ReasonModal from '../../components/ui/ReasonModal';
 // División 15-ago-2026 (regla de 500 líneas): los modales de llaves
 // API y de precios de combustible viven en views/admin/settings/.
 import ApiKeyModal from './settings/ApiKeyModal';
-import FuelPricesModal from './settings/FuelPricesModal';
+import FuelPricesCard from './settings/FuelPricesCard';
 
 export default function Settings(ctx) {
-  const { cfg, setCfg, fire, loggedAdmin, custs } = ctx;
+  const { cfg, setCfg, fire, loggedAdmin, custs, stations, setStations } = ctx;
 
   // ─── Interruptor del motor de degradación (25-jul) ───
   // Apagado hasta el lanzamiento oficial. Al encender, el servidor
@@ -170,11 +170,6 @@ export default function Settings(ctx) {
   // El modal (con su estado y generación) vive en settings/ApiKeyModal.
   const [showApiModal, setShowApiModal] = useState(false);
 
-  // ─── Edición de precios de combustible ───
-  // El flujo completo (modal + validación + motivo + RPC auditado)
-  // vive en settings/FuelPricesModal; acá solo el interruptor.
-  const [showPriceModal, setShowPriceModal] = useState(false);
-
   // ── estilos (FORMATO GENERAL Admin v2) ──────────────────
   const card = { background: AT.card, borderRadius: 16, border: `1px solid ${AT.border}`, padding: 16 };
   const cardTitle = { fontSize: 11, fontWeight: 800, color: '#9E9E9E', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 };
@@ -275,23 +270,14 @@ export default function Settings(ctx) {
           </div>
         </div>
 
-        {/* Precios de combustible */}
-        <div style={card}>
-          <div style={cardTitle}>Precios de Combustible</div>
-          {[
-            { name: 'Súper', price: cfg.fuelPrices?.super ?? 0, color: '#FF8F00' },
-            { name: 'Regular', price: cfg.fuelPrices?.regular ?? 0, color: '#81C784' },
-            { name: 'Diésel', price: cfg.fuelPrices?.diesel ?? 0, color: '#64B5F6' },
-          ].map((f, i) => (
-            <div key={f.name} style={{ ...row, borderBottom: i < 2 ? `1px solid ${AT.border}` : 'none' }}>
-              <span style={{ color: f.color, fontWeight: 700 }}>{f.name}</span>
-              <span style={{ color: '#fff', fontWeight: 800, ...sMono }}>Q{f.price.toFixed(2)}/gal</span>
-            </div>
-          ))}
-          <button onClick={() => setShowPriceModal(true)} style={{ ...ghostCardBtn('#FBBC04'), marginTop: 14 }}>
-            Editar precios
-          </button>
-        </div>
+        {/* Precios de combustible — globales + D4 por estación
+            (settings/FuelPricesCard, con el modal y el motivo adentro) */}
+        <FuelPricesCard
+          cfg={cfg} setCfg={setCfg} stations={stations} setStations={setStations}
+          loggedAdmin={loggedAdmin} fire={fire}
+          card={card} cardTitle={cardTitle} cardHint={cardHint} row={row}
+          ghostCardBtn={ghostCardBtn} border={AT.border}
+        />
 
         {/* Canal de asistencia (WhatsApp / llamadas) */}
         <div style={card}>
@@ -424,14 +410,6 @@ export default function Settings(ctx) {
       {/* ─── F7a: Modal de llaves de la API externa ─── */}
       {showApiModal && (
         <ApiKeyModal fire={fire} onClose={() => setShowApiModal(false)} />
-      )}
-
-      {/* ─── Editar precios de combustible (modal + motivo auditado) ─── */}
-      {showPriceModal && (
-        <FuelPricesModal
-          cfg={cfg} setCfg={setCfg} fire={fire} loggedAdmin={loggedAdmin}
-          onClose={() => setShowPriceModal(false)}
-        />
       )}
 
       {/* ─── F2.1: motivo del cambio de puntos por nivel ─── */}

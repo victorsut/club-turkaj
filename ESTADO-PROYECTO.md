@@ -173,7 +173,7 @@ anónima (track SEC.C completo, ver ROADMAP).
 - **Vehículos (F6):** `vehicles` (fuente de verdad; `alerts_muted`, `last_service`, `next_service`, `next_service_km`, `tank_gal`, `fuel_pref`…), `vehicle_fuel_logs` (consumos manuales fuera de Turkaj).
 - **Push:** `push_subscriptions`, `notifications` (todo envío; inbox de la campana y dedupe).
 - **API pública:** `api_clients` (API keys bcrypt), `api_requests` (idempotencia + log).
-- **Config y guardas:** `program_config` (jsonb por clave: `general`, `tiers`, `degradation`, `degradation_enabled`, `fuel_prices`, `company`, `support`, `service_alerts`, `terms_*`, `phone_verification`), `stations`, `points_write_violations`, `session_violations`.
+- **Config y guardas:** `stations` (+ `fuel_prices` propio por estación, D4), `program_config` (jsonb por clave: `general`, `tiers`, `degradation`, `degradation_enabled`, `fuel_prices`, `fuel_prices_mode`, `company`, `support`, `service_alerts`, `terms_*`, `phone_verification`), `points_write_violations`, `session_violations`.
 
 **Vistas:** `raffle_participants`, `daily_survey_count`, `operator_rating_avg`.
 **Buckets de Storage:** `promo-images`, `avatars` (solo service role; subida por `api/upload-*`).
@@ -195,7 +195,7 @@ calificación; SELECT abierto solo 15 min y columnas mínimas), `redemptions`
 - **Socio:** `register_member`, `get_my_member`, `update_my_profile`, `update_member_password`, `delete_my_account`, `check_member_exists`, `get_my_redemptions`, `get_my_notifications` / `mark_my_notifications_read` / `clear_my_notifications`, `save_push_subscription`, `rate_operator`, `complete_survey` / `count_my_surveys_today`, `buy_raffle_tickets`, `mark_raffle_winner_seen`, `list_activity`, `list_raffle_participants`, `respond_redemption_confirm`, `redeem_reward`.
 - **Vehículos:** `list_my_vehicles`, `save_my_vehicle`, `delete_my_vehicle`, `assign_purchase_vehicle`, `list_my_vehicle_stats`, `list_my_fuel_history`, `add_my_fuel_log` / `delete_my_fuel_log`, `confirm_my_vehicle_service`, `list_vehicle_service_alerts` (service_role).
 - **Operador:** `register_purchase` → `register_purchase_core` (compartido con la API), `resolve_card`, `list_operator_purchases`, `list_member_pending_redemptions`, `get_redemption_by_code`, `get_redemption_status`, `list_operator_redemptions`, `operator_set_redemption_confirm`, `deliver_redemption`, `log_print`, `get_member_full`, `list_members_full`, `list_member_stations`.
-- **Admin:** `create_operator` / `update_operator_password` / `update_operator_profile` / `toggle_operator_active` / `list_operators_full`, `list_admins` / `create_admin` / `update_admin_password` / `toggle_admin_active`, `update_member_with_audit`, `modify_member_points`, `admin_reset_member_password`, `admin_write_catalog` (rewards, promotions, special_days, raffle_calendar, stations, partner_stores), `manage_promo_rule` / `preview_promo` / `pick_best_promo`, `set_loyalty_config`, `set_degradation_enabled`, `set_company_info`, `set_support_phone`, `update_fuel_prices`, `set_service_alerts_config`, `get_admin_kpis`, `get_dash_monthly`, `get_station_top_members`, `get_admin_audit_log`, `log_admin_action`, `report_*` (canjes, consumo_segmentos, operadores, promos, rifas, integridad_*).
+- **Admin:** `create_operator` / `update_operator_password` / `update_operator_profile` / `toggle_operator_active` / `list_operators_full`, `list_admins` / `create_admin` / `update_admin_password` / `toggle_admin_active`, `update_member_with_audit`, `modify_member_points`, `admin_reset_member_password`, `admin_write_catalog` (rewards, promotions, special_days, raffle_calendar, stations, partner_stores), `manage_promo_rule` / `preview_promo` / `pick_best_promo`, `set_loyalty_config`, `set_degradation_enabled`, `set_company_info`, `set_support_phone`, `update_fuel_prices`, `set_fuel_prices_mode` / `update_station_fuel_prices` (+ `fuel_price_for`), `set_service_alerts_config`, `get_admin_kpis`, `get_dash_monthly`, `get_station_top_members`, `get_admin_audit_log`, `log_admin_action`, `report_*` (canjes, consumo_segmentos, operadores, promos, rifas, integridad_*).
 - **Motores:** `apply_due_degradations` (perezoso al abrir la app; APAGADO), `list_degradation_alerts` (cron), `draw_due_raffles` (sorteo automático al cierre del mes), `grant_special_day_bonus`.
 - **API pública (PROPER):** `api_authenticate`, `api_create_client`, `api_resolve_member`, `api_resolve_station`, `api_upsert_operator`, `api_register_purchase`, `api_redemption_confirm`, `api_list_pending_redemptions`, `api_get_redemption`, `api_log_request`, `api_replay`.
 
@@ -251,7 +251,7 @@ se ejecutan a mano en el SQL Editor de Supabase (regla de CLAUDE.md §9).
 
 ### Admin (shell lateral, desktop-first)
 - Dashboard con KPIs y tops; Socios (ficha completa, ajustes de puntos auditados, reset de contraseña); Personal (operadores + admins); Catálogo de premios (localizaciones y tiendas asociadas); Promociones (cards con imagen) y Reglas de promoción (motor); Rifas; Estaciones (WiFi, horario, coordenadas, código PROPER); Días especiales.
-- Configuración: identidad de la empresa, puntos por nivel y eventos, precios de combustible, degradación (interruptor), soporte, alertas de servicio (umbrales D24), administradores, API externa (llaves), términos.
+- Configuración: identidad de la empresa, puntos por nivel y eventos, precios de combustible (globales o por estación, D4), degradación (interruptor), soporte, alertas de servicio (umbrales D24), administradores, API externa (llaves), términos.
 - Análisis: clientes, operadores, promociones, integridad (cuentas de personal, repetidos, afinidad). Auditoría (`admin_audit_log`) con filtros.
 
 ---
@@ -302,7 +302,7 @@ WiFi por estación viven ahí.
 - **GO-LIVE:** encender degradación (`set_degradation_enabled`), encender
   `phone_verification` (requiere Twilio), revocar la API key "Pruebas" de
   PROPER, verificación general. ≈4-8 hs.
-- Fleco D4 (precios por estación); retirar `beta: true` de compatibilidad en `list_my_vehicles`
+- Retirar `beta: true` de compatibilidad en `list_my_vehicles`
   cuando no queden PWA viejas cacheadas.
 - Track TIENDAS (Play Store / App Store) y contacto técnico de PROPER —
   gestiones del dueño.

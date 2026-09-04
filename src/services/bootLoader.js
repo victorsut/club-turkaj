@@ -81,6 +81,7 @@ export async function loadFromSupabase({
         schedule: s.schedule || null,
         wifiSsid: s.wifi_ssid || null, wifiPassword: s.wifi_password || null,
         externalCode: s.external_code || '', // F1: código PROPER
+        fuelPrices: s.fuel_prices || null,    // D4: precio propio (null = globales)
       })).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es', { numeric: true })));
       console.log('[Puntos Plus] Estaciones cargadas:', stRes.data.length);
     }
@@ -113,6 +114,10 @@ export async function loadFromSupabase({
         const sa = cfgMap.service_alerts
           ? (typeof cfgMap.service_alerts === 'string' ? JSON.parse(cfgMap.service_alerts) : cfgMap.service_alerts)
           : {};
+        // D4 (4-sep): interruptor precios globales vs por estación
+        const fpm = cfgMap.fuel_prices_mode
+          ? (typeof cfgMap.fuel_prices_mode === 'string' ? JSON.parse(cfgMap.fuel_prices_mode) : cfgMap.fuel_prices_mode)
+          : {};
         let fp;
         if (cfgMap.fuel_prices) {
           fp = typeof cfgMap.fuel_prices === 'string' ? JSON.parse(cfgMap.fuel_prices) : cfgMap.fuel_prices;
@@ -127,6 +132,7 @@ export async function loadFromSupabase({
           surveyDaily: gen.surveyDaily || 5, tiers: trs, degrad: deg,
           termsUse: tu, termsCanje: tc,
           fuelPrices: fp,
+          fuelPricesPerStation: fpm.per_station === true,
           degradEnabled: degEn.enabled === true,
           degradEnabledAt: degEn.enabled_at || null,
           supportPhone: sup.phone || '49741067',

@@ -46,6 +46,8 @@ export const DEFAULT_CONFIG = {
   // D24 (4-sep-2026): umbrales de las alertas push de servicio de
   // vehículos (program_config 'service_alerts', Admin → Configuración).
   serviceAlerts: { days: 7, km: 500, overdueEveryDays: 7, kmEveryDays: 14 },
+  // D4 (4-sep-2026): precios por estación apagado = globales para todas
+  fuelPricesPerStation: false,
   // F1 (4-ago-2026): identidad de la empresa — selector de empresa y
   // tagline del inicio (program_config 'company', RPC set_company_info).
   companyName: 'Gasolineras Turkaj',
