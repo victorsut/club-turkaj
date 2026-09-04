@@ -2002,6 +2002,11 @@ dueño ("la ventana sí va para todos"):
   con el mismo modal y motivo (`FuelPricesModal` con `station`), "Usar los
   precios globales" para volver, y `register_purchase` resuelve el precio con
   `fuel_price_for`. Arnés `tools/harness/d4.html` verificado.
+- **Dashboard: puntos canjeados REALES (mig `20260904d`):** `get_admin_kpis`
+  agrega `redemptions` (cantidad y suma de `points_spent`, total y mes en
+  curso; también solo entregados); el cuadro "Canjeados" del inicio usa la
+  suma real y el promedio del catálogo × cantidad queda como respaldo con la
+  etiqueta "(estimado)" si el RPC no responde.
 - **GO-LIVE:** el rollout de Vehículos sale del checklist; restante ≈4-8 hs
   (solo go-live).
 

@@ -4,8 +4,9 @@
 // tarjetas), FORMATO GENERAL flat sin emojis; gráficos propios en
 // CSS/SVG (barras por estación, dona de mezcla de combustible,
 // distribución por nivel) — sin librerías externas. Los KPIs REALES
-// vienen del RPC get_admin_kpis (F1); sin respuesta caen al estimado
-// 45/35/20. Los botones zombie Escanear/Nuevo (modales inexistentes,
+// vienen del RPC get_admin_kpis (F1) — combustible, estaciones y, desde
+// el 4-sep, canjes REALES (suma de points_spent); sin respuesta caen al
+// estimado 45/35/20 y al promedio del catálogo. Los botones zombie Escanear/Nuevo (modales inexistentes,
 // deuda del ROADMAP) se eliminaron.
 import { useState, useEffect } from 'react';
 import { sb } from '../../lib/supabaseClient';
@@ -55,18 +56,13 @@ export default function AdminDash(ctx) {
   const tRedeemed = custs.reduce((s, c) => s + (c.redeemed || 0), 0);
   const curYM = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
   const newThisMonth = custs.filter(c => c.registered?.startsWith(curYM)).length;
-  // Puntos canjeados ESTIMADOS: no tenemos el costo exacto de cada canje
-  // histórico en el inicio (redemptions está cerrada), así que se usa el
-  // costo PROMEDIO REAL del catálogo × la cantidad de canjes — antes era
-  // una constante mágica 175 sin relación con los premios reales.
+  // Puntos canjeados: REALES desde get_admin_kpis (suma de
+  // redemptions.points_spent, 4-sep). El costo PROMEDIO del catálogo ×
+  // cantidad de canjes queda solo como RESPALDO si el RPC no responde.
   const avgRewardCost = rewards?.length
     ? Math.round(rewards.reduce((s, r) => s + (r.points_cost || 0), 0) / rewards.length)
     : 0;
-  const ptsRedeemed = tRedeemed * avgRewardCost;
-  const ptsUnredeemed = tP;
-  const ptsTotal = ptsUnredeemed + ptsRedeemed;
-  const qUnredeemed = (ptsUnredeemed / cfg.qPerPt).toFixed(0);
-  const qRedeemed = (ptsRedeemed / cfg.qPerPt).toFixed(0);
+  const ptsRedeemedEst = tRedeemed * avgRewardCost;
 
   // Distribución por nivel (galones acumulados de cada miembro)
   const tierCount = { ORO: 0, PLATINO: 0, BLACK: 0 };
@@ -93,6 +89,13 @@ export default function AdminDash(ctx) {
       if (data && !data.error) setKpis(data);
     });
   }, []);
+
+  const redReal = kpis?.redemptions && Number.isFinite(+kpis.redemptions.points);
+  const ptsRedeemed = redReal ? +kpis.redemptions.points : ptsRedeemedEst;
+  const ptsUnredeemed = tP;
+  const ptsTotal = ptsUnredeemed + ptsRedeemed;
+  const qUnredeemed = (ptsUnredeemed / cfg.qPerPt).toFixed(0);
+  const qRedeemed = (ptsRedeemed / cfg.qPerPt).toFixed(0);
 
   const FUEL_META = {
     super:   { label: 'Súper',   color: '#FF8F3C' },
@@ -364,9 +367,11 @@ export default function AdminDash(ctx) {
               <div style={{ fontSize: 11, color: '#66BB6A', fontWeight: 700 }}>Q{(+qUnredeemed).toLocaleString('en-US')}</div>
             </div>
             <div style={{ background: 'rgba(230,81,0,.14)', borderRadius: 12, padding: 12 }}>
-              <div style={{ ...kicker, color: '#FFB74D', marginBottom: 4 }}>Canjeados</div>
+              <div style={{ ...kicker, color: '#FFB74D', marginBottom: 4 }}>Canjeados{redReal ? '' : ' (estimado)'}</div>
               <div style={{ ...sMono, fontSize: 18, color: '#fff' }}>{ptsRedeemed.toLocaleString('en-US')}</div>
-              <div style={{ fontSize: 11, color: '#FFB74D', fontWeight: 700 }}>Q{(+qRedeemed).toLocaleString('en-US')}</div>
+              <div style={{ fontSize: 11, color: '#FFB74D', fontWeight: 700 }}>
+                Q{(+qRedeemed).toLocaleString('en-US')}{redReal ? ` · ${(+kpis.redemptions.count).toLocaleString('en-US')} canjes` : ''}
+              </div>
             </div>
           </div>
         </div>
