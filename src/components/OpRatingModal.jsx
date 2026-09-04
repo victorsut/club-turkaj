@@ -31,8 +31,8 @@ export default function OpRatingModal({
 
   // ── F6 E2: asignación de la carga a un vehículo + odómetro ──
   // El server ya la auto-asignó al PRINCIPAL (trigger); acá el cliente
-  // la confirma/cambia y opcionalmente reporta el km. Solo para betas
-  // con vehículos (decisión server-side de list_my_vehicles).
+  // la confirma/cambia y opcionalmente reporta el km. Solo si el socio
+  // tiene vehículos (rollout a todos el 4-sep: ya no hay beta).
   const [vehOpts, setVehOpts] = useState(null);   // null | vehículos del miembro
   const [vehSel, setVehSel] = useState(null);     // id elegido
   const [kmText, setKmText] = useState('');
@@ -42,7 +42,7 @@ export default function OpRatingModal({
     if (!sbConnected || !data.purchaseId) return;
     let alive = true;
     listMyVehicles().then(({ data: res }) => {
-      if (!alive || !res?.ok || !res.beta || !(res.vehicles || []).length) return;
+      if (!alive || !res?.ok || !(res.vehicles || []).length) return;
       setVehOpts(res.vehicles);
       vehInitial.current = res.vehicles[0].id; // orden del server: principal primero
       setVehSel(res.vehicles[0].id);

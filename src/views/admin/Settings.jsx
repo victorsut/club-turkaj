@@ -17,7 +17,6 @@ import ReasonModal from '../../components/ui/ReasonModal';
 // API y de precios de combustible viven en views/admin/settings/.
 import ApiKeyModal from './settings/ApiKeyModal';
 import FuelPricesModal from './settings/FuelPricesModal';
-import VehiclesBetaCard from './settings/VehiclesBetaCard';
 
 export default function Settings(ctx) {
   const { cfg, setCfg, fire, loggedAdmin, custs } = ctx;
@@ -412,12 +411,6 @@ export default function Settings(ctx) {
             Generar llave de API
           </button>
         </div>
-
-        {/* F6-E1: beta de la ventana Vehículos (lista de probadores) */}
-        <VehiclesBetaCard
-          custs={custs} loggedAdmin={loggedAdmin} fire={fire}
-          card={card} cardTitle={cardTitle} cardHint={cardHint}
-        />
 
       </div>
 

@@ -1,6 +1,6 @@
 // src/views/client/vehicles/VehiclesHome.jsx
-// F6 Etapa 1 — Ventana VEHÍCULOS real (solo miembros de la beta; el
-// resto sigue viendo VehiclesSoon). Encabezado con la ilustración del
+// F6 — Ventana VEHÍCULOS real, para TODOS los socios desde el rollout
+// del 4-sep-2026 (VehiclesScreen carga la lista). Encabezado con la ilustración del
 // vehículo en su color + resplandor; el PRINCIPAL (último que recibió
 // combustible — orden del server) va de primero y se cambia con SWIPE
 // izquierda/derecha. Debajo: datos relevantes (kilometraje, próximo

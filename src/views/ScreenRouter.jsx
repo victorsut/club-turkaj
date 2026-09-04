@@ -25,7 +25,7 @@ import ClientRaffle from './client/ClientRaffle';
 import Rules from './shared/Rules';
 import ClientMenu from './client/ClientMenu';
 import ClientPromos from './client/ClientPromos';
-import VehiclesSoon from './client/VehiclesSoon';
+import VehiclesScreen from './client/VehiclesScreen';
 
 // ── Code splitting por ROL (14-ago) ─────────────────────────
 // Las vistas de OPERADOR y ADMIN se cargan bajo demanda (React.lazy):
@@ -133,7 +133,7 @@ export default function ScreenRouter({ ctx, companyPicked, setCompanyPicked, nav
     if (cScr === 'promos') return <ClientPromos {...ctx} />;
     if (cScr === 'raf') return <ClientRaffle {...ctx} />;
     if (cScr === 'menu') return <ClientMenu {...ctx} />;
-    if (cScr === 'veh') return <VehiclesSoon {...ctx} />;
+    if (cScr === 'veh') return <VehiclesScreen {...ctx} />;
     return <ClientHome {...ctx} />;
   }
 
