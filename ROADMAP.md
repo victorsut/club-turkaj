@@ -2024,7 +2024,10 @@ dueño ("la ventana sí va para todos"):
   se desplaza. Como el lienzo raíz de la app lleva `overflow-x: hidden` (un
   scroll container que nunca se desplaza) el sticky contra la ventana no
   aplica: ambas vistas pasan a ser su PROPIO contenedor de scroll
-  (`height: 100dvh`, `overflow-y: auto`), igual que HistorySheet.
+  FIJO al viewport (`position: fixed`, bottom 55 = BottomNav, `overflow-y: auto`,
+  `overscroll-behavior: contain`), igual que HistorySheet. La primera versión
+  (`height: 100dvh` sin fijar) dejaba que el documento se desplazara en el
+  celular y escondiera los títulos — corregida el mismo día.
 - **GO-LIVE:** el rollout de Vehículos sale del checklist; restante ≈4-8 hs
   (solo go-live).
 

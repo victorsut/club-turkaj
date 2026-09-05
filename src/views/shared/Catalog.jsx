@@ -56,15 +56,22 @@ export default function Catalog(ctx) {
   // los premios. El lienzo raíz de la app lleva overflow-x hidden (es un
   // "scroll container" que nunca se desplaza), así que sticky contra la
   // ventana no funciona: en el cliente esta vista se convierte en su
-  // PROPIO contenedor de scroll (alto de la ventana) y el bloque se pega
-  // adentro. El fondo del bloque es sólido (galaxia/página) para que los
+  // PROPIO contenedor de scroll FIJO al viewport (como HistorySheet) y el
+  // bloque se pega adentro; overscroll-behavior contain evita que el
+  // desplazamiento se encadene al documento y esconda los títulos. El fondo del bloque es sólido (galaxia/página) para que los
   // premios no se vean a través.
   const stickyBg = (dark || (client && isBlack)) ? clientMainBg(cTier?.name, true) : bento.pageBg;
   return (
     <div style={{
       paddingBottom: 100, minHeight: '100vh',
       background: (dark || (client && isBlack)) ? 'transparent' : bento.pageBg,
-      ...(client ? { height: '100dvh', boxSizing: 'border-box', overflowY: 'auto', overflowX: 'hidden', minHeight: 0 } : {}),
+      // cliente: FIJO al viewport como HistorySheet (bottom 55 = BottomNav):
+      // el documento ya no se desplaza y solo los premios se mueven adentro
+      ...(client ? {
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 55, margin: '0 auto', maxWidth: 480,
+        minHeight: 0, boxSizing: 'border-box', overflowY: 'auto', overflowX: 'hidden',
+        overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', paddingBottom: 32,
+      } : {}),
     }}>
       <div style={client ? { position: 'sticky', top: 0, zIndex: 2, background: stickyBg } : undefined}>
       {/* Header centrado (formato de las ventanas del track) + reloj de

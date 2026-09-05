@@ -133,10 +133,12 @@ export default function ClientRaffle(ctx) {
 
   return (
     <div style={{
-      paddingBottom: 100, background: (dark || isBlack) ? 'transparent' : bento.pageBg,
-      // contenedor de scroll PROPIO (ver Catalog: el lienzo raíz lleva
-      // overflow-x hidden y sticky contra la ventana no funciona)
-      height: '100dvh', boxSizing: 'border-box', overflowY: 'auto', overflowX: 'hidden',
+      paddingBottom: 32, background: (dark || isBlack) ? 'transparent' : bento.pageBg,
+      // contenedor de scroll PROPIO y FIJO al viewport (ver Catalog y
+      // HistorySheet): el documento no se desplaza, solo la lista
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 55, margin: '0 auto', maxWidth: 480,
+      boxSizing: 'border-box', overflowY: 'auto', overflowX: 'hidden',
+      overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch',
     }}>
       {/* ── Bloque PEGAJOSO: encabezado + carrusel (+ compra) ── */}
       <div style={{ position: 'sticky', top: 0, zIndex: 2, background: stickyBg }}>
