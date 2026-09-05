@@ -1,5 +1,5 @@
 # Puntos Plus — Referencia Técnica del Proyecto
-## Última actualización: 4 de septiembre de 2026 (reconciliada contra el repo y la base de datos)
+## Última actualización: 5 de septiembre de 2026 (reconciliada contra el repo y la base de datos el 4-sep; F8 v0.3 el 5-sep)
 
 > **Este documento es solo REFERENCIA TÉCNICA** (stack, estructura, schema,
 > RPCs, endpoints, variables de entorno, accesos, reglas de negocio vigentes).
@@ -308,4 +308,4 @@ WiFi por estación viven ahí.
   cuando no queden PWA viejas cacheadas.
 - Track TIENDAS (Play Store / App Store) y contacto técnico de PROPER —
   gestiones del dueño.
-- **F8 Puntos Plus Business** (flotas, prepago, vales como canjes cuya entrega es el consumo): diseño técnico v0.2 acordado en `docs/PUNTOS-PLUS-BUSINESS.md`, 170-240 hs en 7 etapas; EN PAUSA hasta que el dueño defina los premios · F9 reportería opcional.
+- **F8 Puntos Plus Business** (flotas, prepago con cobro único al emitir el vale, entrega = consumo de combustible, puntos a la empresa por galones, canjes con puntos sin vencimiento, catálogo corporativo asignable, control de facturación, app normal solo para particulares): diseño técnico v0.3 acordado en `docs/PUNTOS-PLUS-BUSINESS.md` (27 decisiones B1-B27), 183-254 hs en 7 etapas; EN PAUSA hasta que el dueño defina los premios y los niveles de empresa · F9 reportería opcional.

@@ -1,9 +1,10 @@
 # Puntos Plus — Roadmap de Producto
 
-> **Versión:** 4.2
+> **Versión:** 4.3
 > **Fecha de creación:** 17 de mayo de 2026
-> **Última actualización:** 4 de septiembre de 2026
+> **Última actualización:** 5 de septiembre de 2026
 > **Estado:** Vivo (este documento evoluciona con el proyecto)
+> **Alcance v4.3 (5-sep-2026):** solo documentación de **F8 Puntos Plus Business v0.3**: nueve ajustes del dueño (B19-B27) — puntos de la empresa por GALONES con conversión propia editable en el admin, premios de combustible facturados a CF o al NIT de la empresa con control separado del dinero depositado, canjes con puntos que NO vencen, control de facturación (% facturado / por facturar), niveles de empresa pendientes, app normal solo para particulares, catálogo corporativo asignable con puntos→combustible, corte a la hora acordada y **cobro único al saldo al emitir el vale** (v0.2 duplicaba el cobro). Sigue EN PAUSA hasta definir premios y niveles; nada construido. Ver Changelog.
 > **Alcance v4.2 (4-sep-2026):** **F6 VEHÍCULOS EN PRODUCCIÓN PARA TODOS** (rollout, mig `20260904`) + cierre de las decisiones **D24** (umbrales editables y silencio por vehículo, `20260904b`) y **D4** (precios por estación, `20260904c`), D22 reconciliada como cerrada, dashboard con canjes reales (`20260904d`), inicio con el arte del vehículo principal, rifa con carrusel de meses, historiales con filtros compactos, y Historial/Canjes/Rifa con bloque superior fijo. Deuda documental saldada (`ESTADO-PROYECTO.md`). Restante de desarrollo: solo GO-LIVE. Ver Changelog.
 > **Alcance v4.1:** **F6 VEHÍCULOS CERRADA EN CÓDIGO** (15-ago → 3-sep-2026, verificada contra commits y migraciones): entidad + beta controlada, 50 artes por modelo, combustible y telemetría, consumos manuales, análisis y gráficas, push de servicio D24 con confirmación (E4), unificación jsonb→tabla (E2b) y retiro de Mi cuenta → Vehículos. Queda el **ROLLOUT** (encender `vehicles_beta.enabled`) en manos del dueño. Regla nueva (§0.3): cada cierre de etapa se refleja aquí el mismo día.
 > **Alcance v4.0:** **RECONCILIACIÓN CON LA REALIDAD DEL REPO** (verificada contra código y migraciones el 15-ago-2026). Desde v3.0 se CERRARON: SEC-lite, **SEC.C completo** (C.1–C.6), **F7a** (API PROPER, `docs/API-PROPER.md`), **F1**, **F2 incluida PROMO-2** (lavados por consumo + beneficio recurrente mensual) y **F5 en código** (OTP de registro implementado con interruptor apagado hasta Twilio). **F4/F7b quedan EN PAUSA** por decisión del dueño (11-ago: tarjeta SOLO digital). La única fase grande de desarrollo restante es **F6 (Vehículos)**; F9 quedó parcialmente cubierta por el grupo Análisis del admin. Se agrega el track operativo **TIENDAS/LANZAMIENTO** (Play/App Store + checklist de go-live). Este documento sigue siendo el PLAN MAESTRO ÚNICO (producto + seguridad).
@@ -143,6 +144,7 @@ Esta sección documenta las decisiones tomadas durante las conversaciones de pla
 **Decisión original:** Club Business (B2B para flotas) se trata como spike de viabilidad, no desarrollo.
 **Motivo:** no hay cliente confirmado. Investigación acotada antes de invertir esfuerzo.
 **Actualización (4-sep-2026):** el dueño ya conversó con empresas interesadas → la pregunta comercial del spike queda respondida (GO). El producto se llama **Puntos Plus Business**: sin suscripción, la empresa prefiere Turkaj por el control de su flota; modelo PREPAGO con libro mayor por empresa, vales de combustible con QR que se comportan como canjes (compatibles con la API actual de PROPER sin cambios), choferes como socios afiliados, rol nuevo `flota`, facturación al depósito o por consumo, crédito solo preparado. Diseño técnico v0.2 ACORDADO (170-240 hs en 7 etapas) en [`docs/PUNTOS-PLUS-BUSINESS.md`](./docs/PUNTOS-PLUS-BUSINESS.md): la ENTREGA del canje es el consumo (monto completo al confirmar, galones con precio de Puntos Plus, modal de calificación al entregar, puntos a la empresa, sin galones de nivel para el socio). **EN PAUSA** hasta que el dueño defina los premios (corporativos, asignables y valor de los de combustible).
+**Ajustes (5-sep-2026, diseño v0.3, decisiones B19-B27):** (1) los puntos de la empresa se ganan por **galones**, no por quetzales, con conversión propia de Business editable en Admin → Configuración (`program_config.business_points`), independiente de los tiers del programa normal; (2) los premios de combustible por fidelidad (canjeados con puntos, no con dinero depositado) se facturan a **CF** por defecto o al NIT de la empresa si lo pide, con control separado del efectivo depositado, y el corte por consumo puede incluir todo o solo el combustible que no es premio; (3) los canjes y premios con puntos **no vencen** (el QR permanece en la app del socio o en los canjes de la flota); solo los vales con saldo vencen y devuelven lo no consumido; (4) control de facturación: depósito facturado en su totalidad y, en facturación diaria, % facturado del saldo y lo que falta; (5) **niveles de empresa PENDIENTES**; (6) la app normal es SOLO para particulares — una empresa con NIT propio entra por Business (reglas técnicas de NIT en `register_member`/`update_my_profile`/`api_register_purchase`); (7) catálogo corporativo asignable a colaboradores, incluida la conversión de puntos a combustible fuera del saldo; (8) el corte diario puede ser al final del día o a la hora acordada con la empresa, más corte manual; (9) **cobro único al saldo al EMITIR el vale** — la v0.2 restaba al emitir y otra vez al entregar; la entrega ya no toca el dinero. Estimación 183-254 hs. Sigue EN PAUSA (premios B18 y niveles B23).
 
 ### D6 — Vehículos manuales con tracking básico
 **Decisión:** vehículos como entidad con datos ingresados manualmente por el cliente. Incluye CRUD, servicios, kilometraje y rendimiento (Nivel B).
@@ -367,13 +369,13 @@ Mover el `useState(checkingPhone)` al tope del componente con los otros useState
 | 9 | F7b | Endpoints `/physical-members` (completa contrato PROPER) | 8-12 hs | Media | ⏸️ **EN PAUSA** (depende de F4) |
 | 10 | F5 | Features faltantes (WhatsApp+SMS, password, dirección) | 56-73 hs | Media | ✅ **CERRADA EN CÓDIGO** (8-ago, mig `20260808c`) — OTP al registrar implementado (Twilio Verify + `/api/verify-phone` + `phone_verifications`; interruptor `phone_verification` APAGADO hasta configurar `TWILIO_*` en Vercel); dirección estructurada ✓ (`AddressPicker` + `geoGt.js`); confirmación de compra de boletos ✓ (sheet en ClientRaffle). Recuperación de password RESUELTA por decisión del dueño (14-ago): vía chat de WhatsApp — NO SMS/correo. PENDIENTE OPERATIVO: credenciales Twilio + encender el interruptor |
 | 11 | F6 | Vehículos como entidad + alertas push | 72-93 hs | Media | ✅ **CERRADA EN CÓDIGO** (15-ago → 3-sep, v4.1; migs `20260815_f6e1/b`, `20260819_f6e2`, `20260902/b/c`, `20260903/b/c`) — entidad `vehicles` + BETA controlada, 50 artes por modelo (E1), combustible y telemetría (E2), análisis, consumos manuales, gráficas y push de servicio D24 (E3), confirmación de servicio desde la notificación (E4), unificación jsonb→tabla (E2b) y retiro de Mi cuenta → Vehículos. ✅ **ROLLOUT a todos los socios (4-sep, mig `20260904`):** beta retirada (tabla, config, RPCs y tarjeta de admin), placeholder PRÓXIMAMENTE eliminado — `VehiclesScreen` monta `VehiclesHome` directo |
-| 12 | F8 | **Puntos Plus Business** (flotas): diseño técnico v0.2 en `docs/PUNTOS-PLUS-BUSINESS.md` (7 etapas B-E1…E7) | 170-240 hs | Media | ⏸️ **DISEÑO ACORDADO, EN PAUSA** (4-sep) — se retoma cuando el dueño defina los premios; nada construido |
+| 12 | F8 | **Puntos Plus Business** (flotas): diseño técnico v0.3 en `docs/PUNTOS-PLUS-BUSINESS.md` (7 etapas B-E1…E7; 27 decisiones B1-B27) | 183-254 hs | Media | ⏸️ **DISEÑO ACORDADO, EN PAUSA** (4-sep; ajustes B19-B27 el 5-sep: puntos por galones, cobro único al emitir el vale, canjes sin vencimiento, control de facturación, solo particulares en la app normal) — se retoma cuando el dueño defina los premios y los niveles de empresa; nada construido |
 | 13 | F9 | Reportería enriquecida (opcional) | 40-55 hs | Opcional | 🟡 **PARCIAL** — el grupo Análisis del admin (13-ago: AnClientes/AnOperadores/AnPromos/AnIntegridad con RPCs `report_*`, integridad auditada; sin método de pago — solo Q total) cubre el grueso; el resto queda opcional |
 | — | **TIENDAS** | **Track operativo nuevo (v4.0):** publicación en Play Store (TWA/PWABuilder + `assetlinks.json`) y App Store (Sign in with Apple + push APNs, decisiones del dueño 14-ago) — checklist en `docs/TIENDAS.md` | 15-25 hs + gestiones | Alta | 🟡 **PREPARADO** (14-ago: manifest completo, privacidad/eliminación corregidas, iconos 192). BLOQUEADO por cuentas del dueño (Play Console + Apple Developer) + capturas 1080×1920 + cuenta demo |
 | — | **GO-LIVE** | **Checklist de lanzamiento:** ~~rollout de Vehículos~~ (✅ 4-sep), encender motor de degradación (`set_degradation_enabled` — el contador de todos arranca en cero), encender `phone_verification` (con Twilio), revocar la API key "Pruebas" de PROPER, verificación general | 4-8 hs | Alta | 📋 Pendiente (los interruptores están apagados A PROPÓSITO hasta el lanzamiento oficial) |
 | ∥ | **R1b** | **Track paralelo: rediseño visual iterativo por vistas** (Home → Promociones → Historiales → Menú → Canjes/Rifa) | 75-110 hs | Alta | 🔛 ACTIVO — **R1b.1 Home ✅ CERRADA** (17-jul, `4972e1d`→`dd50f30`, validada por el dueño: bento adaptable, cuadrados fijos Promos/Vehículo, degradados+iconos SVG, historiales con períodos derivados de datos + libro mayor de puntos, container transform con tinte de continuidad). **R1b.2 Promociones ✅ CERRADA** (18-jul, `dbe2ffd`→`6adb57c`, validada por el dueño) — cards verticales 3:4 en grid de 2 (vista PROMOCIONES con chips), 1:1 en el home (carrusel arrastrable, tap → vista); imagen 900×1200 como FONDO completo con textos encima (saltos de línea manuales, color por bloque via `text_colors` jsonb), preview admin a tamaño real; bucket promo-images solo-service-role + `/api/upload-promo-image`. **Actualización v4.0 (15-ago):** desde entonces el track cerró TODAS las vistas base del cliente — Menú (23-jul), modo claro/oscuro completo (24-jul), paleta por nivel + BLACK galaxia (23-jul→14-ago), Historiales con filtros por tipo + paginado (11-ago), Admin v2 con shell lateral y lienzo ancho (4→6-ago), divisiones <500 líneas de App/ClientHome/Settings/AdminDash (12→15-ago), code splitting por rol (cliente 354 kB, 14-ago) y **splash de entrada con monedas PP 3D** según referencia "idea intro" (15-ago). El track sigue ACTIVO para correcciones visuales puntuales según referencias |
 
-**Total restante estimado (v4.2):** ≈4-8 hs de desarrollo (solo go-live) + **F8 Puntos Plus Business (170-240 hs, diseño acordado, en pausa hasta definir premios)** + F9 opcional restante + gestiones externas del dueño (PROPER, Twilio, Play/Apple). F6 (72-93 hs estimadas) se ejecutó entre el 15-ago y el 3-sep; el plan v3.0 de 550-750 hs queda ejecutado en ~95%.
+**Total restante estimado (v4.3):** ≈4-8 hs de desarrollo (solo go-live) + **F8 Puntos Plus Business (183-254 hs, diseño v0.3 acordado, en pausa hasta definir premios y niveles de empresa)** + F9 opcional restante + gestiones externas del dueño (PROPER, Twilio, Play/Apple). F6 (72-93 hs estimadas) se ejecutó entre el 15-ago y el 3-sep; el plan v3.0 de 550-750 hs queda ejecutado en ~95%.
 
 > **Nota v3.0:** este orden ES la re-planificación (Nivel 2) que v2.4/v2.5
 > difirieron. F3 ya no existe como fase monolítica: se disuelve en R1a + track
@@ -1173,7 +1175,7 @@ Sin cambios respecto a v2.1. Ver versiones anteriores del documento para detalle
     dueño 2-sep, a futuro); (2) retirar el campo `beta: true` de
     compatibilidad en `list_my_vehicles` cuando ya no queden PWA con el
     placeholder cacheado.
-- **F8 — Puntos Plus Business:** el spike (D5) se cerró con GO comercial el 4-sep-2026 (empresas interesadas). Diseño técnico v0.2 acordado en `docs/PUNTOS-PLUS-BUSINESS.md`: modelo de datos con libro mayor, rol `flota`, vales como canjes compatibles con la API de PROPER (la entrega es el consumo), apartado "Mi flota" en la app, facturación y métricas; 7 etapas, 170-240 hs. EN PAUSA hasta definir los premios (B18); nada construido.
+- **F8 — Puntos Plus Business:** el spike (D5) se cerró con GO comercial el 4-sep-2026 (empresas interesadas). Diseño técnico v0.3 acordado en `docs/PUNTOS-PLUS-BUSINESS.md` (v0.2 el 4-sep; ajustes B19-B27 el 5-sep): modelo de datos con DOS libros por empresa (dinero y puntos), rol `flota`, vales como canjes compatibles con la API de PROPER (cobro único al emitir; la entrega es el consumo de combustible: galones, telemetría y puntos por galón a la empresa), canjes y premios con puntos sin vencimiento, apartado "Mi flota" en la app, catálogo corporativo asignable a colaboradores (puntos→combustible fuera del saldo), facturación al depósito o por corte a la hora acordada con control de % facturado / por facturar, premios facturados a CF o al NIT de la empresa, reglas de NIT para que la app normal sea solo de particulares, métricas; 7 etapas, 183-254 hs. EN PAUSA hasta definir los premios (B18) y los niveles de empresa (B23); nada construido.
 - **F9 — Reportería enriquecida (opcional):** 40-55 hs. **🟡 PARCIAL (v4.0):**
   el grupo **Análisis** del admin (13-ago) cubrió el grueso — 4 vistas de
   consulta (AnClientes, AnOperadores, AnPromos, AnIntegridad) sobre RPCs
@@ -1936,6 +1938,49 @@ Cambios mayores van en commits separados con mensaje `docs: actualizar ROADMAP �
 ---
 
 ## Changelog
+
+### Versión 4.3 — 5 de septiembre de 2026
+
+**F8 Puntos Plus Business — diseño v0.3** (solo documentación; nada
+construido). El dueño revisó la v0.2 y pidió nueve ajustes, registrados como
+decisiones B19-B27 en `docs/PUNTOS-PLUS-BUSINESS.md` y en D5:
+
+- **B19 · Puntos por galones:** la empresa gana puntos por los galones de cada
+  carga, con conversión propia (`program_config.business_points.gal_per_pt`,
+  RPC `set_business_points_config`, Admin → Configuración → Business),
+  independiente de `tiers → qPerPt`. La fracción de galón se arrastra en
+  `companies.gal_carry` para no perder galones al redondear.
+- **B20 · Premios de combustible por fidelidad:** facturados a CF por defecto o
+  al NIT de la empresa si lo solicita (`companies.reward_invoice_mode`);
+  control separado del dinero depositado; el corte por consumo incluye todo o
+  solo lo que no es premio (`consumption_invoice_scope`).
+- **B21 · Sin vencimiento:** los canjes y premios obtenidos con puntos no
+  vencen (QR permanece en la app o en los canjes de la flota); solo los vales
+  emitidos con saldo vencen y devuelven lo no consumido.
+- **B22 · Control de facturación:** depósito con estado facturado en su
+  totalidad; cortes registrados con % facturado del saldo depositado y monto
+  por facturar.
+- **B23 · Niveles de empresa:** PENDIENTES; se evalúa lo más atractivo.
+- **B24 · App normal solo para particulares:** una empresa con NIT propio va
+  por Business; `companies.nit` UNIQUE, rechazo de NIT empresarial en
+  `register_member`/`update_my_profile`, y `api_register_purchase` no acredita
+  puntos a un particular por factura a NIT de empresa (`company_nit`).
+- **B25 · Catálogo corporativo asignable a colaboradores:** incluye convertir
+  puntos de la empresa en combustible, fuera del saldo de dinero, como canje
+  sin vencimiento en "Mi flota" del colaborador (`company_reward_grants`).
+- **B26 · Corte a la hora acordada:** `companies.billing_cutoff_time`, cron
+  horario `api/business-billing-cuts` + "Hacer corte ahora"; cada corte cubre
+  desde el anterior.
+- **B27 · Cobro único al EMITIR el vale:** la v0.2 restaba el monto al emitir
+  (`voucher_issue`) y de nuevo al entregar (`voucher_consume`) — doble cobro.
+  Queda solo la resta al emitir; la entrega registra combustible y puntos sin
+  tocar el libro de dinero; vencer/anular devuelve lo no consumido.
+- **Modelo:** `voucher_loads` → `fuel_loads` (con `source` vale / premio
+  corporativo / premio de socio e `invoice_target`), nuevo
+  `company_points_ledger`, `company_reward_grants`, columnas de control de
+  factura en `company_deposits` y `company_invoices` con `kind`/`scope`.
+  Estimación 183-254 hs (antes 170-240). Sigue EN PAUSA hasta definir premios
+  (B18) y niveles (B23).
 
 ### Versión 4.2 — 4 de septiembre de 2026
 
