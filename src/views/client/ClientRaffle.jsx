@@ -11,9 +11,10 @@
 // El sorteo es automático al cierre del mes (draw_due_raffles, ponderado
 // por boletos); acá solo se muestra el resultado.
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { bento, BRAND_ORANGE } from '../../constants/styles';
+import { bento, BRAND_ORANGE, clientMainBg } from '../../constants/styles';
 import { Back, Chev, TicketStar } from '../../components/ui/Icons';
 import useBackLayer from '../../hooks/useBackLayer';
+import useShortScreen from '../../hooks/useShortScreen';
 import useSwipeTrack, { slideIn } from '../../hooks/useSwipeTrack';
 import RafflePrizeCarousel from './raffle/RafflePrizeCarousel';
 
@@ -35,6 +36,11 @@ export default function ClientRaffle(ctx) {
   // carrusel); el gesto y la dirección viven en el hook compartido.
   const months = Array.from({ length: curMonth + 1 }, (_, i) => raffleCal[i] || EMPTY_MONTH);
   const swipe = useSwipeTrack({ count: months.length, idx: viewMonth, setIdx: setViewMonth });
+  // 4-sep (pedido del dueño): encabezado + carrusel del premio (+ compra
+  // en pantallas altas) PEGAJOSOS; solo la lista de participantes se
+  // desplaza. En pantallas cortas la tarjeta de compra se desplaza con
+  // la lista para que quede sitio a los participantes.
+  const shortScr = useShortScreen(800);
   // Al cambiar de mes, compra y participantes entran desde la dirección
   // del cambio (misma coreografía que la información de Vehículos).
   const buyRef = useRef(null);
@@ -96,36 +102,8 @@ export default function ClientRaffle(ctx) {
     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   });
 
-  return (
-    <div style={{ paddingBottom: 100, minHeight: '100vh', background: (dark || isBlack) ? 'transparent' : bento.pageBg }}>
-
-      {/* Header compacto: navegación de meses integrada al título */}
-      <div style={{ display: 'flex', alignItems: 'center', padding: '14px 12px 10px' }}>
-        <button onClick={() => swipe.go(viewMonth - 1)} aria-label="Mes anterior" style={navBtn(viewMonth > 0)}>
-          <Back />
-        </button>
-        <div style={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
-          <div style={{ fontSize: 18, fontWeight: 800, color: headerTxt }}>Rifa Mensual</div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: subTxt, marginTop: 1 }}>
-            {rm.m} {rm.year || ''} · sorteo al cierre del mes
-          </div>
-        </div>
-        <button onClick={() => swipe.go(viewMonth + 1)} aria-label="Mes siguiente" style={navBtn(viewMonth < curMonth)}>
-          <Chev />
-        </button>
-      </div>
-
-      {/* ── Premio del mes + mis boletos/total: carrusel por mes que
-          sigue al dedo (4-sep) — una tarjeta de información por mes ── */}
-      <RafflePrizeCarousel
-        months={months} rafData={rafData} me={me} curMonth={curMonth}
-        idx={viewMonth} swipe={swipe} dark={dark} winnerNameFor={winnerNameFor}
-        colors={{ headerTxt, subTxt, surface, rowLine, good }}
-      />
-
-      {/* ── Comprar boletos (solo mes en curso) — UNA tarjeta; los
-          botones son NARANJAS sólidos para diferenciarse de la info ── */}
-      {isCurrent && (
+  const stickyBg = (dark || isBlack) ? clientMainBg(cTier?.name, true) : bento.pageBg;
+  const buyCard = isCurrent && (
         <div ref={buyRef} style={{ margin: '0 16px 14px', padding: '12px 14px', borderRadius: 20, background: surface }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <span style={{ fontSize: 12, color: subTxt, fontWeight: 600 }}>Tus puntos</span>
@@ -151,7 +129,46 @@ export default function ClientRaffle(ctx) {
             Tocá para comprar boletos · más boletos, más posibilidades
           </div>
         </div>
-      )}
+  );
+
+  return (
+    <div style={{
+      paddingBottom: 100, background: (dark || isBlack) ? 'transparent' : bento.pageBg,
+      // contenedor de scroll PROPIO (ver Catalog: el lienzo raíz lleva
+      // overflow-x hidden y sticky contra la ventana no funciona)
+      height: '100dvh', boxSizing: 'border-box', overflowY: 'auto', overflowX: 'hidden',
+    }}>
+      {/* ── Bloque PEGAJOSO: encabezado + carrusel (+ compra) ── */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 2, background: stickyBg }}>
+      {/* Header compacto: navegación de meses integrada al título */}
+      <div style={{ display: 'flex', alignItems: 'center', padding: '14px 12px 10px' }}>
+        <button onClick={() => swipe.go(viewMonth - 1)} aria-label="Mes anterior" style={navBtn(viewMonth > 0)}>
+          <Back />
+        </button>
+        <div style={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: headerTxt }}>Rifa Mensual</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: subTxt, marginTop: 1 }}>
+            {rm.m} {rm.year || ''} · sorteo al cierre del mes
+          </div>
+        </div>
+        <button onClick={() => swipe.go(viewMonth + 1)} aria-label="Mes siguiente" style={navBtn(viewMonth < curMonth)}>
+          <Chev />
+        </button>
+      </div>
+
+      {/* ── Premio del mes + mis boletos/total: carrusel por mes que
+          sigue al dedo (4-sep) — una tarjeta de información por mes ── */}
+      <RafflePrizeCarousel
+        months={months} rafData={rafData} me={me} curMonth={curMonth}
+        idx={viewMonth} swipe={swipe} dark={dark} winnerNameFor={winnerNameFor}
+        colors={{ headerTxt, subTxt, surface, rowLine, good }}
+      />
+
+      {/* ── Comprar boletos (solo mes en curso): dentro del bloque
+          pegajoso en pantallas altas; en cortas, con la lista ── */}
+      {!shortScr && buyCard}
+      </div>
+      {shortScr && buyCard}
 
       {/* ── Participantes (orden aleatorio, yo primero) ── */}
       <div ref={partsRef} style={{ padding: '0 16px' }}>

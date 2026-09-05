@@ -5,7 +5,7 @@
 // sin borde con el ícono SVG del premio (RewardIcon — sin emojis) sobre
 // un cuadro de color sólido por categoría. BLACK conserva su galaxia.
 import { useState, useEffect } from 'react';
-import { bento, BRAND_ORANGE, CAT_LABELS, CAT_COLORS, homeColors } from '../../constants/styles';
+import { bento, BRAND_ORANGE, CAT_LABELS, CAT_COLORS, homeColors, clientMainBg } from '../../constants/styles';
 import RewardIcon from '../../components/ui/RewardIcon';
 import ChipScroller from '../../components/ui/ChipScroller';
 import HistorySheet from '../client/HistorySheet';
@@ -52,8 +52,21 @@ export default function Catalog(ctx) {
   const surface = dark ? 'rgba(255,255,255,.06)' : '#fff';
   const good = dark ? '#7CD98F' : bento.green;
 
+  // 4-sep (pedido del dueño): título + categorías PEGAJOSOS al desplazar
+  // los premios. El lienzo raíz de la app lleva overflow-x hidden (es un
+  // "scroll container" que nunca se desplaza), así que sticky contra la
+  // ventana no funciona: en el cliente esta vista se convierte en su
+  // PROPIO contenedor de scroll (alto de la ventana) y el bloque se pega
+  // adentro. El fondo del bloque es sólido (galaxia/página) para que los
+  // premios no se vean a través.
+  const stickyBg = (dark || (client && isBlack)) ? clientMainBg(cTier?.name, true) : bento.pageBg;
   return (
-    <div style={{ paddingBottom: 100, minHeight: '100vh', background: (dark || (client && isBlack)) ? 'transparent' : bento.pageBg }}>
+    <div style={{
+      paddingBottom: 100, minHeight: '100vh',
+      background: (dark || (client && isBlack)) ? 'transparent' : bento.pageBg,
+      ...(client ? { height: '100dvh', boxSizing: 'border-box', overflowY: 'auto', overflowX: 'hidden', minHeight: 0 } : {}),
+    }}>
+      <div style={client ? { position: 'sticky', top: 0, zIndex: 2, background: stickyBg } : undefined}>
       {/* Header centrado (formato de las ventanas del track) + reloj de
           canjes pendientes de usar arriba-derecha */}
       <div style={{ padding: '18px 16px 4px', textAlign: 'center', position: 'relative' }}>
@@ -106,6 +119,7 @@ export default function Catalog(ctx) {
           );
         })}
       </ChipScroller>
+      </div>
 
       {/* Grid de premios — cards flat sin borde */}
       <div style={{ padding: '0 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

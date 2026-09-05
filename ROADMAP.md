@@ -2017,6 +2017,14 @@ dueño ("la ventana sí va para todos"):
   celular; segunda pasada el mismo día: orden de la fila Todo · años · Hoy ·
   meses (reciente → antiguo) para historiales largos, y encabezado + fila
   PEGAJOSOS al desplazar la lista (se cambia de filtro desde el fondo).
+- **Canjes y Rifa con bloque superior FIJO (pedido del dueño, misma tarde):**
+  en la pestaña Canjes el título y las categorías quedan pegados al desplazar
+  los premios; en Rifa el encabezado, el carrusel del premio y (en pantallas
+  altas) la compra de boletos quedan fijos y solo la lista de participantes
+  se desplaza. Como el lienzo raíz de la app lleva `overflow-x: hidden` (un
+  scroll container que nunca se desplaza) el sticky contra la ventana no
+  aplica: ambas vistas pasan a ser su PROPIO contenedor de scroll
+  (`height: 100dvh`, `overflow-y: auto`), igual que HistorySheet.
 - **GO-LIVE:** el rollout de Vehículos sale del checklist; restante ≈4-8 hs
   (solo go-live).
 

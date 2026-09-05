@@ -21,6 +21,7 @@ const rafData = months.map((_, i) => ({
     { cid: 'me', name: 'Víctor', tickets: 2 + i, avatar: null },
     { cid: `u${i}`, name: 'Ezer M.', tickets: 3, avatar: null },
     { cid: 'x', name: 'Fernando M.', tickets: 1, avatar: null },
+    ...Array.from({ length: 25 }, (_, k) => ({ cid: 'p' + i + '_' + k, name: 'Socio ' + (k + 1), tickets: 1 + (k % 4), avatar: null })),
   ],
 }));
 const ctx = {
@@ -35,6 +36,7 @@ const Wrapped = () => {
   return <ClientRaffle {...c} />;
 };
 document.body.style.background = dark ? '#0B0B0D' : '#F7F7F9';
+if (q.get('scroll')) setTimeout(() => { const el = document.querySelector('#root > div > div'); if (el) el.scrollTop = +q.get('scroll'); }, 600);
 createRoot(document.getElementById('root')).render(<div style={{ width: 390 }}><Wrapped /></div>);
 if (start != null) {
   // simular el tap en ‹ hasta llegar al mes pedido (usa el mismo go() del hook)
