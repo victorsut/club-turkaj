@@ -9,7 +9,8 @@
 > técnica y changelog) vive en [`ROADMAP.md`](./ROADMAP.md).** Las reglas
 > operativas para trabajar el código están en [`CLAUDE.md`](./CLAUDE.md).
 > La API pública para el POS de PROPER está documentada en
-> [`docs/API-PROPER.md`](./docs/API-PROPER.md).
+> [`docs/API-PROPER.md`](./docs/API-PROPER.md) y el diseño de Puntos Plus
+> Business (flotas) en [`docs/PUNTOS-PLUS-BUSINESS.md`](./docs/PUNTOS-PLUS-BUSINESS.md).
 
 ---
 
@@ -307,4 +308,4 @@ WiFi por estación viven ahí.
   cuando no queden PWA viejas cacheadas.
 - Track TIENDAS (Play Store / App Store) y contacto técnico de PROPER —
   gestiones del dueño.
-- F8 Spike Club Business (baja) · F9 reportería opcional.
+- **F8 Puntos Plus Business** (flotas, prepago, vales como canjes): diseño técnico propuesto en `docs/PUNTOS-PLUS-BUSINESS.md`, 180-250 hs en 7 etapas, pendiente de validación del dueño · F9 reportería opcional.
