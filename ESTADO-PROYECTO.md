@@ -308,4 +308,4 @@ WiFi por estación viven ahí.
   cuando no queden PWA viejas cacheadas.
 - Track TIENDAS (Play Store / App Store) y contacto técnico de PROPER —
   gestiones del dueño.
-- **F8 Puntos Plus Business** (flotas, prepago, vales como canjes): diseño técnico propuesto en `docs/PUNTOS-PLUS-BUSINESS.md`, 180-250 hs en 7 etapas, pendiente de validación del dueño · F9 reportería opcional.
+- **F8 Puntos Plus Business** (flotas, prepago, vales como canjes cuya entrega es el consumo): diseño técnico v0.2 acordado en `docs/PUNTOS-PLUS-BUSINESS.md`, 170-240 hs en 7 etapas; EN PAUSA hasta que el dueño defina los premios · F9 reportería opcional.
