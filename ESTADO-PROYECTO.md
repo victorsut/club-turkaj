@@ -58,7 +58,7 @@ eager); la ventana Vehículos y cada arte de vehículo son chunks propios;
 
 ---
 
-## 3. Estructura del repo (626 archivos en git; 268 en `src/`)
+## 3. Estructura del repo (636 archivos en git; 270 en `src/`)
 
 ```
 puntos-plus/
@@ -83,6 +83,7 @@ puntos-plus/
 │   │                             #   ClientMenu, ClientPromos, ClientRaffle, HistorySheet,
 │   │                             #   NotificationsSheet, RewardQrSheet, TermsSheet,
 │   │                             #   CompanySelect, VehiclesScreen
+│   │   ├── history/              # HistoryFilters (fila de períodos + embudo de tipo del historial)
 │   │   ├── home/                 # HomeHeader, PromoBentoTile, VehicleBentoTile, TierDetailModal,
 │   │   │                         #   WifiModal, StationsMapModal, SurveyStationsModal
 │   │   ├── menu/                 # MenuAccount, MenuInfo, MenuTerms, AvatarEditor,
@@ -96,8 +97,8 @@ puntos-plus/
 │   │                             #   AdminManagement (admins), AdminCatalog, AdminPremios,
 │   │                             #   AdminPromos/AdminPromoForm, PromoRules/PromoRuleForm,
 │   │                             #   AdminRaffle/AdminRaffleForm, AdminStations, AuditLog,
-│   │                             #   Settings (+settings/ApiKeyModal, FuelPricesModal,
-│   │                             #   ServiceAlertsCard), analytics/An{Clientes,Operadores,
+│   │                             #   Settings (+settings/ApiKeyModal, FuelPricesCard,
+│   │                             #   FuelPricesModal, ServiceAlertsCard), analytics/An{Clientes,Operadores,
 │   │                             #   Promos,Integridad}
 │   ├── views/shared/             # Catalog (admin + cliente), Rules
 │   ├── components/               # modales y hojas globales: AppModals, OpRatingModal,
@@ -126,7 +127,7 @@ puntos-plus/
 │   ├── constants/                # config.js (DEFAULT_CONFIG, CARD_PREFIX…), styles.js,
 │   │                             #   vehicleCatalog.js (marcas/modelos + bodyFor), geoGt.js
 │   └── styles/global.css
-├── supabase/migrations/          # 102 migraciones SQL (se ejecutan A MANO en el SQL Editor)
+├── supabase/migrations/          # 104 migraciones SQL (se ejecutan A MANO en el SQL Editor)
 ├── docs/                         # API-PROPER.md (+html, colección Postman), TIENDAS.md
 ├── tools/
 │   ├── artes/                    # pipeline de calco de artes (motor, comparador, historico)
@@ -195,7 +196,7 @@ calificación; SELECT abierto solo 15 min y columnas mínimas), `redemptions`
 - **Socio:** `register_member`, `get_my_member`, `update_my_profile`, `update_member_password`, `delete_my_account`, `check_member_exists`, `get_my_redemptions`, `get_my_notifications` / `mark_my_notifications_read` / `clear_my_notifications`, `save_push_subscription`, `rate_operator`, `complete_survey` / `count_my_surveys_today`, `buy_raffle_tickets`, `mark_raffle_winner_seen`, `list_activity`, `list_raffle_participants`, `respond_redemption_confirm`, `redeem_reward`.
 - **Vehículos:** `list_my_vehicles`, `save_my_vehicle`, `delete_my_vehicle`, `assign_purchase_vehicle`, `list_my_vehicle_stats`, `list_my_fuel_history`, `add_my_fuel_log` / `delete_my_fuel_log`, `confirm_my_vehicle_service`, `list_vehicle_service_alerts` (service_role).
 - **Operador:** `register_purchase` → `register_purchase_core` (compartido con la API), `resolve_card`, `list_operator_purchases`, `list_member_pending_redemptions`, `get_redemption_by_code`, `get_redemption_status`, `list_operator_redemptions`, `operator_set_redemption_confirm`, `deliver_redemption`, `log_print`, `get_member_full`, `list_members_full`, `list_member_stations`.
-- **Admin:** `create_operator` / `update_operator_password` / `update_operator_profile` / `toggle_operator_active` / `list_operators_full`, `list_admins` / `create_admin` / `update_admin_password` / `toggle_admin_active`, `update_member_with_audit`, `modify_member_points`, `admin_reset_member_password`, `admin_write_catalog` (rewards, promotions, special_days, raffle_calendar, stations, partner_stores), `manage_promo_rule` / `preview_promo` / `pick_best_promo`, `set_loyalty_config`, `set_degradation_enabled`, `set_company_info`, `set_support_phone`, `update_fuel_prices`, `set_fuel_prices_mode` / `update_station_fuel_prices` (+ `fuel_price_for`), `set_service_alerts_config`, `get_admin_kpis`, `get_dash_monthly`, `get_station_top_members`, `get_admin_audit_log`, `log_admin_action`, `report_*` (canjes, consumo_segmentos, operadores, promos, rifas, integridad_*).
+- **Admin:** `create_operator` / `update_operator_password` / `update_operator_profile` / `toggle_operator_active` / `list_operators_full`, `list_admins` / `create_admin` / `update_admin_password` / `toggle_admin_active`, `update_member_with_audit`, `modify_member_points`, `admin_reset_member_password`, `admin_write_catalog` (rewards, promotions, special_days, raffle_calendar, stations, partner_stores), `manage_promo_rule` / `preview_promo` / `pick_best_promo`, `set_loyalty_config`, `set_degradation_enabled`, `set_company_info`, `set_support_phone`, `update_fuel_prices`, `set_fuel_prices_mode` / `update_station_fuel_prices` (+ `fuel_price_for`), `set_service_alerts_config`, `get_admin_kpis` (combustible, estaciones y canjes reales), `get_dash_monthly`, `get_station_top_members`, `get_admin_audit_log`, `log_admin_action`, `report_*` (canjes, consumo_segmentos, operadores, promos, rifas, integridad_*).
 - **Motores:** `apply_due_degradations` (perezoso al abrir la app; APAGADO), `list_degradation_alerts` (cron), `draw_due_raffles` (sorteo automático al cierre del mes), `grant_special_day_bonus`.
 - **API pública (PROPER):** `api_authenticate`, `api_create_client`, `api_resolve_member`, `api_resolve_station`, `api_upsert_operator`, `api_register_purchase`, `api_redemption_confirm`, `api_list_pending_redemptions`, `api_get_redemption`, `api_log_request`, `api_replay`.
 
@@ -239,7 +240,7 @@ se ejecutan a mano en el SQL Editor de Supabase (regla de CLAUDE.md §9).
 - Splash con monedas 3D; login Google / teléfono+contraseña / passkey; registro con wizard (dirección, vehículos, OTP opcional).
 - Inicio en bento: tarjeta de nivel (progreso en galones), Promociones (carrusel), Vehículo (arte del principal), WiFi (PLATINO/BLACK), Encuesta de Satisfacción, Ubicación (mapa + Waze/Maps), Historial de canjes, Historial de compras; campana con inbox de notificaciones; canal de asistencia (WhatsApp).
 - QR dinámico con prefijo por tier; modal de calificación del operador por compra (Realtime) con selector de vehículo y odómetro; encuestas Shell (5/día, espera oculta de 75 s, resultado persistente).
-- Canjes con confirmación en dos pasos y comprobante QR; rifa mensual con carrusel de meses (arrastre) y compra de boletos; historial con filtros por tipo y período.
+- Canjes con confirmación en dos pasos y comprobante QR; rifa mensual con carrusel de meses (arrastre) y compra de boletos; historial con una fila de períodos (Todo · años · Hoy · meses) y filtro de tipo en un icono de embudo. Historial, Canjes y Rifa son contenedores fijos al viewport: título y filtros quedan quietos y solo se desplazan las filas, los premios o los participantes.
 - Vehículos (F6, para todos desde el 4-sep): carrusel de artes con arrastre, ficha (km, aceite, próximo servicio por fecha/km, tanque, combustible habitual), telemetría (km/gal, km/día, costo por km, gráficas), consumos manuales, historial de cargas por vehículo con reasignación, confirmación de servicio desde el push, silencio de recordatorios por vehículo, zona de riesgo para eliminar.
 - Menú: cuenta (avatar, teléfono con OTP, contraseña, eliminar cuenta), información, términos, modo claro/oscuro.
 
@@ -250,7 +251,7 @@ se ejecutan a mano en el SQL Editor de Supabase (regla de CLAUDE.md §9).
 - Con PROPER activo el colaborador NO usa esta vista: el POS llama a la API y la estación viaja en cada factura.
 
 ### Admin (shell lateral, desktop-first)
-- Dashboard con KPIs y tops; Socios (ficha completa, ajustes de puntos auditados, reset de contraseña); Personal (operadores + admins); Catálogo de premios (localizaciones y tiendas asociadas); Promociones (cards con imagen) y Reglas de promoción (motor); Rifas; Estaciones (WiFi, horario, coordenadas, código PROPER); Días especiales.
+- Dashboard con KPIs reales (Q por combustible y por estación, puntos canjeados = suma de `points_spent`) y tops; Socios (ficha completa, ajustes de puntos auditados, reset de contraseña); Personal (operadores + admins); Catálogo de premios (localizaciones y tiendas asociadas); Promociones (cards con imagen) y Reglas de promoción (motor); Rifas; Estaciones (WiFi, horario, coordenadas, código PROPER); Días especiales.
 - Configuración: identidad de la empresa, puntos por nivel y eventos, precios de combustible (globales o por estación, D4), degradación (interruptor), soporte, alertas de servicio (umbrales D24), administradores, API externa (llaves), términos.
 - Análisis: clientes, operadores, promociones, integridad (cuentas de personal, repetidos, afinidad). Auditoría (`admin_audit_log`) con filtros.
 
@@ -285,7 +286,7 @@ WiFi por estación viven ahí.
 
 ## 11. Verificación visual y herramientas
 
-- `tools/harness/`: páginas Vite (`home-tile`, `raffle`, `d24`) que montan
+- `tools/harness/`: páginas Vite (`home-tile`, `raffle`, `history`, `catalog`, `d24`, `d4`) que montan
   componentes del cliente con datos simulados. Servidor:
   `npx vite --config tools/harness/vite.harness.config.js` (puerto 3100) y
   captura con Edge headless (`msedge --headless=new --screenshot=… --window-size=390,900 --virtual-time-budget=15000 <url>`).
